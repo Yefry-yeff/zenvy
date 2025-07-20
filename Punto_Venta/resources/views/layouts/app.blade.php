@@ -9,7 +9,7 @@
     <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
 
     <!-- Estilos + Scripts con Vite -->
-      <link rel="stylesheet" href="{{ asset('build/assets/app-D14tntRX.css') }}">
+      <link rel="stylesheet" href="{{ asset('build/assets/app-B9xTvVAG.css') }}">
      <script type="module" src="{{ asset('build/assets/app-DaBYqt0m.js') }}"></script>
 </head>
 
@@ -88,7 +88,7 @@
 
     <div class="flex flex-1 overflow-hidden">
         <!-- MENÚ LATERAL -->
-        <x-sidebar />
+        <x-sidebar :menu="$sidebarMenu" />
 
         <!-- CONTENIDO PRINCIPAL -->
         <main

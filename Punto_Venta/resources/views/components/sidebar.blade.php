@@ -1,3 +1,5 @@
+@props(['menu'])
+
 <aside
     x-show="sidebarOpen"
     x-transition:enter="transition duration-300 ease-out"
@@ -8,26 +10,31 @@
     x-transition:leave-end="-translate-x-full opacity-0"
     class="w-64 h-full bg-[var(--tema)] text-white overflow-y-auto"
 >
-
     <nav class="p-4 space-y-2 text-sm">
-        {{-- Grupos de menú --}}
-        @php
-            $usuarios = [
-                ['label' => 'Lista', 'route' => 'usuarios.index'],
-                ['label' => 'Crear', 'route' => 'usuarios.create']
-            ];
-            $ventas = [
-                ['label' => 'Nueva venta', 'route' => 'ventas.create'],
-                ['label' => 'Historial', 'route' => 'ventas.index']
-            ];
-            $inventario = [
-                ['label' => 'Productos', 'route' => 'inventario.productos'],
-                ['label' => 'Categorías', 'route' => 'inventario.categorias']
-            ];
-        @endphp
+        @foreach ($menu as $menuItem)
+            <div x-data="{ expanded: false }">
+                <button @click="expanded = !expanded"
+                        class="w-full flex justify-between items-center px-3 py-2 rounded bg-white/10 text-white hover:bg-white/20">
+                    <span class="flex items-center gap-2">
+                        <span>{{ $menuItem['icon'] }}</span>
+                        {{ $menuItem['label'] }}
+                    </span>
+                    <span x-text="expanded ? '▲' : '▼'" class="text-xs"></span>
+                </button>
 
-        <x.menu-group label="Usuarios" icon="👥" :items="$usuarios" />
-        <x.menu-group label="Sala de Ventas" icon="🛒" :items="$ventas" />
-        <x.menu-group label="Inventario" icon="📦" :items="$inventario" />
+                @if (!empty($menuItem['items']))
+                    <ul x-show="expanded" x-cloak x-transition class="pl-6 mt-2 space-y-1">
+                        @foreach ($menuItem['items'] as $child)
+                            <li>
+                                <a href="{{ route($child['route']) }}"
+                                   class="block px-3 py-1 rounded text-white/70 hover:text-white hover:bg-white/10">
+                                    {{ $child['label'] }}
+                                </a>
+                            </li>
+                        @endforeach
+                    </ul>
+                @endif
+            </div>
+        @endforeach
     </nav>
 </aside>
