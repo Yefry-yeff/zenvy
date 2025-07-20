@@ -1,3 +1,22 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+[x-cloak] {
+    display: none !important;
+}
+:root {
+    --tema: #047857; /* fallback */
+}
+
+.verde {
+    --tema: #047857;
+}
+
+.azul {
+    --tema: #1D4ED8;
+}
+
+.oscuro {
+    --tema: #1F2937;
+}

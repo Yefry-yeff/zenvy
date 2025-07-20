@@ -1,35 +1,33 @@
-@php
-    $sidebarColor = session('sidebar_color', 'from-red-700 to-red-900'); // por defecto rojo oscuro
-@endphp
-
-<aside 
-    class="w-64 h-screen bg-gradient-to-b {{ $sidebarColor }} text-white fixed overflow-y-auto"
-    x-data="{ openMenus: {} }"
+<aside
+    x-show="sidebarOpen"
+    x-transition:enter="transition duration-300 ease-out"
+    x-transition:enter-start="-translate-x-full opacity-0"
+    x-transition:enter-end="translate-x-0 opacity-100"
+    x-transition:leave="transition duration-200 ease-in"
+    x-transition:leave-start="translate-x-0 opacity-100"
+    x-transition:leave-end="-translate-x-full opacity-0"
+    class="w-64 h-full bg-[var(--tema)] text-white overflow-y-auto"
 >
-    <div class="p-4 text-center border-b border-white/20">
-        <img src="/logo.png" alt="Logo" class="mx-auto w-12 h-12 mb-2">
-        <p class="font-semibold">Johann</p>
-        <p class="text-sm text-gray-200">Administrador</p>
-    </div>
 
-    <nav class="mt-4 px-2">
-        <x-menu-item icon="🏠" label="Dashboard" route="dashboard" />
-        
-        <x-menu-group icon="👥" label="Usuarios" :items="[
-            ['label' => 'Lista', 'route' => 'usuarios.index'],
-            ['label' => 'Crear', 'route' => 'usuarios.create']
-        ]"/>
+    <nav class="p-4 space-y-2 text-sm">
+        {{-- Grupos de menú --}}
+        @php
+            $usuarios = [
+                ['label' => 'Lista', 'route' => 'usuarios.index'],
+                ['label' => 'Crear', 'route' => 'usuarios.create']
+            ];
+            $ventas = [
+                ['label' => 'Nueva venta', 'route' => 'ventas.create'],
+                ['label' => 'Historial', 'route' => 'ventas.index']
+            ];
+            $inventario = [
+                ['label' => 'Productos', 'route' => 'inventario.productos'],
+                ['label' => 'Categorías', 'route' => 'inventario.categorias']
+            ];
+        @endphp
 
-        <x-menu-group icon="🛒" label="Sala de Ventas" :items="[
-            ['label' => 'Nueva Venta', 'route' => 'ventas.create'],
-            ['label' => 'Historial', 'route' => 'ventas.index']
-        ]"/>
-
-        <x-menu-group icon="📦" label="Inventario" :items="[
-            ['label' => 'Productos', 'route' => 'productos.index'],
-            ['label' => 'Categorías', 'route' => 'categorias.index']
-        ]"/>
-
-        <!-- Más secciones aquí -->
+        <x.menu-group label="Usuarios" icon="👥" :items="$usuarios" />
+        <x.menu-group label="Sala de Ventas" icon="🛒" :items="$ventas" />
+        <x.menu-group label="Inventario" icon="📦" :items="$inventario" />
     </nav>
 </aside>
