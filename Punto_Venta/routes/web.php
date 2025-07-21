@@ -19,11 +19,3 @@ Route::middleware('auth')->group(function () {
 });
 
 require __DIR__.'/auth.php';
-
-Route::get('/productos', [ProductoController::class, 'productos'])->name('inventario.productos');
-Route::get('/categorias', [CategoriaController::class, 'categorias'])->name('inventario.categorias');
-Route::get('/ventas/nueva', [VentaController::class, 'create'])->name('ventas.create');
-Route::get('/ventas', [VentaController::class, 'index'])->name('ventas.index');
-Route::get('/inventario', [InventarioController::class, 'index'])->name('inventario.index');
-Route::get('/usuarios', [UsuariosController::class, 'index'])->name('usuarios.index');
-Route::get('/usuariosc	', [UsuariosCreateController::class, 'index'])->name('usuarios.create');
