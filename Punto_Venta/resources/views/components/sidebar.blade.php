@@ -14,7 +14,7 @@
         @foreach ($menu as $menuItem)
             <div x-data="{ expanded: false }">
                 <button @click="expanded = !expanded"
-                        class="w-full flex justify-between items-center px-3 py-2 rounded bg-white/10 text-white hover:bg-white/20">
+                        class="flex items-center justify-between w-full px-3 py-2 text-white rounded bg-white/10 hover:bg-white/20">
                     <span class="flex items-center gap-2">
                         <span>{{ $menuItem['icon'] }}</span>
                         {{ $menuItem['label'] }}
@@ -26,10 +26,12 @@
                     <ul x-show="expanded" x-cloak x-transition class="pl-6 mt-2 space-y-1">
                         @foreach ($menuItem['items'] as $child)
                             <li>
-                                <a href="{{ route($child['route']) }}"
-                                   class="block px-3 py-1 rounded text-white/70 hover:text-white hover:bg-white/10">
+                                <button
+                                    wire:click="$emit('cambiarVista', '{{ $child['route'] }}')"
+                                    class="w-full px-3 py-1 text-left rounded text-white/70 hover:text-white hover:bg-white/10"
+                                >
                                     {{ $child['label'] }}
-                                </a>
+                                </button>
                             </li>
                         @endforeach
                     </ul>

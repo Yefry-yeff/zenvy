@@ -1,0 +1,3 @@
+<div>
+    @include($vista)
+</div>
