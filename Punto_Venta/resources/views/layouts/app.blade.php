@@ -9,7 +9,7 @@
     <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
 
     {{-- Estilos Vite --}}
-    <link rel="stylesheet" href="{{ asset('build/assets/app-CCcw_M8Q.css') }}">
+    <link rel="stylesheet" href="{{ asset('build/assets/app-oyz4OmX_.css') }}">
 
     {{-- Solución para evitar múltiples Alpine (Livewire defer) --}}
     <script>
@@ -28,17 +28,16 @@
     x-effect="localStorage.setItem('theme', theme); document.documentElement.className = theme"
     class="flex flex-col h-screen font-sans antialiased"
 >
-
-    {{-- BARRA SUPERIOR CON LOGO / TÍTULO --}}
-    <div class="flex items-center justify-center gap-3 px-6 py-2 text-base font-semibold text-black bg-white shadow">
-        <img src="{{ asset('img/logo-zenvy.png') }}" alt="Logo Zenvy" class="object-contain h-8">
-        ZENVY POS v1.0
-    </div>
-
     {{-- ENCABEZADO PRINCIPAL --}}
-    <header class="bg-[var(--tema)] text-white flex items-center justify-between px-6 py-2 shadow text-sm">
-        <div class="flex items-center gap-3">
-            {{-- Botón para retraer menú --}}
+<header
+    :class="theme === 'verde' ? 'bg-emerald-600/80' :
+            theme === 'azul' ? 'bg-blue-600/80' :
+            theme === 'oscuro' ? 'bg-gray-900/80' : 'bg-slate-700/80'"
+    class="text-white px-6 py-2 shadow-md backdrop-blur-md transition-all duration-300"
+>
+    <div class="flex items-center justify-between w-full">
+        {{-- IZQUIERDA: Botón hamburguesa --}}
+        <div class="flex items-center gap-2">
             <button @click="sidebarOpen = !sidebarOpen" class="text-white focus:outline-none">
                 <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24"
                      stroke="currentColor">
@@ -46,19 +45,18 @@
                           d="M4 6h16M4 12h16M4 18h16" />
                 </svg>
             </button>
-
-            <a href="{{ route('dashboard') }}"
-               class="flex items-center gap-2 px-3 py-1 text-sm text-white transition rounded bg-white/10 hover:bg-white/20">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                          d="M3 12l9-9 9 9M4 10v10a1 1 0 001 1h5m6-11v10a1 1 0 001 1h5V10" />
-                </svg>
-                <span>Inicio</span>
-            </a>
         </div>
 
-        {{-- Perfil con dropdown --}}
-        <div x-data="{ open: false }" class="relative">
+        {{-- CENTRO: Logo + Texto --}}
+        <div class="flex items-center gap-2 text-base font-semibold">
+            <div class="bg-white rounded-xl p-1">
+                <img src="{{ asset('img/logo-zenvy.png') }}" alt="Logo Zenvy" class="h-8 w-auto object-contain">
+            </div>
+            <span class="text-white">ZENVY POS v1.0</span>
+        </div>
+
+        {{-- DERECHA: Perfil y dropdown --}}
+        <div x-data="{ open: false }" class="relative flex items-center">
             <button @click="open = !open" class="flex items-center gap-2 text-white focus:outline-none">
                 <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none"
                      viewBox="0 0 24 24" stroke="currentColor">
@@ -90,7 +88,11 @@
                 </form>
             </div>
         </div>
-    </header>
+    </div>
+</header>
+
+
+
 
     <div class="flex flex-1 overflow-hidden">
         {{-- MENÚ LATERAL --}}
