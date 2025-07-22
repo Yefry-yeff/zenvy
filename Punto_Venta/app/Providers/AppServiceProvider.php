@@ -31,8 +31,8 @@ class AppServiceProvider extends ServiceProvider
                                 'route' => $item->routa,
                             ];
                         })->values()
-                ];
-            });
+                                ];
+                            });
 
             $view->with('sidebarMenu', $menu);
         });

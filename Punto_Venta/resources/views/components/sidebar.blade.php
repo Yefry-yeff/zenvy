@@ -26,12 +26,12 @@
                     <ul x-show="expanded" x-cloak x-transition class="pl-6 mt-2 space-y-1">
                         @foreach ($menuItem['items'] as $child)
                             <li>
-                                <button
-                                    wire:click="$emit('cambiarVista', '{{ $child['route'] }}')"
-                                    class="w-full px-3 py-1 text-left rounded text-white/70 hover:text-white hover:bg-white/10"
-                                >
-                                    {{ $child['label'] }}
-                                </button>
+                            <button
+                                x-on:click="Livewire.dispatch('cambiarVista', [@js($child['route'])])"
+                                class="w-full px-3 py-1 text-left rounded text-white/70 hover:text-white hover:bg-white/10"
+                            >
+                                {{ $child['label'] }}
+                            </button>
                             </li>
                         @endforeach
                     </ul>
