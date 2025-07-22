@@ -33,60 +33,59 @@
     :class="theme === 'verde' ? 'bg-emerald-600/80' :
             theme === 'azul' ? 'bg-blue-600/80' :
             theme === 'oscuro' ? 'bg-gray-900/80' : 'bg-slate-700/80'"
-    class="text-white px-6 py-2 shadow-md backdrop-blur-md transition-all duration-300"
+    class="text-white flex items-center justify-between px-6 py-2 shadow-md backdrop-blur-md transition-all duration-300"
 >
-    <div class="flex items-center justify-between w-full">
-        {{-- IZQUIERDA: Botón hamburguesa --}}
-        <div class="flex items-center gap-2">
-            <button @click="sidebarOpen = !sidebarOpen" class="text-white focus:outline-none">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24"
-                     stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                          d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
-            </button>
-        </div>
+    {{-- IZQUIERDA: botón menú y logo --}}
+    <div class="flex items-center gap-3">
+        {{-- Botón para retraer menú --}}
+        <button @click="sidebarOpen = !sidebarOpen" class="text-white focus:outline-none">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24"
+                 stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+        </button>
 
-        {{-- CENTRO: Logo + Texto --}}
+        {{-- Logo y Título --}}
         <div class="flex items-center gap-2 text-base font-semibold">
             <div class="bg-white rounded-xl p-1">
                 <img src="{{ asset('img/logo-zenvy.png') }}" alt="Logo Zenvy" class="h-8 w-auto object-contain">
             </div>
             <span class="text-white">ZENVY POS v1.0</span>
         </div>
+    </div>
 
-        {{-- DERECHA: Perfil y dropdown --}}
-        <div x-data="{ open: false }" class="relative flex items-center">
-            <button @click="open = !open" class="flex items-center gap-2 text-white focus:outline-none">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none"
-                     viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                          d="M5.121 17.804A13.937 13.937 0 0112 15c2.5 0 4.847.655 6.879 1.804M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-                <span class="font-medium">{{ Auth::user()->name }}</span>
-            </button>
+    {{-- DERECHA: Perfil con dropdown --}}
+    <div x-data="{ open: false }" class="relative">
+        <button @click="open = !open" class="flex items-center gap-2 text-white focus:outline-none">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none"
+                 viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M5.121 17.804A13.937 13.937 0 0112 15c2.5 0 4.847.655 6.879 1.804M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            <span class="font-medium">{{ Auth::user()->name }}</span>
+        </button>
 
-            <div x-show="open" @click.outside="open = false" x-transition
-                 class="absolute right-0 z-50 w-48 mt-2 text-gray-800 bg-white rounded shadow-md">
-                <div class="px-4 py-2 border-b">
-                    <p class="text-sm font-semibold text-gray-600">Tema</p>
-                    <button @click="theme = 'verde'" class="w-full px-2 py-1 text-sm text-left rounded hover:bg-green-100">Verde</button>
-                    <button @click="theme = 'azul'" class="w-full px-2 py-1 text-sm text-left rounded hover:bg-blue-100">Azul</button>
-                    <button @click="theme = 'oscuro'" class="w-full px-2 py-1 text-sm text-left rounded hover:bg-gray-100">Oscuro</button>
-                </div>
-                <form method="POST" action="{{ route('logout') }}">
-                    @csrf
-                    <button type="submit"
-                            class="flex items-center w-full gap-2 px-4 py-2 text-sm text-gray-700 rounded-b hover:bg-gray-100">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-gray-600" fill="none"
-                             viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                  d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1m0-10V5" />
-                        </svg>
-                        Cerrar sesión
-                    </button>
-                </form>
+        <div x-show="open" @click.outside="open = false" x-transition
+             class="absolute right-0 z-50 w-48 mt-2 text-gray-800 bg-white rounded shadow-md">
+            <div class="px-4 py-2 border-b">
+                <p class="text-sm font-semibold text-gray-600">Tema</p>
+                <button @click="theme = 'verde'" class="w-full px-2 py-1 text-sm text-left rounded hover:bg-green-100">Verde</button>
+                <button @click="theme = 'azul'" class="w-full px-2 py-1 text-sm text-left rounded hover:bg-blue-100">Azul</button>
+                <button @click="theme = 'oscuro'" class="w-full px-2 py-1 text-sm text-left rounded hover:bg-gray-100">Oscuro</button>
             </div>
+            <form method="POST" action="{{ route('logout') }}">
+                @csrf
+                <button type="submit"
+                        class="flex items-center w-full gap-2 px-4 py-2 text-sm text-gray-700 rounded-b hover:bg-gray-100">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-gray-600" fill="none"
+                         viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1m0-10V5" />
+                    </svg>
+                    Cerrar sesión
+                </button>
+            </form>
         </div>
     </div>
 </header>
