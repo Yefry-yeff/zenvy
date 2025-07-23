@@ -6,14 +6,14 @@ use Livewire\Component;
 
 class DynamicContent extends Component
 {
-    public $vista = 'livewire.dashboard';
+    public $vista = 'dashboard';
 
     protected $listeners = ['cambiarVista'];
 
     public function cambiarVista($ruta)
     {
         logger()->info('[Livewire] cambiarVista recibió:', ['ruta' => $ruta]);
-        $this->vista = 'livewire.' . str_replace('.', '.', $ruta);
+         $this->vista = $ruta;
     }
 
     public function render()

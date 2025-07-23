@@ -9,7 +9,8 @@
     <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
 
     {{-- Estilos Vite --}}
-    <link rel="stylesheet" href="{{ asset('build/assets/app-oyz4OmX_.css') }}">
+    <link rel="stylesheet" href="{{ asset('build/assets//app-DQg6kF3j.css') }}">
+    <link rel="stylesheet" href="{{ asset('build/assets//app-BP5HB3ti.css') }}">
 
     {{-- Solución para evitar múltiples Alpine (Livewire defer) --}}
     <script>
@@ -33,7 +34,7 @@
     :class="theme === 'verde' ? 'bg-emerald-600/80' :
             theme === 'azul' ? 'bg-blue-600/80' :
             theme === 'oscuro' ? 'bg-gray-900/80' : 'bg-slate-700/80'"
-    class="text-white flex items-center justify-between px-6 py-2 shadow-md backdrop-blur-md transition-all duration-300"
+    class="flex items-center justify-between px-6 py-2 text-white transition-all duration-300 shadow-md backdrop-blur-md"
 >
     {{-- IZQUIERDA: botón menú y logo --}}
     <div class="flex items-center gap-3">
@@ -48,8 +49,8 @@
 
         {{-- Logo y Título --}}
         <div class="flex items-center gap-2 text-base font-semibold">
-            <div class="bg-white rounded-xl p-1">
-                <img src="{{ asset('img/logo-zenvy.png') }}" alt="Logo Zenvy" class="h-8 w-auto object-contain">
+            <div class="p-1 bg-white rounded-xl">
+                <img src="{{ asset('img/logo-zenvy.png') }}" alt="Logo Zenvy" class="object-contain w-auto h-8">
             </div>
             <span class="text-white">ZENVY POS v1.0</span>
         </div>
@@ -111,6 +112,6 @@
     @livewireScripts
 
     {{-- Scripts Vite que incluye Alpine (solo uno, al final) --}}
-    <script type="module" src="{{ asset('build/assets/app-DNxiirP_.js') }}"></script>
+    <script type="module" src="{{ asset('build/assets/app-BGPlnUgM.js') }}"></script>
 </body>
 </html>
