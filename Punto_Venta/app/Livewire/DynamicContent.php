@@ -6,7 +6,7 @@ use Livewire\Component;
 
 class DynamicContent extends Component
 {
-    public $vista = 'livewire.inventario.productos';
+    public $vista = 'livewire.dashboard';
 
     protected $listeners = ['cambiarVista'];
 
