@@ -5,6 +5,8 @@ namespace App\Providers;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\Facades\DB;
+use App\Models\Menu;
+use App\Observers\MenuObserver;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -15,6 +17,7 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        Menu::observe(MenuObserver::class);
         View::composer('*', function ($view) {
             $menuGrupos = DB::table('menu_grupo')->orderBy('id')->get();
             $menuItems = DB::table('menu')->orderBy('orden')->get();
@@ -28,13 +31,14 @@ class AppServiceProvider extends ServiceProvider
                         ->map(function ($item) {
                             return [
                                 'label' => $item->txt_comentario,
-                                'route' => $item->routa,
+                                'route' => $item->route,
                             ];
                         })->values()
                                 ];
                             });
 
             $view->with('sidebarMenu', $menu);
+
         });
     }
 }
