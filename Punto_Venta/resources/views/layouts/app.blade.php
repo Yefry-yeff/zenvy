@@ -9,7 +9,7 @@
     <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
 
     {{-- Estilos Vite --}}
-    <link rel="stylesheet" href="{{ asset('build/assets/app-oyz4OmX_.css') }}">
+    <link rel="stylesheet" href="{{ asset('build/assets/app-TF6LPPgJ.css') }}">
 
     {{-- Solución para evitar múltiples Alpine (Livewire defer) --}}
     <script>
