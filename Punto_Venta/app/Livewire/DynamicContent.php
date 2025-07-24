@@ -6,14 +6,21 @@ use Livewire\Component;
 
 class DynamicContent extends Component
 {
-    public $vista = 'dashboard';
+    public $vista;
+    public $componenteId = null;
 
+    public function mount()
+{
+    $this->vista = 'dashboard';
+    $this->componenteId = uniqid();
+}
     protected $listeners = ['cambiarVista'];
 
     public function cambiarVista($ruta)
     {
         logger()->info('[Livewire] cambiarVista recibió:', ['ruta' => $ruta]);
          $this->vista = $ruta;
+         $this->componenteId = uniqid();
     }
 
     public function render()
@@ -21,9 +28,6 @@ class DynamicContent extends Component
         return view('livewire.dynamic-content');
     }
 
-    public function prueba()
-{
-    logger()->info('Livewire SÍ responde al botón');
-}
+
 }
 

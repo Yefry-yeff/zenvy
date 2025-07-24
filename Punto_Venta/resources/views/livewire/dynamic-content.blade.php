@@ -9,7 +9,7 @@
     </div>
 
     @if (class_exists($componentClass))
-        @livewire($vista)
+        @livewire($vista, [], key($componenteId))
     @else
         <p class="font-semibold text-red-600">❌ Componente Livewire no encontrado para: {{ $vista }}</p>
     @endif

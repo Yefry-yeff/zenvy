@@ -9,7 +9,7 @@
     <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
 
     {{-- Estilos Vite --}}
-    <link rel="stylesheet" href="{{ asset('build/assets//app-DQg6kF3j.css') }}">
+    <link rel="stylesheet" href="{{ asset('build/assets///app-DQg6kF3j.css') }}">
     <link rel="stylesheet" href="{{ asset('build/assets//app-BP5HB3ti.css') }}">
 
     {{-- Solución para evitar múltiples Alpine (Livewire defer) --}}
@@ -113,5 +113,6 @@
 
     {{-- Scripts Vite que incluye Alpine (solo uno, al final) --}}
     <script type="module" src="{{ asset('build/assets/app-BGPlnUgM.js') }}"></script>
+
 </body>
 </html>

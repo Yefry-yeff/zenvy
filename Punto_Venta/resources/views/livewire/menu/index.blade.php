@@ -68,18 +68,20 @@
 
     {{-- Modal --}}
     @if($modalOpen)
-        <div
-            x-data="{ open: true, theme: localStorage.getItem('theme') || 'verde' }"
-            x-show="open"
-            x-transition.opacity
-             x-transition:enter="transition ease-out duration-300"
-                x-transition:enter-start="opacity-0"
-                x-transition:enter-end="opacity-100"
-                x-transition:leave="transition ease-in duration-200"
-                x-transition:leave-start="opacity-100"
-                x-transition:leave-end="opacity-0"
-            class="fixed inset-0 z-50 flex items-center justify-center px-4 py-6 overflow-y-auto bg-black bg-opacity-50"
-        >
+         <div
+        x-data="{
+            open: true,
+            theme: localStorage.getItem('theme') || 'verde',
+            modo: @entangle('modo'),
+            submitted: @entangle('submitted'),
+            touched: false
+        }"
+        x-init="$watch('submitted', val => { if (!val) touched = false })"
+        x-show="open"
+        @click.outside="$wire.cerrarModal()"
+        x-transition.opacity
+        class="fixed inset-0 z-50 flex items-center justify-center px-4 py-6 overflow-y-auto bg-black bg-opacity-50"
+    >
            <div
     class="relative w-full max-w-xl p-6 bg-white rounded shadow-lg"
     @click.outside="$wire.set('modalOpen', false)"
@@ -162,7 +164,7 @@
                     {{-- Ícono --}}
                     <div class="mb-4">
                         <label class="block text-sm font-medium text-gray-700">
-                            Ícono (emoji) <span class="text-red-600" x-show="modo === 'crear'">*</span>
+                            Ícono (emoji)
                         </label>
                         <input
                             type="text"
@@ -170,9 +172,6 @@
                             class="w-full px-3 py-2 border rounded"
                             placeholder="Ej: 👤"
                         >
-                        @if ($submitted && $errors->has('form.icon'))
-                            <p class="mt-1 text-sm text-red-600">{{ $errors->first('form.icon') }}</p>
-                        @endif
                     </div>
 
                     {{-- Orden --}}

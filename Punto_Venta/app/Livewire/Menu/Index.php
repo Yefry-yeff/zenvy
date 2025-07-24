@@ -77,7 +77,10 @@ public function updatedFiltro()
 }
 public function cerrarModal()
 {
+     $this->submitted = false;
     $this->modalOpen = false;
+    $this->resetErrorBag();
+    $this->resetValidation();
     $this->reset('form');
 }
 
@@ -110,7 +113,6 @@ public function cerrarModal()
         return [
             'form.menu_grupo.required'     => 'Campo obligatorio',
             'form.txt_comentario.required' => 'Campo obligatorio',
-            'form.icon.required'           => 'Campo obligatorio',
             'form.orden.required'          => 'Campo obligatorio',
             'form.orden.numeric'           => 'Debe ser un número',
             'form.orden.min'               => 'Debe ser al menos 1',
@@ -133,6 +135,8 @@ public function cerrarModal()
             $grupoId = DB::table('menu_grupo')->insertGetId([
                 'nombre' => $this->form['menu_grupo']
             ]);
+
+
         }
 
         $data = [
@@ -154,6 +158,7 @@ public function cerrarModal()
 
         $this->modalOpen = false;
         $this->cargarDatos();
+        $this->dispatchBrowserEvent('menu-actualizado');
     }
 public $filtro = [
     'menu' => '',
