@@ -7,9 +7,12 @@
     {{-- Fuentes --}}
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
+    <!-- Tom Select CSS -->
+<link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
+
 
     {{-- Estilos Vite --}}
-    <link rel="stylesheet" href="{{ asset('build/assets///app-DQg6kF3j.css') }}">
+    <link rel="stylesheet" href="{{ asset('build/assets//app-D_VwcJTU.css') }}">
     <link rel="stylesheet" href="{{ asset('build/assets//app-BP5HB3ti.css') }}">
 
     {{-- Solución para evitar múltiples Alpine (Livewire defer) --}}
@@ -113,6 +116,38 @@
 
     {{-- Scripts Vite que incluye Alpine (solo uno, al final) --}}
     <script type="module" src="{{ asset('build/assets/app-BGPlnUgM.js') }}"></script>
+
+{{-- CSS de Tom Select --}}
+<link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
+
+{{-- JS de Tom Select --}}
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+
+<script>
+    document.addEventListener('livewire:load', function () {
+        window.initTomSelect = function () {
+            let el = document.getElementById('grupoSelect');
+            if (el && !el.tomselect) {
+                new TomSelect(el, {
+                    create: true,             // ✅ permite nuevos valores
+                    persist: false,
+                    maxItems: 1,
+                    allowEmptyOption: true,
+                    onInitialize: function () {
+                        this.addOption({ value: el.value, text: el.value });
+                        this.setValue(el.value);
+                    }
+                });
+            }
+        }
+
+        initTomSelect();
+
+        Livewire.hook('message.processed', () => {
+            initTomSelect();
+        });
+    });
+</script>
 
 </body>
 </html>
