@@ -4,6 +4,9 @@ namespace App\Livewire\Menu;
 use Livewire\Component;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use Symfony\Component\Process\Process;
+use Symfony\Component\Process\Exception\ProcessFailedException;
+use Illuminate\Support\Str;
 
 class Index extends Component
 {
@@ -121,45 +124,80 @@ public function cerrarModal()
         ];
     }
 
-    public function guardar()
-    {
+  public function guardar()
+{
+    $this->submitted = true;
+    $this->validate();
 
-         $this->submitted = true; // <- Esto es importante
+    // 1. Insertar grupo si no existe
+    $grupoId = DB::table('menu_grupo')->where('nombre', $this->form['menu_grupo'])->value('id');
 
-        $this->validate();
-
-        // Buscar o insertar grupo
-        $grupoId = DB::table('menu_grupo')->where('nombre', $this->form['menu_grupo'])->value('id');
-
-        if (!$grupoId) {
-            $grupoId = DB::table('menu_grupo')->insertGetId([
-                'nombre' => $this->form['menu_grupo']
-            ]);
-
-
-        }
-
-        $data = [
-            'txt_comentario' => $this->form['txt_comentario'],
-            'icon' => $this->form['icon'],
-            'parent_id' => $grupoId,
-            'route' => strtolower(str_replace(' ', '_', $this->form['menu_grupo'])) . '.' . strtolower(str_replace(' ', '_', $this->form['txt_comentario'])),
-            'orden' => $this->form['orden'],
-            'estado' => $this->form['estado'],
-            'updated_at' => Carbon::now(),
-        ];
-
-        if ($this->modo === 'editar' && $this->form['id']) {
-            DB::table('menu')->where('id', $this->form['id'])->update($data);
-        } else {
-            $data['created_at'] = Carbon::now();
-            DB::table('menu')->insert($data);
-        }
-
-        $this->modalOpen = false;
-        $this->cargarDatos();
-        $this->dispatchBrowserEvent('menu-actualizado');
+    if (!$grupoId) {
+        $grupoId = DB::table('menu_grupo')->insertGetId([
+            'nombre' => $this->form['menu_grupo']
+        ]);
     }
+
+    // 2. Preparar datos
+    $route = strtolower(str_replace(' ', '_', $this->form['menu_grupo'])) . '.' . strtolower(str_replace(' ', '_', $this->form['txt_comentario']));
+    $data = [
+        'txt_comentario' => $this->form['txt_comentario'],
+        'icon' => $this->form['icon'],
+        'parent_id' => $grupoId,
+        'route' => $route,
+        'orden' => $this->form['orden'],
+        'estado' => $this->form['estado'],
+        'updated_at' => Carbon::now(),
+    ];
+
+    // 3. Insertar o actualizar
+    if ($this->modo === 'editar' && $this->form['id']) {
+        DB::table('menu')->where('id', $this->form['id'])->update($data);
+    } else {
+        $data['created_at'] = Carbon::now();
+        DB::table('menu')->insert($data);
+    }
+
+    // 4. Crear componente Livewire automáticamente (solo si es nuevo)
+    if ($this->modo === 'crear') {
+        $grupoSlug = Str::slug($this->form['menu_grupo'], '_');
+        $submenuSlug = Str::slug($this->form['txt_comentario'], '_');
+        $submenuStudly = Str::studly($submenuSlug);
+        $componente = "{$grupoSlug}.{$submenuSlug}";
+
+        $rutaClase = app_path("Livewire/{$grupoSlug}/{$submenuStudly}.php");
+        $rutaVista = resource_path("views/livewire/{$grupoSlug}/{$submenuSlug}.blade.php");
+
+       if (!file_exists($rutaClase)) {
+    $componente = "{$grupoSlug}.{$submenuSlug}";
+
+    $process = new Process(['php', 'artisan', 'livewire:make', $componente]);
+    $process->setWorkingDirectory(base_path()); // <- ✅ Establece la raíz del proyecto
+    $process->run();
+
+    if (!$process->isSuccessful()) {
+        throw new ProcessFailedException($process);
+    }
+
+    // Crear la vista base si no existe
+    if (!file_exists($rutaVista)) {
+        file_put_contents($rutaVista, <<<BLADE
+<div>
+    <!-- Vista generada automáticamente para: {$componente} -->
+    <h1 class="text-xl font-bold">{$this->form['txt_comentario']}</h1>
+</div>
+BLADE
+        );
+    }
+}
+    }
+
+    // 5. Finalizar
+    $this->modalOpen = false;
+    $this->cargarDatos();
+    session()->flash('mensaje', 'Menú guardado correctamente.');
+}
+
 public $filtro = [
     'menu' => '',
     'submenu' => '',
