@@ -1,3 +1,5 @@
+<div>
+    {{-- A good traveler has no fixed plans and is not intent upon arriving. --}}
 <div class="overflow-hidden border border-gray-300 rounded shadow" x-data x-init="$watch('theme', t => localStorage.setItem('theme', t))">
 
 
