@@ -1,0 +1,7 @@
+SELECT p.nombre AS permiso, m.route
+FROM users u
+JOIN user_rol ur ON ur.user_id = u.id
+JOIN rol_permiso rp ON rp.rol_id = ur.rol_id
+JOIN permisos p ON p.id = rp.permiso_id
+JOIN menu m ON m.id = p.id_menu
+WHERE u.email = 'johann_ruiz14@hotmail.com' AND ur.estado = 1 AND rp.estado = 1;

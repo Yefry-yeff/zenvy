@@ -7,6 +7,7 @@ use Carbon\Carbon;
 use Symfony\Component\Process\Process;
 use Symfony\Component\Process\Exception\ProcessFailedException;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Componente Livewire para la gestión de menús y submenús.
@@ -150,11 +151,14 @@ class Index extends Component
 
     /** Guarda o actualiza el menú y crea el componente Livewire si es nuevo */
     public function guardar()
-    {
-        $this->submitted = true;
-        $this->validate();
+{
+    $this->submitted = true;
+    $this->validate();
 
-        // Verificar si el grupo ya existe
+    DB::beginTransaction(); // ⬅️ Iniciar transacción
+
+    try {
+        // Verificar grupo
         $grupoId = DB::table('menu_grupo')->where('nombre', $this->form['menu_grupo'])->value('id');
 
         if (!$grupoId) {
@@ -163,7 +167,7 @@ class Index extends Component
             ]);
         }
 
-        // Generar la ruta del submenú
+        // Construcción de ruta
         $route = strtolower(str_replace(' ', '_', $this->form['menu_grupo'])) . '.' . strtolower(str_replace(' ', '_', $this->form['txt_comentario']));
 
         $data = [
@@ -173,50 +177,40 @@ class Index extends Component
             'route' => $route,
             'orden' => $this->form['orden'],
             'estado' => $this->form['estado'],
-            'updated_at' => Carbon::now(),
+            'updated_at' => now(),
         ];
 
         if ($this->modo === 'editar' && $this->form['id']) {
             DB::table('menu')->where('id', $this->form['id'])->update($data);
+             DB::table('permisos')
+        ->where('id_menu', $this->form['id'])
+        ->update([
+            'estado' => $this->form['estado'],
+            'updated_at' => now(),
+            'updated_user' => auth()->id()
+        ]);
         } else {
-            $data['created_at'] = Carbon::now();
-            DB::table('menu')->insert($data);
+            $data['created_at'] = now();
+            $menuId = DB::table('menu')->insertGetId($data);
+
+            // Insertar permiso asociado
+            DB::table('permisos')->insert([
+                'id_menu' => $menuId,
+                'nombre' => $this->form['txt_comentario'],
+                'estado' => 1,
+                'created_at' => now(),
+                'created_user' => auth()->id(),
+            ]);
         }
 
-        // Crear componente Livewire automáticamente si es nuevo
-        if ($this->modo === 'crear') {
-            $grupoSlug = Str::slug($this->form['menu_grupo'], '_');
-            $submenuSlug = Str::slug($this->form['txt_comentario'], '_');
-            $submenuStudly = Str::studly($submenuSlug);
-            $componente = "{$grupoSlug}.{$submenuSlug}";
-
-            $rutaClase = app_path("Livewire/{$grupoSlug}/{$submenuStudly}.php");
-            $rutaVista = resource_path("views/livewire/{$grupoSlug}/{$submenuSlug}.blade.php");
-
-            if (!file_exists($rutaClase)) {
-                $process = new Process(['php', 'artisan', 'livewire:make', $componente]);
-                $process->setWorkingDirectory(base_path());
-                $process->run();
-
-                if (!$process->isSuccessful()) {
-                    throw new ProcessFailedException($process);
-                }
-
-                // Crear vista base si no existe
-                if (!file_exists($rutaVista)) {
-                    file_put_contents($rutaVista, <<<BLADE
-<div>
-    <!-- Vista generada automáticamente para: {$componente} -->
-    <h1 class="text-xl font-bold">{$this->form['txt_comentario']}</h1>
-</div>
-BLADE
-                    );
-                }
-            }
-        }
-
+        DB::commit(); // ✅ Confirmar si todo fue bien
         $this->modalOpen = false;
         $this->cargarDatos();
         session()->flash('mensaje', 'Menú guardado correctamente.');
+    } catch (\Throwable $e) {
+        DB::rollBack(); // ❌ Deshacer todo si hay error
+        Log::error('Error al guardar menú o permiso: ' . $e->getMessage());
+        session()->flash('mensaje', 'Error al guardar: ' . $e->getMessage());
     }
+}
 }

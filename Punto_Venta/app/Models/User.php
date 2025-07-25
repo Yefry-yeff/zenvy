@@ -44,4 +44,14 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    public function actor()
+{
+    return $this->belongsTo(\App\Models\MiActor::class, 'id_actor');
+}
+
+public function roles()
+{
+    return $this->belongsToMany(Rol::class, 'user_rol', 'user_id', 'rol_id');
+}
 }
