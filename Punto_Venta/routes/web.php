@@ -24,4 +24,8 @@ Route::get('/logout', function () {
     return redirect('/login');
 })->name('logout');
 
+Route::get('/register', function () {
+    return redirect('/login')->with('status', 'El registro está deshabilitado. Contacta al administrador.');
+})->name('register');
+
 require __DIR__.'/auth.php';
