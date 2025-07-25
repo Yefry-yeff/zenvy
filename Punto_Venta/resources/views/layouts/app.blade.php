@@ -12,7 +12,7 @@
     <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
 
     {{-- Estilos compilados con Vite --}}
-    <link rel="stylesheet" href="{{ asset('build/assets/app-C6pACs9q.css') }}">
+    <link rel="stylesheet" href="{{ asset('build/assets/app-mYOpYfAT.css') }}">
     <link rel="stylesheet" href="{{ asset('build/assets/app-BP5HB3ti.css') }}">
 
     {{-- Solución para evitar múltiples cargas de Alpine.js cuando se usa Livewire --}}

@@ -55,15 +55,15 @@
         <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
                 <label class="block text-sm font-medium text-gray-700">Rol<span class="text-red-600">*</span></label>
-                <select wire:model.defer="form.rol_id" class="w-full px-3 py-2 border rounded">
+                <select wire:model.lazy="form.rol_id" class="w-full px-3 py-2 border rounded">
                     <option value="">-- Seleccionar --</option>
                     @foreach ($roles as $rol)
                         <option value="{{ $rol->id }}">{{ $rol->txt_nombre }}</option>
                     @endforeach
                 </select>
-                        @error('form.rol_id')
-                            <span class="text-sm text-red-600">{{ $message }}</span>
-                        @enderror
+                @error('form.rol_id')
+                    <span class="text-sm text-red-600">{{ $message }}</span>
+                @enderror
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700">Estado<span class="text-red-600">*</span></label>
@@ -170,37 +170,28 @@
 
         <!-- Permisos -->
         <div x-show="tab === 'permisos'">
-    <div class="flex justify-between mb-2">
-        <h3 class="text-sm font-semibold text-gray-700">Permisos del Rol</h3>
-        <button wire:click="abrirModalAgregarPermiso" class="px-3 py-1 text-sm text-white rounded bg-emerald-600 hover:bg-emerald-700">
-            ➕ Agregar Permiso
-        </button>
-    </div>
+<h3 class="mb-2 text-sm font-semibold text-gray-700">Permisos del Rol Seleccionado</h3>
 
-    @if ($modo === 'editar')
-        @if ($permisos->isEmpty())
-            <p class="italic text-gray-600">Este rol no tiene permisos asignados.</p>
-        @else
-            <table class="w-full text-sm text-left border border-gray-300">
-                <thead class="bg-gray-100">
+@if (!empty($form['rol_id']))
+    @if ($permisos->isEmpty())
+        <p class="italic text-gray-600">Este rol no tiene permisos asignados.</p>
+    @else
+        <table class="w-full text-sm text-left border border-gray-300">
+            <thead class="bg-gray-100">
+                <tr>
+                    <th class="px-3 py-2 border">Permiso</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach ($permisos as $permiso)
                     <tr>
-                        <th class="px-3 py-2 border">Permiso</th>
-                        <th class="px-3 py-2 border">Acciones</th>
+                        <td class="px-3 py-2 border">{{ $permiso->nombre }}</td>
                     </tr>
-                </thead>
-                <tbody>
-                    @foreach ($permisos as $permiso)
-                        <tr>
-                            <td class="px-3 py-2 border">{{ $permiso->nombre }}</td>
-                            <td class="px-3 py-2 border">
-                                <button wire:click="eliminarPermiso({{ $permiso->id }})" class="ml-2 text-red-600 hover:underline">Eliminar</button>
-                            </td>
-                        </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        @endif
+                @endforeach
+            </tbody>
+        </table>
     @endif
+@endif
 </div>
     </div>
 </div>

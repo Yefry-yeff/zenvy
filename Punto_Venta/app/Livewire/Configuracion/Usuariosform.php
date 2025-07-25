@@ -18,7 +18,6 @@ class Usuariosform extends Component
 public $mostrarMensaje = false;
     public $empresas = [];
     public $permisos = [];
-    public $permisosEliminados = [];
 
     public $form = [
         'primer_nombre' => '',
@@ -36,6 +35,29 @@ public $mostrarMensaje = false;
         'txt_identificacion' => '',
     ];
 
+public function updated($property)
+{
+    logger()->info('[Livewire] Campo actualizado: ' . $property);
+    if ($property === 'form.rol_id') {
+        $this->updatedFormRolId($this->form['rol_id']);
+    }
+}
+
+public function updatedFormRolId($value)
+{
+    logger()->info('[Livewire] Rol cambiado a: ' . $value);
+
+    if ($value) {
+        $this->permisos = DB::table('rol_permiso as rp')
+            ->join('permisos as p', 'p.id', '=', 'rp.permiso_id')
+            ->where('rp.rol_id', $value)
+            ->where('rp.estado', 1)
+            ->select('p.id', 'p.nombre')
+            ->get();
+    } else {
+        $this->permisos = collect();
+    }
+}
     public function rules()
 {
     $rules = [
@@ -75,6 +97,7 @@ public $mostrarMensaje = false;
         } else {
             $this->modo = 'crear';
         }
+        $this->updatedFormRolId($this->form['rol_id']);
     }
 
     public function cargarDatos()
@@ -99,16 +122,7 @@ public $mostrarMensaje = false;
 // Clonar el formulario para comparar después
     $this->formOriginal = $this->form;
 
-         $this->permisos = DB::table('users as u')
-        ->join('user_rol as ur', 'ur.user_id', '=', 'u.id')
-        ->join('rol_permiso as rp', 'rp.rol_id', '=', 'ur.rol_id')
-        ->join('permisos as p', 'p.id', '=', 'rp.permiso_id')
-        ->join('menu as m', 'm.id', '=', 'p.id_menu')
-        ->where('u.id', $this->usuarioId)
-        ->where('ur.estado', 1)
-        ->where('rp.estado', 1)
-        ->select('p.id', 'p.nombre')
-        ->get();
+         $this->updatedFormRolId($this->form['rol_id']);
     }
 
 
@@ -126,22 +140,30 @@ logger()->info('[Usuariosform] validación pasada exitosamente');
     try {
         if ($this->modo === 'crear') {
             $actor = MiActor::create([
-                'txt_identificacion' => $this->form['txt_identificacion'],
-                'TXT_PRIMER_NOMBRE' => $this->form['primer_nombre'],
-                'TXT_SEGUNDO_NOMBRE' => $this->form['segundo_nombre'],
-                'TXT_PRIMER_APELLIDO' => $this->form['primer_apellido'],
-                'TXT_SEGUNDO_APELLIDO' => $this->form['segundo_apellido'],
-                'TXT_DIRECCION' => $this->form['direccion'],
-                'telefono' => $this->form['telefono'],
-                'genero' => $this->form['genero'],
-                'fecha_nacimiento' => $this->form['fecha_nacimiento'],
+               'txt_identificacion'   => $this->form['txt_identificacion'],
+                'TXT_PRIMER_NOMBRE'    => $this->form['primer_nombre'],
+                'TXT_SEGUNDO_NOMBRE'   => $this->form['segundo_nombre'] ?: null,
+                'TXT_PRIMER_APELLIDO'  => $this->form['primer_apellido'],
+                'TXT_SEGUNDO_APELLIDO' => $this->form['segundo_apellido'] ?: null,
+                'TXT_DIRECCION'        => $this->form['direccion'] ?: null,
+                'telefono'             => $this->form['telefono'] ?: null,
+                'genero'               => $this->form['genero'] ?: null,
+                'fecha_nacimiento'     => $this->form['fecha_nacimiento'] ?: null,
             ]);
 
+            $nombreCompleto = trim(
+                $this->form['primer_nombre'] . ' ' .
+                $this->form['segundo_nombre'] . ' ' .
+                $this->form['primer_apellido'] . ' ' .
+                $this->form['segundo_apellido']
+            );
+
             $usuario = User::create([
-                'email' => $this->form['email'],
-                'password' => Hash::make($this->form['password']),
-                'estado' => $this->form['estado'],
-                'id_actor' => $actor->id,
+                    'name' => $nombreCompleto,
+                    'email' => $this->form['email'],
+                    'password' => Hash::make($this->form['password']),
+                    'estado' => $this->form['estado'],
+                    'id_actor' => $actor->id,
             ]);
 
             DB::table('user_rol')->insert([
@@ -196,18 +218,6 @@ logger()->info('[Usuariosform] commit ejecutado');
     }
 }
 
-public function eliminarPermiso($permisoId)
-{
-    try {
-        logger('[eliminarPermiso] Intentando eliminar: ' . $permisoId);
-        $this->permisos = collect($this->permisos)
-            ->reject(fn($p) => $p->id == $permisoId)
-            ->values();
-        logger('[eliminarPermiso] Permisos restantes: ', );
-    } catch (\Throwable $e) {
-        logger()->error('[eliminarPermiso] Error: ' . $e->getMessage());
-    }
-}
 
 
     public function volver()
