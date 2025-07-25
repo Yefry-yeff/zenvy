@@ -12,7 +12,7 @@
     <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
 
     {{-- Estilos compilados con Vite --}}
-    <link rel="stylesheet" href="{{ asset('build/assets/app-ESIQr7iY.css') }}">
+    <link rel="stylesheet" href="{{ asset('build/assets//app-CiWdbivA.css') }}">
     <link rel="stylesheet" href="{{ asset('build/assets/app-BP5HB3ti.css') }}">
 
     {{-- Solución para evitar múltiples cargas de Alpine.js cuando se usa Livewire --}}
@@ -165,7 +165,13 @@
         <h2 class="mb-2 text-lg font-semibold text-red-700">⏳ Sesión Expirada</h2>
         <p class="text-sm text-gray-600">Tu sesión ha expirado por inactividad.</p>
         <button
-            class="px-4 py-2 mt-4 text-sm text-white rounded bg-emerald-600 hover:bg-emerald-700"
+        class="px-4 py-2 mt-4 text-sm text-white rounded"
+            :class="{
+        'bg-emerald-600 hover:bg-emerald-700': theme === 'verde',
+        'bg-blue-600 hover:bg-blue-700': theme === 'azul',
+        'bg-gray-900 hover:bg-gray-800': theme === 'oscuro',
+        'bg-slate-700 hover:bg-slate-600': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
+    }"
             @click="cerrarSesion()"
         >
             Aceptar

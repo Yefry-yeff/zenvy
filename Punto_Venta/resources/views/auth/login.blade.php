@@ -1,5 +1,11 @@
 <x-guest-layout>
-    <div class="flex flex-col items-center justify-center min-h-screen px-4 py-8 bg-gray-100 dark:bg-gray-900">
+    <div class="relative flex flex-col items-center justify-center min-h-screen px-4 py-8 overflow-hidden bg-gradient-to-br from-blue-50 via-white to-blue-100 dark:from-gray-800 dark:via-gray-900 dark:to-gray-800">
+
+        <!-- FONDO DIFUMINADO CON ANIMACIÓN -->
+<div class="absolute inset-0 z-0 overflow-hidden">
+    <div class="absolute w-96 h-96 bg-blue-300 opacity-30 rounded-full filter blur-3xl animate-pulse-slow top-[-20%] left-[-10%]"></div>
+    <div class="absolute w-96 h-96 bg-blue-200 opacity-30 rounded-full filter blur-2xl animate-float-slow bottom-[-10%] right-[-10%]"></div>
+</div>
 
         <!-- LOGO animado con entrada -->
         <div class="mb-6 text-center">
@@ -8,9 +14,8 @@
                  alt="Logo" />
         </div>
 
-        <!-- Login Card -->
-        <div class="w-full max-w-md p-6 bg-white rounded-lg shadow-md dark:bg-gray-800 animate__animated animate__fadeIn">
-
+        <!-- Login Card con Glassmorphism -->
+<div class="relative z-10 w-full max-w-md p-6 border shadow-xl rounded-xl backdrop-blur-md bg-white/40 dark:bg-gray-800/40 border-white/30">
             <!-- Session Status -->
             <x-auth-session-status class="mb-4" :status="session('status')" />
 
@@ -52,10 +57,10 @@
                     </a>
                     @endif
 
-                <button id="submitBtn" type="submit"
-                    class="inline-flex items-center justify-center px-4 py-2 text-xs font-semibold tracking-widest text-white uppercase transition duration-150 ease-in-out bg-[#0A1F44] border border-transparent rounded-md hover:bg-[#081a39]">
-                    {{ __('Entrar') }}
-                </button>
+                    <button id="submitBtn" type="submit"
+                        class="inline-flex items-center justify-center px-4 py-2 text-xs font-semibold tracking-widest text-white uppercase transition duration-150 ease-in-out bg-[#0A1F44] border border-transparent rounded-md hover:bg-[#081a39]">
+                        {{ __('Entrar') }}
+                    </button>
                 </div>
             </form>
         </div>
