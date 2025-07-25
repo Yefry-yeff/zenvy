@@ -18,4 +18,10 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
+Route::get('/logout', function () {
+    Auth::logout();
+    Session::flush();
+    return redirect('/login');
+})->name('logout');
+
 require __DIR__.'/auth.php';

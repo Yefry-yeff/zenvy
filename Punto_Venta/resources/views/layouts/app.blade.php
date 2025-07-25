@@ -12,7 +12,7 @@
     <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
 
     {{-- Estilos compilados con Vite --}}
-    <link rel="stylesheet" href="{{ asset('build/assets/app-mYOpYfAT.css') }}">
+    <link rel="stylesheet" href="{{ asset('build/assets/app-ESIQr7iY.css') }}">
     <link rel="stylesheet" href="{{ asset('build/assets/app-BP5HB3ti.css') }}">
 
     {{-- Solución para evitar múltiples cargas de Alpine.js cuando se usa Livewire --}}
@@ -133,5 +133,45 @@
             });
         });
     </script>
+
+    <!-- MODAL DE SESIÓN EXPIRADA -->
+<div
+    x-show="showModal"
+    x-data="{
+        showModal: false,
+        timeout: null,
+        resetTimer() {
+            clearTimeout(this.timeout);
+            this.timeout = setTimeout(() => this.showModal = true, 1 * 60 * 1000); // 10 min
+        },
+        cerrarSesion() {
+            window.location.href = '{{ route('logout') }}';
+        },
+        init() {
+            this.resetTimer();
+            ['mousemove', 'keydown', 'click', 'scroll'].forEach(evt =>
+                window.addEventListener(evt, () => this.resetTimer())
+            );
+        }
+    }"
+    x-init="init()"
+    x-on:keydown.escape.window="cerrarSesion()"
+    x-on:keydown.enter.window="cerrarSesion()"
+    @click.outside="cerrarSesion()"
+    class="fixed inset-0 z-[100] flex items-center justify-center bg-black bg-opacity-50"
+    style="display: none;"
+>
+    <div class="w-full max-w-sm p-6 text-center bg-white rounded-lg shadow-lg">
+        <h2 class="mb-2 text-lg font-semibold text-red-700">⏳ Sesión Expirada</h2>
+        <p class="text-sm text-gray-600">Tu sesión ha expirado por inactividad.</p>
+        <button
+            class="px-4 py-2 mt-4 text-sm text-white rounded bg-emerald-600 hover:bg-emerald-700"
+            @click="cerrarSesion()"
+        >
+            Aceptar
+        </button>
+    </div>
+</div>
+
 </body>
 </html>
