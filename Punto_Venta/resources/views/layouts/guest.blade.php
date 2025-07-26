@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    <title>{{ config('app.name', 'Laravel') }}</title>
+    <title>{{ config('app.name', 'Zenvy') }}</title>
 
     <!-- Animate.css (si la usas para animaciones) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
@@ -14,8 +14,8 @@
     <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
 
     <!-- Vite -->
-    <link rel="stylesheet" href="{{ asset('build/assets//app-CiWdbivA.css') }}">
-<script type="module" src="{{ asset('build/assets/app-BGPlnUgM.js') }}"></script>
+    <link rel="stylesheet" href="{{ asset('build/assets//app-TF6LPPgJ.css') }}">
+<script type="module" src="{{ asset('build/assets/app-DNxiirP_.js') }}"></script>
 </head>
 <body class="font-sans antialiased bg-gray-100">
     {{ $slot }}
