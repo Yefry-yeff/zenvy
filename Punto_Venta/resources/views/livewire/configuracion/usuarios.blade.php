@@ -1,25 +1,25 @@
 <div class="overflow-hidden border border-gray-300 rounded shadow" x-data x-init="$watch('theme', t => localStorage.setItem('theme', t))">
 
     <!-- ENCABEZADO CON TEMA -->
-<div
-    class="flex items-center justify-between px-4 py-2 font-semibold text-white"
-    :class="{
-        'bg-emerald-600': theme === 'verde',
-        'bg-blue-600': theme === 'azul',
-        'bg-gray-900': theme === 'oscuro',
-        'bg-slate-700': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
-    }"
->
-    <h5 class="mb-0">Gestión de Usuarios</h5>
- <button
-    x-on:click="$dispatch('cambiarVista', { ruta: 'Configuracion.usuariosform' })"
-    class="px-3 py-1 text-sm text-gray-800 no-underline bg-white rounded hover:bg-gray-100"
->
-    ➕ Agregar Usuario
-</button>
-</div>
+    <div
+        class="flex items-center justify-between px-4 py-2 font-semibold text-white"
+        :class="{
+            'bg-emerald-600': theme === 'verde',
+            'bg-blue-600': theme === 'azul',
+            'bg-gray-900': theme === 'oscuro',
+            'bg-slate-700': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
+        }"
+    >
+        <h5 class="mb-0">Gestión de Usuarios</h5>
+        <button
+            x-on:click="$dispatch('cambiarVista', { ruta: 'Configuracion.usuariosform' })"
+            class="px-3 py-1 text-sm text-gray-800 no-underline bg-white rounded hover:bg-gray-100"
+        >
+            ➕ Agregar Usuario
+        </button>
+    </div>
 
-    {{-- Tabla de usuarios --}}
+    <!-- TABLA DE USUARIOS -->
     <div class="overflow-x-auto bg-white">
         <table class="min-w-full text-sm text-left border border-gray-300">
             <thead class="bg-gray-100 border-b border-gray-300">
@@ -44,7 +44,7 @@
                         <td class="px-4 py-2 border-t">{{ $usuario->telefono }}</td>
                         <td class="px-4 py-2 border-t">{{ $usuario->rol }}</td>
                         <td class="px-4 py-2 text-center border-t">
-                            @if ($usuario->estado)
+                            @if ($usuario->estado_id == 1)
                                 <span class="inline-block px-2 py-1 text-xs font-semibold text-green-700 bg-green-100 rounded">Activo</span>
                             @else
                                 <span class="inline-block px-2 py-1 text-xs font-semibold text-red-700 bg-red-100 rounded">Inactivo</span>
@@ -62,7 +62,7 @@
         </table>
     </div>
 
-    {{-- Mensaje de éxito --}}
+    <!-- MENSAJE DE ÉXITO -->
     @if (session()->has('mensaje'))
         <div class="p-3 mt-4 text-green-700 bg-green-100 border border-green-400 rounded">
             {{ session('mensaje') }}

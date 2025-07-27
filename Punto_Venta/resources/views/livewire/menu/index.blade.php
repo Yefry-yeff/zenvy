@@ -43,13 +43,15 @@
             <td class="px-4 py-2 border-t">{{ $menu->txt_comentario }}</td>
             <td class="px-4 py-2 text-center border-t">{{ $menu->icon }}</td>
             <td class="px-4 py-2 text-center border-t">{{ $menu->orden }}</td>
-            <td class="px-4 py-2 text-center border-t">
-                @if($menu->estado)
-                    <span class="inline-block px-2 py-1 text-xs font-semibold text-green-700 bg-green-100 rounded">Activo</span>
-                @else
-                    <span class="inline-block px-2 py-1 text-xs font-semibold text-red-700 bg-red-100 rounded">Inactivo</span>
-                @endif
-            </td>
+                        <td class="px-4 py-2 text-center border-t">
+                            @if($menu->estado_id == 1)
+                                <span class="inline-block px-2 py-1 text-xs font-semibold text-green-700 bg-green-100 rounded">Activo</span>
+                            @elseif($menu->estado_id == 2)
+                                <span class="inline-block px-2 py-1 text-xs font-semibold text-red-700 bg-red-100 rounded">Inactivo</span>
+                            @else
+                                <span class="text-gray-500">Desconocido</span>
+                            @endif
+                        </td>
         </tr>
     @empty
         <tr>
@@ -197,12 +199,12 @@
                         <label class="block text-sm font-medium text-gray-700">
                             Estado <span class="text-red-600" x-show="modo === 'crear'">*</span>
                         </label>
-                        <select wire:model.defer="form.estado" class="w-full px-3 py-2 border rounded">
+                        <select wire:model.defer="form.estado_id" class="w-full px-3 py-2 border rounded">
                             <option value="1">Activo</option>
-                            <option value="0">Inactivo</option>
+                            <option value="2">Inactivo</option>
                         </select>
-                        @if ($submitted && $errors->has('form.estado'))
-                            <p class="mt-1 text-sm text-red-600">{{ $errors->first('form.estado') }}</p>
+                        @if ($submitted && $errors->has('form.estado_id'))
+                            <p class="mt-1 text-sm text-red-600">{{ $errors->first('form.estado_id') }}</p>
                         @endif
                     </div>
 

@@ -67,11 +67,11 @@
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700">Estado<span class="text-red-600">*</span></label>
-                <select wire:model.defer="form.estado" class="w-full px-3 py-2 border rounded">
+                <select wire:model.defer="form.estado_id" class="w-full px-3 py-2 border rounded">
                     <option value="1">Activo</option>
-                    <option value="0">Inactivo</option>
+                    <option value="2">Inactivo</option>
                 </select>
-                        @error('form.estado')
+                        @error('form.estado_id')
                             <span class="text-sm text-red-600">{{ $message }}</span>
                         @enderror
             </div>

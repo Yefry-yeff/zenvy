@@ -20,7 +20,8 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
-        'id_actor'
+        'estado_id',
+        'roles_id',
     ];
 
     /**
@@ -46,9 +47,9 @@ class User extends Authenticatable
         ];
     }
 
-    public function actor()
+    public function detalle()
 {
-    return $this->belongsTo(\App\Models\MiActor::class, 'id_actor');
+    return $this->hasOne(UserDetalle::class, 'users_id', 'id');
 }
 
 public function roles()

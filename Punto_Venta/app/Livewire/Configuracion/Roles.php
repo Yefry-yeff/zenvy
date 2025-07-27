@@ -4,14 +4,12 @@ namespace App\Livewire\Configuracion;
 
 use Livewire\Component;
 use Illuminate\Support\Facades\DB;
-use Carbon\Carbon;
 use App\Models\Rol;
-use App\Models\Permiso;
 
 class Roles extends Component
 {
     public $roles = [], $modalAbierto = false, $modoEdicion = false, $submitted = false;
-    public $permisosDisponibles = [], $permisos = [];
+    public $menusDisponibles = [], $permisos = [];
 
     public $form = [
         'id' => null,
@@ -21,7 +19,7 @@ class Roles extends Component
 
     protected $rules = [
         'form.txt_nombre' => 'required|string',
-        'form.estado' => 'required|boolean',
+        'form.estado' => 'required|integer|in:0,1',
     ];
 
     public function messages()
@@ -29,7 +27,7 @@ class Roles extends Component
         return [
             'form.txt_nombre.required' => 'Campo obligatorio',
             'form.estado.required' => 'Campo obligatorio',
-            'form.estado.boolean' => 'Valor inválido',
+            'form.estado.integer' => 'Valor inválido',
         ];
     }
 
@@ -42,14 +40,27 @@ class Roles extends Component
     {
         return view('livewire.configuracion.roles', [
             'roles' => $this->roles,
-            'permisosDisponibles' => $this->permisosDisponibles,
+            'menusDisponibles' => $this->menusDisponibles,
         ]);
     }
 
     public function cargarDatos()
     {
         $this->roles = Rol::orderBy('id')->get();
-        $this->permisosDisponibles = Permiso::orderBy('id')->get();
+
+        // Agrupar menús por grupo
+        $menuRaw = DB::table('menu as m')
+            ->join('menu_grupo as g', 'g.id', '=', 'm.parent_id')
+            ->where('m.estado_id', 1)
+            ->select('m.id', 'm.txt_comentario', 'g.nombre as grupo')
+            ->orderBy('g.nombre')
+            ->orderBy('m.orden')
+            ->get();
+
+        // Estructura: [grupo => [menus]]
+        $this->menusDisponibles = $menuRaw->groupBy('grupo')->map(function ($items) {
+            return $items->map(fn($i) => ['id' => $i->id, 'nombre' => $i->txt_comentario]);
+        })->toArray();
     }
 
     public function abrirModalCrear()
@@ -57,21 +68,23 @@ class Roles extends Component
         $this->resetFormulario();
         $this->modalAbierto = true;
         $this->modoEdicion = false;
-        $this->permisosDisponibles = Permiso::where('estado', 1)->orderBy('id')->get();
     }
 
     public function editar($id)
     {
         $rol = Rol::findOrFail($id);
+
         $this->form['id'] = $rol->id;
         $this->form['txt_nombre'] = $rol->txt_nombre;
         $this->form['estado'] = $rol->estado;
-        $this->permisos = $rol->permisos()->pluck('permisos.id')->toArray();
+
+        $this->permisos = DB::table('rol_permiso')
+            ->where('rol_id', $id)
+            ->pluck('menu_id')
+            ->toArray();
+
         $this->modalAbierto = true;
         $this->modoEdicion = true;
-          // Solo permisos activos
-        $this->permisosDisponibles = Permiso::where('estado', 1)->orderBy('id')->get();
-        $this->permisos = $rol->permisos()->pluck('permisos.id')->toArray();
     }
 
     public function cerrarModal()
@@ -90,19 +103,35 @@ class Roles extends Component
 
         if ($this->modoEdicion && $this->form['id']) {
             $rol = Rol::find($this->form['id']);
+            $rol->txt_nombre = $this->form['txt_nombre'];
             $rol->estado = $this->form['estado'];
-            $rol->updated_at = Carbon::now();
+            $rol->updated_at = now();
             $rol->save();
         } else {
             $rol = Rol::create([
                 'txt_nombre' => $this->form['txt_nombre'],
                 'estado' => $this->form['estado'],
-                'created_at' => Carbon::now(),
+                'created_at' => now(),
                 'created_user' => auth()->id(),
             ]);
         }
 
-        $rol->permisos()->sync($this->permisos);
+        // Sincronizar accesos en rol_permiso
+        DB::table('rol_permiso')->where('rol_id', $rol->id)->delete();
+
+        $datos = collect($this->permisos)->map(function ($menuId) use ($rol) {
+            return [
+                'rol_id' => $rol->id,
+                'menu_id' => $menuId,
+                'estado' => 1,
+                'created_at' => now(),
+                'created_user' => auth()->id()
+            ];
+        })->toArray();
+
+        if (!empty($datos)) {
+            DB::table('rol_permiso')->insert($datos);
+        }
 
         $this->modalAbierto = false;
         $this->cargarDatos();

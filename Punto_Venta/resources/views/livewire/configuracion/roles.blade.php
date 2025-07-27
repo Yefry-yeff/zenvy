@@ -1,8 +1,7 @@
 <div class="overflow-hidden border border-gray-300 rounded shadow" x-data x-init="$watch('theme', t => localStorage.setItem('theme', t))">
 
-    <!-- ENCABEZADO CON TEMA -->
-    <div
-        class="flex items-center justify-between px-4 py-2 font-semibold text-white"
+    <!-- ENCABEZADO -->
+    <div class="flex items-center justify-between px-4 py-2 font-semibold text-white"
         :class="{
             'bg-emerald-600': theme === 'verde',
             'bg-blue-600': theme === 'azul',
@@ -16,7 +15,7 @@
         </button>
     </div>
 
-    <!-- TABLA DE ROLES -->
+    <!-- TABLA -->
     <div class="overflow-x-auto bg-white">
         <table class="min-w-full text-sm text-left border border-gray-300">
             <thead class="bg-gray-100 border-b border-gray-300">
@@ -28,10 +27,7 @@
             </thead>
             <tbody class="text-sm text-gray-800 bg-white divide-y divide-gray-200">
                 @forelse ($roles as $rol)
-                    <tr
-                        wire:click="editar({{ $rol->id }})"
-                        class="transition cursor-pointer hover:bg-gray-100"
-                    >
+                    <tr wire:click="editar({{ $rol->id }})" class="transition cursor-pointer hover:bg-gray-100">
                         <td class="px-4 py-2 border-t">{{ $rol->id }}</td>
                         <td class="px-4 py-2 border-t">{{ $rol->txt_nombre }}</td>
                         <td class="px-4 py-2 border-t">
@@ -51,30 +47,30 @@
         </table>
     </div>
 
-    <!-- MENSAJE DE ÉXITO -->
+    <!-- MENSAJE -->
     @if (session()->has('mensaje'))
         <div class="p-3 mt-4 text-green-700 bg-green-100 border border-green-400 rounded">
             {{ session('mensaje') }}
         </div>
     @endif
 
-    <!-- MODAL DE CREACIÓN / EDICIÓN -->
-    @if($modalAbierto)
-        <div
-            x-data="{
-                open: true,
+    <!-- MODAL (persistente con wire:key) -->
+    <div wire:key="modal-{{ $form['id'] ?? 'nuevo' }}">
+        <div x-data="{
+                open: @entangle('modalAbierto'),
                 theme: localStorage.getItem('theme') || 'verde',
                 modo: @entangle('modoEdicion'),
                 submitted: @entangle('submitted'),
                 touched: false
             }"
             x-show="open"
+            style="display: none"
             x-transition.opacity
             class="fixed inset-0 z-50 flex items-center justify-center px-4 py-6 overflow-y-auto bg-black bg-opacity-50"
         >
             <div
                 class="relative w-full max-w-xl p-6 bg-white rounded shadow-lg"
-                @click.outside="$wire.set('modalAbierto', false)"
+                @click.outside="$wire.cerrarModal()"
                 x-transition:enter="transition ease-out duration-300 transform"
                 x-transition:enter-start="scale-95 opacity-0"
                 x-transition:enter-end="scale-100 opacity-100"
@@ -92,12 +88,9 @@
                     {{ $modoEdicion ? 'Editar Rol' : 'Crear Rol' }}
                 </h2>
 
-                <!-- Campo Nombre -->
-               <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700">
-                        Nombre del Rol <span class="text-red-600" x-show="modo === false">*</span>
-                    </label>
-
+                <!-- Nombre del Rol -->
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700">Nombre del Rol</label>
                     <input
                         type="text"
                         wire:model.defer="form.txt_nombre"
@@ -106,33 +99,36 @@
                         :class="{ 'bg-gray-100 cursor-not-allowed': modo }"
                         placeholder="Ej: Administrador"
                     >
-
                     @if ($submitted && $errors->has('form.txt_nombre'))
                         <p class="mt-1 text-sm text-red-600">{{ $errors->first('form.txt_nombre') }}</p>
                     @endif
                 </div>
 
-
                 <!-- Estado -->
                 <div class="mb-4">
                     <label class="block text-sm font-medium text-gray-700">Estado</label>
-                    <select wire:model.defer="estado" class="w-full px-3 py-2 border rounded">
+                    <select wire:model.defer="form.estado" class="w-full px-3 py-2 border rounded">
                         <option value="1">Activo</option>
                         <option value="0">Inactivo</option>
                     </select>
                 </div>
 
-                <!-- Lista de permisos -->
+                <!-- Permisos (Menús) -->
                 <div class="mb-4">
-                    <label class="block mb-2 text-sm font-medium text-gray-700">Permisos</label>
-                    <div class="grid grid-cols-2 gap-2">
-                        @foreach($permisosDisponibles as $permiso)
-                            <label class="flex items-center space-x-2">
-                                <input type="checkbox" wire:model="permisos" value="{{ $permiso->id }}">
-                                <span>{{ $permiso->nombre }}</span>
-                            </label>
-                        @endforeach
-                    </div>
+                    <label class="block mb-2 text-sm font-medium text-gray-700">Accesos (Menús habilitados)</label>
+                    @foreach($menusDisponibles as $grupo => $menus)
+                        <div class="mb-2">
+                            <strong class="text-sm text-gray-600">{{ $grupo }}</strong>
+                            <div class="grid grid-cols-2 gap-2 mt-1">
+                                @foreach($menus as $menu)
+                                    <label class="flex items-center space-x-2">
+                                        <input type="checkbox" wire:model="permisos" value="{{ $menu['id'] }}">
+                                        <span>{{ $menu['nombre'] }}</span>
+                                    </label>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endforeach
                 </div>
 
                 <!-- Botón Guardar -->
@@ -154,5 +150,5 @@
                 </div>
             </div>
         </div>
-    @endif
+    </div>
 </div>

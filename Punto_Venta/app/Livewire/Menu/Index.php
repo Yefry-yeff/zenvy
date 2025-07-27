@@ -3,10 +3,6 @@ namespace App\Livewire\Menu;
 
 use Livewire\Component;
 use Illuminate\Support\Facades\DB;
-use Carbon\Carbon;
-use Symfony\Component\Process\Process;
-use Symfony\Component\Process\Exception\ProcessFailedException;
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -25,18 +21,18 @@ class Index extends Component
         'txt_comentario' => '',
         'icon' => '',
         'orden' => 1,
-        'estado' => 1,
+        'estado_id' => 1,
     ];
 
     public $modo = 'crear';         // Modo actual: 'crear' o 'editar'
-    public $modalOpen = false;      // Estado del modal
+    public $modalOpen = false;      // estado_id del modal
 
     public $filtro = [              // Filtros aplicados a la tabla de menús
         'menu' => '',
         'submenu' => '',
         'icon' => '',
         'orden' => '',
-        'estado' => '',
+        'estado_id' => '',
     ];
 
     /** Validaciones para el formulario */
@@ -45,7 +41,7 @@ class Index extends Component
         'form.txt_comentario' => 'required|string',
         'form.icon'           => 'required|string',
         'form.orden'          => 'required|numeric|min:1',
-        'form.estado'         => 'required|boolean',
+        'form.estado_id'         => 'required|integer',
     ];
 
     /** Mensajes personalizados para validaciones */
@@ -57,8 +53,8 @@ class Index extends Component
             'form.orden.required'          => 'Campo obligatorio',
             'form.orden.numeric'           => 'Debe ser un número',
             'form.orden.min'               => 'Debe ser al menos 1',
-            'form.estado.required'         => 'Campo obligatorio',
-            'form.estado.boolean'          => 'Valor inválido',
+            'form.estado_id.required'         => 'Campo obligatorio',
+            'form.estado_id.boolean'          => 'Valor inválido',
         ];
     }
 
@@ -86,7 +82,7 @@ class Index extends Component
 
         $query = DB::table('menu_grupo as mg')
             ->join('menu as m', 'm.parent_id', '=', 'mg.id')
-            ->select('m.id', 'mg.nombre as menu', 'm.txt_comentario', 'm.icon', 'm.orden', 'm.estado');
+            ->select('m.id', 'mg.nombre as menu', 'm.txt_comentario', 'm.icon', 'm.orden', 'm.estado_id');
 
         if (!empty($this->filtro['menu'])) {
             $query->where('mg.nombre', 'like', '%' . $this->filtro['menu'] . '%');
@@ -100,8 +96,8 @@ class Index extends Component
         if (!empty($this->filtro['orden'])) {
             $query->where('m.orden', $this->filtro['orden']);
         }
-        if ($this->filtro['estado'] !== '') {
-            $query->where('m.estado', $this->filtro['estado']);
+        if ($this->filtro['estado_id'] !== '') {
+            $query->where('m.estado_id', $this->filtro['estado_id']);
         }
 
         $this->menus = $query->get();
@@ -144,7 +140,7 @@ class Index extends Component
                 'txt_comentario' => '',
                 'icon' => '',
                 'orden' => 1,
-                'estado' => 1,
+                'estado_id' => 1,
             ];
         }
     }
@@ -176,31 +172,16 @@ class Index extends Component
             'parent_id' => $grupoId,
             'route' => $route,
             'orden' => $this->form['orden'],
-            'estado' => $this->form['estado'],
+            'estado_id' => $this->form['estado_id'],
             'updated_at' => now(),
         ];
 
         if ($this->modo === 'editar' && $this->form['id']) {
             DB::table('menu')->where('id', $this->form['id'])->update($data);
-             DB::table('permisos')
-        ->where('id_menu', $this->form['id'])
-        ->update([
-            'estado' => $this->form['estado'],
-            'updated_at' => now(),
-            'updated_user' => auth()->id()
-        ]);
+
         } else {
             $data['created_at'] = now();
             $menuId = DB::table('menu')->insertGetId($data);
-
-            // Insertar permiso asociado
-            DB::table('permisos')->insert([
-                'id_menu' => $menuId,
-                'nombre' => $this->form['txt_comentario'],
-                'estado' => 1,
-                'created_at' => now(),
-                'created_user' => auth()->id(),
-            ]);
         }
 
         DB::commit(); // ✅ Confirmar si todo fue bien

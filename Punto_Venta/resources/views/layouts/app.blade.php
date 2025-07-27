@@ -12,7 +12,7 @@
     <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
 
     {{-- Estilos compilados con Vite --}}
-    <link rel="stylesheet" href="{{ asset('build/assets//app-TF6LPPgJ.css') }}">
+    <link rel="stylesheet" href="{{ asset('build/assets/app-DNPvf8Yy.css') }}">
 
     {{-- Solución para evitar múltiples cargas de Alpine.js cuando se usa Livewire --}}
     <script>
@@ -101,7 +101,7 @@
     @livewireScripts
 
     {{-- Scripts de Vite que incluyen Alpine.js --}}
-    <script type="module" src="{{ asset('build/assets/app-DNxiirP_.js') }}"></script>
+    <script type="module" src="{{ asset('build/assets/app-BGPlnUgM.js') }}"></script>
 
     {{-- JS de Tom Select para selects avanzados con creación --}}
     <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
@@ -141,7 +141,7 @@
         timeout: null,
         resetTimer() {
             clearTimeout(this.timeout);
-            this.timeout = setTimeout(() => this.showModal = true, 1 * 60 * 1000); // 10 min
+            this.timeout = setTimeout(() => this.showModal = true, 10 * 60 * 1000); // 10 min
         },
         cerrarSesion() {
             window.location.href = '{{ route('logout') }}';
