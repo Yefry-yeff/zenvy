@@ -1,21 +1,28 @@
 <?php
+
 namespace App\Livewire\Menu;
 
 use Livewire\Component;
+use Livewire\WithPagination;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Symfony\Component\Process\Process;
+use Symfony\Component\Process\Exception\ProcessFailedException;
+use Illuminate\Support\Str;
 
 /**
  * Componente Livewire para la gestión de menús y submenús.
- * Permite crear, editar, listar y generar automáticamente componentes Livewire.
  */
 class Index extends Component
 {
-    public $menus = [];              // Lista de menús renderizados
-    public $menuGrupos = [];         // Lista de nombres de grupos de menú
-    public $submitted = false;       // Control de envío para validación visual
+    use WithPagination;
 
-    public $form = [                 // Formulario principal para crear/editar menús
+    protected $paginationTheme = 'tailwind';
+
+    public $menuGrupos = [];
+    public $submitted = false;
+
+    public $form = [
         'id' => null,
         'menu_grupo' => '',
         'txt_comentario' => '',
@@ -24,10 +31,10 @@ class Index extends Component
         'estado_id' => 1,
     ];
 
-    public $modo = 'crear';         // Modo actual: 'crear' o 'editar'
-    public $modalOpen = false;      // estado_id del modal
+    public $modo = 'crear';
+    public $modalOpen = false;
 
-    public $filtro = [              // Filtros aplicados a la tabla de menús
+    public $filtro = [
         'menu' => '',
         'submenu' => '',
         'icon' => '',
@@ -35,81 +42,91 @@ class Index extends Component
         'estado_id' => '',
     ];
 
-    /** Validaciones para el formulario */
     protected $rules = [
-        'form.menu_grupo'     => 'required|string',
+        'form.menu_grupo' => 'required|string',
         'form.txt_comentario' => 'required|string',
-        'form.icon'           => 'required|string',
-        'form.orden'          => 'required|numeric|min:1',
-        'form.estado_id'         => 'required|integer',
+        'form.icon' => 'required|string',
+        'form.orden' => 'required|numeric|min:1',
+        'form.estado_id' => 'required|integer',
     ];
 
-    /** Mensajes personalizados para validaciones */
     public function messages()
     {
         return [
-            'form.menu_grupo.required'     => 'Campo obligatorio',
+            'form.menu_grupo.required' => 'Campo obligatorio',
             'form.txt_comentario.required' => 'Campo obligatorio',
-            'form.orden.required'          => 'Campo obligatorio',
-            'form.orden.numeric'           => 'Debe ser un número',
-            'form.orden.min'               => 'Debe ser al menos 1',
-            'form.estado_id.required'         => 'Campo obligatorio',
-            'form.estado_id.boolean'          => 'Valor inválido',
+            'form.orden.required' => 'Campo obligatorio',
+            'form.orden.numeric' => 'Debe ser un número',
+            'form.orden.min' => 'Debe ser al menos 1',
+            'form.estado_id.required' => 'Campo obligatorio',
         ];
     }
 
-    /** Inicializa el componente y carga datos iniciales */
+    public function updatedFormMenuGrupo($value)
+    {
+        if ($this->modo === 'crear' && $value !== '') {
+            $icono = DB::table('menu_grupo')->where('nombre', $value)->value('icon');
+            if ($icono) {
+                $this->form['icon'] = $icono;
+            }
+        }
+    }
+
     public function mount()
     {
-        logger()->info('[MenuIndex] mount ejecutado');
         $this->cargarDatos();
     }
 
-    /** Renderiza la vista asociada */
     public function render()
     {
-        logger()->info('[MenuIndex] render ejecutado');
+        $query = collect(DB::select("CALL sp_gestion_menu_sidebar(3, NULL, NULL, NULL, NULL, NULL, NULL)"));
+
+        $menus = $query;
+
+        // Filtros
+        if (!empty($this->filtro['menu'])) {
+            $menus = $menus->filter(fn($m) => str_contains(strtolower($m->MENU), strtolower($this->filtro['menu'])));
+        }
+        if (!empty($this->filtro['submenu'])) {
+            $menus = $menus->filter(fn($m) => str_contains(strtolower($m->SUB_MENU), strtolower($this->filtro['submenu'])));
+        }
+        if (!empty($this->filtro['icon'])) {
+            $menus = $menus->filter(fn($m) => str_contains($m->ICONO, $this->filtro['icon']));
+        }
+        if (!empty($this->filtro['orden'])) {
+            $menus = $menus->filter(fn($m) => $m->SECUENCIA == $this->filtro['orden']);
+        }
+        if ($this->filtro['estado_id'] !== '') {
+            $menus = $menus->filter(fn($m) => $m->ESTADO == $this->filtro['estado_id']);
+        }
+
+        $perPage = 10;
+        $page = request()->get('page', 1);
+        $paginated = $menus->forPage($page, $perPage);
+        $paginator = new \Illuminate\Pagination\LengthAwarePaginator(
+            $paginated,
+            $menus->count(),
+            $perPage,
+            $page,
+            ['path' => request()->url(), 'query' => request()->query()]
+        );
+
         return view('livewire.menu.index', [
-            'menus' => $this->menus,
+            'menus' => $paginator,
             'menuGrupos' => $this->menuGrupos,
         ]);
     }
 
-    /** Carga menús y grupos desde la base de datos */
     public function cargarDatos()
     {
         $this->menuGrupos = DB::table('menu_grupo')->orderBy('nombre')->pluck('nombre')->toArray();
-
-        $query = DB::table('menu_grupo as mg')
-            ->join('menu as m', 'm.parent_id', '=', 'mg.id')
-            ->select('m.id', 'mg.nombre as menu', 'm.txt_comentario', 'm.icon', 'm.orden', 'm.estado_id');
-
-        if (!empty($this->filtro['menu'])) {
-            $query->where('mg.nombre', 'like', '%' . $this->filtro['menu'] . '%');
-        }
-        if (!empty($this->filtro['submenu'])) {
-            $query->where('m.txt_comentario', 'like', '%' . $this->filtro['submenu'] . '%');
-        }
-        if (!empty($this->filtro['icon'])) {
-            $query->where('m.icon', 'like', '%' . $this->filtro['icon'] . '%');
-        }
-        if (!empty($this->filtro['orden'])) {
-            $query->where('m.orden', $this->filtro['orden']);
-        }
-        if ($this->filtro['estado_id'] !== '') {
-            $query->where('m.estado_id', $this->filtro['estado_id']);
-        }
-
-        $this->menus = $query->get();
     }
 
-    /** Actualiza los datos cuando se cambia algún filtro */
     public function updatedFiltro()
     {
         $this->cargarDatos();
     }
 
-    /** Cierra y reinicia el formulario/modal */
     public function cerrarModal()
     {
         $this->submitted = false;
@@ -119,7 +136,6 @@ class Index extends Component
         $this->reset('form');
     }
 
-    /** Abre el modal para crear o editar un menú */
     public function abrirModal($id = null)
     {
         $this->modalOpen = true;
@@ -129,7 +145,7 @@ class Index extends Component
             $menu = DB::table('menu as m')
                 ->join('menu_grupo as mg', 'm.parent_id', '=', 'mg.id')
                 ->where('m.id', $id)
-                ->select('m.*', 'mg.nombre as menu_grupo')
+                ->select('m.*', 'mg.nombre as menu_grupo', 'mg.icon')
                 ->first();
 
             $this->form = (array) $menu;
@@ -145,53 +161,68 @@ class Index extends Component
         }
     }
 
-    /** Guarda o actualiza el menú y crea el componente Livewire si es nuevo */
     public function guardar()
-{
-    $this->submitted = true;
-    $this->validate();
+    {
+        $this->submitted = true;
+        $this->validate();
 
-    DB::beginTransaction(); // ⬅️ Iniciar transacción
+        try {
+            if ($this->modo === 'editar' && $this->form['id']) {
+                DB::statement("CALL sp_gestion_menu_sidebar(?, ?, ?, ?, ?, ?, ?)", [
+                    2,
+                    $this->form['id'],
+                    $this->form['menu_grupo'],
+                    $this->form['icon'],
+                    $this->form['txt_comentario'],
+                    $this->form['orden'],
+                    $this->form['estado_id']
+                ]);
+            } else {
+                DB::statement("CALL sp_gestion_menu_sidebar(?, ?, ?, ?, ?, ?, ?)", [
+                    1,
+                    null,
+                    $this->form['menu_grupo'],
+                    $this->form['icon'],
+                    $this->form['txt_comentario'],
+                    $this->form['orden'],
+                    $this->form['estado_id']
+                ]);
 
-    try {
-        // Verificar grupo
-        $grupoId = DB::table('menu_grupo')->where('nombre', $this->form['menu_grupo'])->value('id');
+                // Generar ruta como sala_de_ventas.lista_de_transacciones
+                $rutaBase = $this->form['menu_grupo'] . '.' . $this->form['txt_comentario'];
+                $rutaStudly = collect(explode('.', $rutaBase))->map(fn($segmento) => Str::studly($segmento));
+                $rutaComponente = implode('.', collect(explode('.', $rutaBase))->map(fn($s) => Str::slug($s, '-')));
 
-        if (!$grupoId) {
-            $grupoId = DB::table('menu_grupo')->insertGetId([
-                'nombre' => $this->form['menu_grupo']
-            ]);
+                $pathClase = app_path('Livewire/' . $rutaStudly->implode('/')) . '.php';
+                $pathVista = resource_path('views/livewire/' . $rutaComponente) . '.blade.php';
+
+                if (!file_exists($pathClase)) {
+                    $process = new Process(['php', 'artisan', 'livewire:make', $rutaComponente]);
+                    $process->setWorkingDirectory(base_path());
+                    $process->run();
+
+                    if (!$process->isSuccessful()) {
+                        throw new ProcessFailedException($process);
+                    }
+
+                    if (!file_exists($pathVista)) {
+                        file_put_contents($pathVista, <<<BLADE
+<div>
+    <!-- Vista generada automáticamente -->
+    <h1 class="text-xl font-bold">{$this->form['txt_comentario']}</h1>
+</div>
+BLADE
+                        );
+                    }
+                }
+            }
+
+            $this->modalOpen = false;
+            $this->cargarDatos();
+            session()->flash('mensaje', 'Menú guardado correctamente.');
+        } catch (\Throwable $e) {
+            Log::error('❌ Error al guardar menú o generar componente: ' . $e->getMessage());
+            session()->flash('mensaje', 'Error al guardar: ' . $e->getMessage());
         }
-
-        // Construcción de ruta
-        $route = strtolower(str_replace(' ', '_', $this->form['menu_grupo'])) . '.' . strtolower(str_replace(' ', '_', $this->form['txt_comentario']));
-
-        $data = [
-            'txt_comentario' => $this->form['txt_comentario'],
-            'icon' => $this->form['icon'],
-            'parent_id' => $grupoId,
-            'route' => $route,
-            'orden' => $this->form['orden'],
-            'estado_id' => $this->form['estado_id'],
-            'updated_at' => now(),
-        ];
-
-        if ($this->modo === 'editar' && $this->form['id']) {
-            DB::table('menu')->where('id', $this->form['id'])->update($data);
-
-        } else {
-            $data['created_at'] = now();
-            $menuId = DB::table('menu')->insertGetId($data);
-        }
-
-        DB::commit(); // ✅ Confirmar si todo fue bien
-        $this->modalOpen = false;
-        $this->cargarDatos();
-        session()->flash('mensaje', 'Menú guardado correctamente.');
-    } catch (\Throwable $e) {
-        DB::rollBack(); // ❌ Deshacer todo si hay error
-        Log::error('Error al guardar menú o permiso: ' . $e->getMessage());
-        session()->flash('mensaje', 'Error al guardar: ' . $e->getMessage());
     }
-}
 }

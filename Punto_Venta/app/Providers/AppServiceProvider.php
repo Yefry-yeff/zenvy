@@ -40,41 +40,43 @@ class AppServiceProvider extends ServiceProvider
             if ($esAdmin) {
                 // Si es admin, obtener todos los menús activos
                 $menuItems = DB::table('menu')
-                    ->where('estado', 1)
-                    ->orderBy('orden')
+                    ->join('menu_grupo', 'menu.parent_id', '=', 'menu_grupo.id') // Aseguramos acceso al icon
+                    ->where('menu.estado_id', 1)
+                    ->select('menu.*', 'menu_grupo.icon')
+                    ->orderBy('menu.orden')
                     ->get();
             } else {
                 // Si no es admin, obtener los menús por su rol directo
                 $menuItems = DB::table('menu')
                     ->join('rol_permiso', 'menu.id', '=', 'rol_permiso.menu_id')
                     ->join('roles', 'rol_permiso.rol_id', '=', 'roles.id')
+                    ->join('menu_grupo', 'menu.parent_id', '=', 'menu_grupo.id')
                     ->where('roles.id', $usuario->roles_id)
                     ->where('menu.estado_id', 1)
                     ->where('rol_permiso.estado', 1)
-                    ->select('menu.*')
+                    ->select('menu.*', 'menu_grupo.icon')
                     ->distinct()
                     ->orderBy('menu.orden')
                     ->get();
             }
 
             // Armar estructura del menú lateral
-            $menu = $menuGrupos->map(function ($grupo) use ($menuItems) {
-                $items = $menuItems->where('parent_id', $grupo->id);
+           $menu = $menuGrupos->map(function ($grupo) use ($menuItems) {
+    $items = $menuItems->where('parent_id', $grupo->id);
 
-                if ($items->isEmpty()) return null;
+    if ($items->isEmpty()) return null;
 
-                return [
-                    'label' => $grupo->nombre,
-                    'icon' => $items->first()?->icon ?? '📁',
-                    'items' => $items->map(function ($item) {
-                        return [
-                            'label' => $item->txt_comentario,
-                            'icon' => $item->icon,
-                            'route' => $item->route,
-                        ];
-                    })->values(),
-                ];
-            })->filter()->values();
+    return [
+        'label' => $grupo->nombre,
+        'icon' => $grupo->icon ?? '📁', // ← usa el icono del grupo
+        'items' => $items->map(function ($item) {
+            return [
+                'label' => $item->txt_comentario,
+                'route' => $item->route,
+            ];
+        })->values(),
+    ];
+})->filter()->values();
 
             $view->with('sidebarMenu', $menu);
         });
