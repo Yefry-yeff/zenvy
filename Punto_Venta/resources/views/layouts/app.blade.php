@@ -161,8 +161,8 @@
         }
     }"
     x-init="init()"
-    x-on:keydown.escape.window="cerrarSesion()"
-    x-on:keydown.enter.window="cerrarSesion()"
+    x-on:keydown.escape.window="if (showModal) cerrarSesion()"
+    x-on:keydown.enter.window="if (showModal) cerrarSesion()"
     @click.outside="cerrarSesion()"
     class="fixed inset-0 z-[100] flex items-center justify-center bg-black bg-opacity-50"
     style="display: none;"
