@@ -2,6 +2,9 @@
 
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\MenuController;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Http\Request;
 
 Route::get('/', function () {
     //return view('welcome');
@@ -28,4 +31,12 @@ Route::get('/register', function () {
     return redirect('/login')->with('status', 'El registro está deshabilitado. Contacta al administrador.');
 })->name('register');
 
+
+Route::get('/menus/data', [MenuController::class, 'data'])->name('menus.data');
+
 require __DIR__.'/auth.php';
+
+Route::post('/debug-log', function (Request $request) {
+    Log::debug('📩 [JS DEBUG] ' . $request->input('mensaje'));
+    return response()->json(['status' => 'ok']);
+});

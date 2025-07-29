@@ -17,7 +17,7 @@ class Index extends Component
 {
     use WithPagination;
 
-    protected $paginationTheme = 'tailwind';
+    protected $paginationTheme = 'bootstrap';
 
     public $menuGrupos = [];
     public $submitted = false;
@@ -77,45 +77,25 @@ class Index extends Component
         $this->cargarDatos();
     }
 
-    public function render()
-    {
-        $query = collect(DB::select("CALL sp_gestion_menu_sidebar(3, NULL, NULL, NULL, NULL, NULL, NULL)"));
+public function render()
+{
+    $menus = DB::table('menu as m')
+        ->join('menu_grupo as mg', 'mg.id', '=', 'm.parent_id')
+        ->select(
+            'm.id',
+            'mg.nombre as menu',
+            'm.txt_comentario',
+            'mg.icon',
+            'm.orden',
+            'm.estado_id'
+        )
+        ->orderBy('mg.id')
+        ->orderBy('m.orden')
+        ->paginate(10); // 👈 Paginación de 10 filas
 
-        $menus = $query;
+    return view('livewire.menu.index', compact('menus'));
+}
 
-        // Filtros
-        if (!empty($this->filtro['menu'])) {
-            $menus = $menus->filter(fn($m) => str_contains(strtolower($m->MENU), strtolower($this->filtro['menu'])));
-        }
-        if (!empty($this->filtro['submenu'])) {
-            $menus = $menus->filter(fn($m) => str_contains(strtolower($m->SUB_MENU), strtolower($this->filtro['submenu'])));
-        }
-        if (!empty($this->filtro['icon'])) {
-            $menus = $menus->filter(fn($m) => str_contains($m->ICONO, $this->filtro['icon']));
-        }
-        if (!empty($this->filtro['orden'])) {
-            $menus = $menus->filter(fn($m) => $m->SECUENCIA == $this->filtro['orden']);
-        }
-        if ($this->filtro['estado_id'] !== '') {
-            $menus = $menus->filter(fn($m) => $m->ESTADO == $this->filtro['estado_id']);
-        }
-
-        $perPage = 10;
-        $page = request()->get('page', 1);
-        $paginated = $menus->forPage($page, $perPage);
-        $paginator = new \Illuminate\Pagination\LengthAwarePaginator(
-            $paginated,
-            $menus->count(),
-            $perPage,
-            $page,
-            ['path' => request()->url(), 'query' => request()->query()]
-        );
-
-        return view('livewire.menu.index', [
-            'menus' => $paginator,
-            'menuGrupos' => $this->menuGrupos,
-        ]);
-    }
 
     public function cargarDatos()
     {

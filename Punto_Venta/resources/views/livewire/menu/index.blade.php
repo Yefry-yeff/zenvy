@@ -62,7 +62,10 @@
     @endforelse
 </tbody>
     </table>
-
+<!-- Paginación -->
+<div class="p-4">
+    {{ $menus->links() }}
+</div>
     {{-- Mensaje de éxito --}}
     @if (session()->has('mensaje'))
         <div class="p-3 mt-4 text-green-700 bg-green-100 border border-green-400 rounded">
