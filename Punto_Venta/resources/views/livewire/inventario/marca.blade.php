@@ -1,35 +1,31 @@
 <div>
     
     <div class="container mt-4">
-        <div class="card">
-            <div class="text-white card-header bg-primary d-flex justify-content-between align-items-center">
-                <h4 class="mb-0">Lista de Marcas</h4>
-                <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalMarca">
-                    Abrir Modal
+        <div class="card mb-4 shadow-sm">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center border-bottom">
+                <h5 class="mb-0 fw-bold text-primary">Gestión de Marcas</h5>
+                <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#modalMarca">
+                    ➕ Agregar Marca
                 </button>
             </div>
             <div class="card-body">
                 <div class="table-responsive">
-                    <table id="marcasTable" class="table align-middle table-striped table-bordered">
-                        <thead class="table-dark">
-                            <tr>
-                                <th>ID</th>
+                    <table id="marcasTable" class="table table-hover table-bordered align-middle mb-0">
+                        <thead class="table-light">
+                            <tr class="align-middle text-center">
+                                <th style="width: 80px;">ID</th>
                                 <th>Nombre</th>
-                                <th>Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
                             @forelse($marcas as $marca)
-                                <tr>
-                                    <td>{{ $marca->id }}</td>
-                                    <td>{{ $marca->nombre }}</td>
-                                    <td>
-                                        <!-- acciones -->
-                                    </td>
+                                <tr class="align-middle text-center cursor-pointer" data-bs-toggle="modal" data-bs-target="#modalMarca">
+                                    <td class="fw-semibold">{{ $marca->id }}</td>
+                                    <td class="text-start">{{ $marca->nombre }}</td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="3" class="text-center">Sin datos</td>
+                                    <td colspan="2" class="text-center text-muted py-4">No hay marcas disponibles.</td>
                                 </tr>
                             @endforelse
                         </tbody>
