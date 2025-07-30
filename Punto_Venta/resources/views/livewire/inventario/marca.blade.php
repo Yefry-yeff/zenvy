@@ -19,7 +19,7 @@
                         </thead>
                         <tbody>
                             @forelse($marcas as $marca)
-                                <tr class="align-middle text-center">
+                                <tr class="align-middle text-center cursor-pointer" data-bs-toggle="modal" data-bs-target="#modalMarca">
                                     <td class="fw-semibold">{{ $marca->id }}</td>
                                     <td class="text-start">{{ $marca->nombre }}</td>
                                 </tr>
