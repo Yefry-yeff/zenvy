@@ -22,6 +22,7 @@ class Index extends Component
     public $menuGrupos = [];
     public $submitted = false;
 
+    public $search = '';
     public $form = [
         'id' => null,
         'menu_grupo' => '',
@@ -50,6 +51,20 @@ class Index extends Component
         'form.estado_id' => 'required|integer',
     ];
 
+    public $ordenCampo = 'm.orden'; // campo por defecto
+public $ordenDireccion = 'asc';
+
+public function ordenarPor($campo)
+{
+    if ($this->ordenCampo === $campo) {
+        // Si ya está ordenando por ese campo, invierte la dirección
+        $this->ordenDireccion = $this->ordenDireccion === 'asc' ? 'desc' : 'asc';
+    } else {
+        $this->ordenCampo = $campo;
+        $this->ordenDireccion = 'asc';
+    }
+}
+
     public function messages()
     {
         return [
@@ -61,16 +76,15 @@ class Index extends Component
             'form.estado_id.required' => 'Campo obligatorio',
         ];
     }
+public function updatedFormMenuGrupo($value)
+{
+    Log::info("🔄 Grupo actualizado: $value");
 
-    public function updatedFormMenuGrupo($value)
-    {
-        if ($this->modo === 'crear' && $value !== '') {
-            $icono = DB::table('menu_grupo')->where('nombre', $value)->value('icon');
-            if ($icono) {
-                $this->form['icon'] = $icono;
-            }
-        }
+    if ($this->modo === 'crear' && $value !== '') {
+        $icono = DB::table('menu_grupo')->where('nombre', $value)->value('icon');
+        $this->form['icon'] = $icono ?: '📂'; // ícono por defecto si no existe
     }
+}
 
     public function mount()
     {
@@ -89,12 +103,20 @@ public function render()
             'm.orden',
             'm.estado_id'
         )
-        ->orderBy('mg.id')
-        ->orderBy('m.orden')
-        ->paginate(10); // 👈 Paginación de 10 filas
+        ->when($this->search, function ($query) {
+            $query->where(function ($q) {
+                $q->where('mg.nombre', 'like', '%' . $this->search . '%')
+                  ->orWhere('m.txt_comentario', 'like', '%' . $this->search . '%')
+                  ->orWhere('m.orden', 'like', '%' . $this->search . '%')
+                  ->orWhere('m.estado_id', 'like', '%' . $this->search . '%');
+            });
+        })
+        ->orderBy($this->ordenCampo, $this->ordenDireccion)
+        ->paginate(10);
 
     return view('livewire.menu.index', compact('menus'));
 }
+
 
 
     public function cargarDatos()
@@ -125,10 +147,17 @@ public function render()
             $menu = DB::table('menu as m')
                 ->join('menu_grupo as mg', 'm.parent_id', '=', 'mg.id')
                 ->where('m.id', $id)
-                ->select('m.*', 'mg.nombre as menu_grupo', 'mg.icon')
+                ->select('m.*', 'mg.nombre as menu_grupo', 'mg.icon as grupo_icon')
                 ->first();
 
-            $this->form = (array) $menu;
+            $this->form = [
+                'id' => $menu->id,
+                'menu_grupo' => $menu->menu_grupo,
+                'txt_comentario' => $menu->txt_comentario,
+                'icon' => $menu->icon ?? $menu->grupo_icon, // usa el icono propio o el del grupo
+                'orden' => $menu->orden,
+                'estado_id' => $menu->estado_id,
+            ];
         } else {
             $this->form = [
                 'id' => null,
@@ -140,6 +169,7 @@ public function render()
             ];
         }
     }
+
 
     public function guardar()
     {
@@ -171,9 +201,10 @@ public function render()
                 // Generar ruta como sala_de_ventas.lista_de_transacciones
                 $rutaBase = $this->form['menu_grupo'] . '.' . $this->form['txt_comentario'];
                 $rutaStudly = collect(explode('.', $rutaBase))->map(fn($segmento) => Str::studly($segmento));
-                $rutaComponente = implode('.', collect(explode('.', $rutaBase))->map(fn($s) => Str::slug($s, '-')));
-
-                $pathClase = app_path('Livewire/' . $rutaStudly->implode('/')) . '.php';
+                $rutaComponente = collect(explode('.', $rutaBase))
+    ->map(fn($s) => Str::slug($s, '-'))
+    ->join('.');
+                $pathClase = app_path('Livewire/' . $rutaStudly->join('/')) . '.php';
                 $pathVista = resource_path('views/livewire/' . $rutaComponente) . '.blade.php';
 
                 if (!file_exists($pathClase)) {
@@ -183,16 +214,6 @@ public function render()
 
                     if (!$process->isSuccessful()) {
                         throw new ProcessFailedException($process);
-                    }
-
-                    if (!file_exists($pathVista)) {
-                        file_put_contents($pathVista, <<<BLADE
-<div>
-    <!-- Vista generada automáticamente -->
-    <h1 class="text-xl font-bold">{$this->form['txt_comentario']}</h1>
-</div>
-BLADE
-                        );
                     }
                 }
             }

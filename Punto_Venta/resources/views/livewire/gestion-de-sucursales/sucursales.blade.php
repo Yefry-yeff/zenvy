@@ -1,3 +1,3 @@
 <div>
-    {{-- Knowing others is intelligence; knowing yourself is true wisdom. --}}
+    {{-- A good traveler has no fixed plans and is not intent upon arriving. --}}
 </div>

@@ -18,18 +18,52 @@
             ➕ Agregar Menú
         </button>
     </div>
-
+<div class="p-3 bg-white border-b">
+    <div class="input-group">
+<input
+    type="text"
+    class="form-control"
+    wire:model="search"
+    placeholder="Buscar..."
+>
+    </div>
+</div>
     {{-- Tabla de menús --}}
    <div class="overflow-x-auto bg-white">
 <table class="min-w-full text-sm text-left border border-gray-300">
        <thead class="bg-gray-100 border-b border-gray-300">
             <!-- ENCABEZADOS -->
              <tr class="text-xs font-semibold text-gray-700 uppercase">
-                <th class="px-4 py-2 border">MENU</th>
-                <th class="px-4 py-2 border">SUB_MENU</th>
-                <th class="px-4 py-2 border">ICONO</th>
-                <th class="px-4 py-2 border">SECUENCIA</th>
-                <th class="px-4 py-2 border">ESTADO</th>
+                <th class="px-4 py-2 border cursor-pointer" wire:click="ordenarPor('mg.nombre')">
+                    MENU
+                    @if ($ordenCampo === 'mg.nombre')
+                        {{ $ordenDireccion === 'asc' ? '▲' : '▼' }}
+                    @endif
+                </th>
+                <th class="px-4 py-2 border cursor-pointer" wire:click="ordenarPor('m.txt_comentario')">
+                    SUB_MENU
+                    @if ($ordenCampo === 'm.txt_comentario')
+                        {{ $ordenDireccion === 'asc' ? '▲' : '▼' }}
+                    @endif
+                </th>
+                <th class="px-4 py-2 border cursor-pointer" wire:click="ordenarPor('m.orden')">
+                    ICONO
+                    @if ($ordenCampo === 'mg.icon')
+                        {{ $ordenDireccion === 'asc' ? '▲' : '▼' }}
+                    @endif
+                </th>
+                <th class="px-4 py-2 border cursor-pointer" wire:click="ordenarPor('m.orden')">
+                    SECUENCIA
+                    @if ($ordenCampo === 'm.orden')
+                        {{ $ordenDireccion === 'asc' ? '▲' : '▼' }}
+                    @endif
+                </th>
+                <th class="px-4 py-2 border cursor-pointer" wire:click="ordenarPor('m.orden')">
+                    ESTADO
+                    @if ($ordenCampo === 'm.estado_id')
+                        {{ $ordenDireccion === 'asc' ? '▲' : '▼' }}
+                    @endif
+                </th>
             </tr>
         </thead>
 
@@ -119,7 +153,7 @@
                     <template x-if="modo === 'crear'">
                         <input
                             list="grupos"
-                            wire:model.defer="form.menu_grupo"
+                            wire:model.lazy="form.menu_grupo"
                             class="w-full px-3 py-2 border rounded"
                             placeholder="Ej: Configuración"
                         >

@@ -12,7 +12,7 @@
     <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
 
     {{-- Estilos compilados con Vite --}}
-    <link rel="stylesheet" href="{{ asset('build/assets/app-CielUwfb.css') }}">
+    <link rel="stylesheet" href="{{ asset('build/assets/app-BOca0FAR.css') }}">
 
     {{-- Bootstrap 5 CSS (sin integrity para evitar error) --}}
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -22,6 +22,7 @@
 
     {{-- Livewire --}}
     @livewireStyles
+    @stack('styles')
 </head>
 
 <body
@@ -93,12 +94,10 @@
     @livewireScripts
 
     {{-- App JS compilado con Vite --}}
-    <script type="module" src="{{ asset('build/assets/app-Ck2gzFIp.js') }}"></script>
+    <script type="module" src="{{ asset('build/assets/app-BLl8G-P3.js') }}"></script>
 
-    {{-- jQuery (debe ir antes de DataTables) --}}
+    {{-- jQuery y DataTables JS CDN --}}
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-
-    {{-- DataTables --}}
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
 
@@ -125,11 +124,11 @@
 
             Livewire.hook('message.processed', () => {
                 initTomSelect();
-
+                initMarcasTable();
+                // Menus
                 if ($.fn.DataTable.isDataTable('#tablaMenus')) {
                     $('#tablaMenus').DataTable().destroy();
                 }
-
                 $('#tablaMenus').DataTable({
                     responsive: true,
                     language: {
@@ -137,6 +136,24 @@
                     }
                 });
             });
+
+            function initMarcasTable() {
+                setTimeout(function() {
+                    if ($('#marcasTable').length) {
+                        if ($.fn.DataTable.isDataTable('#marcasTable')) {
+                            $('#marcasTable').DataTable().destroy();
+                        }
+                        $('#marcasTable').DataTable({
+                            responsive: true,
+                            language: {
+                                url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
+                            }
+                        });
+                    }
+                }, 100);
+            }
+
+            document.addEventListener('DOMContentLoaded', initMarcasTable);
         });
     </script>
 
@@ -161,8 +178,8 @@
         }
     }"
     x-init="init()"
-    x-on:keydown.escape.window="cerrarSesion()"
-    x-on:keydown.enter.window="cerrarSesion()"
+    x-on:keydown.escape.window="if (showModal) cerrarSesion()"
+    x-on:keydown.enter.window="if (showModal) cerrarSesion()"
     @click.outside="cerrarSesion()"
     class="fixed inset-0 z-[100] flex items-center justify-center bg-black bg-opacity-50"
     style="display: none;"
@@ -187,6 +204,47 @@
 
 
     {{-- Scripts adicionales --}}
+    
     @stack('scripts')
+
+    <script>
+        var marcasTableObserver = null;
+        function initMarcasTable() {
+            setTimeout(function() {
+                var $table = $('#marcasTable');
+                if ($table.length) {
+                    $table.css('border', ''); // Quita el borde de depuración
+                    if (!$.fn.DataTable.isDataTable($table)) {
+                        if (marcasTableObserver) marcasTableObserver.disconnect();
+                        $table.DataTable({
+                            responsive: true,
+                            language: {
+                                url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
+                            }
+                        });
+                        if (marcasTableObserver) marcasTableObserver.observe(document.querySelector('main'), { childList: true, subtree: true });
+                    }
+                }
+            }, 300);
+        }
+        window.livewire && window.livewire.hook('message.processed', () => {
+            initMarcasTable();
+        });
+
+        // Detecta cambios en el contenido principal y reinicializa la tabla
+        document.addEventListener('DOMContentLoaded', function() {
+            var main = document.querySelector('main');
+            if (main) {
+                marcasTableObserver = new MutationObserver(function(mutations) {
+                    mutations.forEach(function(mutation) {
+                        if (mutation.type === 'childList') {
+                            initMarcasTable();
+                        }
+                    });
+                });
+                marcasTableObserver.observe(main, { childList: true, subtree: true });
+            }
+        });
+    </script>
 </body>
 </html>
