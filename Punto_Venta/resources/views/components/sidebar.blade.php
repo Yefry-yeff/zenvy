@@ -1,21 +1,21 @@
 @props(['menu'])
 
 <aside
-    x-show="sidebarOpen" {{-- Controla la visibilidad del sidebar con Alpine.js --}}
-    x-data="{ expandedGroup: null }"
-    x-transition:enter="transition duration-300 ease-out"
+    x-show="sidebarOpen"
+    x-transition:enter="transition-all duration-500 ease-in-out"
     x-transition:enter-start="-translate-x-full opacity-0"
     x-transition:enter-end="translate-x-0 opacity-100"
-    x-transition:leave="transition duration-200 ease-in"
+    x-transition:leave="transition-all duration-500 ease-in-out"
     x-transition:leave-start="translate-x-0 opacity-100"
     x-transition:leave-end="-translate-x-full opacity-0"
+    x-data="{ expandedGroup: null }"
     :class="[
-        sidebarOpen ? 'w-64' : 'w-20',
+        sidebarOpen ? 'w-64' : 'hidden',
         theme === 'verde' ? 'bg-emerald-800/30' :
         theme === 'azul' ? 'bg-blue-800/30' :
         theme === 'oscuro' ? 'bg-gray-800/50' : 'bg-slate-700/30'
     ]"
-    class="h-full overflow-y-auto text-white transition-all duration-300 border-r backdrop-blur-md border-white/10"
+    class="h-full overflow-y-auto text-white border-r backdrop-blur-md border-white/10"
 >
     <nav class="p-4 space-y-2 text-sm">
         {{-- Dashboard --}}
@@ -40,7 +40,7 @@
                     class="flex items-center justify-between w-full px-3 py-2 text-white transition rounded hover:bg-white/10"
                 >
                     <span class="flex items-center gap-2">
-                        <span>{!! $menuItem['icon'] !!}</span>
+                        <span x-show="sidebarOpen" x-transition>{!! $menuItem['icon'] !!}</span>
                         <span x-show="sidebarOpen" x-transition class="whitespace-nowrap">
                             {{ $menuItem['label'] }}
                         </span>
@@ -60,7 +60,7 @@
                                     x-on:click="window.Livewire.dispatch('cambiarVista', ['{{ $child['route'] }}'])"
                                     class="flex items-center w-full gap-2 px-3 py-1 text-left rounded text-white/70 hover:text-white hover:bg-white/10"
                                 >
-                                    {!! $child['icon'] ?? '' !!}
+                                    <span x-show="sidebarOpen" x-transition>{!! $child['icon'] ?? '' !!}</span>
                                     <span x-show="sidebarOpen" x-transition class="whitespace-nowrap">
                                         {{ $child['label'] }}
                                     </span>
