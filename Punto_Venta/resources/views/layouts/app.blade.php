@@ -103,61 +103,10 @@
 
     {{-- Tom Select --}}
     <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
-    <script>
-        document.addEventListener('livewire:load', function () {
-            window.initTomSelect = function () {
-                let el = document.getElementById('grupoSelect');
-                if (el && !el.tomselect) {
-                    new TomSelect(el, {
-                        create: true,
-                        persist: false,
-                        maxItems: 1,
-                        allowEmptyOption: true,
-                        onInitialize: function () {
-                            this.addOption({ value: el.value, text: el.value });
-                            this.setValue(el.value);
-                        }
-                    });
-                }
-            };
-            initTomSelect();
 
-            Livewire.hook('message.processed', () => {
-                initTomSelect();
-                initMarcasTable();
-                // Menus
-                if ($.fn.DataTable.isDataTable('#tablaMenus')) {
-                    $('#tablaMenus').DataTable().destroy();
-                }
-                $('#tablaMenus').DataTable({
-                    responsive: true,
-                    language: {
-                        url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
-                    }
-                });
-            });
-
-            function initMarcasTable() {
-                setTimeout(function() {
-                    if ($('#marcasTable').length) {
-                        if ($.fn.DataTable.isDataTable('#marcasTable')) {
-                            $('#marcasTable').DataTable().destroy();
-                        }
-                        $('#marcasTable').DataTable({
-                            responsive: true,
-                            language: {
-                                url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
-                            }
-                        });
-                    }
-                }, 100);
-            }
-
-            document.addEventListener('DOMContentLoaded', initMarcasTable);
-        });
-    </script>
-
-<!-- MODAL DE SESIÓN EXPIRADA -->
+    <script src="{{ asset('JS/Script/TablasBoostrap/marca.js') }}"></script>
+    <script src="{{ asset('JS/Script/TablasBoostrap/categoria.js') }}"></script>
+    <!-- MODAL DE SESIÓN EXPIRADA -->
 <div
     x-show="showModal"
     x-data="{
@@ -207,44 +156,5 @@
 
     @stack('scripts')
 
-    <script>
-        var marcasTableObserver = null;
-        function initMarcasTable() {
-            setTimeout(function() {
-                var $table = $('#marcasTable');
-                if ($table.length) {
-                    $table.css('border', ''); // Quita el borde de depuración
-                    if (!$.fn.DataTable.isDataTable($table)) {
-                        if (marcasTableObserver) marcasTableObserver.disconnect();
-                        $table.DataTable({
-                            responsive: true,
-                            language: {
-                                url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
-                            }
-                        });
-                        if (marcasTableObserver) marcasTableObserver.observe(document.querySelector('main'), { childList: true, subtree: true });
-                    }
-                }
-            }, 300);
-        }
-        window.livewire && window.livewire.hook('message.processed', () => {
-            initMarcasTable();
-        });
-
-        // Detecta cambios en el contenido principal y reinicializa la tabla
-        document.addEventListener('DOMContentLoaded', function() {
-            var main = document.querySelector('main');
-            if (main) {
-                marcasTableObserver = new MutationObserver(function(mutations) {
-                    mutations.forEach(function(mutation) {
-                        if (mutation.type === 'childList') {
-                            initMarcasTable();
-                        }
-                    });
-                });
-                marcasTableObserver.observe(main, { childList: true, subtree: true });
-            }
-        });
-    </script>
 </body>
 </html>
