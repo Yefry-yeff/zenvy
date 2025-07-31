@@ -1,31 +1,39 @@
 <div>
-    
-    <div class="container mt-4">
-        <div class="card mb-4 shadow-sm">
-            <div class="card-header bg-white d-flex justify-content-between align-items-center border-bottom">
-                <h5 class="mb-0 fw-bold text-primary">Gestión de Marcas</h5>
-                <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#modalMarca">
-                    ➕ Agregar Marca
-                </button>
+
+     {{-- Tabla de Marcas --}}
+    <div class="overflow-hidden border border-gray-300 rounded shadow" x-data x-init="$watch('theme', t => localStorage.setItem('theme', t))">
+        <!-- ENCABEZADO -->
+        <div class="flex items-center justify-between px-4 py-2 font-semibold text-white"
+            :class="{
+                'bg-emerald-600': theme === 'verde',
+                'bg-blue-600': theme === 'azul',
+                'bg-gray-900': theme === 'oscuro',
+                'bg-slate-700': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
+            }"
+        >
+                <h5 class="mb-0">Gestión de Marcas</h5>
+            <button wire:click="abrirModalCrear" class="px-3 py-1 text-sm text-gray-800 bg-white rounded hover:bg-gray-100">
+                ➕ Agregar Marca
+            </button>
             </div>
             <div class="card-body">
                 <div class="table-responsive">
-                    <table id="marcasTable" class="table table-hover table-bordered align-middle mb-0">
+                    <table id="marcasTable" class="table mb-0 align-middle table-hover table-bordered">
                         <thead class="table-light">
-                            <tr class="align-middle text-center">
+                            <tr class="text-center align-middle">
                                 <th style="width: 80px;">ID</th>
                                 <th>Nombre</th>
                             </tr>
                         </thead>
                         <tbody>
                             @forelse($marcas as $marca)
-                                <tr class="align-middle text-center cursor-pointer" wire:click="editar({{ $marca->id }})">
+                                <tr class="text-center align-middle cursor-pointer" wire:click="editar({{ $marca->id }})">
                                     <td class="fw-semibold">{{ $marca->id }}</td>
                                     <td class="text-start">{{ $marca->nombre }}</td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="2" class="text-center text-muted py-4">No hay marcas disponibles.</td>
+                                    <td colspan="2" class="py-4 text-center text-muted">No hay marcas disponibles.</td>
                                 </tr>
                             @endforelse
                         </tbody>
@@ -33,16 +41,27 @@
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- Modal Editar Marca -->
+
+    {{-- Modal Editar Marca --}}
     <div wire:key="modal-{{ $form['id'] ?? 'nuevo' }}">
-        <div class="modal fade show" tabindex="-1" style="display: @if($modalAbierto) block @else none @endif; background: rgba(0,0,0,0.5);" aria-modal="true" role="dialog">
-            <div class="modal-dialog">
+        <div class="modal fade show"
+             tabindex="-1"
+             style="display: @if($modalAbierto) block @else none @endif; background: rgba(0,0,0,0.5);"
+             aria-modal="true"
+             role="dialog"
+        >
+            <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content">
-                    <div class="modal-header">
+                    <div class="modal-header"
+                         :class="{
+                            'bg-emerald-700 text-white': theme === 'verde',
+                            'bg-blue-700 text-white': theme === 'azul',
+                            'bg-gray-900 text-white': theme === 'oscuro',
+                            'bg-slate-700 text-white': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
+                         }"
+                    >
                         <h5 class="modal-title">Editar Marca</h5>
-                        <button type="button" class="btn-close" wire:click="cerrarModal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
                         <form wire:submit.prevent="guardar">
@@ -54,15 +73,25 @@
                                 <label for="marcaNombre" class="form-label">Nombre</label>
                                 <input type="text" id="marcaNombre" class="form-control" wire:model.defer="form.nombre">
                             </div>
-                            <button type="submit" class="btn btn-primary">Guardar cambios</button>
+                            <div class="flex justify-end mt-4">
+                                <button
+                                    type="submit"
+                                    class="px-4 py-2 text-white rounded"
+                                    :class="{
+                                        'bg-emerald-600 hover:bg-emerald-700': theme === 'verde',
+                                        'bg-blue-600 hover:bg-blue-700': theme === 'azul',
+                                        'bg-gray-900 hover:bg-gray-800': theme === 'oscuro',
+                                        'bg-slate-700 hover:bg-slate-800': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
+                                    }"
+                                >
+                                    Guardar
+                                </button>
+                            </div>
                         </form>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" wire:click="cerrarModal">Cerrar</button>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-</div>
+</div> {{-- FIN ELEMENTO RAÍZ --}}
