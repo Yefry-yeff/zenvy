@@ -19,7 +19,7 @@
                         </thead>
                         <tbody>
                             @forelse($marcas as $marca)
-                                <tr class="align-middle text-center cursor-pointer" data-bs-toggle="modal" data-bs-target="#modalMarca">
+                                <tr class="align-middle text-center cursor-pointer" wire:click="editar({{ $marca->id }})">
                                     <td class="fw-semibold">{{ $marca->id }}</td>
                                     <td class="text-start">{{ $marca->nombre }}</td>
                                 </tr>
@@ -35,22 +35,34 @@
         </div>
     </div>
 
-    <!-- Modal Bootstrap -->
-    <div class="modal fade" id="modalMarca" tabindex="-1" aria-labelledby="modalMarcaLabel" aria-hidden="true">
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title" id="modalMarcaLabel">Modal de Marca</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-          </div>
-          <div class="modal-body">
-            Aquí puedes colocar el contenido que desees para el modal.
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-          </div>
+    <!-- Modal Editar Marca -->
+    <div wire:key="modal-{{ $form['id'] ?? 'nuevo' }}">
+        <div class="modal fade show" tabindex="-1" style="display: @if($modalAbierto) block @else none @endif; background: rgba(0,0,0,0.5);" aria-modal="true" role="dialog">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Editar Marca</h5>
+                        <button type="button" class="btn-close" wire:click="cerrarModal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form wire:submit.prevent="guardar">
+                            <div class="mb-3">
+                                <label for="marcaId" class="form-label">ID</label>
+                                <input type="text" id="marcaId" class="form-control" wire:model="form.id" readonly>
+                            </div>
+                            <div class="mb-3">
+                                <label for="marcaNombre" class="form-label">Nombre</label>
+                                <input type="text" id="marcaNombre" class="form-control" wire:model.defer="form.nombre">
+                            </div>
+                            <button type="submit" class="btn btn-primary">Guardar cambios</button>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" wire:click="cerrarModal">Cerrar</button>
+                    </div>
+                </div>
+            </div>
         </div>
-      </div>
     </div>
 
 </div>
