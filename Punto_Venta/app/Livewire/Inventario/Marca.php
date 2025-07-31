@@ -11,8 +11,12 @@ class Marca extends Component
         'nombre' => '',
     ];
     public $modalAbierto = false;
+    
     public $modalCrearAbierto = false;
     public $nuevaMarcaNombre = '';
+
+    public $modalEliminarAbierto = false;
+    public $marcaAEliminar = null;
 
     public function render()
     {
@@ -30,6 +34,11 @@ class Marca extends Component
 
     public function guardar()
     {
+        $this->validate([
+            'form.nombre' => 'required|string|max:255|unique:marca,nombre,' . $this->form['id'],
+        ], [
+            'form.nombre.unique' => 'Ya existe una marca con ese nombre.'
+        ]);
         $marca = \App\Models\Marca::findOrFail($this->form['id']);
         $marca->nombre = $this->form['nombre'];
         $marca->save();
@@ -48,6 +57,11 @@ class Marca extends Component
         $this->modalCrearAbierto = false;
     }
 
+    public function cerrarModal()
+    {
+        $this->modalAbierto = false;
+    }
+
     public function crearMarca()
     {
         $this->validate([
@@ -62,5 +76,27 @@ class Marca extends Component
         $this->cerrarModalCrear();
         $this->dispatch('marcaCreada');
         session()->flash('mensaje', 'Marca creada exitosamente.');
+    }
+
+    public function confirmarEliminar($id)
+    {
+        $this->marcaAEliminar = $id;
+        $this->modalEliminarAbierto = true;
+    }
+
+    public function cerrarModalEliminar()
+    {
+        $this->modalEliminarAbierto = false;
+        $this->marcaAEliminar = null;
+    }
+
+    public function eliminarMarca()
+    {
+        $marca = \App\Models\Marca::find($this->marcaAEliminar);
+        if ($marca) {
+            $marca->delete();
+            session()->flash('mensaje', 'Marca eliminada exitosamente.');
+        }
+        $this->cerrarModalEliminar();
     }
 }

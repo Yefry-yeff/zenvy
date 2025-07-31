@@ -27,18 +27,23 @@
                         <tr class="text-center align-middle">
                             <th style="width: 80px;">ID</th>
                             <th>Nombre</th>
+                            <th style="width: 60px;">Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse($marcas as $marca)
-                            <tr class="text-center align-middle cursor-pointer hover:bg-gray-50"
-                                wire:click="editar({{ $marca->id }})">
+                            <tr class="text-center align-middle cursor-pointer hover:bg-gray-50">
                                 <td class="fw-semibold">{{ $marca->id }}</td>
                                 <td class="text-start">{{ $marca->nombre }}</td>
+                                <td>
+                                    <button type="button" class="btn btn-link p-0" wire:click="confirmarEliminar({{ $marca->id }})">
+                                        <span style="font-size: 1.3em; color: #e3342f;">🗑️</span>
+                                    </button>
+                                </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="2" class="py-4 text-center text-muted">No hay marcas disponibles.</td>
+                                <td colspan="3" class="py-4 text-center text-muted">No hay marcas disponibles.</td>
                             </tr>
                         @endforelse
                     </tbody>
@@ -79,6 +84,9 @@
                                 <label for="marcaNombre" class="form-label">Nombre</label>
                                 <input type="text" id="marcaNombre" class="form-control"
                                        wire:model.defer="form.nombre">
+                                @error('form.nombre')
+                                    <div class="text-danger mt-1 text-sm">{{ $message }}</div>
+                                @enderror
                             </div>
                             <div class="flex justify-end mt-4">
                                 <button
@@ -146,6 +154,32 @@
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Confirmar Eliminación -->
+    <div wire:key="modal-confirmar-eliminar">
+        <div class="modal fade show"
+             tabindex="-1"
+             style="display: @if($modalEliminarAbierto) block @else none @endif; background: rgba(0,0,0,0.5); z-index: 1000;"
+             aria-modal="true"
+             role="dialog"
+             @click.self="@this.cerrarModalEliminar()"
+        >
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header bg-danger text-white">
+                        <h5 class="modal-title">¿Eliminar marca?</h5>
+                    </div>
+                    <div class="modal-body">
+                        <p>¿Estás seguro que deseas eliminar esta marca? Esta acción no se puede deshacer.</p>
+                        <div class="flex justify-end gap-2 mt-4">
+                            <button type="button" class="btn btn-secondary" wire:click="cerrarModalEliminar">No</button>
+                            <button type="button" class="btn btn-danger" wire:click="eliminarMarca">Sí, eliminar</button>
+                        </div>
                     </div>
                 </div>
             </div>
