@@ -1,9 +1,10 @@
-<div>
+<div> {{-- ELEMENTO RAÍZ ÚNICO OBLIGATORIO --}}
 
-     {{-- Tabla de Marcas --}}
+    {{-- Tabla de Marcas --}}
     <div class="overflow-hidden border border-gray-300 rounded shadow" x-data x-init="$watch('theme', t => localStorage.setItem('theme', t))">
+
         <!-- ENCABEZADO -->
-        <div class="flex items-center justify-between px-4 py-2 font-semibold text-white"
+        <div class="flex items-center justify-between px-5 py-3 mb-4 font-semibold text-white rounded-t"
             :class="{
                 'bg-emerald-600': theme === 'verde',
                 'bg-blue-600': theme === 'azul',
@@ -11,45 +12,50 @@
                 'bg-slate-700': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
             }"
         >
-                <h5 class="mb-0">Gestión de Marcas</h5>
-            <button wire:click="abrirModalCrear" class="px-3 py-1 text-sm text-gray-800 bg-white rounded hover:bg-gray-100">
-                ➕ Agregar Marca
+            <h5 class="mb-0 text-lg">Gestión de Marcas</h5>
+            <button wire:click="abrirModalCrear"
+                class="inline-flex items-center gap-1 px-3 py-2 text-sm text-gray-800 bg-white rounded hover:bg-gray-100">
+                <span>➕</span> Agregar Marca
             </button>
-            </div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table id="marcasTable" class="table mb-0 align-middle table-hover table-bordered">
-                        <thead class="table-light">
-                            <tr class="text-center align-middle">
-                                <th style="width: 80px;">ID</th>
-                                <th>Nombre</th>
+        </div>
+
+        <!-- TABLA -->
+        <div class="px-4 py-3 pt-0 card-body">
+            <div class="table-responsive">
+                <table id="marcasTable" class="table mb-0 align-middle table-sm table-hover table-bordered">
+                    <thead class="table-light">
+                        <tr class="text-center align-middle">
+                            <th style="width: 80px;">ID</th>
+                            <th>Nombre</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($marcas as $marca)
+                            <tr class="text-center align-middle cursor-pointer hover:bg-gray-50"
+                                wire:click="editar({{ $marca->id }})">
+                                <td class="fw-semibold">{{ $marca->id }}</td>
+                                <td class="text-start">{{ $marca->nombre }}</td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            @forelse($marcas as $marca)
-                                <tr class="text-center align-middle cursor-pointer" wire:click="editar({{ $marca->id }})">
-                                    <td class="fw-semibold">{{ $marca->id }}</td>
-                                    <td class="text-start">{{ $marca->nombre }}</td>
-                                </tr>
-                            @empty
-                                <tr>
-                                    <td colspan="2" class="py-4 text-center text-muted">No hay marcas disponibles.</td>
-                                </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
-                </div>
+                        @empty
+                            <tr>
+                                <td colspan="2" class="py-4 text-center text-muted">No hay marcas disponibles.</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
             </div>
         </div>
 
+    </div>
 
     {{-- Modal Editar Marca --}}
     <div wire:key="modal-{{ $form['id'] ?? 'nuevo' }}">
         <div class="modal fade show"
              tabindex="-1"
-             style="display: @if($modalAbierto) block @else none @endif; background: rgba(0,0,0,0.5);"
+             style="display: @if($modalAbierto) block @else none @endif; background: rgba(0,0,0,0.5); z-index: 1000;"
              aria-modal="true"
              role="dialog"
+             @click.self="@this.cerrarModal()"
         >
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content">
@@ -71,7 +77,8 @@
                             </div>
                             <div class="mb-3">
                                 <label for="marcaNombre" class="form-label">Nombre</label>
-                                <input type="text" id="marcaNombre" class="form-control" wire:model.defer="form.nombre">
+                                <input type="text" id="marcaNombre" class="form-control"
+                                       wire:model.defer="form.nombre">
                             </div>
                             <div class="flex justify-end mt-4">
                                 <button
