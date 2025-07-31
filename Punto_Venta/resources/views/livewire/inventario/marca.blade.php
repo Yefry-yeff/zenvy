@@ -101,4 +101,65 @@
         </div>
     </div>
 
+    <!-- Modal Agregar Marca -->
+    <div wire:key="modal-nueva-marca">
+        <div class="modal fade show"
+             tabindex="-1"
+             style="display: @if($modalCrearAbierto) block @else none @endif; background: rgba(0,0,0,0.5); z-index: 1000;"
+             aria-modal="true"
+             role="dialog"
+             @click.self="@this.cerrarModalCrear()"
+        >
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header"
+                         :class="{
+                            'bg-emerald-700 text-white': theme === 'verde',
+                            'bg-blue-700 text-white': theme === 'azul',
+                            'bg-gray-900 text-white': theme === 'oscuro',
+                            'bg-slate-700 text-white': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
+                         }"
+                    >
+                        <h5 class="modal-title">Agregar Marca</h5>
+                    </div>
+                    <div class="modal-body">
+                        <form wire:submit.prevent="crearMarca">
+                            <div class="mb-3">
+                                <label for="nuevaMarcaNombre" class="form-label">Nombre</label>
+                                <input type="text" id="nuevaMarcaNombre" class="form-control" wire:model.defer="nuevaMarcaNombre">
+                                @error('nuevaMarcaNombre')
+                                    <div class="text-danger mt-1 text-sm">{{ $message }}</div>
+                                @enderror
+                            </div>
+                            <div class="flex justify-end mt-4">
+                                <button
+                                    type="submit"
+                                    class="px-4 py-2 text-white rounded"
+                                    :class="{
+                                        'bg-emerald-600 hover:bg-emerald-700': theme === 'verde',
+                                        'bg-blue-600 hover:bg-blue-700': theme === 'azul',
+                                        'bg-gray-900 hover:bg-gray-800': theme === 'oscuro',
+                                        'bg-slate-700 hover:bg-slate-800': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
+                                    }"
+                                >
+                                    Guardar
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (session()->has('mensaje'))
+        <div x-data="{ show: true }" x-show="show"
+             @click.window="show = false"
+             @keydown.window="show = false"
+             @mousemove.window="show = false"
+             class="alert alert-success mt-3 mb-0 transition-opacity duration-300">
+            {{ session('mensaje') }}
+        </div>
+    @endif
+
 </div> {{-- FIN ELEMENTO RAÍZ --}}

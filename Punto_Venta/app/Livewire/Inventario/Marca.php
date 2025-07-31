@@ -11,6 +11,8 @@ class Marca extends Component
         'nombre' => '',
     ];
     public $modalAbierto = false;
+    public $modalCrearAbierto = false;
+    public $nuevaMarcaNombre = '';
 
     public function render()
     {
@@ -35,8 +37,30 @@ class Marca extends Component
         session()->flash('mensaje', 'Marca actualizada correctamente.');
     }
 
-    public function cerrarModal()
+    public function abrirModalCrear()
     {
-        $this->modalAbierto = false;
+        $this->modalCrearAbierto = true;
+        $this->nuevaMarcaNombre = '';
+    }
+
+    public function cerrarModalCrear()
+    {
+        $this->modalCrearAbierto = false;
+    }
+
+    public function crearMarca()
+    {
+        $this->validate([
+            'nuevaMarcaNombre' => 'required|string|max:255|unique:marca,nombre',
+        ], [
+            'nuevaMarcaNombre.unique' => 'Ya existe una marca con ese nombre.'
+        ]);
+        \App\Models\Marca::create([
+            'nombre' => $this->nuevaMarcaNombre,
+            'created_at' => now(),
+        ]);
+        $this->cerrarModalCrear();
+        $this->dispatch('marcaCreada');
+        session()->flash('mensaje', 'Marca creada exitosamente.');
     }
 }
