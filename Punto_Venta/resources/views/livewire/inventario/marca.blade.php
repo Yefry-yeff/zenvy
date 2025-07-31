@@ -32,12 +32,16 @@
                     </thead>
                     <tbody>
                         @forelse($marcas as $marca)
-                            <tr class="text-center align-middle cursor-pointer hover:bg-gray-50">
-                                <td class="fw-semibold">{{ $marca->id }}</td>
-                                <td class="text-start">{{ $marca->nombre }}</td>
+                            <tr class="text-center align-middle hover:bg-gray-50">
+                                <td class="fw-semibold cursor-pointer" wire:click="editar({{ $marca->id }})">{{ $marca->id }}</td>
+                                <td class="text-start cursor-pointer" wire:click="editar({{ $marca->id }})">{{ $marca->nombre }}</td>
                                 <td>
-                                    <button type="button" class="btn btn-link p-0" wire:click="confirmarEliminar({{ $marca->id }})">
-                                        <span style="font-size: 1.3em; color: #e3342f;">🗑️</span>
+                                    <button type="button" class="btn btn-link p-0" wire:click="confirmarEliminar({{ $marca->id }})" title="Eliminar" onclick="event.stopPropagation();">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 7v12a2 2 0 002 2h8a2 2 0 002-2V7M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2m-7 0h10" style="color:#e3342f;" />
+                                            <line x1="10" y1="11" x2="10" y2="17" stroke="#e3342f" stroke-width="2"/>
+                                            <line x1="14" y1="11" x2="14" y2="17" stroke="#e3342f" stroke-width="2"/>
+                                        </svg>
                                     </button>
                                 </td>
                             </tr>
