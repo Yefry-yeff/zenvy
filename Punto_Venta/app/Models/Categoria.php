@@ -7,9 +7,14 @@ use Illuminate\Database\Eloquent\Model;
 
 class Categoria extends Model
 {
-    protected $table = 'categoría';
+    protected $table = 'categoria';
 
     protected $fillable = [
         'nombre',
     ];
+
+    public function subcategorias()
+    {
+        return $this->hasMany(Subcategoria::class, 'categoria_id');
+    }
 }

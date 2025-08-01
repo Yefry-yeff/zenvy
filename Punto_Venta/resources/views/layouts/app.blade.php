@@ -12,7 +12,7 @@
     <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
 
     {{-- Estilos compilados con Vite --}}
-    <link rel="stylesheet" href="{{ asset('build/assets/app-xQqBX6JP.css') }}">
+    <link rel="stylesheet" href="{{ asset('build/assets/app-BJ8WTtUC.css') }}">
 
     {{-- Bootstrap 5 CSS (sin integrity para evitar error) --}}
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -94,7 +94,7 @@
     @livewireScripts
 
     {{-- App JS compilado con Vite --}}
-    <script type="module" src="{{ asset('build/assets/app-Ck2gzFIp.js') }}"></script>
+    <script type="module" src="{{ asset('build/assets/app-BLl8G-P3.js') }}"></script>
 
     {{-- jQuery y DataTables JS CDN --}}
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
@@ -106,6 +106,9 @@
 
     <script src="{{ asset('JS/Script/TablasBoostrap/marca.js') }}"></script>
     <script src="{{ asset('JS/Script/TablasBoostrap/categoria.js') }}"></script>
+    <script src="{{ asset('JS/Script/TablasBoostrap/subcategoria.js') }}"></script>
+    <script src="{{ asset('JS/Script/TablasBoostrap/unidades.js') }}"></script>
+    <script src="{{ asset('JS/Script/TablasBoostrap/productos.js') }}"></script>
     <!-- MODAL DE SESIÓN EXPIRADA -->
 <div
     x-show="showModal"

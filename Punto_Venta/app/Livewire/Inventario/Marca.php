@@ -74,7 +74,6 @@ class Marca extends Component
             'created_at' => now(),
         ]);
         $this->cerrarModalCrear();
-        $this->dispatch('marcaCreada');
         session()->flash('mensaje', 'Marca creada exitosamente.');
     }
 

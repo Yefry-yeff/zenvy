@@ -53,65 +53,6 @@
         </div>
     </div>
 
-    {{-- Modal Editar Categoría --}}
-    <div wire:key="modal-{{ $form['id'] ?? 'nuevo' }}">
-        <div class="modal fade show"
-             tabindex="-1"
-             style="display: @if($modalAbierto) block @else none @endif; background: rgba(0,0,0,0.5); z-index: 1000;"
-             aria-modal="true"
-             role="dialog"
-             @click.self="@this.cerrarModal()"
-        >
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content">
-                    <div class="modal-header"
-                         :class="{
-                            'bg-emerald-700 text-white': theme === 'verde',
-                            'bg-blue-700 text-white': theme === 'azul',
-                            'bg-gray-900 text-white': theme === 'oscuro',
-                            'bg-slate-700 text-white': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
-                         }"
-                    >
-                        <h5 class="modal-title">Editar Categoría</h5>
-                    </div>
-                    <div class="modal-body">
-                        <form wire:submit.prevent="guardar">
-                            <div class="mb-3">
-                                <label for="categoriaId" class="form-label">ID</label>
-                                <input type="text" id="categoriaId" class="form-control bg-gray-200 text-gray-500 cursor-not-allowed" wire:model="form.id" readonly
-                                       style="pointer-events: none;"
-                                       onmouseover="this.classList.add('border-warning', 'bg-warning', 'text-warning');"
-                                       onmouseout="this.classList.remove('border-warning', 'bg-warning', 'text-warning');"
-                                >
-                            </div>
-                            <div class="mb-3">
-                                <label for="categoriaNombre" class="form-label">Nombre</label>
-                                <input type="text" id="categoriaNombre" class="form-control" wire:model.defer="form.nombre">
-                                @error('form.nombre')
-                                    <div class="mt-1 text-sm text-danger">{{ $message }}</div>
-                                @enderror
-                            </div>
-                            <div class="flex justify-end mt-4">
-                                <button
-                                    type="submit"
-                                    class="px-4 py-2 text-white rounded"
-                                    :class="{
-                                        'bg-emerald-600 hover:bg-emerald-700': theme === 'verde',
-                                        'bg-blue-600 hover:bg-blue-700': theme === 'azul',
-                                        'bg-gray-900 hover:bg-gray-800': theme === 'oscuro',
-                                        'bg-slate-700 hover:bg-slate-800': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
-                                    }"
-                                >
-                                    Guardar
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <!-- Modal Agregar Categoría -->
     <div wire:key="modal-nueva-categoria">
         <div class="modal fade show"

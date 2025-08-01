@@ -6,11 +6,6 @@ use Livewire\Component;
 
 class Categoria extends Component
 {
-    public $form = [
-        'id' => null,
-        'nombre' => '',
-    ];
-    public $modalAbierto = false;
     public $modalCrearAbierto = false;
     public $modalEliminarAbierto = false;
     public $nuevaCategoriaNombre = '';
@@ -24,40 +19,17 @@ class Categoria extends Component
 
     public function editar($id)
     {
-        $categoria = \App\Models\Categoria::findOrFail($id);
-        $this->form['id'] = $categoria->id;
-        $this->form['nombre'] = $categoria->nombre;
-        $this->modalAbierto = true;
-    }
-
-    public function guardar()
-    {
-        $this->validate([
-            'form.nombre' => 'required|string|max:255|unique:categorias,nombre,' . $this->form['id'],
-        ], [
-            'form.nombre.unique' => 'Ya existe una categoría con ese nombre.'
-        ]);
-        $categoria = \App\Models\Categoria::findOrFail($this->form['id']);
-        $categoria->nombre = $this->form['nombre'];
-        $categoria->save();
-        $this->modalAbierto = false;
-        session()->flash('mensaje', 'Categoría actualizada correctamente.');
+        $this->dispatch('cambiarVista', ruta: 'Inventario.categoriaform', parametros: ['id' => $id]);
     }
 
     public function abrirModalCrear()
     {
-        $this->modalCrearAbierto = true;
-        $this->nuevaCategoriaNombre = '';
+        $this->dispatch('cambiarVista', ruta: 'Inventario.categoriaform');
     }
 
     public function cerrarModalCrear()
     {
         $this->modalCrearAbierto = false;
-    }
-
-    public function cerrarModal()
-    {
-        $this->modalAbierto = false;
     }
 
     public function confirmarEliminar($id)
@@ -76,8 +48,12 @@ class Categoria extends Component
     {
         $categoria = \App\Models\Categoria::find($this->categoriaAEliminar);
         if ($categoria) {
+            // Primero eliminar todas las subcategorías
+            $categoria->subcategorias()->delete();
+
+            // Luego eliminar la categoría
             $categoria->delete();
-            session()->flash('mensaje', 'Categoría eliminada exitosamente.');
+            session()->flash('mensaje', 'Categoría y sus subcategorías eliminadas exitosamente.');
         }
         $this->cerrarModalEliminar();
     }
@@ -85,7 +61,7 @@ class Categoria extends Component
     public function crearCategoria()
     {
         $this->validate([
-            'nuevaCategoriaNombre' => 'required|string|max:255|unique:categorias,nombre',
+            'nuevaCategoriaNombre' => 'required|string|max:255|unique:categoria,nombre',
         ], [
             'nuevaCategoriaNombre.unique' => 'Ya existe una categoría con ese nombre.'
         ]);
