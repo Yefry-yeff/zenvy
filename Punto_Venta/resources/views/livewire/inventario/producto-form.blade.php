@@ -86,7 +86,7 @@
                             </div>
                             <div class="col-md-4 mb-3">
                                 <label for="categoria" class="form-label">Categoría <span class="text-red-600">*</span></label>
-                                <select id="categoria" class="form-select" wire:model="categoriaSeleccionada">
+                                <select id="categoria" class="form-select" wire:model.lazy="categoriaSeleccionada">
                                     <option value="">Seleccionar categoría</option>
                                     @foreach($categorias as $categoria)
                                         <option value="{{ $categoria->id }}">{{ $categoria->nombre }}</option>
