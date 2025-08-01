@@ -80,7 +80,127 @@
 
     </div>
 
-    {{-- Modal Editar Marca --}}
+
+    {{--   Modal Agregar cai   --}}
+    <div wire:key="modal-nueva-marca">
+        <div class="modal fade show"
+             tabindex="-1"
+             style="display: @if($modalCrearAbierto) block @else none @endif; background: rgba(0,0,0,0.5); z-index: 1000;"
+             aria-modal="true"
+             role="dialog"
+             @click.self="@this.cerrarModalCrear()"
+        >
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header"
+                         :class="{
+                            'bg-emerald-700 text-white': theme === 'verde',
+                            'bg-blue-700 text-white': theme === 'azul',
+                            'bg-gray-900 text-white': theme === 'oscuro',
+                            'bg-slate-700 text-white': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
+                         }"
+                    >
+                        <h5 class="modal-title">Agregar Marca</h5>
+                    </div>
+                    <div class="modal-body">
+                        <form wire:submit.prevent="crearMarca">
+                            <div class="row">
+                                <div class="mb-2 col-md-6">
+                                    <label for="nuevoCai" class="form-label">CAI</label>
+                                    <input type="text" id="nuevoCai" class="form-control" wire:model.defer="nuevoCai"  pattern="[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}"  title="El CAI debe tener el formato ####-####-####-####-####-####" maxlength="39">
+                                    @error('nuevoCai')
+                                        <div class="text-danger mt-1 text-sm">{{ $message }}</div>
+                                    @enderror
+                                </div>
+
+                                <div class="mb-2 col-md-6">
+                                    <label for="nuevoFechaLimite" class="form-label">Fecha límite</label>
+                                    <input type="date" id="nuevoFechaLimite" class="form-control" wire:model.defer="nuevoFechaLimite" title="Debe seleccionar una fecha límite de vigencia de este CAI.">
+                                    @error('nuevoFechaLimite')
+                                        <div class="text-danger mt-1 text-sm">{{ $message }}</div>
+                                    @enderror
+                                </div>
+
+
+                                <div class="mb-2 col-md-6">
+                                    <label for="nuevoFechaSolicitud" class="form-label">Fecha de Solicitud</label>
+                                    <input type="date" id="nuevoFechaSolicitud" class="form-control" wire:model.defer="nuevoFechaSolicitud" title="Debe seleccionar una fecha límite de vigencia de este CAI.">
+                                    @error('nuevoFechaSolicitud')
+                                        <div class="text-danger mt-1 text-sm">{{ $message }}</div>
+                                    @enderror
+                                </div>
+
+
+                                <div class="mb-2 col-md-6">
+                                    <label for="nuevoPuntoEmision" class="form-label">Punto de Emisión</label>
+                                    <input type="text" id="nuevoPuntoEmision" class="form-control" wire:model.defer="nuevoPuntoEmision" title="Debe seleccionar una fecha límite de vigencia de este CAI.">
+                                    @error('nuevoPuntoEmision')
+                                        <div class="text-danger mt-1 text-sm">{{ $message }}</div>
+                                    @enderror
+                                </div>
+
+                                <div class="mb-2 col-md-6">
+                                    <label for="tipoDocumento" class="form-label">Tipo de documento</label>
+                                    <select id="tipoDocumento" class="form-select" wire:model.defer="tipoDocumentoSeleccionado">
+                                        <option value="">Seleccione un tipo...</option>
+                                        @foreach($tiposDocumento as $tipo)
+                                            <option value="{{ $tipo->id }}">{{ $tipo->nombre }}</option>
+                                        @endforeach
+                                    </select>
+                                    @error('tipoDocumentoSeleccionado')
+                                        <div class="text-danger mt-1 text-sm">{{ $message }}</div>
+                                    @enderror
+                                </div>
+
+                                <div class="mb-2 col-md-6">
+                                    <label for="tipoDocumento" class="form-label">Tipo de documento</label>
+                                    <select id="tipoDocumento" class="form-select" wire:model.defer="tipoDocumentoSeleccionado">
+                                        <option value="">Seleccione un tipo...</option>
+                                        @foreach($tiposDocumento as $tipo)
+                                            <option value="{{ $tipo->id }}">{{ $tipo->nombre }}</option>
+                                        @endforeach
+                                    </select>
+                                    @error('tipoDocumentoSeleccionado')
+                                        <div class="text-danger mt-1 text-sm">{{ $message }}</div>
+                                    @enderror
+                                </div>
+
+                                <div class="mb-2 col-md-6">
+                                    <label for="tipoDocumento" class="form-label">Tipo de documento</label>
+                                    <select id="tipoDocumento" class="form-select" wire:model.defer="tipoDocumentoSeleccionado">
+                                        <option value="">Seleccione un tipo...</option>
+                                        @foreach($tiposDocumento as $tipo)
+                                            <option value="{{ $tipo->id }}">{{ $tipo->nombre }}</option>
+                                        @endforeach
+                                    </select>
+                                    @error('tipoDocumentoSeleccionado')
+                                        <div class="text-danger mt-1 text-sm">{{ $message }}</div>
+                                    @enderror
+                                </div>
+                            </div>
+                            <div class="flex justify-end mt-4">
+                                <button
+                                    type="submit"
+                                    class="px-4 py-2 text-white rounded"
+                                    :class="{
+                                        'bg-emerald-600 hover:bg-emerald-700': theme === 'verde',
+                                        'bg-blue-600 hover:bg-blue-700': theme === 'azul',
+                                        'bg-gray-900 hover:bg-gray-800': theme === 'oscuro',
+                                        'bg-slate-700 hover:bg-slate-800': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
+                                    }"
+                                >
+                                    Guardar
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    {{-- Modal Editar cai --}}
     <div wire:key="modal-{{ $form['id'] ?? 'nuevo' }}">
         <div class="modal fade show"
              tabindex="-1"
@@ -112,57 +232,6 @@
                                 <input type="text" id="marcaNombre" class="form-control"
                                        wire:model.defer="form.nombre">
                                 @error('form.nombre')
-                                    <div class="text-danger mt-1 text-sm">{{ $message }}</div>
-                                @enderror
-                            </div>
-                            <div class="flex justify-end mt-4">
-                                <button
-                                    type="submit"
-                                    class="px-4 py-2 text-white rounded"
-                                    :class="{
-                                        'bg-emerald-600 hover:bg-emerald-700': theme === 'verde',
-                                        'bg-blue-600 hover:bg-blue-700': theme === 'azul',
-                                        'bg-gray-900 hover:bg-gray-800': theme === 'oscuro',
-                                        'bg-slate-700 hover:bg-slate-800': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
-                                    }"
-                                >
-                                    Guardar
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal Agregar Marca -->
-    <div wire:key="modal-nueva-marca">
-        <div class="modal fade show"
-             tabindex="-1"
-             style="display: @if($modalCrearAbierto) block @else none @endif; background: rgba(0,0,0,0.5); z-index: 1000;"
-             aria-modal="true"
-             role="dialog"
-             @click.self="@this.cerrarModalCrear()"
-        >
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content">
-                    <div class="modal-header"
-                         :class="{
-                            'bg-emerald-700 text-white': theme === 'verde',
-                            'bg-blue-700 text-white': theme === 'azul',
-                            'bg-gray-900 text-white': theme === 'oscuro',
-                            'bg-slate-700 text-white': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
-                         }"
-                    >
-                        <h5 class="modal-title">Agregar Marca</h5>
-                    </div>
-                    <div class="modal-body">
-                        <form wire:submit.prevent="crearMarca">
-                            <div class="mb-3">
-                                <label for="nuevaMarcaNombre" class="form-label">Nombre</label>
-                                <input type="text" id="nuevaMarcaNombre" class="form-control" wire:model.defer="nuevaMarcaNombre">
-                                @error('nuevaMarcaNombre')
                                     <div class="text-danger mt-1 text-sm">{{ $message }}</div>
                                 @enderror
                             </div>

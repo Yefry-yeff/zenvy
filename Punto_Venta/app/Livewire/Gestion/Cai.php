@@ -4,6 +4,8 @@ namespace App\Livewire\Gestion;
 
 use Livewire\Component;
 use Illuminate\Support\Facades\DB;
+use App\Models\TipoDocumentoFiscal;
+use App\Models\Tiendas;
 
 class Cai extends Component
 {
@@ -31,6 +33,10 @@ class Cai extends Component
 
     public $modalEliminarAbierto = false;
     public $marcaAEliminar = null;
+
+    public $tiposDocumento;
+    public $tiendas;
+
     public function render()
     {
         $cai = DB::SELECT(
@@ -60,6 +66,67 @@ class Cai extends Component
         );
 
         return view('livewire.gestion.cai', compact('cai'));
+    }
+
+    public function mount()
+    {
+        $this->tiposDocumento = TipoDocumentoFiscal::all();
+        $this->tiendas = Tiendas::all();
+    }
+
+        public function guardar()
+    {
+        $this->validate([
+            'form.nombre' => 'required|string|max:255|unique:marca,nombre,' . $this->form['id'],
+        ], [
+            'form.nombre.unique' => 'Ya existe una marca con ese nombre.'
+        ]);
+        $marca = \App\Models\Marca::findOrFail($this->form['id']);
+        $marca->nombre = $this->form['nombre'];
+        $marca->save();
+        $this->modalAbierto = false;
+        session()->flash('mensaje', 'Marca actualizada correctamente.');
+    }
+
+    public function abrirModalCrear()
+    {
+        $this->modalCrearAbierto = true;
+        $this->nuevoCai = '';
+        $this->nuevoFechaLimite = '';
+        $this->nuevoFechaSolicitud = '';
+        $this->nuevoPuntoEmision = '';
+        $this->nuevotipoFiscal = '';
+        $this->nuevoCantidadSolicitada = '';
+        $this->nuevoCantidadOrtorgada = '';
+        $this->nuevoRangoInicio = '';
+        $this->nuevoRangoFinal = '';
+        $this->nuevoTiendaId = '';
+    }
+
+    public function cerrarModalCrear()
+    {
+        $this->modalCrearAbierto = false;
+    }
+
+    public function cerrarModal()
+    {
+        $this->modalAbierto = false;
+    }
+
+    public function crearMarca()
+    {
+        $this->validate([
+            'nuevaMarcaNombre' => 'required|string|max:255|unique:marca,nombre',
+        ], [
+            'nuevaMarcaNombre.unique' => 'Ya existe una marca con ese nombre.'
+        ]);
+        \App\Models\Marca::create([
+            'nombre' => $this->nuevaMarcaNombre,
+            'created_at' => now(),
+        ]);
+        $this->cerrarModalCrear();
+        $this->dispatch('marcaCreada');
+        session()->flash('mensaje', 'Marca creada exitosamente.');
     }
 
 
