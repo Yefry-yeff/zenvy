@@ -48,8 +48,12 @@ class Categoria extends Component
     {
         $categoria = \App\Models\Categoria::find($this->categoriaAEliminar);
         if ($categoria) {
+            // Primero eliminar todas las subcategorías
+            $categoria->subcategorias()->delete();
+
+            // Luego eliminar la categoría
             $categoria->delete();
-            session()->flash('mensaje', 'Categoría eliminada exitosamente.');
+            session()->flash('mensaje', 'Categoría y sus subcategorías eliminadas exitosamente.');
         }
         $this->cerrarModalEliminar();
     }
@@ -57,7 +61,7 @@ class Categoria extends Component
     public function crearCategoria()
     {
         $this->validate([
-            'nuevaCategoriaNombre' => 'required|string|max:255|unique:categoría,nombre',
+            'nuevaCategoriaNombre' => 'required|string|max:255|unique:categoria,nombre',
         ], [
             'nuevaCategoriaNombre.unique' => 'Ya existe una categoría con ese nombre.'
         ]);

@@ -72,7 +72,7 @@
 
             <!-- Lista de subcategorías -->
             @if ($subcategorias->count() > 0)
-                <table class="w-full text-sm text-left border border-gray-300">
+                <table id="subcategoriaTable" class="w-full text-sm text-left border border-gray-300">
                     <thead class="bg-gray-100">
                         <tr>
                             <th class="px-3 py-2 border">ID</th>
@@ -89,10 +89,14 @@
                                     <button 
                                         wire:click="eliminarSubcategoria({{ $subcategoria->id }})"
                                         onclick="return confirm('¿Estás seguro de eliminar esta subcategoría?')"
-                                        class="p-1 text-red-600 hover:text-red-800"
+                                        class="p-0 btn btn-link"
                                         title="Eliminar"
                                     >
-                                        🗑️
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 7v12a2 2 0 002 2h8a2 2 0 002-2V7M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2m-7 0h10" style="color:#e3342f;" />
+                                            <line x1="10" y1="11" x2="10" y2="17" stroke="#e3342f" stroke-width="2"/>
+                                            <line x1="14" y1="11" x2="14" y2="17" stroke="#e3342f" stroke-width="2"/>
+                                        </svg>
                                     </button>
                                 </td>
                             </tr>

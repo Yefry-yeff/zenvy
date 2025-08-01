@@ -106,6 +106,7 @@
 
     <script src="{{ asset('JS/Script/TablasBoostrap/marca.js') }}"></script>
     <script src="{{ asset('JS/Script/TablasBoostrap/categoria.js') }}"></script>
+    <script src="{{ asset('JS/Script/TablasBoostrap/subcategoria.js') }}"></script>
     <!-- MODAL DE SESIÓN EXPIRADA -->
 <div
     x-show="showModal"

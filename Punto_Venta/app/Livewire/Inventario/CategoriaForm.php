@@ -45,7 +45,7 @@ class CategoriaForm extends Component
     public function guardar()
     {
         $this->validate([
-            'form.nombre' => 'required|string|max:255|unique:categoría,nombre,' . $this->categoriaId,
+            'form.nombre' => 'required|string|max:255|unique:categoria,nombre,' . $this->categoriaId,
         ], [
             'form.nombre.required' => 'El nombre de la categoría es obligatorio.',
             'form.nombre.unique' => 'Ya existe una categoría con ese nombre.'
@@ -80,7 +80,7 @@ class CategoriaForm extends Component
 
         Subcategoria::create([
             'nombre' => $this->nuevaSubcategoria,
-            'categoria_id' => $this->categoriaId,
+            'categoría_id' => $this->categoriaId,
         ]);
 
         $this->nuevaSubcategoria = '';
