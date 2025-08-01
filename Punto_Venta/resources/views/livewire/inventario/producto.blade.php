@@ -1,108 +1,116 @@
-<div>
-    <div class="container mt-4">
-        <div class="card mb-4 shadow-sm">
-            <div class="card-header bg-white d-flex justify-content-between align-items-center border-bottom">
-                <h5 class="mb-0 fw-bold text-primary">Gestión de Productos</h5>
-                <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#modalAgregarProducto">
-                    ➕ Agregar Producto
-                </button>
-            </div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table id="productoTable" class="table table-hover table-bordered align-middle mb-0">
-                        <thead class="table-light">
-                            <tr class="align-middle text-center">
-                                <th style="width: 80px;">ID</th>
-                                <th>Nombre</th>
-                                <th>Categoría</th>
-                                <th>Precio</th>
+<div> {{-- ELEMENTO RAÍZ ÚNICO OBLIGATORIO --}}
+
+    {{-- Tabla de Productos --}}
+    <div class="overflow-hidden border border-gray-300 rounded shadow" x-data x-init="$watch('theme', t => localStorage.setItem('theme', t))">
+
+        <!-- ENCABEZADO -->
+        <div class="flex items-center justify-between px-5 py-3 mb-4 font-semibold text-white rounded-t"
+            :class="{
+                'bg-emerald-600': theme === 'verde',
+                'bg-blue-600': theme === 'azul',
+                'bg-gray-900': theme === 'oscuro',
+                'bg-slate-700': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
+            }"
+        >
+            <h5 class="mb-0 text-lg">Gestión de Productos</h5>
+            <button wire:click="abrirModalCrear"
+                class="inline-flex items-center gap-1 px-3 py-2 text-sm text-gray-800 bg-white rounded hover:bg-gray-100">
+                <span>➕</span> Agregar Producto
+            </button>
+        </div>
+
+        <!-- TABLA -->
+        <div class="px-4 py-3 pt-0 card-body">
+            <div class="table-responsive">
+                <table id="productosTable" class="table mb-0 align-middle table-sm table-hover table-bordered">
+                    <thead class="table-light">
+                        <tr class="text-center align-middle">
+                            <th>Nombre</th>
+                            <th>Descripción</th>
+                            <th>Categoría</th>
+                            <th>Subcategoría</th>
+                            <th>Marca</th>
+                            <th>Precio Base</th>
+                            <th style="width: 150px;">Fecha Creación</th>
+                            <th style="width: 60px;">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($productos as $producto)
+                            <tr class="text-center align-middle hover:bg-gray-50">
+                                <td class="text-start cursor-pointer" wire:click="editar({{ $producto->id }})">{{ $producto->nombre }}</td>
+                                <td class="text-start cursor-pointer" wire:click="editar({{ $producto->id }})">{{ $producto->descripcion ?? 'N/A' }}</td>
+                                <td class="cursor-pointer" wire:click="editar({{ $producto->id }})">{{ $producto->subcategoria->categoria->nombre ?? 'N/A' }}</td>
+                                <td class="cursor-pointer" wire:click="editar({{ $producto->id }})">{{ $producto->subcategoria->nombre ?? 'N/A' }}</td>
+                                <td class="cursor-pointer" wire:click="editar({{ $producto->id }})">{{ $producto->marca->nombre ?? 'N/A' }}</td>
+                                <td class="text-end cursor-pointer" wire:click="editar({{ $producto->id }})">${{ number_format($producto->precio_base, 2) }}</td>
+                                <td class="cursor-pointer" wire:click="editar({{ $producto->id }})">{{ $producto->created_at ? $producto->created_at->format('d/m/Y') : 'N/A' }}</td>
+                                <td>
+                                    <button type="button" class="btn btn-link p-0" wire:click="confirmarEliminar({{ $producto->id }})" title="Eliminar" onclick="event.stopPropagation();">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 7v12a2 2 0 002 2h8a2 2 0 002-2V7M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2m-7 0h10" style="color:#e3342f;" />
+                                            <line x1="10" y1="11" x2="10" y2="17" stroke="#e3342f" stroke-width="2"/>
+                                            <line x1="14" y1="11" x2="14" y2="17" stroke="#e3342f" stroke-width="2"/>
+                                        </svg>
+                                    </button>
+                                </td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            @forelse($productos as $producto)
-                                <tr class="align-middle text-center cursor-pointer" wire:click="selectProducto({{ $producto->id }})">
-                                    <td class="fw-semibold">{{ $producto->id }}</td>
-                                    <td class="text-start">{{ $producto->nombre }}</td>
-                                    <td class="text-start">{{ $producto->categoria }}</td>
-                                    <td class="text-end">${{ number_format($producto->precio, 2) }}</td>
-                                </tr>
-                            @empty
-                                <tr>
-                                    <td colspan="4" class="text-center text-muted py-4">No hay productos disponibles.</td>
-                                </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
+                        @empty
+                            <tr>
+                                <td colspan="8" class="py-4 text-center text-muted">No hay productos disponibles.</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Modal Confirmar Eliminación -->
+    <div wire:key="modal-confirmar-eliminar">
+        <div class="modal fade show"
+             tabindex="-1"
+             style="display: @if($modalEliminarAbierto) block @else none @endif; background: rgba(0,0,0,0.5); z-index: 1000;"
+             aria-modal="true"
+             role="dialog"
+             @click.self="@this.cerrarModalEliminar()"
+        >
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header bg-danger text-white">
+                        <h5 class="modal-title">¿Eliminar producto?</h5>
+                    </div>
+                    <div class="modal-body">
+                        <p>¿Estás seguro que deseas eliminar este producto? Esta acción no se puede deshacer.</p>
+                        <div class="flex justify-end gap-2 mt-4">
+                            <button type="button" class="btn btn-secondary" wire:click="cerrarModalEliminar">No</button>
+                            <button type="button" class="btn btn-danger" wire:click="eliminarProducto">Sí, eliminar</button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Modal Agregar Producto -->
-    <div class="modal fade" id="modalAgregarProducto" tabindex="-1" aria-labelledby="modalAgregarProductoLabel" aria-hidden="true">
-      <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title" id="modalAgregarProductoLabel">Agregar Producto</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-          </div>
-          <div class="modal-body">
-            <form wire:submit.prevent="crearProducto">
-              <div class="mb-3">
-                <label for="nuevoNombreProducto" class="form-label">Nombre</label>
-                <input type="text" id="nuevoNombreProducto" class="form-control" wire:model.lazy="nuevoNombreProducto">
-              </div>
-              <div class="mb-3">
-                <label for="nuevaCategoria" class="form-label">Categoría</label>
-                <input type="text" id="nuevaCategoria" class="form-control" wire:model.lazy="nuevaCategoria">
-              </div>
-              <div class="mb-3">
-                <label for="nuevoPrecio" class="form-label">Precio</label>
-                <input type="number" id="nuevoPrecio" class="form-control" wire:model.lazy="nuevoPrecio" step="0.01">
-              </div>
-              <button type="submit" class="btn btn-success">Agregar</button>
-            </form>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-          </div>
+    @if (session()->has('mensaje'))
+        <div x-data="{ show: true }" x-show="show"
+             @click.window="show = false"
+             @keydown.window="show = false"
+             @mousemove.window="show = false"
+             class="alert alert-success mt-3 mb-0 transition-opacity duration-300">
+            {{ session('mensaje') }}
         </div>
-      </div>
-    </div>
+    @endif
 
-    <!-- Modal Editar Producto -->
-    <div class="modal fade" id="modalEditarProducto" tabindex="-1" aria-labelledby="modalEditarProductoLabel" aria-hidden="true">
-      <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title" id="modalEditarProductoLabel">Editar Producto</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-          </div>
-          <div class="modal-body">
-            <form wire:submit.prevent="updateProducto">
-              <div class="mb-3">
-                <label for="productoId" class="form-label">ID</label>
-                <input type="text" id="productoId" class="form-control" value="{{ $selectedProducto['id'] ?? '' }}" readonly>
-              </div>
-              <div class="mb-3">
-                <label for="productoNombre" class="form-label">Nombre</label>
-                <input type="text" id="productoNombre" class="form-control" wire:model.lazy="selectedProducto.nombre">
-              </div>
-              <div class="mb-3">
-                <label for="productoCategoria" class="form-label">Categoría</label>
-                <input type="text" id="productoCategoria" class="form-control" wire:model.lazy="selectedProducto.categoria">
-              </div>
-              <div class="mb-3">
-                <label for="productoPrecio" class="form-label">Precio</label>
-                <input type="number" id="productoPrecio" class="form-control" wire:model.lazy="selectedProducto.precio" step="0.01">
-              </div>
-              <button type="submit" class="btn btn-primary">Guardar Cambios</button>
-            </form>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-          </div>
+    @if (session()->has('error'))
+        <div x-data="{ show: true }" x-show="show"
+             @click.window="show = false"
+             @keydown.window="show = false"
+             @mousemove.window="show = false"
+             class="alert alert-danger mt-3 mb-0 transition-opacity duration-300">
+            {{ session('error') }}
         </div>
-      </div>
-    </div>
-</div>
+    @endif
+
+</div> {{-- FIN ELEMENTO RAÍZ --}}
