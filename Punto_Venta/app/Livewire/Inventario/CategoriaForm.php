@@ -15,6 +15,18 @@ class CategoriaForm extends Component
     public $subcategorias;
     public $nuevaSubcategoria = '';
     public $mostrarMensaje = false;
+    
+    // Propiedades para modal de eliminar subcategoría
+    public $modalEliminarSubcategoriaAbierto = false;
+    public $subcategoriaAEliminar = null;
+    
+    // Propiedades para modal de editar subcategoría
+    public $modalEditarSubcategoriaAbierto = false;
+    public $subcategoriaEditando = null;
+    public $formSubcategoria = [
+        'id' => null,
+        'nombre' => '',
+    ];
 
     public function mount($id = null)
     {
@@ -80,7 +92,7 @@ class CategoriaForm extends Component
 
         Subcategoria::create([
             'nombre' => $this->nuevaSubcategoria,
-            'categoría_id' => $this->categoriaId,
+            'categoria_id' => $this->categoriaId,
         ]);
 
         $this->nuevaSubcategoria = '';
@@ -90,12 +102,58 @@ class CategoriaForm extends Component
 
     public function eliminarSubcategoria($subcategoriaId)
     {
-        $subcategoria = Subcategoria::find($subcategoriaId);
+        $this->subcategoriaAEliminar = $subcategoriaId;
+        $this->modalEliminarSubcategoriaAbierto = true;
+    }
+
+    public function confirmarEliminarSubcategoria()
+    {
+        $subcategoria = Subcategoria::find($this->subcategoriaAEliminar);
         if ($subcategoria) {
             $subcategoria->delete();
             $this->cargarSubcategorias();
             session()->flash('mensaje', 'Subcategoría eliminada correctamente.');
         }
+        $this->cerrarModalEliminarSubcategoria();
+    }
+
+    public function cerrarModalEliminarSubcategoria()
+    {
+        $this->modalEliminarSubcategoriaAbierto = false;
+        $this->subcategoriaAEliminar = null;
+    }
+
+    public function editarSubcategoria($subcategoriaId)
+    {
+        $subcategoria = Subcategoria::findOrFail($subcategoriaId);
+        $this->formSubcategoria['id'] = $subcategoria->id;
+        $this->formSubcategoria['nombre'] = $subcategoria->nombre;
+        $this->subcategoriaEditando = $subcategoriaId;
+        $this->modalEditarSubcategoriaAbierto = true;
+    }
+
+    public function guardarSubcategoria()
+    {
+        $this->validate([
+            'formSubcategoria.nombre' => 'required|string|max:255|unique:subcategoria,nombre,' . $this->formSubcategoria['id'],
+        ], [
+            'formSubcategoria.nombre.required' => 'El nombre de la subcategoría es obligatorio.',
+            'formSubcategoria.nombre.unique' => 'Ya existe una subcategoría con ese nombre.',
+        ]);
+
+        $subcategoria = Subcategoria::findOrFail($this->formSubcategoria['id']);
+        $subcategoria->update(['nombre' => $this->formSubcategoria['nombre']]);
+        
+        $this->cargarSubcategorias();
+        $this->cerrarModalEditarSubcategoria();
+        session()->flash('mensaje', 'Subcategoría actualizada correctamente.');
+    }
+
+    public function cerrarModalEditarSubcategoria()
+    {
+        $this->modalEditarSubcategoriaAbierto = false;
+        $this->subcategoriaEditando = null;
+        $this->formSubcategoria = ['id' => null, 'nombre' => ''];
     }
 
     public function render()
