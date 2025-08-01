@@ -1,41 +1,37 @@
-document.addEventListener("DOMContentLoaded", function() {
-    function initializeUnidadesTable() {
-        if ($.fn.DataTable.isDataTable('#unidadesTable')) {
-            $('#unidadesTable').DataTable().destroy();
+ var unidadesTableObserver = null;
+        function initUnidadesTable() {
+            setTimeout(function() {
+                var $table = $('#unidadesTable');
+                if ($table.length) {
+                    $table.css('border', ''); // Quita el borde de depuración
+                    if (!$.fn.DataTable.isDataTable($table)) {
+                        if (unidadesTableObserver) unidadesTableObserver.disconnect();
+                        $table.DataTable({
+                            responsive: true,
+                            language: {
+                                url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
+                            }
+                        });
+                        if (unidadesTableObserver) unidadesTableObserver.observe(document.querySelector('main'), { childList: true, subtree: true });
+                    }
+                }
+            }, 300);
         }
-
-        $('#unidadesTable').DataTable({
-            "language": {
-                "url": "//cdn.datatables.net/plug-ins/1.10.25/i18n/Spanish.json"
-            },
-            "pageLength": 25,
-            "dom": 'frtip',
-            "autoWidth": false,
-            "order": [[3, "desc"]],
-            "columnDefs": [
-                { "width": "100px", "targets": 0 },  // Unidad
-                { "width": "auto", "targets": 1 },   // Nombre
-                { "width": "100px", "targets": 2 },  // Símbolo
-                { "width": "150px", "targets": 3 },  // Fecha
-                { "width": "60px", "targets": 4, "orderable": false }  // Acciones
-            ]
+        window.livewire && window.livewire.hook('message.processed', () => {
+            initUnidadesTable();
         });
-    }
 
-    // Inicializar la tabla cuando se carga la página
-    initializeUnidadesTable();
-
-    // Reinicializar después de actualizaciones de Livewire
-    Livewire.hook('morph.updated', () => {
-        setTimeout(() => {
-            initializeUnidadesTable();
-        }, 100);
-    });
-
-    // También escuchar eventos de Livewire específicos
-    window.livewire.on('refreshTable', () => {
-        setTimeout(() => {
-            initializeUnidadesTable();
-        }, 100);
-    });
-});
+        // Detecta cambios en el contenido principal y reinicializa la tabla
+        document.addEventListener('DOMContentLoaded', function() {
+            var main = document.querySelector('main');
+            if (main) {
+                unidadesTableObserver = new MutationObserver(function(mutations) {
+                    mutations.forEach(function(mutation) {
+                        if (mutation.type === 'childList') {
+                            initUnidadesTable();
+                        }
+                    });
+                });
+                unidadesTableObserver.observe(main, { childList: true, subtree: true });
+            }
+        });

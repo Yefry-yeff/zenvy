@@ -1,44 +1,37 @@
-document.addEventListener("DOMContentLoaded", function() {
-    function initializeProductosTable() {
-        if ($.fn.DataTable.isDataTable('#productosTable')) {
-            $('#productosTable').DataTable().destroy();
+ var productosTableObserver = null;
+        function initProductosTable() {
+            setTimeout(function() {
+                var $table = $('#productosTable');
+                if ($table.length) {
+                    $table.css('border', ''); // Quita el borde de depuración
+                    if (!$.fn.DataTable.isDataTable($table)) {
+                        if (productosTableObserver) productosTableObserver.disconnect();
+                        $table.DataTable({
+                            responsive: true,
+                            language: {
+                                url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
+                            }
+                        });
+                        if (productosTableObserver) productosTableObserver.observe(document.querySelector('main'), { childList: true, subtree: true });
+                    }
+                }
+            }, 300);
         }
-
-        $('#productosTable').DataTable({
-            "language": {
-                "url": "//cdn.datatables.net/plug-ins/1.10.25/i18n/Spanish.json"
-            },
-            "pageLength": 25,
-            "dom": 'frtip',
-            "autoWidth": false,
-            "order": [[6, "desc"]],  // Ordenar por fecha de creación
-            "columnDefs": [
-                { "width": "auto", "targets": 0 },   // Nombre
-                { "width": "auto", "targets": 1 },   // Descripción
-                { "width": "120px", "targets": 2 },  // Categoría
-                { "width": "120px", "targets": 3 },  // Subcategoría
-                { "width": "100px", "targets": 4 },  // Marca
-                { "width": "100px", "targets": 5 },  // Precio Base
-                { "width": "150px", "targets": 6 },  // Fecha
-                { "width": "60px", "targets": 7, "orderable": false }  // Acciones
-            ]
+        window.livewire && window.livewire.hook('message.processed', () => {
+            initProductosTable();
         });
-    }
 
-    // Inicializar la tabla cuando se carga la página
-    initializeProductosTable();
-
-    // Reinicializar después de actualizaciones de Livewire
-    Livewire.hook('morph.updated', () => {
-        setTimeout(() => {
-            initializeProductosTable();
-        }, 100);
-    });
-
-    // También escuchar eventos de Livewire específicos
-    window.livewire.on('refreshTable', () => {
-        setTimeout(() => {
-            initializeProductosTable();
-        }, 100);
-    });
-});
+        // Detecta cambios en el contenido principal y reinicializa la tabla
+        document.addEventListener('DOMContentLoaded', function() {
+            var main = document.querySelector('main');
+            if (main) {
+                productosTableObserver = new MutationObserver(function(mutations) {
+                    mutations.forEach(function(mutation) {
+                        if (mutation.type === 'childList') {
+                            initProductosTable();
+                        }
+                    });
+                });
+                productosTableObserver.observe(main, { childList: true, subtree: true });
+            }
+        });
