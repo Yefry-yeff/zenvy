@@ -9,6 +9,7 @@ use App\Models\Subcategoria;
 use App\Models\Marca;
 use App\Models\UnidadMedida;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class ProductoForm extends Component
 {
@@ -217,22 +218,50 @@ class ProductoForm extends Component
         $this->cerrarAlerta();
 
         try {
+            // Validar los datos del formulario
             $this->validate();
 
             $datos = $this->form;
             $datos['users_id'] = Auth::id();
 
+            // Log para debugging
+            Log::info('Intentando guardar producto', [
+                'datos' => $datos,
+                'isEditing' => $this->isEditing,
+                'productoId' => $this->productoId
+            ]);
+
             if ($this->isEditing) {
                 ProductoModel::actualizarProducto($this->productoId, $datos);
+                Log::info('Producto actualizado exitosamente', ['id' => $this->productoId]);
                 session()->flash('mensaje', 'Producto actualizado exitosamente.');
             } else {
-                ProductoModel::crearProducto($datos);
+                $resultado = ProductoModel::crearProducto($datos);
+                Log::info('Producto creado exitosamente', ['resultado' => $resultado]);
                 session()->flash('mensaje', 'Producto creado exitosamente.');
             }
 
             $this->volverALista();
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Error de validación - mostrar errores específicos
+            Log::warning('Error de validación al guardar producto', [
+                'errores' => $e->errors(),
+                'datos' => $this->form
+            ]);
+            session()->flash('error', 'Hubo un error al guardar');
+            
         } catch (\Exception $e) {
-            session()->flash('error', 'Error al guardar el producto: ' . $e->getMessage());
+            // Error general - log completo y mensaje simple al usuario
+            Log::error('Error al guardar producto', [
+                'mensaje' => $e->getMessage(),
+                'archivo' => $e->getFile(),
+                'linea' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+                'datos' => $this->form,
+                'isEditing' => $this->isEditing
+            ]);
+            session()->flash('error', 'Hubo un error al guardar');
         }
     }
 
