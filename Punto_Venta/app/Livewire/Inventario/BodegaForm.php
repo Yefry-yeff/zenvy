@@ -7,6 +7,7 @@ use App\Models\Bodega;
 use App\Models\Segmento;
 use App\Models\Seccion;
 use App\Models\Tiendas;
+use App\Models\Direccion;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
@@ -18,13 +19,15 @@ class BodegaForm extends Component
     // Formulario principal
     public $form = [
         'nombre' => '',
-        'direccion_id' => 1,
+        'direccion_id' => null,
         'estado_id' => 1,
         'tienda_id' => null,
     ];
 
     // Datos para los selectores
     public $tiendas = [];
+    public $direcciones = [];
+    public $domicilioTributario = '';
 
     // Propiedades para validación backend
     public $mostrarAlerta = false;
@@ -44,6 +47,7 @@ class BodegaForm extends Component
     {
         $camposObligatorios = [
             'nombre',
+            'direccion_id',
             'tienda_id'
         ];
 
@@ -65,7 +69,7 @@ class BodegaForm extends Component
 
     protected $rules = [
         'form.nombre' => 'required|string|max:100',
-        'form.direccion_id' => 'required|integer',
+        'form.direccion_id' => 'required|integer|exists:direccion,id',
         'form.estado_id' => 'required|integer',
         'form.tienda_id' => 'required|integer|exists:tienda,id',
     ];
@@ -73,6 +77,8 @@ class BodegaForm extends Component
     protected $messages = [
         'form.nombre.required' => 'El nombre de la bodega es obligatorio',
         'form.nombre.max' => 'El nombre no puede exceder 100 caracteres',
+        'form.direccion_id.required' => 'La dirección es obligatoria',
+        'form.direccion_id.exists' => 'La dirección seleccionada no existe',
         'form.tienda_id.required' => 'La tienda es obligatoria',
         'form.tienda_id.exists' => 'La tienda seleccionada no existe',
     ];
@@ -92,6 +98,12 @@ class BodegaForm extends Component
     {
         try {
             $this->tiendas = Tiendas::where('estado_id', 1)->orderBy('denominacion_social')->get();
+            $this->direcciones = Direccion::all();
+            
+            Log::info('BodegaForm - Datos iniciales cargados', [
+                'tiendas_count' => count($this->tiendas),
+                'direcciones_count' => count($this->direcciones)
+            ]);
         } catch (\Exception $e) {
             Log::error('Error al cargar datos iniciales de bodega', [
                 'mensaje' => $e->getMessage(),
@@ -112,6 +124,9 @@ class BodegaForm extends Component
                 'estado_id' => $bodega->estado_id,
                 'tienda_id' => $bodega->tienda_id,
             ];
+            
+            // Cargar domicilio tributario para la dirección actual
+            $this->cargarDomicilioTributario($bodega->direccion_id);
         } catch (\Exception $e) {
             Log::error('Error al cargar bodega', [
                 'bodega_id' => $this->bodegaId,
@@ -119,6 +134,32 @@ class BodegaForm extends Component
             ]);
             $this->mostrarError('Error al cargar la bodega');
         }
+    }
+
+    public function cargarDomicilioTributario($direccionId)
+    {
+        try {
+            if (!$direccionId) {
+                $this->domicilioTributario = '';
+                return;
+            }
+
+            $direccion = Direccion::find($direccionId);
+            
+            if ($direccion) {
+                $this->domicilioTributario = $direccion->domicilio_tributario ?? '';
+            } else {
+                $this->domicilioTributario = '';
+            }
+        } catch (\Exception $e) {
+            Log::error('Error al cargar domicilio tributario: ' . $e->getMessage());
+            $this->domicilioTributario = '';
+        }
+    }
+
+    public function updatedFormDireccionId($value)
+    {
+        $this->cargarDomicilioTributario($value);
     }
 
     public function guardar()
@@ -186,6 +227,16 @@ class BodegaForm extends Component
             $this->limpiarErrorCampo('tienda');
         } catch (\Illuminate\Validation\ValidationException $e) {
             $this->mostrarErrorCampo('tienda', 'Debe seleccionar una tienda');
+        }
+    }
+
+    public function updatedFormDireccionIdReal($value)
+    {
+        try {
+            $this->validateOnly('form.direccion_id');
+            $this->limpiarErrorCampo('direccion');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            $this->mostrarErrorCampo('direccion', 'Debe seleccionar una dirección');
         }
     }
 

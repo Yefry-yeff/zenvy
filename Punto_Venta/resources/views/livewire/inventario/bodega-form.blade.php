@@ -63,11 +63,22 @@
                         </div>
                         <div class="row">
                             <div class="mb-3 col-md-6">
-                                <label for="direccion_id" class="form-label">Dirección ID</label>
-                                <input type="number" id="direccion_id" class="form-control" wire:model.defer="form.direccion_id" min="1">
+                                <label for="direccion_id" class="form-label">Dirección <span class="text-red-600">*</span></label>
+                                <select id="direccion_id" class="form-select {{ $this->getClaseCampo('direccion') }}" wire:model.live="form.direccion_id">
+                                    <option value="">Seleccionar dirección</option>
+                                    @foreach($direcciones as $direccion)
+                                        <option value="{{ $direccion->id }}">{{ $direccion->domicilio_tributario }}</option>
+                                    @endforeach
+                                </select>
                                 @error('form.direccion_id')
-                                    <div class="mt-1 text-sm text-danger">{{ $message }}</div>
+                                    <div class="mt-1 text-sm text-danger">❌ La dirección es obligatoria</div>
                                 @enderror
+                                
+                                @if($domicilioTributario)
+                                    <div class="mt-2 alert alert-info">
+                                        <strong>📍 Dirección completa:</strong> {{ $domicilioTributario }}
+                                    </div>
+                                @endif
                             </div>
                             <div class="mb-3 col-md-6">
                                 <label for="estado_id" class="form-label">Estado</label>
