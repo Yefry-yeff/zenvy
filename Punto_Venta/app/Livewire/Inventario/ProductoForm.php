@@ -43,6 +43,14 @@ class ProductoForm extends Component
     public $unidadesMedida = [];
     public $categoriaSeleccionada = null;
 
+    // Propiedades para validación backend
+    public $mostrarAlerta = false;
+    public $mensajeAlerta = '';
+    public $campoConError = '';
+    public $camposConError = [];
+    public $camposValidos = [];
+    public $erroresValidacion = [];
+
     protected $rules = [
         'form.nombre' => 'required|string|max:80',
         'form.descripcion' => 'nullable|string|max:45',
@@ -55,7 +63,7 @@ class ProductoForm extends Component
         'form.estado_id' => 'required|integer',
         'form.subcategoria_id' => 'required|integer|exists:subcategoria,id',
         'form.marca_id' => 'required|integer|exists:marca,id',
-        'form.unidad_compra' => 'required|numeric|min:0.01',
+        'form.unidad_compra' => 'required|integer|min:1',
         'form.unidad_medida_compra_id' => 'required|integer|exists:unidad_medida,id',
         'form.precio1' => 'required|numeric|min:0',
         'form.precio2' => 'nullable|numeric|min:0',
@@ -149,6 +157,17 @@ class ProductoForm extends Component
     {
         $this->form['subcategoria_id'] = null;
         $this->cargarSubcategorias();
+        
+        // Limpiar subcategoría si se cambia la categoría
+        $this->removerErrorCampo('subcategoria');
+        
+        // Validar categoría
+        if ($this->categoriaSeleccionada) {
+            $this->removerErrorCampo('categoria');
+            $this->marcarCampoValido('categoria');
+        } else {
+            $this->mostrarErrorCampo('categoria', 'Debe seleccionar una categoría');
+        }
     }
 
     public function cargarSubcategorias()
@@ -164,9 +183,32 @@ class ProductoForm extends Component
 
     public function guardar()
     {
-        $this->validate();
+        // Verificar campos críticos antes de la validación completa
+        $camposVacios = $this->verificarCamposCriticos();
+        
+        if (!empty($camposVacios)) {
+            $primerCampoVacio = $camposVacios[0];
+            $mensajes = [
+                'nombre' => 'El nombre del producto es obligatorio',
+                'marca' => 'Debe seleccionar una marca',
+                'categoria' => 'Debe seleccionar una categoría',
+                'subcategoria' => 'Debe seleccionar una subcategoría', 
+                'precio_base' => 'El precio base es obligatorio',
+                'precio1' => 'El precio 1 es obligatorio',
+                'unidad_compra' => 'La unidad de compra es obligatoria',
+                'unidad_medida' => 'Debe seleccionar una unidad de medida'
+            ];
+            
+            $this->mostrarErrorCampo($primerCampoVacio, $mensajes[$primerCampoVacio]);
+            return;
+        }
 
+        // Limpiar alertas antes de validar
+        $this->cerrarAlerta();
+        
         try {
+            $this->validate();
+            
             $datos = $this->form;
             $datos['users_id'] = Auth::id();
 
@@ -187,6 +229,194 @@ class ProductoForm extends Component
     public function volverALista()
     {
         $this->dispatch('cambiarVista', ruta: 'Inventario.producto');
+    }
+
+    // ===== MÉTODOS DE VALIDACIÓN EN TIEMPO REAL =====
+    
+    public function updatedFormNombre()
+    {
+        try {
+            $this->validateOnly('form.nombre');
+            $this->removerErrorCampo('nombre');
+            $this->marcarCampoValido('nombre');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            $this->mostrarErrorCampo('nombre', 'El nombre es obligatorio y no puede estar vacío');
+        }
+    }
+
+    public function updatedFormMarcaId()
+    {
+        try {
+            $this->validateOnly('form.marca_id');
+            $this->removerErrorCampo('marca');
+            $this->marcarCampoValido('marca');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            $this->mostrarErrorCampo('marca', 'Debe seleccionar una marca');
+        }
+    }
+
+    public function updatedFormSubcategoriaId()
+    {
+        try {
+            $this->validateOnly('form.subcategoria_id');
+            $this->removerErrorCampo('subcategoria');
+            $this->marcarCampoValido('subcategoria');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            $this->mostrarErrorCampo('subcategoria', 'Debe seleccionar una subcategoría');
+        }
+    }
+
+    public function updatedFormPrecioBase()
+    {
+        try {
+            $this->validateOnly('form.precio_base');
+            $this->removerErrorCampo('precio_base');
+            $this->marcarCampoValido('precio_base');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            $this->mostrarErrorCampo('precio_base', 'El precio base debe ser mayor a 0');
+        }
+    }
+
+    public function updatedFormPrecio1()
+    {
+        try {
+            $this->validateOnly('form.precio1');
+            $this->removerErrorCampo('precio1');
+            $this->marcarCampoValido('precio1');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            $this->mostrarErrorCampo('precio1', 'El precio 1 debe ser mayor a 0');
+        }
+    }
+
+    public function updatedFormUnidadCompra()
+    {
+        try {
+            // Asegurar que sea un entero
+            if ($this->form['unidad_compra'] !== null && $this->form['unidad_compra'] !== '') {
+                $this->form['unidad_compra'] = (int) $this->form['unidad_compra'];
+            }
+            
+            $this->validateOnly('form.unidad_compra');
+            $this->removerErrorCampo('unidad_compra');
+            $this->marcarCampoValido('unidad_compra');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            $this->mostrarErrorCampo('unidad_compra', 'La unidad de compra debe ser un número entero mayor a 0');
+        }
+    }
+
+    public function updatedFormUnidadMedidaCompraId()
+    {
+        try {
+            $this->validateOnly('form.unidad_medida_compra_id');
+            $this->removerErrorCampo('unidad_medida');
+            $this->marcarCampoValido('unidad_medida');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            $this->mostrarErrorCampo('unidad_medida', 'Debe seleccionar una unidad de medida');
+        }
+    }
+
+    // ===== MÉTODOS PARA MANEJO DE ERRORES Y ESTILOS =====
+    
+    private function mostrarErrorCampo($campo, $mensaje)
+    {
+        $this->camposConError[] = $campo;
+        $this->camposConError = array_unique($this->camposConError);
+        
+        // Remover de campos válidos si está ahí
+        $this->camposValidos = array_filter($this->camposValidos, function($c) use ($campo) {
+            return $c !== $campo;
+        });
+        
+        $this->mostrarAlerta = true;
+        $this->mensajeAlerta = $mensaje;
+        $this->campoConError = $campo;
+        
+        // Guardar error en array de errores
+        $this->erroresValidacion[$campo] = $mensaje;
+    }
+
+    private function removerErrorCampo($campo)
+    {
+        $this->camposConError = array_filter($this->camposConError, function($c) use ($campo) {
+            return $c !== $campo;
+        });
+        
+        // Remover de errores
+        unset($this->erroresValidacion[$campo]);
+        
+        if ($this->campoConError === $campo) {
+            $this->cerrarAlerta();
+        }
+    }
+
+    private function marcarCampoValido($campo)
+    {
+        $this->camposValidos[] = $campo;
+        $this->camposValidos = array_unique($this->camposValidos);
+    }
+
+    public function cerrarAlerta()
+    {
+        $this->mostrarAlerta = false;
+        $this->mensajeAlerta = '';
+        $this->campoConError = '';
+    }
+
+    // Método para obtener clases CSS dinámicas
+    public function getClaseCampo($campo)
+    {
+        if (in_array($campo, $this->camposConError)) {
+            return 'is-invalid campo-obligatorio-vacio';
+        }
+        
+        if (in_array($campo, $this->camposValidos)) {
+            return 'campo-valido';
+        }
+        
+        return '';
+    }
+
+    // Método para verificar si todos los campos críticos están completos
+    public function verificarCamposCriticos()
+    {
+        $camposCriticos = ['nombre', 'marca', 'categoria', 'subcategoria', 'precio_base', 'precio1', 'unidad_compra', 'unidad_medida'];
+        $camposVacios = [];
+
+        foreach ($camposCriticos as $campo) {
+            $valor = '';
+            switch ($campo) {
+                case 'nombre':
+                    $valor = $this->form['nombre'];
+                    break;
+                case 'marca':
+                    $valor = $this->form['marca_id'];
+                    break;
+                case 'categoria':
+                    $valor = $this->categoriaSeleccionada;
+                    break;
+                case 'subcategoria':
+                    $valor = $this->form['subcategoria_id'];
+                    break;
+                case 'precio_base':
+                    $valor = $this->form['precio_base'];
+                    break;
+                case 'precio1':
+                    $valor = $this->form['precio1'];
+                    break;
+                case 'unidad_compra':
+                    $valor = $this->form['unidad_compra'];
+                    break;
+                case 'unidad_medida':
+                    $valor = $this->form['unidad_medida_compra_id'];
+                    break;
+            }
+
+            if (empty($valor)) {
+                $camposVacios[] = $campo;
+            }
+        }
+
+        return $camposVacios;
     }
 
     public function render()
