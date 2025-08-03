@@ -67,7 +67,7 @@ class BodegaForm extends Component
         'form.nombre' => 'required|string|max:100',
         'form.direccion_id' => 'required|integer',
         'form.estado_id' => 'required|integer',
-        'form.tienda_id' => 'required|integer|exists:tiendas,id',
+        'form.tienda_id' => 'required|integer|exists:tienda,id',
     ];
 
     protected $messages = [

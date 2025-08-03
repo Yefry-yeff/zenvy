@@ -13,17 +13,20 @@
         >
             <h5 class="mb-0 text-lg">
                 @if($isEditing)
-                    Editar Segmento
+                    Editar Sección
                 @else
-                    Nuevo Segmento
+                    Nueva Sección
                 @endif
-                @if($bodega)
-                    - {{ $bodega->nombre }}
+                @if($segmento)
+                    - {{ $segmento->descripcion }}
+                    @if($segmento->bodega)
+                        ({{ $segmento->bodega->nombre }})
+                    @endif
                 @endif
             </h5>
-            <button wire:click="volverASegmentos"
+            <button wire:click="volverASecciones"
                 class="inline-flex items-center gap-1 px-3 py-2 text-sm text-gray-800 bg-white rounded hover:bg-gray-100">
-                <span>←</span> Volver a Segmentos
+                <span>←</span> Volver a Secciones
             </button>
         </div>
 
@@ -39,26 +42,27 @@
 
             <form wire:submit.prevent="guardar">
                 
-                <!-- Información del Segmento -->
+                <!-- Información de la Sección -->
                 <div class="p-4">
                     <div class="p-4 bg-white border shadow rounded-xl">
-                        <h2 class="mb-4 text-lg font-semibold text-gray-700">📦 Información del Segmento</h2>
+                        <h2 class="mb-4 text-lg font-semibold text-gray-700">🏢 Información de la Sección</h2>
                         <div class="row">
                             <div class="col-md-12 mb-3">
                                 <label for="descripcion" class="form-label">Descripción <span class="text-red-600">*</span></label>
-                                <input type="text" id="descripcion" class="form-control {{ $this->getClaseCampo('descripcion') }}" wire:model.live="form.descripcion" placeholder="Ej: Productos de limpieza, Electrónicos, etc.">
+                                <input type="text" id="descripcion" class="form-control {{ $this->getClaseCampo('descripcion') }}" wire:model.live="form.descripcion" placeholder="Ej: Pasillo A, Estante 1, Refrigeración, etc.">
                                 @error('form.descripcion')
-                                    <div class="text-danger mt-1 text-sm">❌ La descripción del segmento es obligatoria y no puede estar vacía</div>
+                                    <div class="text-danger mt-1 text-sm">❌ La descripción de la sección es obligatoria y no puede estar vacía</div>
                                 @enderror
                             </div>
                         </div>
                         
-                        @if($bodega)
+                        @if($segmento)
                             <div class="row">
                                 <div class="col-md-12">
                                     <div class="alert alert-info">
-                                        <strong>📍 Bodega:</strong> {{ $bodega->nombre }}<br>
-                                        <strong>🏪 Tienda:</strong> {{ $bodega->tienda->denominacion_social ?? 'N/A' }}
+                                        <strong>📦 Segmento:</strong> {{ $segmento->descripcion }}<br>
+                                        <strong>📍 Bodega:</strong> {{ $segmento->bodega->nombre ?? 'N/A' }}<br>
+                                        <strong>🏪 Tienda:</strong> {{ $segmento->bodega->tienda->denominacion_social ?? 'N/A' }}
                                     </div>
                                 </div>
                             </div>
@@ -68,7 +72,7 @@
 
                 <!-- Botones de Acción -->
                 <div class="flex justify-end gap-3 mt-4">
-                    <button type="button" wire:click="volverASegmentos"
+                    <button type="button" wire:click="volverASecciones"
                         class="px-4 py-2 text-gray-700 bg-gray-200 rounded hover:bg-gray-300">
                         Cancelar
                     </button>
@@ -84,9 +88,9 @@
                                 'bg-slate-700 hover:bg-slate-800': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
                             }">
                             @if($isEditing)
-                                Actualizar Segmento
+                                Actualizar Sección
                             @else
-                                Crear Segmento
+                                Crear Sección
                             @endif
                         </button>
                     @else
@@ -96,9 +100,9 @@
                             class="px-4 py-2 text-white bg-gray-400 rounded cursor-not-allowed opacity-60 transition-all duration-200"
                             title="Complete todos los campos obligatorios para habilitar este botón">
                             @if($isEditing)
-                                Actualizar Segmento
+                                Actualizar Sección
                             @else
-                                Crear Segmento
+                                Crear Sección
                             @endif
                             <span class="ml-1">🔒</span>
                         </button>
@@ -146,7 +150,7 @@
                         </svg>
                     </div>
                     <h4 class="text-lg font-medium text-gray-900 mb-2">{{ $mensajeModalExito }}</h4>
-                    <p class="text-gray-600">El segmento se ha procesado correctamente en el sistema.</p>
+                    <p class="text-gray-600">La sección se ha procesado correctamente en el sistema.</p>
                 </div>
                 
                 <!-- Footer -->
