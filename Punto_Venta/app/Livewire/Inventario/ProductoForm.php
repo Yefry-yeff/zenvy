@@ -51,6 +51,12 @@ class ProductoForm extends Component
     public $camposConError = [];
     public $erroresValidacion = [];
 
+    // Propiedades para modales
+    public $mostrarModalExito = false;
+    public $mostrarModalError = false;
+    public $mensajeModalExito = '';
+    public $mensajeModalError = '';
+
     protected $rules = [
         'form.nombre' => 'required|string|max:80',
         'form.descripcion' => 'nullable|string|max:45',
@@ -234,14 +240,15 @@ class ProductoForm extends Component
             if ($this->isEditing) {
                 ProductoModel::actualizarProducto($this->productoId, $datos);
                 Log::info('Producto actualizado exitosamente', ['id' => $this->productoId]);
-                session()->flash('mensaje', 'Producto actualizado exitosamente.');
+                $this->mostrarExito('Producto actualizado exitosamente.');
             } else {
                 $resultado = ProductoModel::crearProducto($datos);
                 Log::info('Producto creado exitosamente', ['resultado' => $resultado]);
-                session()->flash('mensaje', 'Producto creado exitosamente.');
+                $this->mostrarExito('Producto creado exitosamente.');
             }
 
-            $this->volverALista();
+            // Redirigir después de mostrar el modal
+            $this->dispatch('redirigirEnTresSeg');
 
         } catch (\Illuminate\Validation\ValidationException $e) {
             // Error de validación - mostrar errores específicos
@@ -249,7 +256,7 @@ class ProductoForm extends Component
                 'errores' => $e->errors(),
                 'datos' => $this->form
             ]);
-            session()->flash('error', 'Hubo un error al guardar');
+            $this->mostrarError('Error de validación: Revise los campos marcados en rojo');
             
         } catch (\Exception $e) {
             // Error general - log completo y mensaje simple al usuario
@@ -261,7 +268,7 @@ class ProductoForm extends Component
                 'datos' => $this->form,
                 'isEditing' => $this->isEditing
             ]);
-            session()->flash('error', 'Hubo un error al guardar');
+            $this->mostrarError('Hubo un error inesperado al guardar el producto');
         }
     }
 
@@ -397,6 +404,32 @@ class ProductoForm extends Component
         $this->mostrarAlerta = false;
         $this->mensajeAlerta = '';
         $this->campoConError = '';
+    }
+
+    // ===== MÉTODOS PARA MANEJO DE MODALES =====
+
+    public function mostrarExito($mensaje)
+    {
+        $this->mensajeModalExito = $mensaje;
+        $this->mostrarModalExito = true;
+    }
+
+    public function mostrarError($mensaje)
+    {
+        $this->mensajeModalError = $mensaje;
+        $this->mostrarModalError = true;
+    }
+
+    public function cerrarModalExito()
+    {
+        $this->mostrarModalExito = false;
+        $this->mensajeModalExito = '';
+    }
+
+    public function cerrarModalError()
+    {
+        $this->mostrarModalError = false;
+        $this->mensajeModalError = '';
     }
 
     // Método para obtener clases CSS dinámicas
