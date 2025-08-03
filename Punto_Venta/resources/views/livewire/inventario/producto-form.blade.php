@@ -491,19 +491,12 @@
         </div>
     </div>
 
-    <!-- Script para manejo de redirección automática -->
+    <!-- Script para manejo de modal -->
     <script>
-        // Auto-cerrar modal de éxito después de 3 segundos
         document.addEventListener('livewire:init', () => {
+            // Solo logging para debug, la redirección se maneja al cerrar el modal
             Livewire.on('redirigirEnTresSeg', () => {
-                console.log('Evento redirigirEnTresSeg recibido');
-                setTimeout(() => {
-                    console.log('Auto-cerrando modal de éxito y redirigiendo...');
-                    @this.cerrarModalExito();
-                    setTimeout(() => {
-                        @this.volverALista();
-                    }, 500);
-                }, 3000);
+                console.log('Producto guardado exitosamente');
             });
         });
     </script>

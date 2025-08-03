@@ -12,7 +12,7 @@
     <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
 
     {{-- Estilos compilados con Vite --}}
-    <link rel="stylesheet" href="{{ asset('build/assets/app-QmOLayHD.css') }}">
+    <link rel="stylesheet" href="{{ asset('build/assets/app-BFaUUlUL.css') }}">
 
     {{-- Bootstrap 5 CSS (sin integrity para evitar error) --}}
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -160,7 +160,7 @@
     {{-- Scripts adicionales --}}
     {{-- Bootstrap 5 JS --}}
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    
+
     @stack('scripts')
 
 </body>

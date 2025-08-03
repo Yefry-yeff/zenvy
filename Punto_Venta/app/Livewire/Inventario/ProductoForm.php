@@ -424,6 +424,9 @@ class ProductoForm extends Component
     {
         $this->mostrarModalExito = false;
         $this->mensajeModalExito = '';
+        
+        // Redirigir a la tabla de productos después de cerrar el modal
+        $this->dispatch('cambiarVista', ruta: 'Inventario.producto');
     }
 
     public function cerrarModalError()
