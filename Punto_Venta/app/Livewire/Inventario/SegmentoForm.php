@@ -155,7 +155,7 @@ class SegmentoForm extends Component
 
     public function volverASegmentos()
     {
-        $this->dispatch('cambiarVista', ruta: 'Inventario.segmentos', parametros: ['bodegaId' => $this->bodegaId]);
+        $this->dispatch('cambiarVista', ruta: 'Inventario.Segmentos', parametros: ['bodegaId' => $this->bodegaId]);
     }
 
     // ===== MÉTODOS DE VALIDACIÓN EN TIEMPO REAL =====

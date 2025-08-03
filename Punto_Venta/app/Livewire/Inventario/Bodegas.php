@@ -41,17 +41,17 @@ class Bodegas extends Component
 
     public function crearNuevaBodega()
     {
-        $this->dispatch('cambiarVista', ruta: 'Inventario.bodega-form');
+        $this->dispatch('cambiarVista', ruta: 'Inventario.BodegaForm');
     }
 
     public function editarBodega($bodegaId)
     {
-        $this->dispatch('cambiarVista', ruta: 'Inventario.bodega-form', parametros: ['bodegaId' => $bodegaId]);
+        $this->dispatch('cambiarVista', ruta: 'Inventario.BodegaForm', parametros: ['bodegaId' => $bodegaId]);
     }
 
     public function verSegmentos($bodegaId)
     {
-        $this->dispatch('cambiarVista', ruta: 'Inventario.segmentos', parametros: ['bodegaId' => $bodegaId]);
+        $this->dispatch('cambiarVista', ruta: 'Inventario.Segmentos', parametros: ['bodegaId' => $bodegaId]);
     }
 
     public function eliminarBodega($bodegaId)

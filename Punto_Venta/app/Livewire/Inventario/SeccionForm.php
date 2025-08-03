@@ -6,25 +6,24 @@ use Livewire\Component;
 use App\Models\Bodega;
 use App\Models\Segmento;
 use App\Models\Seccion;
-use App\Models\Tiendas;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
-class BodegaForm extends Component
+class SeccionForm extends Component
 {
     public $bodegaId;
+    public $segmentoId;
+    public $seccionId;
     public $isEditing = false;
+    public $bodega;
+    public $segmento;
 
     // Formulario principal
     public $form = [
-        'nombre' => '',
-        'direccion_id' => 1,
+        'descripcion' => '',
+        'numeracion' => '',
         'estado_id' => 1,
-        'tienda_id' => null,
+        'segmento_id' => null,
     ];
-
-    // Datos para los selectores
-    public $tiendas = [];
 
     // Propiedades para validación backend
     public $mostrarAlerta = false;
@@ -43,8 +42,8 @@ class BodegaForm extends Component
     public function getFormularioCompletoProperty()
     {
         $camposObligatorios = [
-            'nombre',
-            'tienda_id'
+            'descripcion',
+            'numeracion'
         ];
 
         foreach ($camposObligatorios as $campo) {
@@ -64,60 +63,67 @@ class BodegaForm extends Component
     }
 
     protected $rules = [
-        'form.nombre' => 'required|string|max:100',
-        'form.direccion_id' => 'required|integer',
-        'form.estado_id' => 'required|integer',
-        'form.tienda_id' => 'required|integer|exists:tiendas,id',
+        'form.descripcion' => 'required|string|max:255',
+        'form.numeracion' => 'required|string|max:50',
+        'form.estado_id' => 'required|integer|in:0,1',
+        'form.segmento_id' => 'required|integer|exists:segmento,id',
     ];
 
     protected $messages = [
-        'form.nombre.required' => 'El nombre de la bodega es obligatorio',
-        'form.nombre.max' => 'El nombre no puede exceder 100 caracteres',
-        'form.tienda_id.required' => 'La tienda es obligatoria',
-        'form.tienda_id.exists' => 'La tienda seleccionada no existe',
+        'form.descripcion.required' => 'La descripción de la sección es obligatoria',
+        'form.descripcion.max' => 'La descripción no puede exceder 255 caracteres',
+        'form.numeracion.required' => 'La numeración de la sección es obligatoria',
+        'form.numeracion.max' => 'La numeración no puede exceder 50 caracteres',
+        'form.segmento_id.required' => 'El segmento es obligatorio',
+        'form.segmento_id.exists' => 'El segmento seleccionado no existe',
     ];
 
-    public function mount($bodegaId = null)
+    public function mount($bodegaId, $segmentoId, $seccionId = null)
     {
-        $this->cargarDatosIniciales();
-
-        if ($bodegaId) {
-            $this->bodegaId = $bodegaId;
+        $this->bodegaId = $bodegaId;
+        $this->segmentoId = $segmentoId;
+        $this->form['segmento_id'] = $segmentoId;
+        
+        $this->cargarDatos();
+        
+        if ($seccionId) {
+            $this->seccionId = $seccionId;
             $this->isEditing = true;
-            $this->cargarBodega();
+            $this->cargarSeccion();
         }
     }
 
-    private function cargarDatosIniciales()
+    private function cargarDatos()
     {
         try {
-            $this->tiendas = Tiendas::where('estado_id', 1)->orderBy('denominacion_social')->get();
+            $this->bodega = Bodega::with('tienda')->findOrFail($this->bodegaId);
+            $this->segmento = Segmento::findOrFail($this->segmentoId);
         } catch (\Exception $e) {
-            Log::error('Error al cargar datos iniciales de bodega', [
-                'mensaje' => $e->getMessage(),
-                'archivo' => $e->getFile(),
-                'linea' => $e->getLine()
-            ]);
-            $this->mostrarError('Error al cargar los datos iniciales');
-        }
-    }
-
-    private function cargarBodega()
-    {
-        try {
-            $bodega = Bodega::findOrFail($this->bodegaId);
-            $this->form = [
-                'nombre' => $bodega->nombre,
-                'direccion_id' => $bodega->direccion_id,
-                'estado_id' => $bodega->estado_id,
-                'tienda_id' => $bodega->tienda_id,
-            ];
-        } catch (\Exception $e) {
-            Log::error('Error al cargar bodega', [
+            Log::error('Error al cargar datos para sección', [
                 'bodega_id' => $this->bodegaId,
+                'segmento_id' => $this->segmentoId,
                 'mensaje' => $e->getMessage()
             ]);
-            $this->mostrarError('Error al cargar la bodega');
+            $this->mostrarError('Error al cargar los datos');
+        }
+    }
+
+    private function cargarSeccion()
+    {
+        try {
+            $seccion = Seccion::findOrFail($this->seccionId);
+            $this->form = [
+                'descripcion' => $seccion->descripcion,
+                'numeracion' => $seccion->numeracion,
+                'estado_id' => $seccion->estado_id,
+                'segmento_id' => $seccion->segmento_id,
+            ];
+        } catch (\Exception $e) {
+            Log::error('Error al cargar sección', [
+                'seccion_id' => $this->seccionId,
+                'mensaje' => $e->getMessage()
+            ]);
+            $this->mostrarError('Error al cargar la sección');
         }
     }
 
@@ -125,7 +131,7 @@ class BodegaForm extends Component
     {
         // Verificar si el formulario está completo
         if (!$this->formularioCompleto) {
-            $this->mostrarError('❌ Complete todos los campos obligatorios antes de guardar la bodega. Los campos marcados en rojo son requeridos.');
+            $this->mostrarError('❌ Complete todos los campos obligatorios antes de guardar la sección. Los campos marcados en rojo son requeridos.');
             return;
         }
 
@@ -133,24 +139,24 @@ class BodegaForm extends Component
             $this->validate();
 
             if ($this->isEditing) {
-                Bodega::actualizarBodega($this->bodegaId, $this->form);
-                Log::info('Bodega actualizada exitosamente', ['id' => $this->bodegaId]);
-                $this->mostrarExito('Bodega actualizada exitosamente.');
+                Seccion::actualizarSeccion($this->seccionId, $this->form);
+                Log::info('Sección actualizada exitosamente', ['id' => $this->seccionId]);
+                $this->mostrarExito('Sección actualizada exitosamente.');
             } else {
-                $resultado = Bodega::crearBodega($this->form);
-                Log::info('Bodega creada exitosamente', ['resultado' => $resultado]);
-                $this->mostrarExito('Bodega creada exitosamente.');
+                $resultado = Seccion::crearSeccion($this->form);
+                Log::info('Sección creada exitosamente', ['resultado' => $resultado]);
+                $this->mostrarExito('Sección creada exitosamente.');
             }
 
         } catch (\Illuminate\Validation\ValidationException $e) {
-            Log::warning('Error de validación al guardar bodega', [
+            Log::warning('Error de validación al guardar sección', [
                 'errores' => $e->errors(),
                 'datos' => $this->form
             ]);
             $this->mostrarError('Error de validación: Revise los campos marcados en rojo');
-
+            
         } catch (\Exception $e) {
-            Log::error('Error al guardar bodega', [
+            Log::error('Error al guardar sección', [
                 'mensaje' => $e->getMessage(),
                 'archivo' => $e->getFile(),
                 'linea' => $e->getLine(),
@@ -158,34 +164,37 @@ class BodegaForm extends Component
                 'datos' => $this->form,
                 'isEditing' => $this->isEditing
             ]);
-            $this->mostrarError('Hubo un error inesperado al guardar la bodega');
+            $this->mostrarError('Hubo un error inesperado al guardar la sección');
         }
     }
 
-    public function volverALista()
+    public function volverASecciones()
     {
-        $this->dispatch('cambiarVista', ruta: 'Inventario.bodegas');
+        $this->dispatch('cambiarVista', ruta: 'Inventario.Secciones', parametros: [
+            'bodegaId' => $this->bodegaId,
+            'segmentoId' => $this->segmentoId
+        ]);
     }
 
     // ===== MÉTODOS DE VALIDACIÓN EN TIEMPO REAL =====
 
-    public function updatedFormNombre()
+    public function updatedFormDescripcion()
     {
         try {
-            $this->validateOnly('form.nombre');
-            $this->limpiarErrorCampo('nombre');
+            $this->validateOnly('form.descripcion');
+            $this->limpiarErrorCampo('descripcion');
         } catch (\Illuminate\Validation\ValidationException $e) {
-            $this->mostrarErrorCampo('nombre', 'El nombre de la bodega es obligatorio y no puede estar vacío');
+            $this->mostrarErrorCampo('descripcion', 'La descripción de la sección es obligatoria y no puede estar vacía');
         }
     }
 
-    public function updatedFormTiendaId()
+    public function updatedFormNumeracion()
     {
         try {
-            $this->validateOnly('form.tienda_id');
-            $this->limpiarErrorCampo('tienda');
+            $this->validateOnly('form.numeracion');
+            $this->limpiarErrorCampo('numeracion');
         } catch (\Illuminate\Validation\ValidationException $e) {
-            $this->mostrarErrorCampo('tienda', 'Debe seleccionar una tienda');
+            $this->mostrarErrorCampo('numeracion', 'La numeración de la sección es obligatoria y no puede estar vacía');
         }
     }
 
@@ -196,7 +205,7 @@ class BodegaForm extends Component
         $this->campoConError = $campo;
         $this->mostrarAlerta = true;
         $this->mensajeAlerta = $mensaje;
-
+        
         if (!in_array($campo, $this->camposConError)) {
             $this->camposConError[] = $campo;
         }
@@ -208,9 +217,9 @@ class BodegaForm extends Component
         $this->camposConError = array_filter($this->camposConError, function($item) use ($campo) {
             return $item !== $campo;
         });
-
+        
         unset($this->erroresValidacion[$campo]);
-
+        
         if (empty($this->camposConError)) {
             $this->mostrarAlerta = false;
             $this->mensajeAlerta = '';
@@ -250,8 +259,8 @@ class BodegaForm extends Component
     public function cerrarModalExito()
     {
         $this->mostrarModalExito = false;
-        // Redirigir a la lista de bodegas después de cerrar el modal
-        $this->volverALista();
+        // Redirigir a la lista de secciones después de cerrar el modal
+        $this->volverASecciones();
     }
 
     public function cerrarModalError()
@@ -261,6 +270,6 @@ class BodegaForm extends Component
 
     public function render()
     {
-        return view('livewire.inventario.bodega-form');
+        return view('livewire.inventario.seccion-form');
     }
 }
