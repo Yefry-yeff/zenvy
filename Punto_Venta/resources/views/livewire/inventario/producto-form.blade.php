@@ -147,9 +147,16 @@
                                 @enderror
                             </div>
                             <div class="col-md-3 mb-3">
-                                <label for="isv" class="form-label">ISV (Impuesto)</label>
+                                <label for="isv" class="form-label">ISV (Impuesto) %</label>
                                 <div class="input-group">
-                                    <input type="number" id="isv" class="form-control" wire:model.defer="form.isv" step="0.01" min="0" max="1" placeholder="0.15">
+                                    <input type="number" 
+                                           id="isv" 
+                                           class="form-control" 
+                                           wire:model.defer="form.isv" 
+                                           step="0.01" 
+                                           min="0" 
+                                           max="100" 
+                                           placeholder="15">
                                     <span class="input-group-text bg-light">%</span>
                                 </div>
                                 @error('form.isv')
