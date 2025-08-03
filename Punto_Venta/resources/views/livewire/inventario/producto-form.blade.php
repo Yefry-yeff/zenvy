@@ -26,6 +26,14 @@
 
         <!-- FORMULARIO -->
         <div class="px-5 py-4">
+            <!-- Alerta de validación backend -->
+            @if($mostrarAlerta)
+                <div class="mb-4 alert alert-danger alert-dismissible fade show" role="alert">
+                    <strong>⚠️ Campo requerido:</strong> {{ $mensajeAlerta }}
+                    <button type="button" class="btn-close" wire:click="cerrarAlerta" aria-label="Close"></button>
+                </div>
+            @endif
+
             <form wire:submit.prevent="guardar">
                 
                 <!-- Información Básica -->
@@ -35,7 +43,7 @@
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label for="nombre" class="form-label">Nombre <span class="text-red-600">*</span></label>
-                                <input type="text" id="nombre" class="form-control" wire:model.defer="form.nombre">
+                                <input type="text" id="nombre" class="form-control {{ $this->getClaseCampo('nombre') }}" wire:model.live="form.nombre">
                                 @error('form.nombre')
                                     <div class="text-danger mt-1 text-sm">{{ $message }}</div>
                                 @enderror
@@ -74,7 +82,7 @@
                         <div class="row">
                             <div class="col-md-4 mb-3">
                                 <label for="marca" class="form-label">Marca <span class="text-red-600">*</span></label>
-                                <select id="marca" class="form-select" wire:model.defer="form.marca_id">
+                                <select id="marca" class="form-select {{ $this->getClaseCampo('marca') }}" wire:model.live="form.marca_id">
                                     <option value="">Seleccionar marca</option>
                                     @foreach($marcas as $marca)
                                         <option value="{{ $marca->id }}">{{ $marca->nombre }}</option>
@@ -86,16 +94,19 @@
                             </div>
                             <div class="col-md-4 mb-3">
                                 <label for="categoria" class="form-label">Categoría <span class="text-red-600">*</span></label>
-                                <select id="categoria" class="form-select" wire:model.lazy="categoriaSeleccionada">
+                                <select id="categoria" class="form-select {{ $this->getClaseCampo('categoria') }}" wire:model.live="categoriaSeleccionada">
                                     <option value="">Seleccionar categoría</option>
                                     @foreach($categorias as $categoria)
                                         <option value="{{ $categoria->id }}">{{ $categoria->nombre }}</option>
                                     @endforeach
                                 </select>
+                                @error('categoriaSeleccionada')
+                                    <div class="text-danger mt-1 text-sm">{{ $message }}</div>
+                                @enderror
                             </div>
                             <div class="col-md-4 mb-3">
                                 <label for="subcategoria" class="form-label">Subcategoría <span class="text-red-600">*</span></label>
-                                <select id="subcategoria" class="form-select" wire:model.defer="form.subcategoria_id">
+                                <select id="subcategoria" class="form-select {{ $this->getClaseCampo('subcategoria') }}" wire:model.live="form.subcategoria_id">
                                     <option value="">Seleccionar subcategoría</option>
                                     @foreach($subcategorias as $subcategoria)
                                         <option value="{{ $subcategoria->id }}">{{ $subcategoria->nombre }}</option>
@@ -120,7 +131,7 @@
                                 <label for="precio_base" class="form-label">Precio Base <span class="text-red-600">*</span></label>
                                 <div class="input-group">
                                     <span class="input-group-text bg-light">L.</span>
-                                    <input type="number" id="precio_base" class="form-control" wire:model.defer="form.precio_base" step="0.01" min="0" placeholder="0.00">
+                                    <input type="number" id="precio_base" class="form-control {{ $this->getClaseCampo('precio_base') }}" wire:model.live="form.precio_base" step="0.01" min="0" placeholder="0.00">
                                 </div>
                                 @error('form.precio_base')
                                     <div class="text-danger mt-1 text-sm">{{ $message }}</div>
@@ -168,10 +179,21 @@
                         <!-- Fila 2: Unidades de Medida -->
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label for="unidad_compra" class="form-label">Unidad de Compra <span class="text-red-600">*</span></label>
+                                <label for="unidad_compra" class="form-label">
+                                    Unidad de Compra <span class="text-red-600">*</span>
+                                    <small class="text-muted">(Solo números enteros)</small>
+                                </label>
                                 <div class="input-group">
                                     <span class="input-group-text bg-light"><i class="fas fa-weight-hanging"></i></span>
-                                    <input type="number" id="unidad_compra" class="form-control" wire:model.defer="form.unidad_compra" step="0.01" min="0.01" placeholder="1.00">
+                                    <input type="number" 
+                                           id="unidad_compra" 
+                                           class="form-control {{ $this->getClaseCampo('unidad_compra') }}" 
+                                           wire:model.live="form.unidad_compra" 
+                                           step="1" 
+                                           min="1" 
+                                           placeholder="1"
+                                           onkeypress="return event.charCode >= 48 && event.charCode <= 57"
+                                           oninput="this.value = this.value.replace(/[^0-9]/g, '')">
                                 </div>
                                 @error('form.unidad_compra')
                                     <div class="text-danger mt-1 text-sm">{{ $message }}</div>
@@ -181,7 +203,7 @@
                                 <label for="unidad_medida" class="form-label">Unidad de Medida <span class="text-red-600">*</span></label>
                                 <div class="input-group">
                                     <span class="input-group-text bg-light"><i class="fas fa-ruler"></i></span>
-                                    <select id="unidad_medida" class="form-select" wire:model.defer="form.unidad_medida_compra_id">
+                                    <select id="unidad_medida" class="form-select {{ $this->getClaseCampo('unidad_medida') }}" wire:model.live="form.unidad_medida_compra_id">
                                         <option value="">Seleccionar unidad de medida</option>
                                         @foreach($unidadesMedida as $unidad)
                                             <option value="{{ $unidad->id }}">{{ $unidad->nombre }} ({{ $unidad->simbolo }})</option>
@@ -205,7 +227,7 @@
                                 <label for="precio1" class="form-label">Precio 1 <span class="text-red-600">*</span></label>
                                 <div class="input-group">
                                     <span class="input-group-text bg-light">L.</span>
-                                    <input type="number" id="precio1" class="form-control" wire:model.defer="form.precio1" step="0.01" min="0" placeholder="0.00">
+                                    <input type="number" id="precio1" class="form-control {{ $this->getClaseCampo('precio1') }}" wire:model.live="form.precio1" step="0.01" min="0" placeholder="0.00">
                                 </div>
                                 @error('form.precio1')
                                     <div class="text-danger mt-1 text-sm">{{ $message }}</div>
@@ -272,6 +294,7 @@
 
     </div>
 
+    <!-- Mensajes de sesión -->
     @if (session()->has('mensaje'))
         <div x-data="{ show: true }" x-show="show"
              @click.window="show = false"
@@ -291,5 +314,58 @@
             {{ session('error') }}
         </div>
     @endif
+
+    <!-- Alerta de validación flotante -->
+    @if($mostrarAlerta)
+        <div class="alert-campo-obligatorio">
+            <strong>⚠️ Campo Obligatorio</strong>
+            <button wire:click="cerrarAlerta" style="float: right; background: none; border: none; font-size: 18px; cursor: pointer;">×</button>
+            <br><small>{{ $mensajeAlerta }}</small>
+        </div>
+    @endif
+
+    <!-- Estilos CSS para validación -->
+    <style>
+        /* Campo con error */
+        .is-invalid, .campo-obligatorio-vacio {
+            border: 2px solid #dc3545 !important;
+            background-color: #fff5f5 !important;
+            box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25) !important;
+        }
+        
+        /* Campo válido */
+        .campo-valido {
+            border: 2px solid #28a745 !important;
+            background-color: #f0f8f0 !important;
+            box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25) !important;
+        }
+        
+        /* Alerta flotante personalizada */
+        .alert-campo-obligatorio {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            background: #f8d7da;
+            color: #721c24;
+            padding: 12px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+            border-left: 4px solid #dc3545;
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        /* Estilo para labels de campos obligatorios */
+        .text-red-600 {
+            color: #dc3545 !important;
+            font-weight: bold;
+        }
+    </style>
 
 </div> {{-- FIN ELEMENTO RAÍZ --}}
