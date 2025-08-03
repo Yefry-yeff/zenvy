@@ -48,7 +48,6 @@ class ProductoForm extends Component
     public $mensajeAlerta = '';
     public $campoConError = '';
     public $camposConError = [];
-    public $camposValidos = [];
     public $erroresValidacion = [];
 
     protected $rules = [
@@ -159,12 +158,11 @@ class ProductoForm extends Component
         $this->cargarSubcategorias();
 
         // Limpiar subcategoría si se cambia la categoría
-        $this->removerErrorCampo('subcategoria');
+        $this->limpiarErrorCampo('subcategoria');
 
         // Validar categoría
         if ($this->categoriaSeleccionada) {
-            $this->removerErrorCampo('categoria');
-            $this->marcarCampoValido('categoria');
+            $this->limpiarErrorCampo('categoria');
         } else {
             $this->mostrarErrorCampo('categoria', 'Debe seleccionar una categoría');
         }
@@ -237,8 +235,7 @@ class ProductoForm extends Component
     {
         try {
             $this->validateOnly('form.nombre');
-            $this->removerErrorCampo('nombre');
-            $this->marcarCampoValido('nombre');
+            $this->limpiarErrorCampo('nombre');
         } catch (\Illuminate\Validation\ValidationException $e) {
             $this->mostrarErrorCampo('nombre', 'El nombre es obligatorio y no puede estar vacío');
         }
@@ -248,8 +245,7 @@ class ProductoForm extends Component
     {
         try {
             $this->validateOnly('form.marca_id');
-            $this->removerErrorCampo('marca');
-            $this->marcarCampoValido('marca');
+            $this->limpiarErrorCampo('marca');
         } catch (\Illuminate\Validation\ValidationException $e) {
             $this->mostrarErrorCampo('marca', 'Debe seleccionar una marca');
         }
@@ -259,8 +255,7 @@ class ProductoForm extends Component
     {
         try {
             $this->validateOnly('form.subcategoria_id');
-            $this->removerErrorCampo('subcategoria');
-            $this->marcarCampoValido('subcategoria');
+            $this->limpiarErrorCampo('subcategoria');
         } catch (\Illuminate\Validation\ValidationException $e) {
             $this->mostrarErrorCampo('subcategoria', 'Debe seleccionar una subcategoría');
         }
@@ -270,8 +265,7 @@ class ProductoForm extends Component
     {
         try {
             $this->validateOnly('form.precio_base');
-            $this->removerErrorCampo('precio_base');
-            $this->marcarCampoValido('precio_base');
+            $this->limpiarErrorCampo('precio_base');
         } catch (\Illuminate\Validation\ValidationException $e) {
             $this->mostrarErrorCampo('precio_base', 'El precio base debe ser mayor a 0');
         }
@@ -281,8 +275,7 @@ class ProductoForm extends Component
     {
         try {
             $this->validateOnly('form.precio1');
-            $this->removerErrorCampo('precio1');
-            $this->marcarCampoValido('precio1');
+            $this->limpiarErrorCampo('precio1');
         } catch (\Illuminate\Validation\ValidationException $e) {
             $this->mostrarErrorCampo('precio1', 'El precio 1 debe ser mayor a 0');
         }
@@ -304,8 +297,7 @@ class ProductoForm extends Component
             }
 
             $this->validateOnly('form.unidad_compra');
-            $this->removerErrorCampo('unidad_compra');
-            $this->marcarCampoValido('unidad_compra');
+            $this->limpiarErrorCampo('unidad_compra');
         } catch (\Illuminate\Validation\ValidationException $e) {
             $this->mostrarErrorCampo('unidad_compra', 'La unidad de compra debe ser un número entero mayor a 0');
         }
@@ -315,8 +307,7 @@ class ProductoForm extends Component
     {
         try {
             $this->validateOnly('form.unidad_medida_compra_id');
-            $this->removerErrorCampo('unidad_medida');
-            $this->marcarCampoValido('unidad_medida');
+            $this->limpiarErrorCampo('unidad_medida');
         } catch (\Illuminate\Validation\ValidationException $e) {
             $this->mostrarErrorCampo('unidad_medida', 'Debe seleccionar una unidad de medida');
         }
@@ -329,11 +320,6 @@ class ProductoForm extends Component
         $this->camposConError[] = $campo;
         $this->camposConError = array_unique($this->camposConError);
 
-        // Remover de campos válidos si está ahí
-        $this->camposValidos = array_filter($this->camposValidos, function($c) use ($campo) {
-            return $c !== $campo;
-        });
-
         $this->mostrarAlerta = true;
         $this->mensajeAlerta = $mensaje;
         $this->campoConError = $campo;
@@ -342,8 +328,9 @@ class ProductoForm extends Component
         $this->erroresValidacion[$campo] = $mensaje;
     }
 
-    private function removerErrorCampo($campo)
+    private function limpiarErrorCampo($campo)
     {
+        // Remover de errores
         $this->camposConError = array_filter($this->camposConError, function($c) use ($campo) {
             return $c !== $campo;
         });
@@ -354,12 +341,6 @@ class ProductoForm extends Component
         if ($this->campoConError === $campo) {
             $this->cerrarAlerta();
         }
-    }
-
-    private function marcarCampoValido($campo)
-    {
-        $this->camposValidos[] = $campo;
-        $this->camposValidos = array_unique($this->camposValidos);
     }
 
     public function cerrarAlerta()
@@ -374,10 +355,6 @@ class ProductoForm extends Component
     {
         if (in_array($campo, $this->camposConError)) {
             return 'is-invalid campo-obligatorio-vacio';
-        }
-
-        if (in_array($campo, $this->camposValidos)) {
-            return 'campo-valido';
         }
 
         return '';

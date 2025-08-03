@@ -45,7 +45,7 @@
                                 <label for="nombre" class="form-label">Nombre <span class="text-red-600">*</span></label>
                                 <input type="text" id="nombre" class="form-control {{ $this->getClaseCampo('nombre') }}" wire:model.live="form.nombre">
                                 @error('form.nombre')
-                                    <div class="text-danger mt-1 text-sm">{{ $message }}</div>
+                                    <div class="text-danger mt-1 text-sm">❌ El nombre del producto es obligatorio y no puede estar vacío</div>
                                 @enderror
                             </div>
                             <div class="col-md-6 mb-3">
@@ -89,7 +89,7 @@
                                     @endforeach
                                 </select>
                                 @error('form.marca_id')
-                                    <div class="text-danger mt-1 text-sm">{{ $message }}</div>
+                                    <div class="text-danger mt-1 text-sm">❌ Debe seleccionar una marca válida</div>
                                 @enderror
                             </div>
                             <div class="col-md-4 mb-3">
@@ -101,7 +101,7 @@
                                     @endforeach
                                 </select>
                                 @error('categoriaSeleccionada')
-                                    <div class="text-danger mt-1 text-sm">{{ $message }}</div>
+                                    <div class="text-danger mt-1 text-sm">❌ Debe seleccionar una categoría válida</div>
                                 @enderror
                             </div>
                             <div class="col-md-4 mb-3">
@@ -113,7 +113,7 @@
                                     @endforeach
                                 </select>
                                 @error('form.subcategoria_id')
-                                    <div class="text-danger mt-1 text-sm">{{ $message }}</div>
+                                    <div class="text-danger mt-1 text-sm">❌ Debe seleccionar una subcategoría válida</div>
                                 @enderror
                             </div>
                         </div>
@@ -134,7 +134,7 @@
                                     <input type="number" id="precio_base" class="form-control {{ $this->getClaseCampo('precio_base') }}" wire:model.live="form.precio_base" step="0.01" min="0" placeholder="0.00">
                                 </div>
                                 @error('form.precio_base')
-                                    <div class="text-danger mt-1 text-sm">{{ $message }}</div>
+                                    <div class="text-danger mt-1 text-sm">❌ El precio base es obligatorio y debe ser mayor a 0</div>
                                 @enderror
                             </div>
                             <div class="col-md-3 mb-3">
@@ -196,7 +196,7 @@
                                            oninput="this.value = this.value.replace(/[^0-9]/g, '')">
                                 </div>
                                 @error('form.unidad_compra')
-                                    <div class="text-danger mt-1 text-sm">{{ $message }}</div>
+                                    <div class="text-danger mt-1 text-sm">❌ La unidad de compra debe ser un número entero mayor a 0</div>
                                 @enderror
                             </div>
                             <div class="col-md-6 mb-3">
@@ -211,7 +211,7 @@
                                     </select>
                                 </div>
                                 @error('form.unidad_medida_compra_id')
-                                    <div class="text-danger mt-1 text-sm">{{ $message }}</div>
+                                    <div class="text-danger mt-1 text-sm">❌ Debe seleccionar una unidad de medida válida</div>
                                 @enderror
                             </div>
                         </div>
@@ -230,7 +230,7 @@
                                     <input type="number" id="precio1" class="form-control {{ $this->getClaseCampo('precio1') }}" wire:model.live="form.precio1" step="0.01" min="0" placeholder="0.00">
                                 </div>
                                 @error('form.precio1')
-                                    <div class="text-danger mt-1 text-sm">{{ $message }}</div>
+                                    <div class="text-danger mt-1 text-sm">❌ El precio 1 es obligatorio y debe ser mayor a 0</div>
                                 @enderror
                             </div>
                             <div class="col-md-3 mb-3">
@@ -326,18 +326,18 @@
 
     <!-- Estilos CSS para validación -->
     <style>
-        /* Campo con error */
+        /* Campo con error - solo rojos */
         .is-invalid, .campo-obligatorio-vacio {
             border: 2px solid #dc3545 !important;
             background-color: #fff5f5 !important;
             box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25) !important;
         }
         
-        /* Campo válido */
-        .campo-valido {
-            border: 2px solid #28a745 !important;
-            background-color: #f0f8f0 !important;
-            box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25) !important;
+        /* Mensaje de error personalizado */
+        .text-danger {
+            color: #dc3545 !important;
+            font-size: 0.875rem;
+            font-weight: 500;
         }
         
         /* Alerta flotante personalizada */
