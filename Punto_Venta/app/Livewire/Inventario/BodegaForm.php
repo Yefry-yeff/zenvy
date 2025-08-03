@@ -75,7 +75,7 @@ class BodegaForm extends Component
     ];
 
     protected $messages = [
-        'form.nombre.required' => 'El nombre de la bodega es obligatorio',
+        'form.nombre.required' => 'El nombre es obligatorio',
         'form.nombre.max' => 'El nombre no puede exceder 100 caracteres',
         'form.direccion_id.required' => 'La dirección es obligatoria',
         'form.direccion_id.exists' => 'La dirección seleccionada no existe',
@@ -159,14 +159,45 @@ class BodegaForm extends Component
 
     public function updatedFormDireccionId($value)
     {
+        // Cargar domicilio tributario
         $this->cargarDomicilioTributario($value);
+        
+        // Validar campo de dirección
+        if (empty($value)) {
+            $this->mostrarErrorCampo('direccion', 'Debe seleccionar una dirección');
+        } else {
+            try {
+                $this->validateOnly('form.direccion_id');
+                $this->limpiarErrorCampo('direccion');
+            } catch (\Illuminate\Validation\ValidationException $e) {
+                $this->mostrarErrorCampo('direccion', 'Debe seleccionar una dirección');
+            }
+        }
     }
 
     public function guardar()
     {
+        // Verificar campos críticos antes de la validación completa
+        $camposVacios = $this->verificarCamposCriticos();
+
+        if (!empty($camposVacios)) {
+            $primerCampoVacio = $camposVacios[0];
+            $mensajes = [
+                'nombre' => 'El nombre es obligatorio y no puede estar vacío',
+                'tienda' => 'Debe seleccionar una tienda',
+                'direccion' => 'Debe seleccionar una dirección'
+            ];
+
+            $this->mostrarErrorCampo($primerCampoVacio, $mensajes[$primerCampoVacio]);
+            return;
+        }
+
+        // Limpiar alertas antes de validar
+        $this->cerrarAlerta();
+
         // Verificar si el formulario está completo
         if (!$this->formularioCompleto) {
-            $this->mostrarError('❌ Complete todos los campos obligatorios antes de guardar la bodega. Los campos marcados en rojo son requeridos.');
+            $this->mostrarError('❌ Complete todos los campos obligatorios antes de guardar. Los campos marcados en rojo son requeridos.');
             return;
         }
 
@@ -212,31 +243,29 @@ class BodegaForm extends Component
 
     public function updatedFormNombre()
     {
-        try {
-            $this->validateOnly('form.nombre');
-            $this->limpiarErrorCampo('nombre');
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            $this->mostrarErrorCampo('nombre', 'El nombre de la bodega es obligatorio y no puede estar vacío');
+        if (empty($this->form['nombre']) || trim($this->form['nombre']) === '') {
+            $this->mostrarErrorCampo('nombre', 'El nombre es obligatorio y no puede estar vacío');
+        } else {
+            try {
+                $this->validateOnly('form.nombre');
+                $this->limpiarErrorCampo('nombre');
+            } catch (\Illuminate\Validation\ValidationException $e) {
+                $this->mostrarErrorCampo('nombre', 'El nombre es obligatorio y no puede estar vacío');
+            }
         }
     }
 
     public function updatedFormTiendaId()
     {
-        try {
-            $this->validateOnly('form.tienda_id');
-            $this->limpiarErrorCampo('tienda');
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        if (empty($this->form['tienda_id'])) {
             $this->mostrarErrorCampo('tienda', 'Debe seleccionar una tienda');
-        }
-    }
-
-    public function updatedFormDireccionIdReal($value)
-    {
-        try {
-            $this->validateOnly('form.direccion_id');
-            $this->limpiarErrorCampo('direccion');
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            $this->mostrarErrorCampo('direccion', 'Debe seleccionar una dirección');
+        } else {
+            try {
+                $this->validateOnly('form.tienda_id');
+                $this->limpiarErrorCampo('tienda');
+            } catch (\Illuminate\Validation\ValidationException $e) {
+                $this->mostrarErrorCampo('tienda', 'Debe seleccionar una tienda');
+            }
         }
     }
 
@@ -244,28 +273,29 @@ class BodegaForm extends Component
 
     private function mostrarErrorCampo($campo, $mensaje)
     {
-        $this->campoConError = $campo;
+        $this->camposConError[] = $campo;
+        $this->camposConError = array_unique($this->camposConError);
+
         $this->mostrarAlerta = true;
         $this->mensajeAlerta = $mensaje;
+        $this->campoConError = $campo;
 
-        if (!in_array($campo, $this->camposConError)) {
-            $this->camposConError[] = $campo;
-        }
+        // Guardar error en array de errores
         $this->erroresValidacion[$campo] = $mensaje;
     }
 
     private function limpiarErrorCampo($campo)
     {
-        $this->camposConError = array_filter($this->camposConError, function($item) use ($campo) {
-            return $item !== $campo;
+        // Remover de errores
+        $this->camposConError = array_filter($this->camposConError, function($c) use ($campo) {
+            return $c !== $campo;
         });
 
+        // Remover de errores
         unset($this->erroresValidacion[$campo]);
 
-        if (empty($this->camposConError)) {
-            $this->mostrarAlerta = false;
-            $this->mensajeAlerta = '';
-            $this->campoConError = '';
+        if ($this->campoConError === $campo) {
+            $this->cerrarAlerta();
         }
     }
 
@@ -282,6 +312,34 @@ class BodegaForm extends Component
         $this->mostrarAlerta = false;
         $this->mensajeAlerta = '';
         $this->campoConError = '';
+    }
+
+    // Método para verificar si todos los campos críticos están completos
+    public function verificarCamposCriticos()
+    {
+        $camposCriticos = ['nombre', 'tienda', 'direccion'];
+        $camposVacios = [];
+
+        foreach ($camposCriticos as $campo) {
+            $valor = '';
+            switch ($campo) {
+                case 'nombre':
+                    $valor = $this->form['nombre'];
+                    break;
+                case 'tienda':
+                    $valor = $this->form['tienda_id'];
+                    break;
+                case 'direccion':
+                    $valor = $this->form['direccion_id'];
+                    break;
+            }
+
+            if (empty($valor)) {
+                $camposVacios[] = $campo;
+            }
+        }
+
+        return $camposVacios;
     }
 
     // ===== MÉTODOS DE MODALES =====

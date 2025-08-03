@@ -26,14 +26,6 @@
 
         <!-- FORMULARIO -->
         <div class="px-5 py-4">
-            <!-- Alerta de validación backend -->
-            @if($mostrarAlerta)
-                <div class="mb-4 alert alert-danger alert-dismissible fade show" role="alert">
-                    <strong>⚠️ Campo requerido:</strong> {{ $mensajeAlerta }}
-                    <button type="button" class="btn-close" wire:click="cerrarAlerta" aria-label="Close"></button>
-                </div>
-            @endif
-
             <form wire:submit.prevent="guardar">
 
                 <!-- Información Básica -->
@@ -136,6 +128,24 @@
             </form>
         </div>
     </div>
+
+    <!-- Toast de validación flotante -->
+    @if($mostrarAlerta)
+        <div x-data="{ show: true }" 
+             x-show="show"
+             x-transition:enter="transition ease-out duration-300"
+             x-transition:enter-start="opacity-0 transform translate-x-full"
+             x-transition:enter-end="opacity-100 transform translate-x-0"
+             x-transition:leave="transition ease-in duration-200"
+             x-transition:leave-start="opacity-100 transform translate-x-0"
+             x-transition:leave-end="opacity-0 transform translate-x-full"
+             class="fixed top-4 right-4 z-50 w-auto max-w-sm">
+            <div class="alert alert-danger alert-dismissible fade show shadow-lg" role="alert">
+                <strong>⚠️ Campo requerido:</strong> {{ $mensajeAlerta }}
+                <button type="button" class="btn-close" wire:click="cerrarAlerta" aria-label="Close"></button>
+            </div>
+        </div>
+    @endif
 
     <!-- Modal de Éxito con Alpine.js -->
     <div x-data="{ open: @entangle('mostrarModalExito') }"
