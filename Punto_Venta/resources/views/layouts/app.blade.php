@@ -12,7 +12,7 @@
     <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
 
     {{-- Estilos compilados con Vite --}}
-    <link rel="stylesheet" href="{{ asset('build/assets/app-BJ8WTtUC.css') }}">
+    <link rel="stylesheet" href="{{ asset('build/assets/app-xQqBX6JP.css') }}">
 
     {{-- Bootstrap 5 CSS (sin integrity para evitar error) --}}
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -90,11 +90,12 @@
         </main>
     </div>
 
+
     {{-- Livewire scripts --}}
     @livewireScripts
 
     {{-- App JS compilado con Vite --}}
-    <script type="module" src="{{ asset('build/assets/app-BLl8G-P3.js') }}"></script>
+    <script type="module" src="{{ asset('build/assets/app-Ck2gzFIp.js') }}"></script>
 
     {{-- jQuery y DataTables JS CDN --}}
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
@@ -105,54 +106,55 @@
     <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
 
     <script src="{{ asset('JS/Script/TablasBoostrap/marca.js') }}"></script>
+    <script src="{{ asset('JS/Script/TablasBoostrap/cai.js') }}"></script>
     <script src="{{ asset('JS/Script/TablasBoostrap/categoria.js') }}"></script>
     <script src="{{ asset('JS/Script/TablasBoostrap/subcategoria.js') }}"></script>
     <script src="{{ asset('JS/Script/TablasBoostrap/unidades.js') }}"></script>
     <script src="{{ asset('JS/Script/TablasBoostrap/productos.js') }}"></script>
     <!-- MODAL DE SESIÓN EXPIRADA -->
-<div
-    x-show="showModal"
-    x-data="{
-        showModal: false,
-        timeout: null,
-        resetTimer() {
-            clearTimeout(this.timeout);
-            this.timeout = setTimeout(() => this.showModal = true, 10 * 60 * 1000); // 10 minutos
-        },
-        cerrarSesion() {
-            window.location.href = '{{ route('logout') }}';
-        },
-        init() {
-            this.resetTimer();
-            ['mousemove', 'keydown', 'click', 'scroll'].forEach(evt =>
-                window.addEventListener(evt, () => this.resetTimer())
-            );
-        }
-    }"
-    x-init="init()"
-    x-on:keydown.escape.window="if (showModal) cerrarSesion()"
-    x-on:keydown.enter.window="if (showModal) cerrarSesion()"
-    @click.outside="cerrarSesion()"
-    class="fixed inset-0 z-[100] flex items-center justify-center bg-black bg-opacity-50"
-    style="display: none;"
->
-    <div class="w-full max-w-sm p-6 text-center bg-white rounded-lg shadow-lg">
-        <h2 class="mb-2 text-lg font-semibold text-red-700">⏳ Sesión Expirada</h2>
-        <p class="text-sm text-gray-600">Tu sesión ha expirado por inactividad.</p>
-        <button
-            class="px-4 py-2 mt-4 text-sm text-white rounded"
-            :class="{
-                'bg-emerald-600 hover:bg-emerald-700': theme === 'verde',
-                'bg-blue-600 hover:bg-blue-700': theme === 'azul',
-                'bg-gray-900 hover:bg-gray-800': theme === 'oscuro',
-                'bg-slate-700 hover:bg-slate-600': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
-            }"
-            @click="cerrarSesion()"
-        >
-            Aceptar
-        </button>
+    <div
+        x-show="showModal"
+        x-data="{
+            showModal: false,
+            timeout: null,
+            resetTimer() {
+                clearTimeout(this.timeout);
+                this.timeout = setTimeout(() => this.showModal = true, 10 * 60 * 1000); // 10 minutos
+            },
+            cerrarSesion() {
+                window.location.href = '{{ route('logout') }}';
+            },
+            init() {
+                this.resetTimer();
+                ['mousemove', 'keydown', 'click', 'scroll'].forEach(evt =>
+                    window.addEventListener(evt, () => this.resetTimer())
+                );
+            }
+        }"
+        x-init="init()"
+        x-on:keydown.escape.window="if (showModal) cerrarSesion()"
+        x-on:keydown.enter.window="if (showModal) cerrarSesion()"
+        @click.outside="cerrarSesion()"
+        class="fixed inset-0 z-[100] flex items-center justify-center bg-black bg-opacity-50"
+        style="display: none;"
+    >
+        <div class="w-full max-w-sm p-6 text-center bg-white rounded-lg shadow-lg">
+            <h2 class="mb-2 text-lg font-semibold text-red-700">⏳ Sesión Expirada</h2>
+            <p class="text-sm text-gray-600">Tu sesión ha expirado por inactividad.</p>
+            <button
+                class="px-4 py-2 mt-4 text-sm text-white rounded"
+                :class="{
+                    'bg-emerald-600 hover:bg-emerald-700': theme === 'verde',
+                    'bg-blue-600 hover:bg-blue-700': theme === 'azul',
+                    'bg-gray-900 hover:bg-gray-800': theme === 'oscuro',
+                    'bg-slate-700 hover:bg-slate-600': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
+                }"
+                @click="cerrarSesion()"
+            >
+                Aceptar
+            </button>
+        </div>
     </div>
-</div>
 
 
     {{-- Scripts adicionales --}}

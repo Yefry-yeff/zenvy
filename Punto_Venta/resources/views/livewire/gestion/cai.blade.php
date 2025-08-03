@@ -1,5 +1,34 @@
 <div>
 
+    @if (session()->has('mensaje'))
+    <div x-data="{ show: true }" x-init="$nextTick(() => show = true)"
+        x-show="show"
+        x-transition
+        style="display: none;"  {{-- Para que no aparezca en flash antes de Alpine --}}
+    >
+        <div class="modal fade show d-block" tabindex="-1" role="dialog" @click.away="show = false">
+            <div class="modal-dialog modal-dialog-centered" @click.stop>
+                <div class="modal-content border-success shadow">
+                    <div class="modal-header bg-success text-white">
+                        <h5 class="modal-title">Éxito</h5>
+                        <button type="button" class="btn-close" @click="show = false"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>{{ session('mensaje') }}</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-success" @click="show = false">Aceptar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Backdrop manual -->
+        <div class="modal-backdrop fade show" x-show="show" x-transition></div>
+    </div>
+    @endif
+
+
+
     {{-- Tabla de CAI --}}
     <div class="overflow-hidden border border-gray-300 rounded shadow" x-data x-init="$watch('theme', t => localStorage.setItem('theme', t))">
 
@@ -14,7 +43,7 @@
         <!-- TABLA -->
         <div class="px-4 py-3 pt-0 card-body">
             <div class="table-responsive">
-                <table id="marcasTable" class="table mb-0 align-middle table-sm table-hover table-bordered">
+                <table id="tbl_cai" class="table mb-0 align-middle table-sm table-hover table-bordered">
                     <thead class="table-light">
                         <tr class="text-center align-middle">
                             <th>Cod</th>
@@ -51,11 +80,12 @@
                                 <td class="text-start cursor-pointer" wire:click="editar({{ $item->id }})">{{ $item->cantidad_solicitada }}</td>
                                 <td class="text-start cursor-pointer" wire:click="editar({{ $item->id }})">{{ $item->cantidad_otorgada }}</td>
                                 <td class="text-start cursor-pointer" wire:click="editar({{ $item->id }})">{{ $item->users_registro }}</td>
-                                @if($item->estado_id = 1)
-                                    <td class="text-start cursor-pointer" wire:click="editar({{ $item->id }})"><span class="badge bg-success">Activo</span></td>
-                                @elseif($item->estado_id = 2)
-                                    <td class="text-start cursor-pointer" wire:click="editar({{ $item->id }})"><span class="badge bg-success">Activo</span></td>
-                                @endif
+                                <td class="text-start cursor-pointer" wire:click="editar({{ $item->id }})">
+                                    <span class="badge {{ $item->estado_id == 1 ? 'bg-success' : 'bg-danger' }}">
+                                        {{ $item->estado_id == 1 ? 'Activo' : 'Inactivo' }}
+                                    </span>
+                                </td>
+
                                 <td class="text-start cursor-pointer" wire:click="editar({{ $item->id }})">{{ $item->created_at }}</td>
                                 <td class="text-start cursor-pointer" wire:click="editar({{ $item->id }})">{{ $item->updated_at }}</td>
                                 <td>
@@ -70,19 +100,23 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="3" class="py-4 text-center text-muted">No hay registros disponibles.</td>
+                                 <td colspan="16" class="text-center">No hay registros disponibles.</td>
                             </tr>
                         @endforelse
+
                     </tbody>
                 </table>
             </div>
+                <div class="mt-3">
+                    {{ $cai->links() }}
+                </div>
         </div>
 
     </div>
 
 
     {{--   Modal Agregar cai   --}}
-    <div wire:key="modal-nueva-marca">
+    <div wire:key="modal-nuevp-cai">
         <div class="modal fade show"
              tabindex="-1"
              style="display: @if($modalCrearAbierto) block @else none @endif; background: rgba(0,0,0,0.5); z-index: 1000;"
@@ -90,7 +124,7 @@
              role="dialog"
              @click.self="@this.cerrarModalCrear()"
         >
-            <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-dialog modal-dialog-centered modal-xl">
                 <div class="modal-content">
                     <div class="modal-header"
                          :class="{
@@ -100,20 +134,20 @@
                             'bg-slate-700 text-white': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
                          }"
                     >
-                        <h5 class="modal-title">Agregar Marca</h5>
+                        <h5 class="modal-title">Ingreso de CAI</h5>
                     </div>
                     <div class="modal-body">
-                        <form wire:submit.prevent="crearMarca">
+                        <form wire:submit.prevent="crearCai">
                             <div class="row">
-                                <div class="mb-2 col-md-6">
+                                <div class="mb-2 col-md-4">
                                     <label for="nuevoCai" class="form-label">CAI</label>
-                                    <input type="text" id="nuevoCai" class="form-control" wire:model.defer="nuevoCai"  pattern="[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}"  title="El CAI debe tener el formato ####-####-####-####-####-####" maxlength="39">
+                                    <input type="text" id="nuevoCai" class="form-control" wire:model.defer="nuevoCai"  title="El CAI debe tener el formato ####-####-####-####-####-####" maxlength="39">
                                     @error('nuevoCai')
                                         <div class="text-danger mt-1 text-sm">{{ $message }}</div>
                                     @enderror
                                 </div>
 
-                                <div class="mb-2 col-md-6">
+                                <div class="mb-2 col-md-4">
                                     <label for="nuevoFechaLimite" class="form-label">Fecha límite</label>
                                     <input type="date" id="nuevoFechaLimite" class="form-control" wire:model.defer="nuevoFechaLimite" title="Debe seleccionar una fecha límite de vigencia de este CAI.">
                                     @error('nuevoFechaLimite')
@@ -122,7 +156,7 @@
                                 </div>
 
 
-                                <div class="mb-2 col-md-6">
+                                <div class="mb-2 col-md-4">
                                     <label for="nuevoFechaSolicitud" class="form-label">Fecha de Solicitud</label>
                                     <input type="date" id="nuevoFechaSolicitud" class="form-control" wire:model.defer="nuevoFechaSolicitud" title="Debe seleccionar una fecha límite de vigencia de este CAI.">
                                     @error('nuevoFechaSolicitud')
@@ -131,7 +165,7 @@
                                 </div>
 
 
-                                <div class="mb-2 col-md-6">
+                                <div class="mb-2 col-md-4">
                                     <label for="nuevoPuntoEmision" class="form-label">Punto de Emisión</label>
                                     <input type="text" id="nuevoPuntoEmision" class="form-control" wire:model.defer="nuevoPuntoEmision" title="Debe seleccionar una fecha límite de vigencia de este CAI.">
                                     @error('nuevoPuntoEmision')
@@ -139,7 +173,7 @@
                                     @enderror
                                 </div>
 
-                                <div class="mb-2 col-md-6">
+                                <div class="mb-2 col-md-4">
                                     <label for="tipoDocumento" class="form-label">Tipo de documento</label>
                                     <select id="tipoDocumento" class="form-select" wire:model.defer="tipoDocumentoSeleccionado">
                                         <option value="">Seleccione un tipo...</option>
@@ -152,35 +186,104 @@
                                     @enderror
                                 </div>
 
-                                <div class="mb-2 col-md-6">
-                                    <label for="tipoDocumento" class="form-label">Tipo de documento</label>
-                                    <select id="tipoDocumento" class="form-select" wire:model.defer="tipoDocumentoSeleccionado">
-                                        <option value="">Seleccione un tipo...</option>
-                                        @foreach($tiposDocumento as $tipo)
-                                            <option value="{{ $tipo->id }}">{{ $tipo->nombre }}</option>
-                                        @endforeach
-                                    </select>
-                                    @error('tipoDocumentoSeleccionado')
+
+                                <div class="mb-2 col-md-4"
+                                    x-data="{
+                                        search: '',
+                                        open: false,
+                                        selected: @entangle('tiendaSeleccionado'),
+                                        options: {{ $tiendas->toJson() }},
+                                        filteredOptions() {
+                                            if (this.search === '') return this.options;
+                                            const term = this.search.toLowerCase();
+                                            return this.options.filter(o =>
+                                                String(o.id).toLowerCase().includes(term) ||
+                                                String(o.identificador_legal).toLowerCase().includes(term) ||
+                                                String(o.numero_sucursal).toLowerCase().includes(term) ||
+                                                String(o.denominacion_social).toLowerCase().includes(term)
+                                            );
+                                        },
+                                        selectOption(option) {
+                                            this.selected = option.id;
+                                            this.search = `${option.id} (${option.denominacion_social} - ${option.numero_sucursal})`;
+                                            this.open = false;
+                                        },
+                                        clearSearch() {
+                                            this.search = '';
+                                            this.open = true;
+                                        },
+                                        init() {
+                                            this.$watch('selected', value => {
+                                                const obj = this.options.find(o => o.id == value);
+                                                if (obj) {
+                                                    this.search = `${obj.id} (${obj.denominacion_social} - ${obj.numero_sucursal})`;
+                                                }
+                                            });
+                                        }
+                                    }"
+                                    @click.outside="open = false"
+                                >
+                                    <label for="tiendaId" class="form-label">Seleccionar Tienda</label>
+
+                                    <input type="text"
+                                        placeholder="Buscar..."
+                                        class="form-control mb-1"
+                                        x-model="search"
+                                        @focus="open = true; clearSearch()"
+                                        @input="open = true"
+                                    >
+
+                                    <ul class="list-group position-absolute w-100" x-show="open" style="z-index: 10; max-height: 150px; overflow-y: auto;">
+                                        <template x-for="item in filteredOptions()" :key="item.id">
+                                            <li class="list-group-item list-group-item-action"
+                                                @click="selectOption(item)"
+                                                x-text="`${item.id} - ${item.denominacion_social} - ${item.numero_sucursal}`">
+                                            </li>
+                                        </template>
+                                    </ul>
+
+                                    @error('tiendaSeleccionado')
                                         <div class="text-danger mt-1 text-sm">{{ $message }}</div>
                                     @enderror
                                 </div>
 
-                                <div class="mb-2 col-md-6">
-                                    <label for="tipoDocumento" class="form-label">Tipo de documento</label>
-                                    <select id="tipoDocumento" class="form-select" wire:model.defer="tipoDocumentoSeleccionado">
-                                        <option value="">Seleccione un tipo...</option>
-                                        @foreach($tiposDocumento as $tipo)
-                                            <option value="{{ $tipo->id }}">{{ $tipo->nombre }}</option>
-                                        @endforeach
-                                    </select>
-                                    @error('tipoDocumentoSeleccionado')
+                                <div class="mb-2 col-md-4">
+                                    <label for="nuevoCantidadSolicitada" class="form-label">Cantidad Solicitada</label>
+                                    <input type="number" id="nuevoCantidadSolicitada" step="1" min="0" oninput="this.value = this.value.replace(/[^0-9]/g, '')" class="form-control" wire:model.defer="nuevoCantidadSolicitada" title="Debe ingresar un numero entero.">
+                                    @error('nuevoCantidadSolicitada')
                                         <div class="text-danger mt-1 text-sm">{{ $message }}</div>
                                     @enderror
                                 </div>
+
+                                <div class="mb-2 col-md-4">
+                                    <label for="nuevoCantidadOtorgada" class="form-label">Cantidad Otorgada</label>
+                                    <input type="number" id="nuevoCantidadOtorgada" step="1" min="0" oninput="this.value = this.value.replace(/[^0-9]/g, '')" class="form-control" wire:model.defer="nuevoCantidadOtorgada" title="Debe ingresar un numero entero.">
+                                    @error('nuevoCantidadOtorgada')
+                                        <div class="text-danger mt-1 text-sm">{{ $message }}</div>
+                                    @enderror
+                                </div>
+
+                                <div class="mb-2 col-md-4">
+                                    <label for="nuevoRangoInicial" class="form-label">Rango Inicial</label>
+                                    <input type="text" id="nuevoRangoInicial" step="1" class="form-control" wire:model.defer="nuevoRangoInicial" title="Debe contener el formato correcto.">
+                                    @error('nuevoRangoInicial')
+                                        <div class="text-danger mt-1 text-sm">{{ $message }}</div>
+                                    @enderror
+                                </div>
+
+                                <div class="mb-2 col-md-4">
+                                    <label for="nuevoRangoFinal" class="form-label">Rando Final</label>
+                                    <input type="text" id="nuevoRangoFinal" class="form-control" wire:model.defer="nuevoRangoFinal" title="Debe contener el formato correcto.">
+                                    @error('nuevoRangoFinal')
+                                        <div class="text-danger mt-1 text-sm">{{ $message }}</div>
+                                    @enderror
+                                </div>
+
                             </div>
                             <div class="flex justify-end mt-4">
                                 <button
                                     type="submit"
+                                    wire:loading.attr="disabled"
                                     class="px-4 py-2 text-white rounded"
                                     :class="{
                                         'bg-emerald-600 hover:bg-emerald-700': theme === 'verde',
@@ -281,15 +384,5 @@
             </div>
         </div>
     </div>
-
-    @if (session()->has('mensaje'))
-        <div x-data="{ show: true }" x-show="show"
-             @click.window="show = false"
-             @keydown.window="show = false"
-             @mousemove.window="show = false"
-             class="alert alert-success mt-3 mb-0 transition-opacity duration-300">
-            {{ session('mensaje') }}
-        </div>
-    @endif
 
 </div> {{-- FIN ELEMENTO RAÍZ --}}
