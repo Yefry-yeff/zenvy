@@ -65,12 +65,6 @@
                                 @error('form.direccion_id')
                                     <div class="mt-1 text-sm text-danger">❌ La dirección es obligatoria</div>
                                 @enderror
-                                
-                                @if($domicilioTributario)
-                                    <div class="mt-2 alert alert-info">
-                                        <strong>📍 Dirección completa:</strong> {{ $domicilioTributario }}
-                                    </div>
-                                @endif
                             </div>
                             <div class="mb-3 col-md-6">
                                 <label for="estado_id" class="form-label">Estado</label>

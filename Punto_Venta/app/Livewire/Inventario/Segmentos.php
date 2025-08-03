@@ -94,6 +94,21 @@ class Segmentos extends Component
 
     // ===== MÉTODOS DE NAVEGACIÓN =====
 
+    public function crearNuevoSegmento()
+    {
+        $this->dispatch('cambiarVista', ruta: 'Inventario.SegmentoForm', parametros: [
+            'bodegaId' => $this->bodegaId
+        ]);
+    }
+
+    public function editarSegmento($segmentoId)
+    {
+        $this->dispatch('cambiarVista', ruta: 'Inventario.SegmentoForm', parametros: [
+            'bodegaId' => $this->bodegaId,
+            'segmentoId' => $segmentoId
+        ]);
+    }
+
     public function irAFormulario($segmentoId = null)
     {
         if ($segmentoId) {
