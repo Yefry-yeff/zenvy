@@ -12,7 +12,7 @@ function initCaiTable() {
                         url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
                     }
                 });
-                if (CaiTableObserver) marcasTableObserver.observe(document.querySelector('main'), { childList: false, subtree: true });
+                if (CaiTableObserver) CaiTableObserver.observe(document.querySelector('main'), { childList: false, subtree: true });
             }
         }
     }, 300);
@@ -25,13 +25,13 @@ window.livewire && window.livewire.hook('message.processed', () => {
 document.addEventListener('DOMContentLoaded', function() {
     var main = document.querySelector('main');
     if (main) {
-        marcasTableObserver = new MutationObserver(function(mutations) {
+        CaiTableObserver = new MutationObserver(function(mutations) {
             mutations.forEach(function(mutation) {
                 if (mutation.type === 'childList') {
                     initCaiTable(); // también corregido
                 }
             });
         });
-        marcasTableObserver.observe(main, { childList: true, subtree: true });
+        CaiTableObserver.observe(main, { childList: true, subtree: true });
     }
 });
