@@ -54,7 +54,7 @@ class ProductoForm extends Component
         'form.nombre' => 'required|string|max:80',
         'form.descripcion' => 'nullable|string|max:45',
         'form.isv' => 'nullable|numeric|min:0|max:100',
-        'form.precio_base' => 'required|numeric|min:0',
+        'form.precio_base' => 'required|numeric|min:0.01',
         'form.ultimo_costo_compra' => 'nullable|numeric|min:0',
         'form.costo_promedio' => 'nullable|numeric|min:0',
         'form.codigo_barra' => 'nullable|string|max:100',
@@ -64,7 +64,7 @@ class ProductoForm extends Component
         'form.marca_id' => 'required|integer|exists:marca,id',
         'form.unidad_compra' => 'required|integer|min:1',
         'form.unidad_medida_compra_id' => 'required|integer|exists:unidad_medida,id',
-        'form.precio1' => 'required|numeric|min:0',
+        'form.precio1' => 'required|numeric|min:0.01',
         'form.precio2' => 'nullable|numeric|min:0',
         'form.precio3' => 'nullable|numeric|min:0',
         'form.precio4' => 'nullable|numeric|min:0',
@@ -79,7 +79,7 @@ class ProductoForm extends Component
         'form.isv.max' => 'El ISV no puede ser mayor a 100',
         'form.precio_base.required' => 'El precio base es obligatorio',
         'form.precio_base.numeric' => 'El precio base debe ser un número',
-        'form.precio_base.min' => 'El precio base no puede ser negativo',
+        'form.precio_base.min' => 'El precio base no puede ser 0, debe ser mayor a 0',
         'form.ultimo_costo_compra.numeric' => 'El último costo de compra debe ser un número',
         'form.ultimo_costo_compra.min' => 'El último costo de compra no puede ser negativo',
         'form.costo_promedio.numeric' => 'El costo promedio debe ser un número',
@@ -95,7 +95,7 @@ class ProductoForm extends Component
         'form.unidad_medida_compra_id.exists' => 'La unidad de medida seleccionada no existe',
         'form.precio1.required' => 'El precio 1 es obligatorio',
         'form.precio1.numeric' => 'El precio 1 debe ser un número',
-        'form.precio1.min' => 'El precio 1 no puede ser negativo',
+        'form.precio1.min' => 'El precio 1 no puede ser 0, debe ser mayor a 0',
     ];
 
     public function mount($id = null)
@@ -201,6 +201,18 @@ class ProductoForm extends Component
             return;
         }
 
+        // Verificación específica para precio1 = 0
+        if ($this->form['precio1'] == 0) {
+            $this->mostrarErrorCampo('precio1', 'El precio 1 no puede ser 0, debe ser mayor a 0');
+            return;
+        }
+
+        // Verificación específica para precio_base = 0
+        if ($this->form['precio_base'] == 0) {
+            $this->mostrarErrorCampo('precio_base', 'El precio base no puede ser 0, debe ser mayor a 0');
+            return;
+        }
+
         // Limpiar alertas antes de validar
         $this->cerrarAlerta();
 
@@ -267,7 +279,11 @@ class ProductoForm extends Component
             $this->validateOnly('form.precio_base');
             $this->limpiarErrorCampo('precio_base');
         } catch (\Illuminate\Validation\ValidationException $e) {
-            $this->mostrarErrorCampo('precio_base', 'El precio base debe ser mayor a 0');
+            if ($this->form['precio_base'] == 0) {
+                $this->mostrarErrorCampo('precio_base', 'El precio base no puede ser 0, debe ser mayor a 0');
+            } else {
+                $this->mostrarErrorCampo('precio_base', 'El precio base debe ser mayor a 0');
+            }
         }
     }
 
@@ -277,7 +293,11 @@ class ProductoForm extends Component
             $this->validateOnly('form.precio1');
             $this->limpiarErrorCampo('precio1');
         } catch (\Illuminate\Validation\ValidationException $e) {
-            $this->mostrarErrorCampo('precio1', 'El precio 1 debe ser mayor a 0');
+            if ($this->form['precio1'] == 0) {
+                $this->mostrarErrorCampo('precio1', 'El precio 1 no puede ser 0, debe ser mayor a 0');
+            } else {
+                $this->mostrarErrorCampo('precio1', 'El precio 1 debe ser mayor a 0');
+            }
         }
     }
 

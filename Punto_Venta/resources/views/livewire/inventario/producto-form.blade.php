@@ -230,7 +230,7 @@
                                     <input type="number" id="precio1" class="form-control {{ $this->getClaseCampo('precio1') }}" wire:model.live="form.precio1" step="0.01" min="0" placeholder="0.00">
                                 </div>
                                 @error('form.precio1')
-                                    <div class="text-danger mt-1 text-sm">❌ El precio 1 es obligatorio y debe ser mayor a 0</div>
+                                    <div class="text-danger mt-1 text-sm">❌ El precio 1 no puede ser 0, debe ser mayor a 0</div>
                                 @enderror
                             </div>
                             <div class="col-md-3 mb-3">
