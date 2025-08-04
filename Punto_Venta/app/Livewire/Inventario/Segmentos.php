@@ -167,6 +167,11 @@ class Segmentos extends Component
 
     // ===== MÉTODOS DE ELIMINACIÓN =====
 
+    public function eliminarSegmento($segmentoId)
+    {
+        $this->confirmarEliminar($segmentoId);
+    }
+
     public function confirmarEliminar($segmentoId)
     {
         try {

@@ -82,8 +82,7 @@
                                         <i class="fas fa-th-large"></i> Secciones
                                     </button>
                                     <button wire:click="eliminarSegmento({{ $segmento->id }})"
-                                            class="btn btn-outline-danger btn-sm"
-                                            onclick="return confirm('¿Está seguro de eliminar este segmento? También se eliminarán todas sus secciones.')">
+                                            class="btn btn-outline-danger btn-sm">
                                         <i class="fas fa-trash"></i> Eliminar
                                     </button>
                                 </div>
@@ -113,4 +112,48 @@
 
         </div> {{-- Fin del card-body --}}
     </div> {{-- Fin del contenedor principal --}}
+
+    <!-- Modal Confirmar Eliminación -->
+    <div wire:key="modal-confirmar-eliminar">
+        <div class="modal fade show"
+             tabindex="-1"
+             style="display: @if($mostrarModalEliminar) block @else none @endif; background: rgba(0,0,0,0.5); z-index: 1000;"
+             aria-modal="true"
+             role="dialog"
+             @click.self="@this.cancelarEliminar()"
+        >
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header bg-danger text-white">
+                        <h5 class="modal-title">¿Eliminar Segmento?</h5>
+                    </div>
+                    <div class="modal-body">
+                        @if($segmentoAEliminar)
+                            <div class="mb-3">
+                                <h6 class="text-danger">⚠️ Esta acción es irreversible</h6>
+                                <p>¿Está seguro que desea eliminar el segmento <strong>"{{ $segmentoAEliminar->descripcion }}"</strong>?</p>
+                                
+                                <div class="alert alert-danger">
+                                    <small><strong>Se eliminarán permanentemente:</strong></small>
+                                    <ul class="mb-0 small">
+                                        <li>• El segmento seleccionado</li>
+                                        <li>• Todas las secciones asociadas al segmento</li>
+                                    </ul>
+                                    <div class="mt-2">
+                                        <small class="text-muted"><em>Nota: Esta operación no se puede deshacer.</em></small>
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
+                        
+                        <div class="flex justify-end gap-2 mt-4">
+                            <button type="button" class="btn btn-light" wire:click="cancelarEliminar">Cancelar</button>
+                            <button type="button" class="btn btn-danger" wire:click="eliminar">Sí, Eliminar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </div> {{-- Fin del elemento raíz --}}
