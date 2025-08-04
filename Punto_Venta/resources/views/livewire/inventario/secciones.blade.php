@@ -45,7 +45,7 @@
                         <input type="text"
                                class="form-control"
                                placeholder="Buscar por descripción de sección..."
-                               wire:model.live="busqueda">
+                               wire:model.live="buscar">
                     </div>
                 </div>
                 <div class="col-md-3">

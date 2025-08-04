@@ -245,4 +245,11 @@ class Secciones extends Component
     {
         return $estado == 1 ? 'badge bg-success' : 'badge bg-secondary';
     }
+
+    public function editarSeccion($id)
+    {
+        // Aquí puedes redirigir a la vista de edición, abrir un modal, o asignar la sección a una propiedad para edición
+        // Ejemplo: $this->seccionAEditar = Seccion::findOrFail($id);
+        // Por ahora solo lo dejamos como placeholder para evitar el error
+    }
 }
