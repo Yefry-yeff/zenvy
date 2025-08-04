@@ -53,16 +53,6 @@
                             </div>
                         </div>
                         
-                        @if($bodega)
-                            <div class="row">
-                                <div class="col-md-12">
-                                    <div class="alert alert-info">
-                                        <strong>📍 Bodega:</strong> {{ $bodega->nombre }}<br>
-                                        <strong>🏪 Tienda:</strong> {{ $bodega->tienda->denominacion_social ?? 'N/A' }}
-                                    </div>
-                                </div>
-                            </div>
-                        @endif
                     </div>
                 </div>
 

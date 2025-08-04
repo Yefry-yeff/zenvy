@@ -15,7 +15,7 @@ class Segmentos extends Component
 
     public $bodegaId;
     public $bodega;
-    
+
     // Filtros y búsqueda
     public $buscar = '';
     public $filtroEstado = '';
@@ -57,7 +57,7 @@ class Segmentos extends Component
     public function render()
     {
         $segmentos = $this->obtenerSegmentos();
-        
+
         return view('livewire.inventario.segmentos', [
             'segmentos' => $segmentos
         ]);
@@ -87,7 +87,7 @@ class Segmentos extends Component
                 'bodega_id' => $this->bodegaId,
                 'mensaje' => $e->getMessage()
             ]);
-            
+
             return collect()->paginate($this->registrosPorPagina);
         }
     }
@@ -186,7 +186,7 @@ class Segmentos extends Component
 
         try {
             Segmento::eliminarSegmento($this->segmentoAEliminar->id);
-            
+
             Log::info('Segmento eliminado exitosamente', [
                 'segmento_id' => $this->segmentoAEliminar->id,
                 'usuario_id' => Auth::id()
@@ -195,14 +195,14 @@ class Segmentos extends Component
             $this->mostrarModalEliminar = false;
             $this->segmentoAEliminar = null;
             $this->mostrarExito('Segmento eliminado exitosamente');
-            
+
         } catch (\Exception $e) {
             Log::error('Error al eliminar segmento', [
                 'segmento_id' => $this->segmentoAEliminar->id,
                 'mensaje' => $e->getMessage(),
                 'usuario_id' => Auth::id()
             ]);
-            
+
             $this->mostrarModalEliminar = false;
             $this->segmentoAEliminar = null;
             $this->mostrarError('Error al eliminar el segmento: ' . $e->getMessage());
