@@ -42,6 +42,24 @@ class RecibirEnBodega extends Component
     public $secciones = [];
     public $unidadesMedida = [];
     
+    // Jerarquía Bodega → Segmento → Sección
+    public $buscarBodega = '';
+    public $bodegasSugeridas = [];
+    public $mostrarSugerenciasBodegas = false;
+    public $bodegaSeleccionada = null;
+    public $nombreBodega = '';
+    
+    public $buscarSegmento = '';
+    public $segmentosSugeridos = [];
+    public $mostrarSugerenciasSegmentos = false;
+    public $segmentoSeleccionado = null;
+    public $nombreSegmento = '';
+    
+    public $buscarSeccion = '';
+    public $seccionesSugeridas = [];
+    public $mostrarSugerenciasSecciones = false;
+    public $nombreSeccion = '';
+    
     // Modales y mensajes
     public $mostrarModalConfirmacion = false;
     public $mostrarModalExito = false;
@@ -53,7 +71,204 @@ class RecibirEnBodega extends Component
     {
         $this->fechaRecibido = date('Y-m-d');
         $this->cargarUnidadesMedida();
-        $this->cargarSecciones();
+    }
+
+    // Búsqueda de Bodegas
+    public function updatedBuscarBodega()
+    {
+        if (strlen($this->buscarBodega) >= 1) {
+            $this->buscarBodegas();
+            $this->mostrarSugerenciasBodegas = true;
+        } else {
+            $this->bodegasSugeridas = [];
+            $this->mostrarSugerenciasBodegas = false;
+            $this->limpiarSeleccionBodega();
+        }
+    }
+
+    public function buscarBodegas()
+    {
+        try {
+            $user = Auth::user();
+            
+            $query = Bodega::with('tienda')
+                ->where('nombre', 'like', '%' . $this->buscarBodega . '%')
+                ->where('estado_id', 1);
+                
+            if ($user->rol && $user->rol->txt_nombre !== 'Admin') {
+                $query->where('tienda_id', $user->tienda_id);
+            }
+                
+            $this->bodegasSugeridas = $query->limit(5)->get();
+        } catch (\Exception $e) {
+            Log::error('Error al buscar bodegas', [
+                'mensaje' => $e->getMessage(),
+                'busqueda' => $this->buscarBodega
+            ]);
+            $this->bodegasSugeridas = [];
+        }
+    }
+
+    public function seleccionarBodega($bodegaId)
+    {
+        try {
+            $bodega = Bodega::with('tienda')->findOrFail($bodegaId);
+            
+            $this->bodegaSeleccionada = $bodega;
+            $this->buscarBodega = $bodega->nombre;
+            $this->nombreBodega = $bodega->nombre;
+            
+            $this->mostrarSugerenciasBodegas = false;
+            $this->bodegasSugeridas = [];
+            
+            // Limpiar selecciones dependientes
+            $this->limpiarSeleccionSegmento();
+            $this->limpiarSeleccionSeccion();
+            
+        } catch (\Exception $e) {
+            Log::error('Error al seleccionar bodega', [
+                'bodega_id' => $bodegaId,
+                'mensaje' => $e->getMessage()
+            ]);
+            $this->mostrarError('Error al cargar los datos de la bodega');
+        }
+    }
+
+    public function limpiarSeleccionBodega()
+    {
+        $this->bodegaSeleccionada = null;
+        $this->nombreBodega = '';
+        $this->limpiarSeleccionSegmento();
+        $this->limpiarSeleccionSeccion();
+    }
+
+    // Búsqueda de Segmentos
+    public function updatedBuscarSegmento()
+    {
+        if ($this->bodegaSeleccionada && strlen($this->buscarSegmento) >= 1) {
+            $this->buscarSegmentos();
+            $this->mostrarSugerenciasSegmentos = true;
+        } else {
+            $this->segmentosSugeridos = [];
+            $this->mostrarSugerenciasSegmentos = false;
+            $this->limpiarSeleccionSegmento();
+        }
+    }
+
+    public function buscarSegmentos()
+    {
+        try {
+            if (!$this->bodegaSeleccionada) return;
+            
+            $this->segmentosSugeridos = Segmento::where('bodega_id', $this->bodegaSeleccionada->id)
+                ->where('descripcion', 'like', '%' . $this->buscarSegmento . '%')
+                ->limit(5)
+                ->get();
+        } catch (\Exception $e) {
+            Log::error('Error al buscar segmentos', [
+                'mensaje' => $e->getMessage(),
+                'busqueda' => $this->buscarSegmento,
+                'bodega_id' => $this->bodegaSeleccionada->id ?? null
+            ]);
+            $this->segmentosSugeridos = [];
+        }
+    }
+
+    public function seleccionarSegmento($segmentoId)
+    {
+        try {
+            $segmento = Segmento::findOrFail($segmentoId);
+            
+            $this->segmentoSeleccionado = $segmento;
+            $this->buscarSegmento = $segmento->descripcion;
+            $this->nombreSegmento = $segmento->descripcion;
+            
+            $this->mostrarSugerenciasSegmentos = false;
+            $this->segmentosSugeridos = [];
+            
+            // Limpiar selección de sección
+            $this->limpiarSeleccionSeccion();
+            
+        } catch (\Exception $e) {
+            Log::error('Error al seleccionar segmento', [
+                'segmento_id' => $segmentoId,
+                'mensaje' => $e->getMessage()
+            ]);
+            $this->mostrarError('Error al cargar los datos del segmento');
+        }
+    }
+
+    public function limpiarSeleccionSegmento()
+    {
+        $this->segmentoSeleccionado = null;
+        $this->buscarSegmento = '';
+        $this->nombreSegmento = '';
+        $this->segmentosSugeridos = [];
+        $this->mostrarSugerenciasSegmentos = false;
+        $this->limpiarSeleccionSeccion();
+    }
+
+    // Búsqueda de Secciones
+    public function updatedBuscarSeccion()
+    {
+        if ($this->segmentoSeleccionado && strlen($this->buscarSeccion) >= 1) {
+            $this->buscarSecciones();
+            $this->mostrarSugerenciasSecciones = true;
+        } else {
+            $this->seccionesSugeridas = [];
+            $this->mostrarSugerenciasSecciones = false;
+            $this->limpiarSeleccionSeccion();
+        }
+    }
+
+    public function buscarSecciones()
+    {
+        try {
+            if (!$this->segmentoSeleccionado) return;
+            
+            $this->seccionesSugeridas = Seccion::where('segmento_id', $this->segmentoSeleccionado->id)
+                ->where('descripcion', 'like', '%' . $this->buscarSeccion . '%')
+                ->where('estado_id', 1)
+                ->limit(5)
+                ->get();
+        } catch (\Exception $e) {
+            Log::error('Error al buscar secciones', [
+                'mensaje' => $e->getMessage(),
+                'busqueda' => $this->buscarSeccion,
+                'segmento_id' => $this->segmentoSeleccionado->id ?? null
+            ]);
+            $this->seccionesSugeridas = [];
+        }
+    }
+
+    public function seleccionarSeccion($seccionId)
+    {
+        try {
+            $seccion = Seccion::findOrFail($seccionId);
+            
+            $this->seccionSeleccionada = $seccion->id;
+            $this->buscarSeccion = $seccion->descripcion;
+            $this->nombreSeccion = $seccion->descripcion;
+            
+            $this->mostrarSugerenciasSecciones = false;
+            $this->seccionesSugeridas = [];
+            
+        } catch (\Exception $e) {
+            Log::error('Error al seleccionar sección', [
+                'seccion_id' => $seccionId,
+                'mensaje' => $e->getMessage()
+            ]);
+            $this->mostrarError('Error al cargar los datos de la sección');
+        }
+    }
+
+    public function limpiarSeleccionSeccion()
+    {
+        $this->seccionSeleccionada = null;
+        $this->buscarSeccion = '';
+        $this->nombreSeccion = '';
+        $this->seccionesSugeridas = [];
+        $this->mostrarSugerenciasSecciones = false;
     }
 
     public function updatedBuscarProducto()
@@ -223,40 +438,9 @@ class RecibirEnBodega extends Component
         $this->fechaExpiracion = '';
         $this->comentario = '';
         $this->unidadesCompra = '';
-        $this->seccionSeleccionada = null;
-    }
-
-    private function cargarSecciones()
-    {
-        try {
-            $user = Auth::user();
-            
-            if ($user->rol && $user->rol->txt_nombre === 'Admin') {
-                // Admin puede ver todas las secciones de todas las bodegas
-                $this->secciones = Seccion::with(['segmento.bodega.tienda'])
-                    ->whereHas('segmento.bodega', function($query) {
-                        $query->where('estado_id', 1);
-                    })
-                    ->where('estado_id', 1)
-                    ->orderBy('descripcion')
-                    ->get();
-            } else {
-                // Usuarios normales solo ven secciones de bodegas de su tienda
-                $this->secciones = Seccion::with(['segmento.bodega.tienda'])
-                    ->whereHas('segmento.bodega', function($query) use ($user) {
-                        $query->where('tienda_id', $user->tienda_id)
-                              ->where('estado_id', 1);
-                    })
-                    ->where('estado_id', 1)
-                    ->orderBy('descripcion')
-                    ->get();
-            }
-        } catch (\Exception $e) {
-            Log::error('Error al cargar secciones', [
-                'mensaje' => $e->getMessage()
-            ]);
-            $this->secciones = [];
-        }
+        
+        // Limpiar jerarquía bodega → segmento → sección
+        $this->limpiarSeleccionBodega();
     }
 
     private function cargarUnidadesMedida()

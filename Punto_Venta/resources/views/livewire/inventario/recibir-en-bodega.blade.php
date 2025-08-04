@@ -164,31 +164,159 @@
                     </div>
                 </div>
 
-                <!-- Selección de Sección -->
+                <!-- Selección de Sección (Jerarquía: Bodega → Segmento → Sección) -->
                 <div class="mb-4">
                     <div class="p-4 bg-white border shadow rounded-xl">
                         <h3 class="mb-3 text-lg font-semibold text-gray-700">
                             <i class="fas fa-map-marker-alt me-2"></i>Asignar a Sección
                         </h3>
                         
-                        <div class="row">
-                            <div class="col-md-8">
-                                <label for="seccionSeleccionada" class="form-label">Seleccionar Sección <span class="text-red-600">*</span></label>
-                                <select wire:model="seccionSeleccionada" id="seccionSeleccionada" class="form-select">
-                                    <option value="">Seleccione una sección...</option>
-                                    @foreach($secciones as $seccion)
-                                        <option value="{{ $seccion->id }}">
-                                            {{ $seccion->descripcion }} 
-                                            ({{ $seccion->segmento->descripcion ?? 'Sin segmento' }} - 
-                                            {{ $seccion->segmento->bodega->nombre ?? 'Sin bodega' }} - 
-                                            {{ $seccion->segmento->bodega->tienda->denominacion_social ?? 'Sin tienda' }})
-                                        </option>
-                                    @endforeach
-                                </select>
+                        <!-- Selección de Bodega -->
+                        <div class="mb-3" style="position: relative; z-index: 9;">
+                            <label for="buscarBodega" class="form-label">Bodega <span class="text-red-600">*</span></label>
+                            <div class="position-relative" style="z-index: 19;">
+                                <input type="text" 
+                                       id="buscarBodega"
+                                       class="form-control" 
+                                       wire:model.live="buscarBodega"
+                                       placeholder="Escriba el nombre de la bodega..."
+                                       autocomplete="off">
+                                
+                                <!-- Lista de bodegas -->
+                                @if($mostrarSugerenciasBodegas && count($bodegasSugeridas) > 0)
+                                    <div class="dropdown-suggestions position-absolute w-100 bg-white border border-top-0 rounded-bottom shadow-lg">
+                                        @foreach($bodegasSugeridas as $bodega)
+                                            <div wire:click="seleccionarBodega({{ $bodega->id }})" 
+                                                 class="dropdown-item-custom px-3 py-2 cursor-pointer border-bottom">
+                                                <div class="d-flex justify-content-between align-items-center">
+                                                    <div>
+                                                        <strong>{{ $bodega->nombre }}</strong><br>
+                                                        <small class="text-muted">{{ $bodega->tienda->denominacion_social ?? 'Sin tienda' }}</small>
+                                                    </div>
+                                                    <div class="text-end">
+                                                        <small class="text-primary">
+                                                            <i class="fas fa-warehouse"></i>
+                                                        </small>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                @endif
+                                
+                                @if($mostrarSugerenciasBodegas && count($bodegasSugeridas) == 0 && strlen($buscarBodega) >= 1)
+                                    <div class="dropdown-suggestions position-absolute w-100 bg-white border border-top-0 rounded-bottom shadow-lg">
+                                        <div class="px-3 py-2 text-muted text-center">
+                                            No se encontraron bodegas que coincidan con "{{ $buscarBodega }}"
+                                        </div>
+                                    </div>
+                                @endif
                             </div>
-                            <div class="col-md-4 d-flex align-items-end">
+                        </div>
+
+                        <!-- Selección de Segmento -->
+                        @if($bodegaSeleccionada)
+                            <div class="mb-3" style="position: relative; z-index: 8;">
+                                <label for="buscarSegmento" class="form-label">Segmento <span class="text-red-600">*</span></label>
+                                <div class="position-relative" style="z-index: 18;">
+                                    <input type="text" 
+                                           id="buscarSegmento"
+                                           class="form-control" 
+                                           wire:model.live="buscarSegmento"
+                                           placeholder="Escriba el nombre del segmento..."
+                                           autocomplete="off">
+                                    
+                                    <!-- Lista de segmentos -->
+                                    @if($mostrarSugerenciasSegmentos && count($segmentosSugeridos) > 0)
+                                        <div class="dropdown-suggestions position-absolute w-100 bg-white border border-top-0 rounded-bottom shadow-lg">
+                                            @foreach($segmentosSugeridos as $segmento)
+                                                <div wire:click="seleccionarSegmento({{ $segmento->id }})" 
+                                                     class="dropdown-item-custom px-3 py-2 cursor-pointer border-bottom">
+                                                    <div class="d-flex justify-content-between align-items-center">
+                                                        <div>
+                                                            <strong>{{ $segmento->descripcion }}</strong>
+                                                        </div>
+                                                        <div class="text-end">
+                                                            <small class="text-success">
+                                                                <i class="fas fa-layer-group"></i>
+                                                            </small>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    @endif
+                                    
+                                    @if($mostrarSugerenciasSegmentos && count($segmentosSugeridos) == 0 && strlen($buscarSegmento) >= 1)
+                                        <div class="dropdown-suggestions position-absolute w-100 bg-white border border-top-0 rounded-bottom shadow-lg">
+                                            <div class="px-3 py-2 text-muted text-center">
+                                                No se encontraron segmentos que coincidan con "{{ $buscarSegmento }}"
+                                            </div>
+                                        </div>
+                                    @endif
+                                </div>
+                            </div>
+                        @endif
+
+                        <!-- Selección de Sección -->
+                        @if($segmentoSeleccionado)
+                            <div class="mb-3" style="position: relative; z-index: 7;">
+                                <label for="buscarSeccion" class="form-label">Sección <span class="text-red-600">*</span></label>
+                                <div class="position-relative" style="z-index: 17;">
+                                    <input type="text" 
+                                           id="buscarSeccion"
+                                           class="form-control" 
+                                           wire:model.live="buscarSeccion"
+                                           placeholder="Escriba el nombre de la sección..."
+                                           autocomplete="off">
+                                    
+                                    <!-- Lista de secciones -->
+                                    @if($mostrarSugerenciasSecciones && count($seccionesSugeridas) > 0)
+                                        <div class="dropdown-suggestions position-absolute w-100 bg-white border border-top-0 rounded-bottom shadow-lg">
+                                            @foreach($seccionesSugeridas as $seccion)
+                                                <div wire:click="seleccionarSeccion({{ $seccion->id }})" 
+                                                     class="dropdown-item-custom px-3 py-2 cursor-pointer border-bottom">
+                                                    <div class="d-flex justify-content-between align-items-center">
+                                                        <div>
+                                                            <strong>{{ $seccion->descripcion }}</strong><br>
+                                                            <small class="text-muted">Numeración: {{ $seccion->numeracion }}</small>
+                                                        </div>
+                                                        <div class="text-end">
+                                                            <small class="text-info">
+                                                                <i class="fas fa-cube"></i>
+                                                            </small>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    @endif
+                                    
+                                    @if($mostrarSugerenciasSecciones && count($seccionesSugeridas) == 0 && strlen($buscarSeccion) >= 1)
+                                        <div class="dropdown-suggestions position-absolute w-100 bg-white border border-top-0 rounded-bottom shadow-lg">
+                                            <div class="px-3 py-2 text-muted text-center">
+                                                No se encontraron secciones que coincidan con "{{ $buscarSeccion }}"
+                                            </div>
+                                        </div>
+                                    @endif
+                                </div>
+                            </div>
+                        @endif
+
+                        <!-- Resumen de selección y botón confirmar -->
+                        @if($seccionSeleccionada)
+                            <div class="mt-4 p-3 bg-light rounded">
+                                <h6 class="mb-2 text-success"><i class="fas fa-check-circle me-2"></i>Ubicación Seleccionada:</h6>
+                                <div class="d-flex flex-wrap gap-2">
+                                    <span class="badge bg-primary"><i class="fas fa-warehouse me-1"></i>{{ $nombreBodega }}</span>
+                                    <span class="badge bg-success"><i class="fas fa-layer-group me-1"></i>{{ $nombreSegmento }}</span>
+                                    <span class="badge bg-info"><i class="fas fa-cube me-1"></i>{{ $nombreSeccion }}</span>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-3 d-flex justify-content-end">
                                 <button wire:click="confirmarRecibido" 
-                                        class="btn w-100"
+                                        class="btn"
                                         :class="{
                                             'btn-success': theme === 'verde',
                                             'btn-primary': theme === 'azul',
@@ -198,7 +326,7 @@
                                     <i class="fas fa-check me-2"></i>Confirmar Recibido
                                 </button>
                             </div>
-                        </div>
+                        @endif
                     </div>
                 </div>
             @endif
@@ -222,7 +350,9 @@
                             <strong>Producto:</strong> {{ $nombreProducto }}<br>
                             <strong>Cantidad Lote:</strong> {{ $cantidadCompraLote }}<br>
                             <strong>Cantidad en Sección:</strong> {{ $cantidadInicialSeccion }}<br>
-                            <strong>Sección:</strong> {{ collect($secciones)->firstWhere('id', $seccionSeleccionada)->descripcion ?? 'N/A' }}<br>
+                            <strong>Bodega:</strong> {{ $nombreBodega }}<br>
+                            <strong>Segmento:</strong> {{ $nombreSegmento }}<br>
+                            <strong>Sección:</strong> {{ $nombreSeccion }}<br>
                             <strong>Fecha:</strong> {{ $fechaRecibido }}
                         </div>
                         <p class="text-muted small">Esta acción registrará el producto en el inventario de la sección seleccionada.</p>
