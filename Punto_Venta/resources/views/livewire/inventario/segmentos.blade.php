@@ -45,13 +45,6 @@
                                wire:model.live="busqueda">
                     </div>
                 </div>
-                <div class="col-md-3">
-                    <select class="form-select" wire:model.live="filtroEstado">
-                        <option value="">Todos los estados</option>
-                        <option value="1">Activos</option>
-                        <option value="0">Inactivos</option>
-                    </select>
-                </div>
             </div>
 
             @if($bodega)
@@ -70,9 +63,6 @@
                                 <h5 class="mb-0 card-title">
                                     <i class="fas fa-layer-group me-2"></i>{{ $segmento->descripcion }}
                                 </h5>
-                                <span class="badge {{ $segmento->estado_id == 1 ? 'bg-success' : 'bg-secondary' }}">
-                                    {{ $segmento->estado_id == 1 ? 'Activo' : 'Inactivo' }}
-                                </span>
                             </div>
                             <div class="card-body">
                                 <p class="card-text">
