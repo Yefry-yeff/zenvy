@@ -24,6 +24,23 @@ class Seccion extends Model
         return $this->belongsTo(Segmento::class);
     }
 
+    public function recibidosBodega()
+    {
+        return $this->hasMany(RecibidoBodega::class, 'seccion_id');
+    }
+
+    public function productos()
+    {
+        return $this->hasManyThrough(
+            'App\Models\Producto',
+            'App\Models\RecibidoBodega',
+            'seccion_id', // Foreign key en recibido_bodega
+            'id', // Foreign key en producto
+            'id', // Local key en seccion
+            'producto_id' // Local key en recibido_bodega
+        );
+    }
+
     // Static methods
     public static function obtenerPorSegmento($segmentoId)
     {

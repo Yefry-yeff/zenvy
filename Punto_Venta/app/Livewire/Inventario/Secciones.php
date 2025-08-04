@@ -72,7 +72,9 @@ class Secciones extends Component
     private function obtenerSecciones()
     {
         try {
-            $query = Seccion::where('segmento_id', $this->segmentoId);
+            $query = Seccion::with(['segmento.bodega'])
+                ->withCount('recibidosBodega as productos_count')
+                ->where('segmento_id', $this->segmentoId);
 
             // Aplicar filtro de búsqueda
             if (!empty($this->buscar)) {

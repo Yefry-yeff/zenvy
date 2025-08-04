@@ -59,9 +59,18 @@
 
             @if($segmento)
                 <div class="mb-4 alert alert-info">
-                    <strong>📦 Segmento:</strong> {{ $segmento->descripcion }}<br>
-                    <strong>📍 Bodega:</strong> {{ $segmento->bodega->nombre ?? 'N/A' }}<br>
-                    <strong>🏪 Tienda:</strong> {{ $segmento->bodega->tienda->denominacion_social ?? 'N/A' }}
+                    <div class="row">
+                        <div class="col-md-8">
+                            <strong>📦 Segmento:</strong> {{ $segmento->descripcion }}<br>
+                            <strong>📍 Bodega:</strong> {{ $segmento->bodega->nombre ?? 'N/A' }}<br>
+                            <strong>🏪 Tienda:</strong> {{ $segmento->bodega->tienda->denominacion_social ?? 'N/A' }}
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <strong>📊 Resumen:</strong><br>
+                            <span class="badge bg-primary fs-6">{{ $secciones->count() }} Secciones</span><br>
+                            <span class="badge bg-success fs-6">{{ $secciones->sum('productos_count') }} Productos</span>
+                        </div>
+                    </div>
                 </div>
             @endif
 
@@ -80,8 +89,13 @@
                             </div>
                             <div class="card-body">
                                 <p class="card-text">
+                                    <strong>Numeración:</strong> {{ $seccion->numeracion ?? 'N/A' }}<br>
                                     <strong>Segmento:</strong> {{ $seccion->segmento->descripcion ?? 'N/A' }}<br>
                                     <strong>Bodega:</strong> {{ $seccion->segmento->bodega->nombre ?? 'N/A' }}<br>
+                                    <strong>📦 Productos:</strong> 
+                                    <span class="badge {{ $seccion->productos_count > 0 ? 'bg-primary' : 'bg-secondary' }}">
+                                        {{ $seccion->productos_count ?? 0 }}
+                                    </span><br>
                                     <strong>Creado:</strong> {{ $seccion->created_at ? $seccion->created_at->format('d/m/Y') : 'N/A' }}
                                 </p>
                             </div>

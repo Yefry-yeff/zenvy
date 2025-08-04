@@ -39,11 +39,18 @@
                     <div class="p-4 bg-white border shadow rounded-xl">
                         <h2 class="mb-4 text-lg font-semibold text-gray-700">🏢 Información de la Sección</h2>
                         <div class="row">
-                            <div class="col-md-12 mb-3">
+                            <div class="col-md-6 mb-3">
                                 <label for="descripcion" class="form-label">Descripción <span class="text-red-600">*</span></label>
                                 <input type="text" id="descripcion" class="form-control {{ $this->getClaseCampo('descripcion') }}" wire:model.live="form.descripcion" placeholder="Ej: Pasillo A, Estante 1, Refrigeración, etc.">
                                 @error('form.descripcion')
                                     <div class="text-danger mt-1 text-sm">❌ La descripción de la sección es obligatoria y no puede estar vacía</div>
+                                @enderror
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="numeracion" class="form-label">Numeración <span class="text-red-600">*</span></label>
+                                <input type="text" id="numeracion" class="form-control {{ $this->getClaseCampo('numeracion') }}" wire:model.live="form.numeracion" placeholder="Ej: S01, SEC-A1, 001, etc.">
+                                @error('form.numeracion')
+                                    <div class="text-danger mt-1 text-sm">❌ La numeración de la sección es obligatoria y no puede estar vacía</div>
                                 @enderror
                             </div>
                         </div>
