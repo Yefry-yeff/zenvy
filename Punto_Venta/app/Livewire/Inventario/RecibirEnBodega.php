@@ -355,13 +355,33 @@ class RecibirEnBodega extends Component
 
     public function updatedBuscarProducto()
     {
-        if (strlen($this->buscarProducto) >= 2) {
+        if (strlen($this->buscarProducto) >= 1) {
             $this->buscarProductos();
-            $this->mostrarSugerenciasProductos = true;
         } else {
+            $this->mostrarTodosProductos();
+        }
+        $this->mostrarSugerenciasProductos = true;
+    }
+
+    public function enfocarProducto()
+    {
+        $this->mostrarTodosProductos();
+        $this->mostrarSugerenciasProductos = true;
+    }
+
+    public function mostrarTodosProductos()
+    {
+        try {
+            $this->productosSugeridos = Producto::with(['subcategoria.categoria', 'marca', 'unidadMedidaCompra'])
+                ->where('estado_id', 1)
+                ->orderBy('nombre')
+                ->limit(10)
+                ->get();
+        } catch (\Exception $e) {
+            Log::error('Error al cargar todos los productos', [
+                'mensaje' => $e->getMessage()
+            ]);
             $this->productosSugeridos = [];
-            $this->mostrarSugerenciasProductos = false;
-            $this->limpiarSeleccionProducto();
         }
     }
 
@@ -375,7 +395,7 @@ class RecibirEnBodega extends Component
                           ->orWhere('codigo_estatal', 'like', '%' . $this->buscarProducto . '%');
                 })
                 ->where('estado_id', 1) // Solo productos activos
-                ->limit(8)
+                ->limit(10)
                 ->get();
         } catch (\Exception $e) {
             Log::error('Error al buscar productos', [

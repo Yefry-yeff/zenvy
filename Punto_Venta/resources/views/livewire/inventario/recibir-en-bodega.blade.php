@@ -37,6 +37,8 @@
                                id="buscarProducto"
                                class="form-control" 
                                wire:model.live="buscarProducto"
+                               wire:focus="enfocarProducto"
+                               wire:click="enfocarProducto"
                                placeholder="Escriba el nombre, código de barra o código estatal del producto..."
                                autocomplete="off">
                         
@@ -68,10 +70,18 @@
                             </div>
                         @endif
                         
-                        @if($mostrarSugerenciasProductos && count($productosSugeridos) == 0 && strlen($buscarProducto) >= 2)
+                        @if($mostrarSugerenciasProductos && count($productosSugeridos) == 0 && strlen($buscarProducto) >= 1)
                             <div class="dropdown-suggestions position-absolute w-100 bg-white border border-top-0 rounded-bottom shadow-lg">
                                 <div class="px-3 py-2 text-muted text-center">
                                     No se encontraron productos que coincidan con "{{ $buscarProducto }}"
+                                </div>
+                            </div>
+                        @endif
+
+                        @if($mostrarSugerenciasProductos && count($productosSugeridos) == 0 && strlen($buscarProducto) == 0)
+                            <div class="dropdown-suggestions position-absolute w-100 bg-white border border-top-0 rounded-bottom shadow-lg">
+                                <div class="px-3 py-2 text-muted text-center">
+                                    Haga clic para ver todos los productos disponibles
                                 </div>
                             </div>
                         @endif
