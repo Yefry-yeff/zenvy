@@ -9,8 +9,7 @@ class Marca extends Model
     protected $table = 'marca';
     
     protected $fillable = [
-        'txt_descripcion',
-        'estado_id'
+        'nombre'
     ];
 
     // Relationships

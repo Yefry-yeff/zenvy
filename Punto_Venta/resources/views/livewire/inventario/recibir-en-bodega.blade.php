@@ -51,7 +51,7 @@
                                                 <strong>{{ $producto->nombre }}</strong><br>
                                                 <small class="text-muted">{{ $producto->descripcion }}</small><br>
                                                 <small class="text-primary">
-                                                    Marca: {{ $producto->marca ? $producto->marca->txt_descripcion : 'Sin marca' }}
+                                                    Marca: {{ $producto->marca ? $producto->marca->nombre : 'Sin marca' }}
                                                 </small>
                                             </div>
                                             <div class="text-end">
@@ -59,7 +59,7 @@
                                                     <small class="text-success d-block">{{ $producto->codigo_barra }}</small>
                                                 @endif
                                                 <small class="text-info">
-                                                    {{ $producto->unidadMedidaCompra ? $producto->unidadMedidaCompra->txt_descripcion : 'N/A' }}
+                                                    {{ $producto->unidadMedidaCompra ? $producto->unidadMedidaCompra->nombre : 'N/A' }}
                                                 </small>
                                             </div>
                                         </div>

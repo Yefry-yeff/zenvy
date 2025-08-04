@@ -94,13 +94,23 @@ class RecibirEnBodega extends Component
         try {
             $producto = Producto::with(['subcategoria.categoria', 'marca', 'unidadMedidaCompra'])->findOrFail($productoId);
             
+            // Debug temporal
+            Log::info('Producto seleccionado:', [
+                'producto_id' => $producto->id,
+                'nombre' => $producto->nombre,
+                'marca_id' => $producto->marca_id,
+                'marca' => $producto->marca ? $producto->marca->toArray() : null,
+                'unidad_medida_compra_id' => $producto->unidad_medida_compra_id,
+                'unidad_medida' => $producto->unidadMedidaCompra ? $producto->unidadMedidaCompra->toArray() : null
+            ]);
+            
             $this->productoSeleccionado = $producto;
             $this->buscarProducto = $producto->nombre;
             $this->nombreProducto = $producto->nombre;
             $this->descripcionProducto = $producto->descripcion;
             $this->codigoBarraProducto = $producto->codigo_barra ?? 'N/A';
-            $this->marcaProducto = $producto->marca ? $producto->marca->txt_descripcion : 'Sin marca';
-            $this->unidadMedidaProducto = $producto->unidadMedidaCompra ? $producto->unidadMedidaCompra->txt_descripcion : 'N/A';
+            $this->marcaProducto = $producto->marca ? $producto->marca->nombre : 'Sin marca';
+            $this->unidadMedidaProducto = $producto->unidadMedidaCompra ? $producto->unidadMedidaCompra->nombre : 'N/A';
             $this->unidadCompraId = $producto->unidad_medida_compra_id;
             
             $this->mostrarSugerenciasProductos = false;
@@ -252,8 +262,7 @@ class RecibirEnBodega extends Component
     private function cargarUnidadesMedida()
     {
         try {
-            $this->unidadesMedida = UnidadMedida::where('estado_id', 1)
-                ->orderBy('txt_descripcion')
+            $this->unidadesMedida = UnidadMedida::orderBy('nombre')
                 ->get();
         } catch (\Exception $e) {
             Log::error('Error al cargar unidades de medida', [
