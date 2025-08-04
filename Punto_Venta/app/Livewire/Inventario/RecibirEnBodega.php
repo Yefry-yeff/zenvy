@@ -78,11 +78,36 @@ class RecibirEnBodega extends Component
     {
         if (strlen($this->buscarBodega) >= 1) {
             $this->buscarBodegas();
-            $this->mostrarSugerenciasBodegas = true;
         } else {
+            $this->mostrarTodasBodegas();
+        }
+        $this->mostrarSugerenciasBodegas = true;
+    }
+
+    public function enfocarBodega()
+    {
+        $this->mostrarTodasBodegas();
+        $this->mostrarSugerenciasBodegas = true;
+    }
+
+    public function mostrarTodasBodegas()
+    {
+        try {
+            $user = Auth::user();
+            
+            $query = Bodega::with('tienda')
+                ->where('estado_id', 1);
+                
+            if ($user->rol && $user->rol->txt_nombre !== 'Admin') {
+                $query->where('tienda_id', $user->tienda_id);
+            }
+                
+            $this->bodegasSugeridas = $query->limit(10)->get();
+        } catch (\Exception $e) {
+            Log::error('Error al cargar todas las bodegas', [
+                'mensaje' => $e->getMessage()
+            ]);
             $this->bodegasSugeridas = [];
-            $this->mostrarSugerenciasBodegas = false;
-            $this->limpiarSeleccionBodega();
         }
     }
 
@@ -99,7 +124,7 @@ class RecibirEnBodega extends Component
                 $query->where('tienda_id', $user->tienda_id);
             }
                 
-            $this->bodegasSugeridas = $query->limit(5)->get();
+            $this->bodegasSugeridas = $query->limit(10)->get();
         } catch (\Exception $e) {
             Log::error('Error al buscar bodegas', [
                 'mensaje' => $e->getMessage(),
@@ -145,13 +170,41 @@ class RecibirEnBodega extends Component
     // Búsqueda de Segmentos
     public function updatedBuscarSegmento()
     {
-        if ($this->bodegaSeleccionada && strlen($this->buscarSegmento) >= 1) {
-            $this->buscarSegmentos();
+        if ($this->bodegaSeleccionada) {
+            if (strlen($this->buscarSegmento) >= 1) {
+                $this->buscarSegmentos();
+            } else {
+                $this->mostrarTodosSegmentos();
+            }
             $this->mostrarSugerenciasSegmentos = true;
         } else {
             $this->segmentosSugeridos = [];
             $this->mostrarSugerenciasSegmentos = false;
-            $this->limpiarSeleccionSegmento();
+        }
+    }
+
+    public function enfocarSegmento()
+    {
+        if ($this->bodegaSeleccionada) {
+            $this->mostrarTodosSegmentos();
+            $this->mostrarSugerenciasSegmentos = true;
+        }
+    }
+
+    public function mostrarTodosSegmentos()
+    {
+        try {
+            if (!$this->bodegaSeleccionada) return;
+            
+            $this->segmentosSugeridos = Segmento::where('bodega_id', $this->bodegaSeleccionada->id)
+                ->limit(10)
+                ->get();
+        } catch (\Exception $e) {
+            Log::error('Error al cargar todos los segmentos', [
+                'mensaje' => $e->getMessage(),
+                'bodega_id' => $this->bodegaSeleccionada->id ?? null
+            ]);
+            $this->segmentosSugeridos = [];
         }
     }
 
@@ -162,7 +215,7 @@ class RecibirEnBodega extends Component
             
             $this->segmentosSugeridos = Segmento::where('bodega_id', $this->bodegaSeleccionada->id)
                 ->where('descripcion', 'like', '%' . $this->buscarSegmento . '%')
-                ->limit(5)
+                ->limit(10)
                 ->get();
         } catch (\Exception $e) {
             Log::error('Error al buscar segmentos', [
@@ -211,13 +264,42 @@ class RecibirEnBodega extends Component
     // Búsqueda de Secciones
     public function updatedBuscarSeccion()
     {
-        if ($this->segmentoSeleccionado && strlen($this->buscarSeccion) >= 1) {
-            $this->buscarSecciones();
+        if ($this->segmentoSeleccionado) {
+            if (strlen($this->buscarSeccion) >= 1) {
+                $this->buscarSecciones();
+            } else {
+                $this->mostrarTodasSecciones();
+            }
             $this->mostrarSugerenciasSecciones = true;
         } else {
             $this->seccionesSugeridas = [];
             $this->mostrarSugerenciasSecciones = false;
-            $this->limpiarSeleccionSeccion();
+        }
+    }
+
+    public function enfocarSeccion()
+    {
+        if ($this->segmentoSeleccionado) {
+            $this->mostrarTodasSecciones();
+            $this->mostrarSugerenciasSecciones = true;
+        }
+    }
+
+    public function mostrarTodasSecciones()
+    {
+        try {
+            if (!$this->segmentoSeleccionado) return;
+            
+            $this->seccionesSugeridas = Seccion::where('segmento_id', $this->segmentoSeleccionado->id)
+                ->where('estado_id', 1)
+                ->limit(10)
+                ->get();
+        } catch (\Exception $e) {
+            Log::error('Error al cargar todas las secciones', [
+                'mensaje' => $e->getMessage(),
+                'segmento_id' => $this->segmentoSeleccionado->id ?? null
+            ]);
+            $this->seccionesSugeridas = [];
         }
     }
 
@@ -229,7 +311,7 @@ class RecibirEnBodega extends Component
             $this->seccionesSugeridas = Seccion::where('segmento_id', $this->segmentoSeleccionado->id)
                 ->where('descripcion', 'like', '%' . $this->buscarSeccion . '%')
                 ->where('estado_id', 1)
-                ->limit(5)
+                ->limit(10)
                 ->get();
         } catch (\Exception $e) {
             Log::error('Error al buscar secciones', [

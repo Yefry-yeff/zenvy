@@ -179,6 +179,8 @@
                                        id="buscarBodega"
                                        class="form-control" 
                                        wire:model.live="buscarBodega"
+                                       wire:focus="enfocarBodega"
+                                       wire:click="enfocarBodega"
                                        placeholder="Escriba el nombre de la bodega..."
                                        autocomplete="off">
                                 
@@ -211,6 +213,14 @@
                                         </div>
                                     </div>
                                 @endif
+
+                                @if($mostrarSugerenciasBodegas && count($bodegasSugeridas) == 0 && strlen($buscarBodega) == 0)
+                                    <div class="dropdown-suggestions position-absolute w-100 bg-white border border-top-0 rounded-bottom shadow-lg">
+                                        <div class="px-3 py-2 text-muted text-center">
+                                            Haga clic para ver todas las bodegas disponibles
+                                        </div>
+                                    </div>
+                                @endif
                             </div>
                         </div>
 
@@ -223,6 +233,8 @@
                                            id="buscarSegmento"
                                            class="form-control" 
                                            wire:model.live="buscarSegmento"
+                                           wire:focus="enfocarSegmento"
+                                           wire:click="enfocarSegmento"
                                            placeholder="Escriba el nombre del segmento..."
                                            autocomplete="off">
                                     
@@ -254,6 +266,14 @@
                                             </div>
                                         </div>
                                     @endif
+
+                                    @if($mostrarSugerenciasSegmentos && count($segmentosSugeridos) == 0 && strlen($buscarSegmento) == 0)
+                                        <div class="dropdown-suggestions position-absolute w-100 bg-white border border-top-0 rounded-bottom shadow-lg">
+                                            <div class="px-3 py-2 text-muted text-center">
+                                                Haga clic para ver todos los segmentos disponibles
+                                            </div>
+                                        </div>
+                                    @endif
                                 </div>
                             </div>
                         @endif
@@ -267,6 +287,8 @@
                                            id="buscarSeccion"
                                            class="form-control" 
                                            wire:model.live="buscarSeccion"
+                                           wire:focus="enfocarSeccion"
+                                           wire:click="enfocarSeccion"
                                            placeholder="Escriba el nombre de la sección..."
                                            autocomplete="off">
                                     
@@ -296,6 +318,14 @@
                                         <div class="dropdown-suggestions position-absolute w-100 bg-white border border-top-0 rounded-bottom shadow-lg">
                                             <div class="px-3 py-2 text-muted text-center">
                                                 No se encontraron secciones que coincidan con "{{ $buscarSeccion }}"
+                                            </div>
+                                        </div>
+                                    @endif
+
+                                    @if($mostrarSugerenciasSecciones && count($seccionesSugeridas) == 0 && strlen($buscarSeccion) == 0)
+                                        <div class="dropdown-suggestions position-absolute w-100 bg-white border border-top-0 rounded-bottom shadow-lg">
+                                            <div class="px-3 py-2 text-muted text-center">
+                                                Haga clic para ver todas las secciones disponibles
                                             </div>
                                         </div>
                                     @endif
