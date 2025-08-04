@@ -129,16 +129,16 @@
                                         </option>
                                     @endforeach
                                 </select>
-                                
-                                {{-- Información de depuración (quitar después de resolver) --}}
-                                <small class="text-muted mt-1 d-block">
-                                    Debug: Nueva: {{ $nuevaSucursalId ?? 'null' }} | Actual: {{ $sucursalActualId ?? 'null' }} | 
-                                    Habilitado: {{ $this->botonHabilitado ? 'Sí' : 'No' }}
-                                </small>
                             </div>
                             <div class="col-md-4 d-flex align-items-end">
                                 <button wire:click="confirmarCambio" 
-                                        class="btn w-100 {{ $this->botonHabilitado ? 'btn-primary' : 'btn-secondary' }}"
+                                        class="btn w-100"
+                                        :class="{
+                                            'btn-success': theme === 'verde' && {{ $this->botonHabilitado ? 'true' : 'false' }},
+                                            'btn-primary': theme === 'azul' && {{ $this->botonHabilitado ? 'true' : 'false' }},
+                                            'btn-dark': theme === 'oscuro' && {{ $this->botonHabilitado ? 'true' : 'false' }},
+                                            'btn-secondary': !{{ $this->botonHabilitado ? 'true' : 'false' }} || (theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro' && {{ $this->botonHabilitado ? 'true' : 'false' }})
+                                        }"
                                         {{ !$this->botonHabilitado ? 'disabled' : '' }}>
                                     <i class="fas fa-exchange-alt me-2"></i>Cambiar Sucursal
                                 </button>
