@@ -27,6 +27,12 @@
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
             @endif
+            @if(session('success'))
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <i class="fas fa-check-circle me-2"></i>{{ session('success') }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            @endif
             @if(session('error'))
                 <div class="alert alert-danger alert-dismissible fade show" role="alert">
                     <i class="fas fa-exclamation-triangle me-2"></i>{{ session('error') }}
@@ -103,10 +109,17 @@
                                         class="btn btn-outline-info btn-sm">
                                     <i class="fas fa-layer-group"></i> Segmentos
                                 </button>
-                                <button wire:click="inactivarBodega({{ $bodega->id }})"
-                                        class="btn btn-outline-secondary btn-sm">
-                                    <i class="fas fa-pause"></i> Inactivar
-                                </button>
+                                @if($bodega->estado_id == 1)
+                                    <button wire:click="inactivarBodega({{ $bodega->id }})"
+                                            class="btn btn-outline-secondary btn-sm">
+                                        <i class="fas fa-pause"></i> Inactivar
+                                    </button>
+                                @else
+                                    <button wire:click="activarBodega({{ $bodega->id }})"
+                                            class="btn btn-outline-success btn-sm">
+                                        <i class="fas fa-play"></i> Activar
+                                    </button>
+                                @endif
                             </div>
                         </div>
                     </div>
@@ -167,6 +180,49 @@
                         <div class="flex justify-end gap-2 mt-4">
                             <button type="button" class="btn btn-light" wire:click="cancelarInactivar">Cancelar</button>
                             <button type="button" class="btn btn-secondary" wire:click="confirmarInactivacion">Sí, Inactivar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Confirmar Activación -->
+    <div wire:key="modal-confirmar-activar">
+        <div class="modal fade show"
+             tabindex="-1"
+             style="display: @if($mostrarModalActivar) block @else none @endif; background: rgba(0,0,0,0.5); z-index: 1000;"
+             aria-modal="true"
+             role="dialog"
+             @click.self="@this.cancelarActivar()"
+        >
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header bg-success text-white">
+                        <h5 class="modal-title">¿Activar Bodega?</h5>
+                    </div>
+                    <div class="modal-body">
+                        @if($bodegaAActivar)
+                            <div class="mb-3">
+                                <h6 class="text-success">✅ Esta acción reactivará la bodega</h6>
+                                <p>¿Está seguro que desea activar la bodega <strong>"{{ $bodegaAActivar->nombre }}"</strong>?</p>
+                                
+                                <div class="alert alert-success">
+                                    <small><strong>Se activarán automáticamente:</strong></small>
+                                    <ul class="mb-0 small">
+                                        <li>• Todas las secciones asociadas a los segmentos</li>
+                                        <li>• La bodega volverá a estar disponible</li>
+                                    </ul>
+                                    <div class="mt-2">
+                                        <small class="text-muted"><em>Nota: La bodega y sus secciones estarán operativas nuevamente.</em></small>
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
+                        
+                        <div class="flex justify-end gap-2 mt-4">
+                            <button type="button" class="btn btn-light" wire:click="cancelarActivar">Cancelar</button>
+                            <button type="button" class="btn btn-success" wire:click="confirmarActivacion">Sí, Activar</button>
                         </div>
                     </div>
                 </div>

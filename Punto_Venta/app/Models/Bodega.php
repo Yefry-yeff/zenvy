@@ -53,4 +53,9 @@ class Bodega extends Model
     {
         return self::where('id', $id)->update(['estado_id' => 2]);
     }
+
+    public static function activarBodega($id)
+    {
+        return self::where('id', $id)->update(['estado_id' => 1]);
+    }
 }

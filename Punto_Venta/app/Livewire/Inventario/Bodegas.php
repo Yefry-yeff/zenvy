@@ -24,6 +24,10 @@ class Bodegas extends Component
     public $mostrarModalInactivar = false;
     public $bodegaAInactivar = null;
 
+    // Propiedades para modal de activación
+    public $mostrarModalActivar = false;
+    public $bodegaAActivar = null;
+
     protected $paginationTheme = 'bootstrap';
 
     public function mount()
@@ -148,6 +152,93 @@ class Bodegas extends Component
             $this->bodegaAInactivar = null;
 
             session()->flash('error', 'Error al inactivar la bodega: ' . $e->getMessage());
+        }
+    }
+
+    // ===== MÉTODOS DE ACTIVACIÓN =====
+
+    public function activarBodega($bodegaId)
+    {
+        try {
+            $this->bodegaAActivar = Bodega::findOrFail($bodegaId);
+            $this->mostrarModalActivar = true;
+        } catch (\Exception $e) {
+            Log::error('Error al cargar bodega para activar', [
+                'bodega_id' => $bodegaId,
+                'mensaje' => $e->getMessage()
+            ]);
+            session()->flash('error', 'Error al cargar la bodega para activar.');
+        }
+    }
+
+    public function cancelarActivar()
+    {
+        $this->mostrarModalActivar = false;
+        $this->bodegaAActivar = null;
+    }
+
+    public function confirmarActivacion()
+    {
+        if (!$this->bodegaAActivar) {
+            return;
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $bodegaId = $this->bodegaAActivar->id;
+            $bodegaNombre = $this->bodegaAActivar->nombre;
+
+            // 1. Primero activar todas las secciones de todos los segmentos de esta bodega
+            $segmentos = Segmento::where('bodega_id', $bodegaId)->get();
+            $totalSecciones = 0;
+            $totalSegmentos = $segmentos->count();
+
+            foreach ($segmentos as $segmento) {
+                $seccionesCount = $segmento->secciones()->count();
+                $totalSecciones += $seccionesCount;
+                
+                // Activar secciones del segmento (estado activo)
+                $segmento->secciones()->update(['estado_id' => 1]);
+            }
+
+            // 2. Activar la bodega (estado activo)
+            Bodega::where('id', $bodegaId)->update(['estado_id' => 1]);
+
+            DB::commit();
+
+            Log::info('Bodega activada exitosamente desde lista con activación en cascada', [
+                'bodega_id' => $bodegaId,
+                'bodega_nombre' => $bodegaNombre,
+                'segmentos_afectados' => $totalSegmentos,
+                'secciones_activadas' => $totalSecciones,
+                'usuario_id' => Auth::id()
+            ]);
+
+            // Cerrar modal
+            $this->mostrarModalActivar = false;
+            $this->bodegaAActivar = null;
+
+            // Refrescar la página para mostrar los cambios
+            $this->resetPage();
+
+            session()->flash('success', "Bodega '{$bodegaNombre}' activada exitosamente. Se activaron {$totalSecciones} sección(es) asociadas.");
+
+        } catch (\Exception $e) {
+            DB::rollback();
+            
+            Log::error('Error al activar bodega desde lista', [
+                'bodega_id' => $this->bodegaAActivar->id,
+                'mensaje' => $e->getMessage(),
+                'archivo' => $e->getFile(),
+                'linea' => $e->getLine(),
+                'usuario_id' => Auth::id()
+            ]);
+
+            $this->mostrarModalActivar = false;
+            $this->bodegaAActivar = null;
+
+            session()->flash('error', 'Error al activar la bodega: ' . $e->getMessage());
         }
     }
 
