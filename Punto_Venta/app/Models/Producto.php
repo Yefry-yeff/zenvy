@@ -49,6 +49,16 @@ class Producto extends Model
         return $this->belongsTo(UnidadMedida::class, 'unidad_medida_compra_id');
     }
 
+    public function unidadMedidaCompra()
+    {
+        return $this->belongsTo(UnidadMedida::class, 'unidad_medida_compra_id');
+    }
+
+    public function recibidosBodega()
+    {
+        return $this->hasMany(RecibidoBodega::class, 'producto_id');
+    }
+
     // Static methods for SP operations
     public static function crearProducto($datos)
     {
