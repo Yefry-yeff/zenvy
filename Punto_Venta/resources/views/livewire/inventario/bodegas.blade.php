@@ -66,7 +66,13 @@
                         </div>
                         <div class="card-body">
                             <p class="card-text">
-                                <strong>Tienda:</strong> {{ $bodega->tienda->denominacion_social ?? 'N/A' }}<br>
+                                <strong>Dirección:</strong> {{ $bodega->direccion->domicilio_tributario ?? 'N/A' }}<br>
+                                <strong>Tienda asignada:</strong> 
+                                @if($bodega->tienda)
+                                    {{ $bodega->tienda->denominacion_social }}
+                                @else
+                                    <span class="text-muted">Sin tienda asignada</span>
+                                @endif<br>
                                 <strong>Segmentos:</strong> {{ $bodega->segmentos->count() }}<br>
                                 <strong>Secciones totales:</strong> {{ $bodega->segmentos->sum(fn($s) => $s->secciones->count()) }}
                             </p>
@@ -82,8 +88,7 @@
                                     <i class="fas fa-layer-group"></i> Segmentos
                                 </button>
                                 <button wire:click="eliminarBodega({{ $bodega->id }})"
-                                        class="btn btn-outline-danger btn-sm"
-                                        onclick="return confirm('¿Está seguro de eliminar esta bodega?')">
+                                        class="btn btn-outline-danger btn-sm">
                                     <i class="fas fa-trash"></i> Eliminar
                                 </button>
                             </div>
@@ -109,4 +114,46 @@
 
         </div> {{-- Fin del card-body --}}
     </div> {{-- Fin del contenedor principal --}}
+
+    <!-- Modal Confirmar Eliminación -->
+    <div wire:key="modal-confirmar-eliminar">
+        <div class="modal fade show"
+             tabindex="-1"
+             style="display: @if($mostrarModalEliminar) block @else none @endif; background: rgba(0,0,0,0.5); z-index: 1000;"
+             aria-modal="true"
+             role="dialog"
+             @click.self="@this.cancelarEliminar()"
+        >
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header bg-danger text-white">
+                        <h5 class="modal-title">¿Eliminar Bodega?</h5>
+                    </div>
+                    <div class="modal-body">
+                        @if($bodegaAEliminar)
+                            <div class="mb-3">
+                                <h6 class="text-danger">⚠️ Esta acción es irreversible</h6>
+                                <p>¿Está seguro que desea eliminar la bodega <strong>"{{ $bodegaAEliminar->nombre }}"</strong>?</p>
+                                
+                                <div class="alert alert-warning">
+                                    <small><strong>Se eliminarán automáticamente:</strong></small>
+                                    <ul class="mb-0 small">
+                                        <li>• Todas las secciones asociadas a los segmentos</li>
+                                        <li>• Todos los segmentos de esta bodega</li>
+                                        <li>• La bodega completa y toda su información</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        @endif
+                        
+                        <div class="flex justify-end gap-2 mt-4">
+                            <button type="button" class="btn btn-secondary" wire:click="cancelarEliminar">Cancelar</button>
+                            <button type="button" class="btn btn-danger" wire:click="confirmarEliminacion">Sí, Eliminar Todo</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </div> {{-- Fin del elemento raíz --}}

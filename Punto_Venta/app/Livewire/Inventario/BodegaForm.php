@@ -16,12 +16,12 @@ class BodegaForm extends Component
     public $bodegaId;
     public $isEditing = false;
 
-    // Formulario principal
+        // Formulario principal
     public $form = [
         'nombre' => '',
+        'tienda_id' => null,
         'direccion_id' => null,
         'estado_id' => 1,
-        'tienda_id' => null,
     ];
 
     // Datos para los selectores
@@ -69,18 +69,18 @@ class BodegaForm extends Component
 
     protected $rules = [
         'form.nombre' => 'required|string|max:100',
+        'form.tienda_id' => 'required|integer|exists:tienda,id',
         'form.direccion_id' => 'required|integer|exists:direccion,id',
         'form.estado_id' => 'required|integer',
-        'form.tienda_id' => 'required|integer|exists:tienda,id',
     ];
 
     protected $messages = [
         'form.nombre.required' => 'El nombre es obligatorio',
         'form.nombre.max' => 'El nombre no puede exceder 100 caracteres',
-        'form.direccion_id.required' => 'La dirección es obligatoria',
-        'form.direccion_id.exists' => 'La dirección seleccionada no existe',
         'form.tienda_id.required' => 'La tienda es obligatoria',
         'form.tienda_id.exists' => 'La tienda seleccionada no existe',
+        'form.direccion_id.required' => 'La dirección es obligatoria',
+        'form.direccion_id.exists' => 'La dirección seleccionada no existe',
     ];
 
     public function mount($bodegaId = null)
@@ -97,12 +97,12 @@ class BodegaForm extends Component
     private function cargarDatosIniciales()
     {
         try {
-            $this->tiendas = Tiendas::where('estado_id', 1)->orderBy('denominacion_social')->get();
             $this->direcciones = Direccion::all();
+            $this->tiendas = Tiendas::where('estado_id', 1)->orderBy('denominacion_social')->get();
             
             Log::info('BodegaForm - Datos iniciales cargados', [
-                'tiendas_count' => count($this->tiendas),
-                'direcciones_count' => count($this->direcciones)
+                'direcciones_count' => count($this->direcciones),
+                'tiendas_count' => count($this->tiendas)
             ]);
         } catch (\Exception $e) {
             Log::error('Error al cargar datos iniciales de bodega', [

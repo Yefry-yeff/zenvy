@@ -14,9 +14,9 @@ class Bodega extends Model
 
     protected $fillable = [
         'nombre',
+        'tienda_id',
         'direccion_id',
-        'estado_id',
-        'tienda_id'
+        'estado_id'
     ];
 
     // Relationships
