@@ -42,7 +42,7 @@
                         <input type="text"
                                class="form-control"
                                placeholder="Buscar por descripción de segmento..."
-                               wire:model.live="busqueda">
+                               wire:model.live="buscar">
                     </div>
                 </div>
             </div>

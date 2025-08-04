@@ -41,6 +41,11 @@ class Segmentos extends Component
         $this->cargarBodega();
     }
 
+    public function updatingBuscar()
+    {
+        $this->resetPage();
+    }
+
     private function cargarBodega()
     {
         try {
