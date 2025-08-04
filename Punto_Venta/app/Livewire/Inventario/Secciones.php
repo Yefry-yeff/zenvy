@@ -248,8 +248,31 @@ class Secciones extends Component
 
     public function editarSeccion($id)
     {
-        // Aquí puedes redirigir a la vista de edición, abrir un modal, o asignar la sección a una propiedad para edición
-        // Ejemplo: $this->seccionAEditar = Seccion::findOrFail($id);
-        // Por ahora solo lo dejamos como placeholder para evitar el error
+        $this->dispatch('cambiarVista', ruta: 'Inventario.SeccionForm', parametros: [
+            'bodegaId' => $this->bodegaId,
+            'segmentoId' => $this->segmentoId,
+            'seccionId' => $id
+        ]);
+    }
+
+    public function verProductos($seccionId)
+    {
+        // Placeholder para redirigir a la gestión de productos de la sección
+        // $this->dispatch('cambiarVista', ruta: 'Inventario.Productos', parametros: [
+        //     'seccionId' => $seccionId
+        // ]);
+    }
+
+    public function eliminarSeccion($seccionId)
+    {
+        $this->confirmarEliminar($seccionId);
+    }
+
+    public function crearNuevaSeccion()
+    {
+        $this->dispatch('cambiarVista', ruta: 'Inventario.SeccionForm', parametros: [
+            'bodegaId' => $this->bodegaId,
+            'segmentoId' => $this->segmentoId
+        ]);
     }
 }
