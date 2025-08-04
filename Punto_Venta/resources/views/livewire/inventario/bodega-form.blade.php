@@ -70,7 +70,7 @@
                                 <label for="estado_id" class="form-label">Estado</label>
                                 <select id="estado_id" class="form-select" wire:model.defer="form.estado_id">
                                     <option value="1">Activo</option>
-                                    <option value="0">Inactivo</option>
+                                    <option value="2">Inactivo</option>
                                 </select>
                                 @error('form.estado_id')
                                     <div class="mt-1 text-sm text-danger">{{ $message }}</div>

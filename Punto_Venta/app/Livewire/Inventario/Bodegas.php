@@ -20,9 +20,9 @@ class Bodegas extends Component
     public $filtroTienda = '';
     public $filtroEstado = '';
 
-    // Propiedades para modal de eliminación
-    public $mostrarModalEliminar = false;
-    public $bodegaAEliminar = null;
+    // Propiedades para modal de inactivación
+    public $mostrarModalInactivar = false;
+    public $bodegaAInactivar = null;
 
     protected $paginationTheme = 'bootstrap';
 
@@ -61,41 +61,41 @@ class Bodegas extends Component
         $this->dispatch('cambiarVista', ruta: 'Inventario.Segmentos', parametros: ['bodegaId' => $bodegaId]);
     }
 
-    // ===== MÉTODOS DE ELIMINACIÓN =====
+    // ===== MÉTODOS DE INACTIVACIÓN =====
 
-    public function eliminarBodega($bodegaId)
+    public function inactivarBodega($bodegaId)
     {
         try {
-            $this->bodegaAEliminar = Bodega::findOrFail($bodegaId);
-            $this->mostrarModalEliminar = true;
+            $this->bodegaAInactivar = Bodega::findOrFail($bodegaId);
+            $this->mostrarModalInactivar = true;
         } catch (\Exception $e) {
-            Log::error('Error al cargar bodega para eliminar', [
+            Log::error('Error al cargar bodega para inactivar', [
                 'bodega_id' => $bodegaId,
                 'mensaje' => $e->getMessage()
             ]);
-            session()->flash('error', 'Error al cargar la bodega para eliminar.');
+            session()->flash('error', 'Error al cargar la bodega para inactivar.');
         }
     }
 
-    public function cancelarEliminar()
+    public function cancelarInactivar()
     {
-        $this->mostrarModalEliminar = false;
-        $this->bodegaAEliminar = null;
+        $this->mostrarModalInactivar = false;
+        $this->bodegaAInactivar = null;
     }
 
-    public function confirmarEliminacion()
+    public function confirmarInactivacion()
     {
-        if (!$this->bodegaAEliminar) {
+        if (!$this->bodegaAInactivar) {
             return;
         }
 
         try {
             DB::beginTransaction();
 
-            $bodegaId = $this->bodegaAEliminar->id;
-            $bodegaNombre = $this->bodegaAEliminar->nombre;
+            $bodegaId = $this->bodegaAInactivar->id;
+            $bodegaNombre = $this->bodegaAInactivar->nombre;
 
-            // 1. Primero eliminar todas las secciones de todos los segmentos de esta bodega
+            // 1. Primero inactivar todas las secciones de todos los segmentos de esta bodega
             $segmentos = Segmento::where('bodega_id', $bodegaId)->get();
             $totalSecciones = 0;
             $totalSegmentos = $segmentos->count();
@@ -104,50 +104,50 @@ class Bodegas extends Component
                 $seccionesCount = $segmento->secciones()->count();
                 $totalSecciones += $seccionesCount;
                 
-                // Eliminar secciones del segmento (soft delete)
-                $segmento->secciones()->update(['estado_id' => 0]);
+                // Inactivar secciones del segmento (soft delete usando estado inactivo)
+                $segmento->secciones()->update(['estado_id' => 2]);
             }
 
-            // 2. Luego eliminar todos los segmentos de esta bodega
-            Segmento::where('bodega_id', $bodegaId)->update(['estado_id' => 0]);
+            // 2. No inactivamos segmentos ya que no tienen estado_id - los dejamos como están
+            // Los segmentos seguirán existiendo pero sus secciones estarán inactivas
 
-            // 3. Finalmente eliminar la bodega
-            Bodega::where('id', $bodegaId)->update(['estado_id' => 0]);
+            // 3. Finalmente inactivar la bodega (soft delete usando estado inactivo)
+            Bodega::where('id', $bodegaId)->update(['estado_id' => 2]);
 
             DB::commit();
 
-            Log::info('Bodega eliminada exitosamente desde lista con eliminación en cascada', [
+            Log::info('Bodega inactivada exitosamente desde lista con inactivación en cascada', [
                 'bodega_id' => $bodegaId,
                 'bodega_nombre' => $bodegaNombre,
-                'segmentos_eliminados' => $totalSegmentos,
-                'secciones_eliminadas' => $totalSecciones,
+                'segmentos_afectados' => $totalSegmentos,
+                'secciones_inactivadas' => $totalSecciones,
                 'usuario_id' => Auth::id()
             ]);
 
             // Cerrar modal
-            $this->mostrarModalEliminar = false;
-            $this->bodegaAEliminar = null;
+            $this->mostrarModalInactivar = false;
+            $this->bodegaAInactivar = null;
 
             // Refrescar la página para mostrar los cambios
             $this->resetPage();
 
-            session()->flash('message', "Bodega '{$bodegaNombre}' eliminada exitosamente. Se eliminaron {$totalSegmentos} segmento(s) y {$totalSecciones} sección(es) asociadas.");
+            session()->flash('message', "Bodega '{$bodegaNombre}' inactivada exitosamente. Se inactivaron {$totalSecciones} sección(es) asociadas.");
 
         } catch (\Exception $e) {
             DB::rollback();
             
-            Log::error('Error al eliminar bodega desde lista con cascada', [
-                'bodega_id' => $this->bodegaAEliminar->id,
+            Log::error('Error al inactivar bodega desde lista', [
+                'bodega_id' => $this->bodegaAInactivar->id,
                 'mensaje' => $e->getMessage(),
                 'archivo' => $e->getFile(),
                 'linea' => $e->getLine(),
                 'usuario_id' => Auth::id()
             ]);
 
-            $this->mostrarModalEliminar = false;
-            $this->bodegaAEliminar = null;
+            $this->mostrarModalInactivar = false;
+            $this->bodegaAInactivar = null;
 
-            session()->flash('error', 'Error al eliminar la bodega: ' . $e->getMessage());
+            session()->flash('error', 'Error al inactivar la bodega: ' . $e->getMessage());
         }
     }
 

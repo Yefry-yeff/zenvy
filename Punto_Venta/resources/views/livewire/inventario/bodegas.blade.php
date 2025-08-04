@@ -19,6 +19,22 @@
             </button>
         </div>
 
+        <!-- MENSAJES FLASH -->
+        <div class="px-4">
+            @if(session('message'))
+                <div class="alert alert-secondary alert-dismissible fade show" role="alert">
+                    <i class="fas fa-info-circle me-2"></i>{{ session('message') }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            @endif
+            @if(session('error'))
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="fas fa-exclamation-triangle me-2"></i>{{ session('error') }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            @endif
+        </div>
+
         <!-- CONTENIDO -->
         <div class="px-4 py-3 pt-0 card-body">
             <!-- Barra de búsqueda y filtros -->
@@ -46,7 +62,7 @@
                 <select class="form-select" wire:model.live="filtroEstado">
                     <option value="">Todos los estados</option>
                     <option value="1">Activas</option>
-                    <option value="0">Inactivas</option>
+                    <option value="2">Inactivas</option>
                 </select>
             </div>
         </div>
@@ -87,9 +103,9 @@
                                         class="btn btn-outline-info btn-sm">
                                     <i class="fas fa-layer-group"></i> Segmentos
                                 </button>
-                                <button wire:click="eliminarBodega({{ $bodega->id }})"
-                                        class="btn btn-outline-danger btn-sm">
-                                    <i class="fas fa-trash"></i> Eliminar
+                                <button wire:click="inactivarBodega({{ $bodega->id }})"
+                                        class="btn btn-outline-secondary btn-sm">
+                                    <i class="fas fa-pause"></i> Inactivar
                                 </button>
                             </div>
                         </div>
@@ -115,40 +131,42 @@
         </div> {{-- Fin del card-body --}}
     </div> {{-- Fin del contenedor principal --}}
 
-    <!-- Modal Confirmar Eliminación -->
-    <div wire:key="modal-confirmar-eliminar">
+    <!-- Modal Confirmar Inactivación -->
+    <div wire:key="modal-confirmar-inactivar">
         <div class="modal fade show"
              tabindex="-1"
-             style="display: @if($mostrarModalEliminar) block @else none @endif; background: rgba(0,0,0,0.5); z-index: 1000;"
+             style="display: @if($mostrarModalInactivar) block @else none @endif; background: rgba(0,0,0,0.5); z-index: 1000;"
              aria-modal="true"
              role="dialog"
-             @click.self="@this.cancelarEliminar()"
+             @click.self="@this.cancelarInactivar()"
         >
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content">
-                    <div class="modal-header bg-danger text-white">
-                        <h5 class="modal-title">¿Eliminar Bodega?</h5>
+                    <div class="modal-header bg-secondary text-white">
+                        <h5 class="modal-title">¿Inactivar Bodega?</h5>
                     </div>
                     <div class="modal-body">
-                        @if($bodegaAEliminar)
+                        @if($bodegaAInactivar)
                             <div class="mb-3">
-                                <h6 class="text-danger">⚠️ Esta acción es irreversible</h6>
-                                <p>¿Está seguro que desea eliminar la bodega <strong>"{{ $bodegaAEliminar->nombre }}"</strong>?</p>
+                                <h6 class="text-secondary">🔸 Esta acción puede revertirse posteriormente</h6>
+                                <p>¿Está seguro que desea inactivar la bodega <strong>"{{ $bodegaAInactivar->nombre }}"</strong>?</p>
                                 
-                                <div class="alert alert-warning">
-                                    <small><strong>Se eliminarán automáticamente:</strong></small>
+                                <div class="alert alert-secondary">
+                                    <small><strong>Se inactivarán automáticamente:</strong></small>
                                     <ul class="mb-0 small">
                                         <li>• Todas las secciones asociadas a los segmentos</li>
-                                        <li>• Todos los segmentos de esta bodega</li>
-                                        <li>• La bodega completa y toda su información</li>
+                                        <li>• La bodega quedará inactiva (no se eliminará)</li>
                                     </ul>
+                                    <div class="mt-2">
+                                        <small class="text-muted"><em>Nota: Los segmentos se mantienen para posible reactivación futura.</em></small>
+                                    </div>
                                 </div>
                             </div>
                         @endif
                         
                         <div class="flex justify-end gap-2 mt-4">
-                            <button type="button" class="btn btn-secondary" wire:click="cancelarEliminar">Cancelar</button>
-                            <button type="button" class="btn btn-danger" wire:click="confirmarEliminacion">Sí, Eliminar Todo</button>
+                            <button type="button" class="btn btn-light" wire:click="cancelarInactivar">Cancelar</button>
+                            <button type="button" class="btn btn-secondary" wire:click="confirmarInactivacion">Sí, Inactivar</button>
                         </div>
                     </div>
                 </div>

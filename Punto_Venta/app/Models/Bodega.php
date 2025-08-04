@@ -49,8 +49,8 @@ class Bodega extends Model
         return self::where('id', $id)->update($datos);
     }
 
-    public static function eliminarBodega($id)
+    public static function inactivarBodega($id)
     {
-        return self::where('id', $id)->update(['estado_id' => 0]);
+        return self::where('id', $id)->update(['estado_id' => 2]);
     }
 }
