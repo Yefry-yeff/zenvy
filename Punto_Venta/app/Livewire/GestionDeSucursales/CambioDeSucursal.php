@@ -40,6 +40,19 @@ class CambioDeSucursal extends Component
         $this->cargarTiendas();
     }
 
+    public function updatedNuevaSucursalId()
+    {
+        // Esta función se ejecuta automáticamente cuando cambia nuevaSucursalId
+        // Fuerza la actualización del estado del botón
+    }
+
+    public function getBotonHabilitadoProperty()
+    {
+        return $this->usuarioSeleccionado && 
+               $this->nuevaSucursalId && 
+               $this->nuevaSucursalId != $this->sucursalActualId;
+    }
+
     public function updatedBuscarUsuario()
     {
         if (strlen($this->buscarUsuario) >= 2) {
@@ -84,7 +97,7 @@ class CambioDeSucursal extends Component
             $this->sucursalActual = $usuario->tienda ? $usuario->tienda->denominacion_social : 'Sin asignar';
             $this->sucursalActualId = $usuario->tienda_id;
             $this->rolUsuario = $usuario->rol ? $usuario->rol->txt_nombre : 'Sin rol';
-            $this->nuevaSucursalId = $usuario->tienda_id; // Inicializar con la sucursal actual
+            $this->nuevaSucursalId = null; // Inicializar vacío para forzar selección
             
             $this->mostrarSugerencias = false;
             $this->usuariosSugeridos = [];
@@ -180,7 +193,7 @@ class CambioDeSucursal extends Component
     public function cancelarCambio()
     {
         $this->mostrarModalConfirmacion = false;
-        $this->nuevaSucursalId = $this->sucursalActualId; // Restaurar selección original
+        $this->nuevaSucursalId = null; // Limpiar selección para forzar nueva elección
     }
 
     public function limpiarFormulario()

@@ -120,7 +120,7 @@
                         <div class="row">
                             <div class="col-md-8">
                                 <label for="nuevaSucursal" class="form-label">Seleccionar Nueva Sucursal <span class="text-red-600">*</span></label>
-                                <select wire:model="nuevaSucursalId" id="nuevaSucursal" class="form-select">
+                                <select wire:model="nuevaSucursalId" wire:change="$refresh" id="nuevaSucursal" class="form-select">
                                     <option value="">Seleccione una sucursal...</option>
                                     @foreach($tiendas as $tienda)
                                         <option value="{{ $tienda->id }}" {{ $tienda->id == $sucursalActualId ? 'disabled' : '' }}>
@@ -129,17 +129,17 @@
                                         </option>
                                     @endforeach
                                 </select>
+                                
+                                {{-- Información de depuración (quitar después de resolver) --}}
+                                <small class="text-muted mt-1 d-block">
+                                    Debug: Nueva: {{ $nuevaSucursalId ?? 'null' }} | Actual: {{ $sucursalActualId ?? 'null' }} | 
+                                    Habilitado: {{ $this->botonHabilitado ? 'Sí' : 'No' }}
+                                </small>
                             </div>
                             <div class="col-md-4 d-flex align-items-end">
                                 <button wire:click="confirmarCambio" 
-                                        class="btn w-100"
-                                        :class="{
-                                            'btn-success': theme === 'verde',
-                                            'btn-primary': theme === 'azul',
-                                            'btn-dark': theme === 'oscuro',
-                                            'btn-secondary': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
-                                        }"
-                                        {{ !$nuevaSucursalId || $nuevaSucursalId == $sucursalActualId ? 'disabled' : '' }}>
+                                        class="btn w-100 {{ $this->botonHabilitado ? 'btn-primary' : 'btn-secondary' }}"
+                                        {{ !$this->botonHabilitado ? 'disabled' : '' }}>
                                     <i class="fas fa-exchange-alt me-2"></i>Cambiar Sucursal
                                 </button>
                             </div>
