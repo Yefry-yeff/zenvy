@@ -1,7 +1,7 @@
 <div> {{-- ELEMENTO RAÍZ ÚNICO OBLIGATORIO --}}
 
     {{-- Cambio de Sucursal --}}
-    <div class="overflow-hidden border border-gray-300 rounded shadow" x-data x-init="$watch('theme', t => localStorage.setItem('theme', t))">
+    <div class="overflow-visible border border-gray-300 rounded shadow" x-data x-init="$watch('theme', t => localStorage.setItem('theme', t))" style="position: relative; z-index: 1;">
 
         <!-- ENCABEZADO -->
         <div class="flex items-center justify-between px-5 py-3 mb-4 font-semibold text-white rounded-t"
@@ -22,30 +22,32 @@
         </div>
 
         <!-- CONTENIDO -->
-        <div class="px-5 py-4">
+        <div class="px-5 py-4" style="overflow: visible; position: relative; z-index: 2;">
             
             <!-- Búsqueda de Usuario -->
-            <div class="mb-4">
-                <div class="p-4 bg-white border shadow rounded-xl">
+            <div class="mb-4" style="position: relative; z-index: 10;">
+                <div class="p-4 bg-white border shadow rounded-xl" style="overflow: visible;">
                     <h3 class="mb-3 text-lg font-semibold text-gray-700">
                         <i class="fas fa-search me-2"></i>Buscar Usuario
                     </h3>
                     
-                    <div class="position-relative">
+                    <div class="position-relative" style="z-index: 20;">
                         <label for="buscarUsuario" class="form-label">Usuario <span class="text-red-600">*</span></label>
                         <input type="text" 
                                id="buscarUsuario"
                                class="form-control" 
                                wire:model.live="buscarUsuario"
+                               wire:focus="enfocarUsuario"
+                               wire:click="enfocarUsuario"
                                placeholder="Escriba el nombre o email del usuario..."
                                autocomplete="off">
                         
-                        <!-- Lista desplegable de sugerencias -->
+                        <!-- Lista desplegable de usuarios -->
                         @if($mostrarSugerencias && count($usuariosSugeridos) > 0)
-                            <div class="position-absolute w-100 bg-white border border-top-0 rounded-bottom shadow-lg" style="z-index: 1000; max-height: 200px; overflow-y: auto;">
+                            <div class="dropdown-suggestions position-absolute w-100 bg-white border border-top-0 rounded-bottom shadow-lg">
                                 @foreach($usuariosSugeridos as $usuario)
                                     <div wire:click="seleccionarUsuario({{ $usuario->id }})" 
-                                         class="px-3 py-2 cursor-pointer hover-bg-light border-bottom">
+                                         class="dropdown-item-custom px-3 py-2 cursor-pointer border-bottom">
                                         <div class="d-flex justify-content-between align-items-center">
                                             <div>
                                                 <strong>{{ $usuario->name }}</strong><br>
@@ -62,10 +64,18 @@
                             </div>
                         @endif
                         
-                        @if($mostrarSugerencias && count($usuariosSugeridos) == 0 && strlen($buscarUsuario) >= 2)
-                            <div class="position-absolute w-100 bg-white border border-top-0 rounded-bottom shadow-lg" style="z-index: 1000;">
+                        @if($mostrarSugerencias && count($usuariosSugeridos) == 0 && strlen($buscarUsuario) >= 1)
+                            <div class="dropdown-suggestions position-absolute w-100 bg-white border border-top-0 rounded-bottom shadow-lg">
                                 <div class="px-3 py-2 text-muted text-center">
                                     No se encontraron usuarios que coincidan con "{{ $buscarUsuario }}"
+                                </div>
+                            </div>
+                        @endif
+
+                        @if($mostrarSugerencias && count($usuariosSugeridos) == 0 && strlen($buscarUsuario) == 0)
+                            <div class="dropdown-suggestions position-absolute w-100 bg-white border border-top-0 rounded-bottom shadow-lg">
+                                <div class="px-3 py-2 text-muted text-center">
+                                    Haga clic para ver todos los usuarios disponibles
                                 </div>
                             </div>
                         @endif
@@ -245,6 +255,40 @@
         }
         .modal.show {
             display: block !important;
+        }
+        
+        /* Estilos para el dropdown de usuarios */
+        .dropdown-suggestions {
+            z-index: 9999 !important;
+            max-height: 300px;
+            overflow-y: auto;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15) !important;
+            border: 1px solid #dee2e6 !important;
+        }
+        
+        .dropdown-item-custom {
+            transition: background-color 0.2s ease;
+        }
+        
+        .dropdown-item-custom:hover {
+            background-color: #f8f9fa !important;
+            cursor: pointer;
+        }
+        
+        .dropdown-item-custom:last-child {
+            border-bottom: none !important;
+        }
+        
+        /* Asegurar que el contenedor padre no corte el dropdown */
+        .position-relative {
+            overflow: visible !important;
+        }
+        
+        /* Mejorar la visualización en diferentes tamaños de pantalla */
+        @media (max-width: 768px) {
+            .dropdown-suggestions {
+                max-height: 250px;
+            }
         }
     </style>
 

@@ -55,13 +55,33 @@ class CambioDeSucursal extends Component
 
     public function updatedBuscarUsuario()
     {
-        if (strlen($this->buscarUsuario) >= 2) {
+        if (strlen($this->buscarUsuario) >= 1) {
             $this->buscarUsuarios();
-            $this->mostrarSugerencias = true;
         } else {
+            $this->mostrarTodosUsuarios();
+        }
+        $this->mostrarSugerencias = true;
+    }
+
+    public function enfocarUsuario()
+    {
+        $this->mostrarTodosUsuarios();
+        $this->mostrarSugerencias = true;
+    }
+
+    public function mostrarTodosUsuarios()
+    {
+        try {
+            $this->usuariosSugeridos = User::with(['tienda', 'rol'])
+                ->where('estado_id', 1)
+                ->orderBy('name')
+                ->limit(10)
+                ->get();
+        } catch (\Exception $e) {
+            Log::error('Error al cargar todos los usuarios', [
+                'mensaje' => $e->getMessage()
+            ]);
             $this->usuariosSugeridos = [];
-            $this->mostrarSugerencias = false;
-            $this->limpiarSeleccion();
         }
     }
 
@@ -74,7 +94,7 @@ class CambioDeSucursal extends Component
                           ->orWhere('email', 'like', '%' . $this->buscarUsuario . '%');
                 })
                 ->where('estado_id', 1) // Solo usuarios activos
-                ->limit(5)
+                ->limit(10)
                 ->get();
         } catch (\Exception $e) {
             Log::error('Error al buscar usuarios', [
