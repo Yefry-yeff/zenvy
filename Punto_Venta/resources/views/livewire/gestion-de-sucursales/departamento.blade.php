@@ -68,7 +68,7 @@
     </div>
 
     {{-- Modal para Departamento --}}
-    <div wire:key="modal-departamento">
+    <div wire:key="modal-departamento" x-data x-init="$watch('theme', t => localStorage.setItem('theme', t))">
         <div class="modal fade show"
              tabindex="-1"
              style="display: @if($modalDepartamentoAbierto) block @else none @endif; background: rgba(0,0,0,0.5); z-index: 1000;"
@@ -78,7 +78,7 @@
         >
             <div class="modal-dialog modal-lg">
                 <div class="modal-content">
-                    <div class="modal-header text-white"
+                    <div class="text-white modal-header"
                          :class="{
                              'bg-emerald-600': theme === 'verde',
                              'bg-blue-600': theme === 'azul',
@@ -116,7 +116,13 @@
                         @if($isEdit && count($municipios) > 0)
                             <div class="mt-4 row">
                                 <div class="col-12">
-                                    <div class="mb-3 d-flex justify-content-between align-items-center">
+                                    <div class="p-3 mb-3 text-white rounded d-flex justify-content-between align-items-center"
+                                         :class="{
+                                             'bg-emerald-600': theme === 'verde',
+                                             'bg-blue-600': theme === 'azul',
+                                             'bg-gray-900': theme === 'oscuro',
+                                             'bg-slate-700': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
+                                         }">
                                         <h6 class="mb-0">
                                             <i class="fas fa-city me-2"></i>
                                             Municipios del Departamento
@@ -162,7 +168,13 @@
                         @if($isEdit && count($municipios) == 0)
                             <div class="mt-4 row">
                                 <div class="col-12">
-                                    <div class="mb-3 d-flex justify-content-between align-items-center">
+                                    <div class="p-3 mb-3 text-white rounded d-flex justify-content-between align-items-center"
+                                         :class="{
+                                             'bg-emerald-600': theme === 'verde',
+                                             'bg-blue-600': theme === 'azul',
+                                             'bg-gray-900': theme === 'oscuro',
+                                             'bg-slate-700': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
+                                         }">
                                         <h6 class="mb-0">
                                             <i class="fas fa-city me-2"></i>
                                             Municipios del Departamento
@@ -180,14 +192,14 @@
                         @endif
 
                         <div class="modal-footer">
-                            <button type="submit" class="btn text-white"
+                            <button type="submit" 
+                                    class="px-4 py-2 text-white rounded"
                                     :class="{
                                         'bg-emerald-600 hover:bg-emerald-700': theme === 'verde',
                                         'bg-blue-600 hover:bg-blue-700': theme === 'azul',
                                         'bg-gray-900 hover:bg-gray-800': theme === 'oscuro',
                                         'bg-slate-700 hover:bg-slate-800': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
                                     }">
-                                <i class="fas fa-save me-1"></i>
                                 {{ $isEdit ? 'Actualizar' : 'Guardar' }}
                             </button>
                         </div>
@@ -198,7 +210,7 @@
     </div>
 
     {{-- Modal para Municipio --}}
-    <div wire:key="modal-municipio">
+    <div wire:key="modal-municipio" x-data x-init="$watch('theme', t => localStorage.setItem('theme', t))">
         <div class="modal fade show"
              tabindex="-1"
              style="display: @if($showMunicipioModal) block @else none @endif; background: rgba(0,0,0,0.5); z-index: 1001;"
@@ -208,7 +220,7 @@
         >
             <div class="modal-dialog">
                 <div class="modal-content">
-                    <div class="modal-header text-white"
+                    <div class="text-white modal-header"
                          :class="{
                              'bg-emerald-600': theme === 'verde',
                              'bg-blue-600': theme === 'azul',
@@ -216,7 +228,6 @@
                              'bg-slate-700': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
                          }">
                         <h5 class="modal-title" id="modalMunicipioLabel">
-                            <i class="fas fa-plus me-2"></i>
                             Nuevo Municipio
                         </h5>
                         <button type="button" class="btn-close btn-close-white" wire:click="resetMunicipio"></button>
@@ -225,7 +236,6 @@
                         <form wire:submit.prevent="guardarMunicipio">
                             <div class="mb-3">
                                 <label for="nombre_municipio" class="form-label">
-                                    <i class="fas fa-city me-1"></i>
                                     Nombre del Municipio <span class="text-danger">*</span>
                                 </label>
                                 <input type="text"
@@ -237,15 +247,17 @@
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                             </div>
-                            <div class="modal-footer">
-                                <button type="submit" class="btn text-white"
-                                        :class="{
-                                            'bg-emerald-600 hover:bg-emerald-700': theme === 'verde',
-                                            'bg-blue-600 hover:bg-blue-700': theme === 'azul',
-                                            'bg-gray-900 hover:bg-gray-800': theme === 'oscuro',
-                                            'bg-slate-700 hover:bg-slate-800': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
-                                        }">
-                                    <i class="fas fa-save me-1"></i>
+                            <div class="flex justify-end mt-4">
+                                <button
+                                    type="submit"
+                                    class="px-4 py-2 text-white rounded"
+                                    :class="{
+                                        'bg-emerald-600 hover:bg-emerald-700': theme === 'verde',
+                                        'bg-blue-600 hover:bg-blue-700': theme === 'azul',
+                                        'bg-gray-900 hover:bg-gray-800': theme === 'oscuro',
+                                        'bg-slate-700 hover:bg-slate-800': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
+                                    }"
+                                >
                                     Guardar
                                 </button>
                             </div>
@@ -312,14 +324,5 @@
             {{ $alertMessage }}
         </div>
     @endif
-
-    <script>
-        // Función para confirmar eliminación de municipio
-        function confirmarEliminacionMunicipio(id) {
-            if (confirm('¿Está seguro de que desea eliminar este municipio?')) {
-                @this.eliminarMunicipio(id);
-            }
-        }
-    </script>
 
 </div> {{-- FIN ELEMENTO RAÍZ --}}
