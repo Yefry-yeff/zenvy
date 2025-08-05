@@ -66,8 +66,16 @@ class SucursalForm extends Component
     {
         return [
             'form.denominacion_social' => 'required|min:2|max:145',
-            'form.telefono' => 'nullable|max:45',
-            'form.celular' => 'nullable|max:45',
+            'form.telefono' => [
+                'nullable',
+                'max:45',
+                'regex:/^\d{4}-\d{4}$/'
+            ],
+            'form.celular' => [
+                'nullable',
+                'max:45',
+                'regex:/^\d{4}-\d{4}$/'
+            ],
             'form.correo' => 'nullable|email|max:45',
             'form.tipo_tienda_id' => 'required|exists:tipo_tienda,id',
             'form.estado_id' => 'required|exists:estado,id',
@@ -99,6 +107,8 @@ class SucursalForm extends Component
         'form.denominacion_social.required' => 'La denominación social es obligatoria.',
         'form.denominacion_social.min' => 'La denominación social debe tener al menos 2 caracteres.',
         'form.denominacion_social.max' => 'La denominación social no puede exceder 145 caracteres.',
+        'form.telefono.regex' => 'El teléfono debe tener el formato ####-#### (ejemplo: 2234-5678).',
+        'form.celular.regex' => 'El celular debe tener el formato ####-#### (ejemplo: 9876-5432).',
         'form.correo.email' => 'El formato del correo electrónico no es válido.',
         'form.tipo_tienda_id.required' => 'El tipo de tienda es obligatorio.',
         'form.estado_id.required' => 'El estado es obligatorio.',
@@ -414,6 +424,48 @@ class SucursalForm extends Component
         }
     }
 
+    public function updatedFormTelefono()
+    {
+        // El teléfono no es obligatorio, pero debe tener formato correcto si se proporciona
+        if (!empty($this->form['telefono'])) {
+            // Verificar formato ####-####
+            if (!preg_match('/^\d{4}-\d{4}$/', $this->form['telefono'])) {
+                $this->mostrarErrorCampo('telefono', 'El teléfono debe tener el formato ####-#### (ejemplo: 2234-5678)');
+            } else {
+                try {
+                    $this->validateOnly('form.telefono');
+                    $this->limpiarErrorCampo('telefono');
+                } catch (\Illuminate\Validation\ValidationException $e) {
+                    $this->mostrarErrorCampo('telefono', 'El formato del teléfono no es válido');
+                }
+            }
+        } else {
+            // Si está vacío, limpiar cualquier error previo
+            $this->limpiarErrorCampo('telefono');
+        }
+    }
+
+    public function updatedFormCelular()
+    {
+        // El celular no es obligatorio, pero debe tener formato correcto si se proporciona
+        if (!empty($this->form['celular'])) {
+            // Verificar formato ####-####
+            if (!preg_match('/^\d{4}-\d{4}$/', $this->form['celular'])) {
+                $this->mostrarErrorCampo('celular', 'El celular debe tener el formato ####-#### (ejemplo: 9876-5432)');
+            } else {
+                try {
+                    $this->validateOnly('form.celular');
+                    $this->limpiarErrorCampo('celular');
+                } catch (\Illuminate\Validation\ValidationException $e) {
+                    $this->mostrarErrorCampo('celular', 'El formato del celular no es válido');
+                }
+            }
+        } else {
+            // Si está vacío, limpiar cualquier error previo
+            $this->limpiarErrorCampo('celular');
+        }
+    }
+
     public function cerrarAlerta()
     {
         $this->mostrarAlerta = false;
@@ -486,6 +538,8 @@ class SucursalForm extends Component
             'form.tipo_tienda_id' => 'tipo_tienda_id',
             'form.estado_id' => 'estado_id',
             'form.correo' => 'correo',
+            'form.telefono' => 'telefono',
+            'form.celular' => 'celular',
             'form.identificador_legal' => 'identificador_legal',
             'direccionForm.domicilio_tributario' => 'domicilio_tributario',
             'direccionForm.municipio_id' => 'municipio_id',

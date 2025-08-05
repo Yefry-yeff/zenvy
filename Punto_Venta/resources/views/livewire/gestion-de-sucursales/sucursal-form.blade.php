@@ -67,14 +67,14 @@
 
                             <div class="mb-3 col-md-6">
                                 <label for="tipo_tienda_id" class="form-label">Tipo de Tienda <span class="text-red-600">*</span></label>
-                                
+
                                 @if($existeSucursalPrincipal && $tipoTiendaSucursal)
                                     {{-- Campo bloqueado cuando ya existe sucursal principal --}}
                                     <div class="input-group">
-                                        <input type="text" 
-                                               class="form-control bg-light" 
-                                               value="{{ $tipoTiendaSucursal->nombre }}" 
-                                               readonly 
+                                        <input type="text"
+                                               class="form-control bg-light"
+                                               value="{{ $tipoTiendaSucursal->nombre }}"
+                                               readonly
                                                style="background-color: #f8f9fa !important; cursor: not-allowed;">
                                         <span class="input-group-text bg-light border-start-0" style="background-color: #f8f9fa !important;">
                                             <i class="fas fa-lock text-muted" title="Ya existe una sucursal principal"></i>
@@ -94,7 +94,7 @@
                                         @endforeach
                                     </select>
                                 @endif
-                                
+
                                 @error('form.tipo_tienda_id')
                                     <div class="mt-1 text-sm text-danger">{{ $message }}</div>
                                 @enderror
@@ -131,7 +131,27 @@
                         <div class="row">
                             <div class="mb-3 col-md-4">
                                 <label for="telefono" class="form-label">Teléfono</label>
-                                <input type="text" id="telefono" class="form-control {{ $this->getClaseCampo('form.telefono') }}" wire:model="form.telefono">
+                                <input type="text"
+                                       id="telefono"
+                                       class="form-control {{ $this->getClaseCampo('form.telefono') }}"
+                                       wire:model="form.telefono"
+                                       placeholder="2234-5678"
+                                       maxlength="9"
+                                       x-data
+                                       @input="
+                                           let value = $event.target.value.replace(/\D/g, '');
+                                           if (value.length > 4) {
+                                               value = value.substring(0, 4) + '-' + value.substring(4, 8);
+                                           }
+                                           $event.target.value = value;
+                                           $wire.set('form.telefono', value);
+                                       "
+                                       @keypress="
+                                           if (!/[\d]/.test($event.key) &&
+                                               !['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab', 'Enter'].includes($event.key)) {
+                                               $event.preventDefault();
+                                           }
+                                       ">
                                 @error('form.telefono')
                                     <div class="mt-1 text-sm text-danger">{{ $message }}</div>
                                 @enderror
@@ -139,7 +159,27 @@
 
                             <div class="mb-3 col-md-4">
                                 <label for="celular" class="form-label">Celular</label>
-                                <input type="text" id="celular" class="form-control {{ $this->getClaseCampo('form.celular') }}" wire:model="form.celular">
+                                <input type="text"
+                                       id="celular"
+                                       class="form-control {{ $this->getClaseCampo('form.celular') }}"
+                                       wire:model="form.celular"
+                                       placeholder="9876-5432"
+                                       maxlength="9"
+                                       x-data
+                                       @input="
+                                           let value = $event.target.value.replace(/\D/g, '');
+                                           if (value.length > 4) {
+                                               value = value.substring(0, 4) + '-' + value.substring(4, 8);
+                                           }
+                                           $event.target.value = value;
+                                           $wire.set('form.celular', value);
+                                       "
+                                       @keypress="
+                                           if (!/[\d]/.test($event.key) &&
+                                               !['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab', 'Enter'].includes($event.key)) {
+                                               $event.preventDefault();
+                                           }
+                                       ">
                                 @error('form.celular')
                                     <div class="mt-1 text-sm text-danger">{{ $message }}</div>
                                 @enderror
@@ -357,7 +397,7 @@
         [x-cloak] {
             display: none !important;
         }
-        
+
         /* Estilos para campo bloqueado */
         .form-control[readonly] {
             background-color: #f8f9fa !important;
@@ -365,11 +405,35 @@
             color: #6c757d !important;
             cursor: not-allowed !important;
         }
-        
+
         .input-group-text.bg-light {
             background-color: #f8f9fa !important;
             border-color: #dee2e6 !important;
             color: #6c757d !important;
+        }
+
+        /* Estilos para texto de ayuda */
+        .form-text.text-muted {
+            font-size: 0.8rem;
+            color: #6c757d !important;
+            margin-top: 0.25rem;
+        }
+
+        /* Estilos para placeholders */
+        .form-control::placeholder {
+            color: #adb5bd;
+            font-style: italic;
+        }
+
+        /* Estilos adicionales para campos de teléfono */
+        .form-control[maxlength="9"] {
+            font-family: 'Courier New', monospace;
+            letter-spacing: 0.5px;
+        }
+
+        /* Animación suave para cambios en los inputs */
+        .form-control {
+            transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
         }
     </style>
 
