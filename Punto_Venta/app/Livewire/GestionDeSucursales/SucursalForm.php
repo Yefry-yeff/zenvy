@@ -62,19 +62,38 @@ class SucursalForm extends Component
     public $mensajeAlerta = '';
     public $campoConError = '';
 
-    protected $rules = [
-        'form.denominacion_social' => 'required|min:2|max:145',
-        'form.telefono' => 'nullable|max:45',
-        'form.celular' => 'nullable|max:45',
-        'form.correo' => 'nullable|email|max:45',
-        'form.tipo_tienda_id' => 'required|exists:tipo_tienda,id',
-        'form.estado_id' => 'required|exists:estado,id',
-        'form.numero_sucursal' => 'nullable|max:45',
-        'form.identificador_legal' => 'nullable|max:45',
-        'direccionForm.domicilio_tributario' => 'required|max:100',
-        'direccionForm.municipio_id' => 'required|exists:municipio,id',
-        'direccionForm.tipo_direccion_id' => 'required|exists:tipo_direccion,id',
-    ];
+    protected function rules()
+    {
+        return [
+            'form.denominacion_social' => 'required|min:2|max:145',
+            'form.telefono' => 'nullable|max:45',
+            'form.celular' => 'nullable|max:45',
+            'form.correo' => 'nullable|email|max:45',
+            'form.tipo_tienda_id' => 'required|exists:tipo_tienda,id',
+            'form.estado_id' => 'required|exists:estado,id',
+            'form.numero_sucursal' => 'nullable|max:45',
+            'form.identificador_legal' => [
+                'nullable',
+                'max:45',
+                function ($attribute, $value, $fail) {
+                    if (!empty($value)) {
+                        $exists = Tienda::where('identificador_legal', $value)
+                                      ->when($this->isEditing, function ($query) {
+                                          return $query->where('id', '!=', $this->sucursalId);
+                                      })
+                                      ->exists();
+                        
+                        if ($exists) {
+                            $fail('Este identificador legal ya está en uso por otra sucursal.');
+                        }
+                    }
+                }
+            ],
+            'direccionForm.domicilio_tributario' => 'required|max:100',
+            'direccionForm.municipio_id' => 'required|exists:municipio,id',
+            'direccionForm.tipo_direccion_id' => 'required|exists:tipo_direccion,id',
+        ];
+    }
 
     protected $messages = [
         'form.denominacion_social.required' => 'La denominación social es obligatoria.',
@@ -368,6 +387,33 @@ class SucursalForm extends Component
         }
     }
 
+    public function updatedFormIdentificadorLegal()
+    {
+        // El identificador legal no es obligatorio, pero debe ser único si se proporciona
+        if (!empty($this->form['identificador_legal'])) {
+            // Verificar si ya existe en otra sucursal
+            $exists = Tienda::where('identificador_legal', $this->form['identificador_legal'])
+                           ->when($this->isEditing, function ($query) {
+                               return $query->where('id', '!=', $this->sucursalId);
+                           })
+                           ->exists();
+            
+            if ($exists) {
+                $this->mostrarErrorCampo('identificador_legal', 'Este identificador legal ya está en uso por otra sucursal');
+            } else {
+                try {
+                    $this->validateOnly('form.identificador_legal');
+                    $this->limpiarErrorCampo('identificador_legal');
+                } catch (\Illuminate\Validation\ValidationException $e) {
+                    $this->mostrarErrorCampo('identificador_legal', 'El identificador legal no es válido');
+                }
+            }
+        } else {
+            // Si está vacío, limpiar cualquier error previo
+            $this->limpiarErrorCampo('identificador_legal');
+        }
+    }
+
     public function cerrarAlerta()
     {
         $this->mostrarAlerta = false;
@@ -440,6 +486,7 @@ class SucursalForm extends Component
             'form.tipo_tienda_id' => 'tipo_tienda_id',
             'form.estado_id' => 'estado_id',
             'form.correo' => 'correo',
+            'form.identificador_legal' => 'identificador_legal',
             'direccionForm.domicilio_tributario' => 'domicilio_tributario',
             'direccionForm.municipio_id' => 'municipio_id',
             'direccionForm.tipo_direccion_id' => 'tipo_direccion_id'
