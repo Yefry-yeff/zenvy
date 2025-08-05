@@ -225,6 +225,108 @@ class SucursalForm extends Component
         $this->dispatch('cambiarVista', ruta: 'GestionDeSucursales.sucursales');
     }
 
+    // ===== MÉTODOS DE VALIDACIÓN EN TIEMPO REAL =====
+
+    public function updatedFormDenominacionSocial()
+    {
+        if (empty($this->form['denominacion_social'])) {
+            $this->mostrarErrorCampo('denominacion_social', 'La denominación social es obligatoria');
+        } else {
+            try {
+                $this->validateOnly('form.denominacion_social');
+                $this->limpiarErrorCampo('denominacion_social');
+            } catch (\Illuminate\Validation\ValidationException $e) {
+                $this->mostrarErrorCampo('denominacion_social', 'La denominación social es obligatoria');
+            }
+        }
+    }
+
+    public function updatedFormTipoTiendaId()
+    {
+        if (empty($this->form['tipo_tienda_id'])) {
+            $this->mostrarErrorCampo('tipo_tienda_id', 'Debe seleccionar un tipo de tienda');
+        } else {
+            try {
+                $this->validateOnly('form.tipo_tienda_id');
+                $this->limpiarErrorCampo('tipo_tienda_id');
+            } catch (\Illuminate\Validation\ValidationException $e) {
+                $this->mostrarErrorCampo('tipo_tienda_id', 'Debe seleccionar un tipo de tienda');
+            }
+        }
+    }
+
+    public function updatedFormEstadoId()
+    {
+        if (empty($this->form['estado_id'])) {
+            $this->mostrarErrorCampo('estado_id', 'Debe seleccionar un estado');
+        } else {
+            try {
+                $this->validateOnly('form.estado_id');
+                $this->limpiarErrorCampo('estado_id');
+            } catch (\Illuminate\Validation\ValidationException $e) {
+                $this->mostrarErrorCampo('estado_id', 'Debe seleccionar un estado');
+            }
+        }
+    }
+
+    public function updatedDireccionFormDomicilioTributario()
+    {
+        if (empty($this->direccionForm['domicilio_tributario'])) {
+            $this->mostrarErrorCampo('domicilio_tributario', 'El domicilio tributario es obligatorio');
+        } else {
+            try {
+                $this->validateOnly('direccionForm.domicilio_tributario');
+                $this->limpiarErrorCampo('domicilio_tributario');
+            } catch (\Illuminate\Validation\ValidationException $e) {
+                $this->mostrarErrorCampo('domicilio_tributario', 'El domicilio tributario es obligatorio');
+            }
+        }
+    }
+
+    public function updatedDireccionFormMunicipioId()
+    {
+        if (empty($this->direccionForm['municipio_id'])) {
+            $this->mostrarErrorCampo('municipio_id', 'Debe seleccionar un municipio');
+        } else {
+            try {
+                $this->validateOnly('direccionForm.municipio_id');
+                $this->limpiarErrorCampo('municipio_id');
+            } catch (\Illuminate\Validation\ValidationException $e) {
+                $this->mostrarErrorCampo('municipio_id', 'Debe seleccionar un municipio');
+            }
+        }
+    }
+
+    public function updatedDireccionFormTipoDireccionId()
+    {
+        if (empty($this->direccionForm['tipo_direccion_id'])) {
+            $this->mostrarErrorCampo('tipo_direccion_id', 'Debe seleccionar un tipo de dirección');
+        } else {
+            try {
+                $this->validateOnly('direccionForm.tipo_direccion_id');
+                $this->limpiarErrorCampo('tipo_direccion_id');
+            } catch (\Illuminate\Validation\ValidationException $e) {
+                $this->mostrarErrorCampo('tipo_direccion_id', 'Debe seleccionar un tipo de dirección');
+            }
+        }
+    }
+
+    public function updatedFormCorreo()
+    {
+        // El correo no es obligatorio, solo validar formato si tiene valor
+        if (!empty($this->form['correo'])) {
+            try {
+                $this->validateOnly('form.correo');
+                $this->limpiarErrorCampo('correo');
+            } catch (\Illuminate\Validation\ValidationException $e) {
+                $this->mostrarErrorCampo('correo', 'El formato del correo electrónico no es válido');
+            }
+        } else {
+            // Si está vacío, limpiar cualquier error previo
+            $this->limpiarErrorCampo('correo');
+        }
+    }
+
     public function cerrarAlerta()
     {
         $this->mostrarAlerta = false;
@@ -277,6 +379,13 @@ class SucursalForm extends Component
         $this->campoConError = $campo;
     }
 
+    private function limpiarErrorCampo($campo)
+    {
+        if ($this->campoConError === $campo) {
+            $this->cerrarAlerta();
+        }
+    }
+
     public function getClaseCampo($campo)
     {
         // Si hay error de validación, mostrar como inválido
@@ -284,8 +393,21 @@ class SucursalForm extends Component
             return 'is-invalid';
         }
         
+        // Mapear nombres de campos para validación backend
+        $mapasCampos = [
+            'form.denominacion_social' => 'denominacion_social',
+            'form.tipo_tienda_id' => 'tipo_tienda_id',
+            'form.estado_id' => 'estado_id',
+            'form.correo' => 'correo',
+            'direccionForm.domicilio_tributario' => 'domicilio_tributario',
+            'direccionForm.municipio_id' => 'municipio_id',
+            'direccionForm.tipo_direccion_id' => 'tipo_direccion_id'
+        ];
+        
+        $campoMapeado = $mapasCampos[$campo] ?? null;
+        
         // Si es el campo con error de validación backend, mostrar como campo obligatorio vacío
-        if ($this->campoConError === $campo) {
+        if ($campoMapeado && $this->campoConError === $campoMapeado) {
             return 'campo-obligatorio-vacio';
         }
         
