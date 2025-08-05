@@ -126,6 +126,16 @@ class SucursalForm extends Component
         'direccionForm.tipo_direccion_id.required' => 'El tipo de dirección es obligatorio.',
     ];
 
+    public function hydrate()
+    {
+        // Asegurar que los municipios se mantengan cargados si hay un departamento seleccionado
+        if ($this->departamentoSeleccionado && empty($this->municipios)) {
+            $this->municipios = Municipio::where('departamento_id', $this->departamentoSeleccionado)
+                                       ->orderBy('nombre')
+                                       ->get();
+        }
+    }
+
     public function mount($id = null)
     {
         $this->sucursalId = $id;
@@ -248,16 +258,27 @@ class SucursalForm extends Component
                     'latitud' => $sucursal->direccion->latitud,
                     'longitud' => $sucursal->direccion->longitud,
                 ];
-
-                // Cargar departamento y municipios
-                if ($sucursal->direccion->municipio) {
-                    $this->departamentoSeleccionado = $sucursal->direccion->municipio->departamento_id;
-                    $this->updatedDepartamentoSeleccionado($this->departamentoSeleccionado);
+                
+                // Cargar departamento y municipios correspondientes al editar
+                if ($sucursal->direccion->municipio && $sucursal->direccion->municipio->departamento) {
+                    $this->departamentoSeleccionado = $sucursal->direccion->municipio->departamento->id;
+                    $this->municipios = Municipio::where('departamento_id', $this->departamentoSeleccionado)
+                                               ->orderBy('nombre')
+                                               ->get();
+                    
+                    // Asegurar que el municipio se mantenga seleccionado
+                    $this->direccionForm['municipio_id'] = $sucursal->direccion->municipio_id;
                 }
             }
             
-            // Reconfigurar tipo de dirección como "Tienda"
+            // Reconfigurar tipo de dirección como "Tienda" (sin afectar municipio)
+            $tipoDireccionOriginal = $this->direccionForm['tipo_direccion_id'];
             $this->configurarTipoDireccionTienda();
+            
+            // Si estamos editando, mantener el tipo de dirección original si ya existe
+            if ($this->isEditing && $tipoDireccionOriginal) {
+                $this->direccionForm['tipo_direccion_id'] = $tipoDireccionOriginal;
+            }
             
             // Verificar nuevamente después de cargar los datos de la sucursal
             $this->verificarSucursalPrincipal();
