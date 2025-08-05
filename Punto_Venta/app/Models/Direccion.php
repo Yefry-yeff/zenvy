@@ -67,4 +67,28 @@ class Direccion extends Model
         
         return implode(', ', $partes);
     }
+
+    // Relación con municipio
+    public function municipio()
+    {
+        return $this->belongsTo(Municipio::class, 'municipio_id');
+    }
+
+    // Relación con estado
+    public function estado()
+    {
+        return $this->belongsTo(Estado::class, 'estado_id');
+    }
+
+    // Relación con tipo de dirección
+    public function tipoDireccion()
+    {
+        return $this->belongsTo(TipoDireccion::class, 'tipo_direccion_id');
+    }
+
+    // Relación con tiendas
+    public function tiendas()
+    {
+        return $this->hasMany(Tienda::class, 'direccion_sucursal_id');
+    }
 }

@@ -106,6 +106,8 @@
     {{-- Tom Select --}}
     <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
 
+
+    <script src="{{ asset('JS/Script/TablasBoostrap/sucursales.js') }}"></script>
     <script src="{{ asset('JS/Script/TablasBoostrap/departamento.js') }}"></script>
     <script src="{{ asset('JS/Script/TablasBoostrap/municipios.js') }}"></script>
     <script src="{{ asset('JS/Script/TablasBoostrap/producto-seccion.js') }}"></script>
