@@ -6,10 +6,6 @@ use Livewire\Component;
 use App\Models\Tienda;
 class Sucursales extends Component
 {
-    // Propiedades de control
-    public $modalEliminarAbierto = false;
-    public $sucursalAEliminar = null;
-    
     // Propiedades para alertas
     public $alertMessage = '';
     public $alertType = '';
@@ -38,38 +34,6 @@ class Sucursales extends Component
     public function editar($id)
     {
         $this->dispatch('cambiarVista', ruta: 'GestionDeSucursales.sucursalform', parametros: ['id' => $id]);
-    }
-
-    // Función para confirmar eliminación
-    public function confirmarEliminar($id)
-    {
-        $this->sucursalAEliminar = $id;
-        $this->modalEliminarAbierto = true;
-    }
-
-    // Función para cerrar modal de eliminación
-    public function cerrarModalEliminar()
-    {
-        $this->modalEliminarAbierto = false;
-        $this->sucursalAEliminar = null;
-    }
-
-    // Función para eliminar sucursal
-    public function eliminarSucursal()
-    {
-        try {
-            if ($this->sucursalAEliminar) {
-                $sucursal = Tienda::find($this->sucursalAEliminar);
-                if ($sucursal) {
-                    $sucursal->delete();
-                    session()->flash('mensaje', 'Sucursal eliminada correctamente.');
-                }
-            }
-            $this->cerrarModalEliminar();
-        } catch (\Exception $e) {
-            session()->flash('error', 'Error al eliminar la sucursal: ' . $e->getMessage());
-            $this->cerrarModalEliminar();
-        }
     }
 
     // Función para cerrar alerta

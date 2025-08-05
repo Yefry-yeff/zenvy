@@ -32,7 +32,6 @@
                             <th>Municipio</th>
                             <th>Estado</th>
                             <th style="width: 150px;">Fecha Creación</th>
-                            <th style="width: 60px;">Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -49,19 +48,10 @@
                                     </span>
                                 </td>
                                 <td class="cursor-pointer" wire:click="editar({{ $sucursal->id }})">{{ $sucursal->created_at ? $sucursal->created_at->format('d/m/Y') : 'N/A' }}</td>
-                                <td>
-                                    <button type="button" class="btn btn-link p-0" wire:click="confirmarEliminar({{ $sucursal->id }})" title="Eliminar" onclick="event.stopPropagation();">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 7v12a2 2 0 002 2h8a2 2 0 002-2V7M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2m-7 0h10" style="color:#e3342f;" />
-                                            <line x1="10" y1="11" x2="10" y2="17" stroke="#e3342f" stroke-width="2"/>
-                                            <line x1="14" y1="11" x2="14" y2="17" stroke="#e3342f" stroke-width="2"/>
-                                        </svg>
-                                    </button>
-                                </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="8" class="py-4 text-center text-muted">No hay sucursales disponibles.</td>
+                                <td colspan="7" class="py-4 text-center text-muted">No hay sucursales disponibles.</td>
                             </tr>
                         @endforelse
                     </tbody>
@@ -69,32 +59,6 @@
             </div>
         </div>
 
-    </div>
-
-    <!-- Modal Confirmar Eliminación -->
-    <div wire:key="modal-confirmar-eliminar">
-        <div class="modal fade show"
-             tabindex="-1"
-             style="display: @if($modalEliminarAbierto) block @else none @endif; background: rgba(0,0,0,0.5); z-index: 1000;"
-             aria-modal="true"
-             role="dialog"
-             @click.self="@this.cerrarModalEliminar()"
-        >
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content">
-                    <div class="text-white modal-header bg-danger">
-                        <h5 class="modal-title">¿Eliminar sucursal?</h5>
-                    </div>
-                    <div class="modal-body">
-                        <p>¿Estás seguro que deseas eliminar esta sucursal? Esta acción no se puede deshacer.</p>
-                        <div class="flex justify-end gap-2 mt-4">
-                            <button type="button" class="btn btn-secondary" wire:click="cerrarModalEliminar">No</button>
-                            <button type="button" class="btn btn-danger" wire:click="eliminarSucursal">Sí, eliminar</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
     </div>
 
     @if (session()->has('mensaje'))
