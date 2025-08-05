@@ -34,8 +34,7 @@
         </div>
 
         <!-- CONTENIDO -->
-        <div class="px-5 py-4">
-
+        <div class="px-4 py-3 pt-0 card-body">
             <!-- Información de la Sección -->
             @if($seccion)
                 <div class="p-3 mb-4 rounded bg-light">
@@ -60,29 +59,29 @@
                 </div>
             @endif
 
-           <!-- Tabla de Productos con DataTables -->
+           <!-- Tabla de Productos -->
             <div class="table-responsive">
-                <table id="productosSeccionTable" class="table table-striped table-hover" style="width:100%">
-                    <thead class="table-dark">
-                        <tr>
-                            <th><i class="fas fa-hashtag me-1"></i>ID</th>
-                            <th><i class="fas fa-box me-1"></i>Producto</th>
-                            <th><i class="fas fa-barcode me-1"></i>Código</th>
-                            <th><i class="fas fa-tags me-1"></i>Marca</th>
-                            <th><i class="fas fa-list me-1"></i>Categoría</th>
-                            <th><i class="fas fa-balance-scale me-1"></i>U. Medida</th>
-                            <th><i class="fas fa-cubes me-1"></i>Stock</th>
-                            <th><i class="fas fa-calendar me-1"></i>F. Recibido</th>
-                            <th><i class="fas fa-calendar-times me-1"></i>F. Expiración</th>
-                            <th><i class="fas fa-dollar-sign me-1"></i>Precio Base</th>
-                            <th><i class="fas fa-toggle-on me-1"></i>Estado</th>
+                <table class="table mb-0 align-middle table-sm table-hover table-bordered">
+                    <thead class="table-light">
+                        <tr class="text-center align-middle">
+                            <th>ID</th>
+                            <th>Producto</th>
+                            <th>Código</th>
+                            <th>Marca</th>
+                            <th>Categoría</th>
+                            <th>U. Medida</th>
+                            <th>Stock</th>
+                            <th>F. Recibido</th>
+                            <th>F. Expiración</th>
+                            <th>Precio Base</th>
+                            <th>Estado</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach($productos as $recibido)
-                            <tr>
+                        @forelse($productos as $recibido)
+                            <tr class="text-center align-middle hover:bg-gray-50">
                                 <td>{{ $recibido->producto->id }}</td>
-                                <td>
+                                <td class="text-start">
                                     <div>
                                         <strong>{{ $recibido->producto->nombre }}</strong><br>
                                         <small class="text-muted">{{ \Illuminate\Support\Str::limit($recibido->producto->descripcion, 50) }}</small>
@@ -121,30 +120,19 @@
                                         <span class="text-muted">N/A</span>
                                     @endif
                                 </td>
-                                <td>{{ $this->formatearMoneda($recibido->producto->precio_base ?? 0) }}</td>
+                                <td class="text-end">L. {{ number_format($recibido->producto->precio_base ?? 0, 2) }}</td>
                                 <td>
                                     <span class="{{ $this->obtenerEstadoClase($recibido->producto->estado_id) }}">
                                         {{ $this->obtenerEstadoTexto($recibido->producto->estado_id) }}
                                     </span>
                                 </td>
                             </tr>
-                        @endforeach
+                        @empty
+                            <tr>
+                                <td colspan="11" class="py-4 text-center text-muted">No hay productos disponibles en esta sección.</td>
+                            </tr>
+                        @endforelse
                     </tbody>
-                    <tfoot class="table-light">
-                        <tr>
-                            <th></th>
-                            <th></th>
-                            <th></th>
-                            <th></th>
-                            <th></th>
-                            <th></th>
-                            <th></th>
-                            <th></th>
-                            <th></th>
-                            <th></th>
-                            <th></th>
-                        </tr>
-                    </tfoot>
                 </table>
             </div>
 
@@ -209,27 +197,6 @@
             display: block !important;
         }
 
-        /* Estilos para DataTables */
-        .dataTables_wrapper .dataTables_filter input {
-            border: 1px solid #ced4da;
-            border-radius: 0.375rem;
-            padding: 0.375rem 0.75rem;
-        }
-
-        .dataTables_wrapper .dataTables_length select {
-            border: 1px solid #ced4da;
-            border-radius: 0.375rem;
-            padding: 0.375rem 0.75rem;
-        }
-
-        .dt-buttons {
-            margin-bottom: 1rem;
-        }
-
-        .dt-button {
-            margin-right: 0.5rem !important;
-        }
-
         /* Mejorar la visualización de badges en la tabla */
         .table td .badge {
             font-size: 0.75rem;
@@ -242,5 +209,25 @@
             }
         }
     </style>
+
+    @if (session()->has('mensaje'))
+        <div x-data="{ show: true }" x-show="show"
+             @click.window="show = false"
+             @keydown.window="show = false"
+             @mousemove.window="show = false"
+             class="alert alert-success mt-3 mb-0 transition-opacity duration-300">
+            {{ session('mensaje') }}
+        </div>
+    @endif
+
+    @if (session()->has('error'))
+        <div x-data="{ show: true }" x-show="show"
+             @click.window="show = false"
+             @keydown.window="show = false"
+             @mousemove.window="show = false"
+             class="alert alert-danger mt-3 mb-0 transition-opacity duration-300">
+            {{ session('error') }}
+        </div>
+    @endif
 
 </div>
