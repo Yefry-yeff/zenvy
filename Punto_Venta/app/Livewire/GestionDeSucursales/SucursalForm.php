@@ -163,6 +163,24 @@ class SucursalForm extends Component
 
     public function guardar()
     {
+        // Verificar campos críticos antes de la validación completa
+        $camposVacios = $this->verificarCamposCriticos();
+
+        if (!empty($camposVacios)) {
+            $primerCampoVacio = $camposVacios[0];
+            $mensajes = [
+                'denominacion_social' => 'La denominación social es obligatoria',
+                'tipo_tienda_id' => 'Debe seleccionar un tipo de tienda',
+                'estado_id' => 'Debe seleccionar un estado',
+                'domicilio_tributario' => 'El domicilio tributario es obligatorio',
+                'municipio_id' => 'Debe seleccionar un municipio',
+                'tipo_direccion_id' => 'Debe seleccionar un tipo de dirección'
+            ];
+
+            $this->mostrarErrorCampo($primerCampoVacio, $mensajes[$primerCampoVacio]);
+            return;
+        }
+
         $this->validate();
 
         try {
@@ -214,8 +232,63 @@ class SucursalForm extends Component
         $this->campoConError = '';
     }
 
+    // ===== MÉTODOS PARA VALIDACIÓN DE CAMPOS CRÍTICOS =====
+
+    public function verificarCamposCriticos()
+    {
+        $camposCriticos = ['denominacion_social', 'tipo_tienda_id', 'estado_id', 'domicilio_tributario', 'municipio_id', 'tipo_direccion_id'];
+        $camposVacios = [];
+
+        foreach ($camposCriticos as $campo) {
+            $valor = '';
+            switch ($campo) {
+                case 'denominacion_social':
+                    $valor = $this->form['denominacion_social'];
+                    break;
+                case 'tipo_tienda_id':
+                    $valor = $this->form['tipo_tienda_id'];
+                    break;
+                case 'estado_id':
+                    $valor = $this->form['estado_id'];
+                    break;
+                case 'domicilio_tributario':
+                    $valor = $this->direccionForm['domicilio_tributario'];
+                    break;
+                case 'municipio_id':
+                    $valor = $this->direccionForm['municipio_id'];
+                    break;
+                case 'tipo_direccion_id':
+                    $valor = $this->direccionForm['tipo_direccion_id'];
+                    break;
+            }
+
+            if (empty($valor)) {
+                $camposVacios[] = $campo;
+            }
+        }
+
+        return $camposVacios;
+    }
+
+    private function mostrarErrorCampo($campo, $mensaje)
+    {
+        $this->mostrarAlerta = true;
+        $this->mensajeAlerta = $mensaje;
+        $this->campoConError = $campo;
+    }
+
     public function getClaseCampo($campo)
     {
-        return $this->getErrorBag()->has($campo) ? 'is-invalid' : '';
+        // Si hay error de validación, mostrar como inválido
+        if ($this->getErrorBag()->has($campo)) {
+            return 'is-invalid';
+        }
+        
+        // Si es el campo con error de validación backend, mostrar como campo obligatorio vacío
+        if ($this->campoConError === $campo) {
+            return 'campo-obligatorio-vacio';
+        }
+        
+        return '';
     }
 }
