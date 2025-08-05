@@ -37,7 +37,7 @@
                         @forelse($departamentos as $departamento)
                             <tr class="text-center align-middle hover:bg-gray-50">
                                 <td class="cursor-pointer" wire:click="editarDepartamento({{ $departamento->id }})">{{ $departamento->id }}</td>
-                                <td class="text-start cursor-pointer" wire:click="editarDepartamento({{ $departamento->id }})">{{ $departamento->nombre }}</td>
+                                <td class="cursor-pointer text-start" wire:click="editarDepartamento({{ $departamento->id }})">{{ $departamento->nombre }}</td>
                                 <td class="cursor-pointer" wire:click="editarDepartamento({{ $departamento->id }})">
                                     <span class="badge bg-info">
                                         {{ $departamento->municipios->count() }} municipios
@@ -147,32 +147,29 @@
                                         </button>
                                     </div>
                                     <div class="table-responsive">
-                                        <table class="table table-sm table-bordered">
+                                        <table id="municipiosTable" class="table mb-0 align-middle table-sm table-hover table-bordered">
                                             <thead class="table-light">
-                                                <tr>
+                                                <tr class="text-center align-middle">
                                                     <th>ID</th>
                                                     <th>Nombre</th>
-                                                    <th>Acciones</th>
+                                                    <th style="width: 60px;">Acciones</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 @foreach($municipios as $municipio)
-                                                    <tr>
+                                                    <tr class="text-center align-middle hover:bg-gray-50">
                                                         <td>{{ $municipio['id'] }}</td>
-                                                        <td>{{ $municipio['nombre'] }}</td>
+                                                        <td class="text-start">{{ $municipio['nombre'] }}</td>
                                                         <td>
-                                                            <div class="btn-group btn-group-sm">
-                                                                <button type="button" class="btn btn-warning btn-sm"
-                                                                        wire:click="editarMunicipio({{ $municipio['id'] }})"
-                                                                        title="Editar">
-                                                                    <i class="fas fa-edit"></i>
-                                                                </button>
-                                                                <button type="button" class="btn btn-danger btn-sm"
-                                                                        onclick="confirmarEliminacionMunicipio({{ $municipio['id'] }})"
-                                                                        title="Eliminar">
-                                                                    <i class="fas fa-trash"></i>
-                                                                </button>
-                                                            </div>
+                                                            <button type="button" class="p-0 btn btn-link"
+                                                                    onclick="confirmarEliminacionMunicipio({{ $municipio['id'] }})"
+                                                                    title="Eliminar">
+                                                                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 7v12a2 2 0 002 2h8a2 2 0 002-2V7M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2m-7 0h10" style="color:#e3342f;" />
+                                                                    <line x1="10" y1="11" x2="10" y2="17" stroke="#e3342f" stroke-width="2"/>
+                                                                    <line x1="14" y1="11" x2="14" y2="17" stroke="#e3342f" stroke-width="2"/>
+                                                                </svg>
+                                                            </button>
                                                         </td>
                                                     </tr>
                                                 @endforeach
@@ -233,8 +230,8 @@
                 <div class="modal-content">
                     <div class="modal-header">
                         <h5 class="modal-title" id="modalMunicipioLabel">
-                            <i class="fas fa-{{ $editingMunicipio ? 'edit' : 'plus' }} me-2"></i>
-                            {{ $editingMunicipio ? 'Editar' : 'Nuevo' }} Municipio
+                            <i class="fas fa-plus me-2"></i>
+                            Nuevo Municipio
                         </h5>
                         <button type="button" class="btn-close" wire:click="resetMunicipio"></button>
                     </div>
@@ -261,7 +258,7 @@
                             </button>
                             <button type="submit" class="btn btn-primary">
                                 <i class="fas fa-save me-1"></i>
-                                {{ $editingMunicipio ? 'Actualizar' : 'Guardar' }}
+                                Guardar
                             </button>
                         </div>
                     </form>
@@ -309,7 +306,5 @@
             }
         }
     </script>
-
-</div> {{-- FIN ELEMENTO RAÍZ --}}
 
 </div> {{-- FIN ELEMENTO RAÍZ --}}

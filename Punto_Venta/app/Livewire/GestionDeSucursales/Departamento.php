@@ -21,7 +21,6 @@ class Departamento extends Component
     // Propiedades de control
     public $isEdit = false;
     public $showMunicipioModal = false;
-    public $editingMunicipio = false;
     public $modalEliminarAbierto = false;
     public $modalDepartamentoAbierto = false;
     public $departamentoAEliminar = null;
@@ -150,47 +149,23 @@ class Departamento extends Component
         ]);
 
         if (!$this->departamento_id) {
-            $this->alertMessage = 'Debe seleccionar un departamento primero.';
-            $this->alertType = 'warning';
+            session()->flash('error', 'Debe seleccionar un departamento primero.');
             return;
         }
 
         try {
-            if ($this->editingMunicipio) {
-                $municipio = Municipio::find($this->municipio_id);
-                $municipio->update([
-                    'nombre' => $this->nombre_municipio,
-                ]);
-                $this->alertMessage = 'Municipio actualizado correctamente.';
-            } else {
-                Municipio::create([
-                    'nombre' => $this->nombre_municipio,
-                    'departamento_id' => $this->departamento_id,
-                    'users_registro_id' => Auth::id(),
-                ]);
-                $this->alertMessage = 'Municipio creado correctamente.';
-            }
+            Municipio::create([
+                'nombre' => $this->nombre_municipio,
+                'departamento_id' => $this->departamento_id,
+                'users_registro_id' => Auth::id(),
+            ]);
+            session()->flash('mensaje', 'Municipio creado correctamente.');
             
-            $this->alertType = 'success';
             $this->resetMunicipio();
             $this->cargarMunicipios();
-            $this->dispatch('cerrarModalMunicipio');
             
         } catch (\Exception $e) {
-            $this->alertMessage = 'Error al procesar el municipio: ' . $e->getMessage();
-            $this->alertType = 'error';
-        }
-    }
-
-    // Función para editar municipio
-    public function editarMunicipio($id)
-    {
-        $municipio = Municipio::find($id);
-        if ($municipio) {
-            $this->municipio_id = $municipio->id;
-            $this->nombre_municipio = $municipio->nombre;
-            $this->editingMunicipio = true;
-            $this->showMunicipioModal = true;
+            session()->flash('error', 'Error al procesar el municipio: ' . $e->getMessage());
         }
     }
 
@@ -201,13 +176,11 @@ class Departamento extends Component
             $municipio = Municipio::find($id);
             if ($municipio) {
                 $municipio->delete();
-                $this->alertMessage = 'Municipio eliminado correctamente.';
-                $this->alertType = 'success';
+                session()->flash('mensaje', 'Municipio eliminado correctamente.');
                 $this->cargarMunicipios();
             }
         } catch (\Exception $e) {
-            $this->alertMessage = 'Error al eliminar el municipio: ' . $e->getMessage();
-            $this->alertType = 'error';
+            session()->flash('error', 'Error al eliminar el municipio: ' . $e->getMessage());
         }
     }
 
@@ -223,8 +196,7 @@ class Departamento extends Component
     public function mostrarModalMunicipio()
     {
         if (!$this->departamento_id) {
-            $this->alertMessage = 'Debe seleccionar un departamento primero.';
-            $this->alertType = 'warning';
+            session()->flash('error', 'Debe seleccionar un departamento primero.');
             return;
         }
         $this->resetMunicipio();
@@ -247,7 +219,6 @@ class Departamento extends Component
     {
         $this->nombre_municipio = '';
         $this->municipio_id = null;
-        $this->editingMunicipio = false;
         $this->showMunicipioModal = false;
         $this->resetErrorBag(['nombre_municipio']);
     }
