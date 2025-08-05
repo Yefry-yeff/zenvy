@@ -34,6 +34,11 @@ class CambioDeSucursal extends Component
     public $mostrarModalError = false;
     public $mensajeModalExito = '';
     public $mensajeModalError = '';
+    
+    // Validación de campos obligatorios
+    public $mostrarAlerta = false;
+    public $mensajeAlerta = '';
+    public $camposConError = [];
 
     public function mount()
     {
@@ -44,6 +49,13 @@ class CambioDeSucursal extends Component
     {
         // Esta función se ejecuta automáticamente cuando cambia nuevaSucursalId
         // Fuerza la actualización del estado del botón
+        
+        // Limpiar errores de validación para el campo sucursal
+        $this->camposConError = array_filter($this->camposConError, fn($campo) => $campo !== 'nuevaSucursalId');
+        if (empty($this->camposConError)) {
+            $this->mostrarAlerta = false;
+            $this->mensajeAlerta = '';
+        }
     }
 
     public function getBotonHabilitadoProperty()
@@ -122,6 +134,13 @@ class CambioDeSucursal extends Component
             $this->mostrarSugerencias = false;
             $this->usuariosSugeridos = [];
             
+            // Limpiar errores de validación
+            $this->camposConError = array_filter($this->camposConError, fn($campo) => $campo !== 'buscarUsuario');
+            if (empty($this->camposConError)) {
+                $this->mostrarAlerta = false;
+                $this->mensajeAlerta = '';
+            }
+            
         } catch (\Exception $e) {
             Log::error('Error al seleccionar usuario', [
                 'usuario_id' => $usuarioId,
@@ -144,18 +163,15 @@ class CambioDeSucursal extends Component
 
     public function confirmarCambio()
     {
-        if (!$this->usuarioSeleccionado) {
-            $this->mostrarError('Debe seleccionar un usuario');
-            return;
-        }
-
-        if (!$this->nuevaSucursalId) {
-            $this->mostrarError('Debe seleccionar una nueva sucursal');
+        // Validar campos obligatorios
+        if (!$this->validarCamposObligatorios()) {
             return;
         }
 
         if ($this->nuevaSucursalId == $this->sucursalActualId) {
-            $this->mostrarError('La nueva sucursal debe ser diferente a la actual');
+            $this->camposConError[] = 'nuevaSucursalId';
+            $this->mostrarAlerta = true;
+            $this->mensajeAlerta = 'La nueva sucursal debe ser diferente a la actual';
             return;
         }
 
@@ -260,6 +276,44 @@ class CambioDeSucursal extends Component
     {
         $this->mostrarModalError = false;
         $this->mensajeModalError = '';
+    }
+
+    public function cerrarAlerta()
+    {
+        $this->mostrarAlerta = false;
+        $this->mensajeAlerta = '';
+        $this->camposConError = [];
+    }
+
+    // Método para obtener clases CSS dinámicas
+    public function getClaseCampo($campo)
+    {
+        if (in_array($campo, $this->camposConError)) {
+            return 'is-invalid campo-obligatorio-vacio';
+        }
+
+        return '';
+    }
+
+    private function validarCamposObligatorios()
+    {
+        $this->camposConError = [];
+        
+        if (empty($this->buscarUsuario) || !$this->usuarioSeleccionado) {
+            $this->camposConError[] = 'buscarUsuario';
+            $this->mostrarAlerta = true;
+            $this->mensajeAlerta = 'Debe seleccionar un usuario válido';
+            return false;
+        }
+
+        if (empty($this->nuevaSucursalId)) {
+            $this->camposConError[] = 'nuevaSucursalId';
+            $this->mostrarAlerta = true;
+            $this->mensajeAlerta = 'Debe seleccionar una nueva sucursal';
+            return false;
+        }
+
+        return true;
     }
 
     public function render()

@@ -24,6 +24,14 @@
         <!-- CONTENIDO -->
         <div class="px-5 py-4" style="overflow: visible; position: relative; z-index: 2;">
             
+            <!-- Alerta de validación backend -->
+            @if($mostrarAlerta)
+                <div class="mb-4 alert alert-danger alert-dismissible fade show" role="alert">
+                    <strong>⚠️ Campo requerido:</strong> {{ $mensajeAlerta }}
+                    <button type="button" class="btn-close" wire:click="cerrarAlerta" aria-label="Close"></button>
+                </div>
+            @endif
+            
             <!-- Búsqueda de Usuario -->
             <div class="mb-4" style="position: relative; z-index: 10;">
                 <div class="p-4 bg-white border shadow rounded-xl" style="overflow: visible;">
@@ -35,12 +43,16 @@
                         <label for="buscarUsuario" class="form-label">Usuario <span class="text-red-600">*</span></label>
                         <input type="text" 
                                id="buscarUsuario"
-                               class="form-control" 
+                               class="form-control {{ $this->getClaseCampo('buscarUsuario') }}" 
                                wire:model.live="buscarUsuario"
                                wire:focus="enfocarUsuario"
                                wire:click="enfocarUsuario"
                                placeholder="Escriba el nombre o email del usuario..."
                                autocomplete="off">
+                        
+                        @if(in_array('buscarUsuario', $camposConError))
+                            <div class="text-danger mt-1 text-sm">❌ Debe seleccionar un usuario válido</div>
+                        @endif
                         
                         <!-- Lista desplegable de usuarios -->
                         @if($mostrarSugerencias && count($usuariosSugeridos) > 0)
@@ -130,7 +142,7 @@
                         <div class="row">
                             <div class="col-md-8">
                                 <label for="nuevaSucursal" class="form-label">Seleccionar Nueva Sucursal <span class="text-red-600">*</span></label>
-                                <select wire:model="nuevaSucursalId" wire:change="$refresh" id="nuevaSucursal" class="form-select">
+                                <select wire:model="nuevaSucursalId" wire:change="$refresh" id="nuevaSucursal" class="form-select {{ $this->getClaseCampo('nuevaSucursalId') }}">
                                     <option value="">Seleccione una sucursal...</option>
                                     @foreach($tiendas as $tienda)
                                         <option value="{{ $tienda->id }}" {{ $tienda->id == $sucursalActualId ? 'disabled' : '' }}>
@@ -139,6 +151,9 @@
                                         </option>
                                     @endforeach
                                 </select>
+                                @if(in_array('nuevaSucursalId', $camposConError))
+                                    <div class="text-danger mt-1 text-sm">❌ Debe seleccionar una nueva sucursal válida</div>
+                                @endif
                             </div>
                             <div class="col-md-4 d-flex align-items-end">
                                 <button wire:click="confirmarCambio" 
@@ -289,6 +304,26 @@
             .dropdown-suggestions {
                 max-height: 250px;
             }
+        }
+        
+        /* Estilos para campos obligatorios con error */
+        .campo-obligatorio-vacio {
+            border-color: #dc3545 !important;
+            box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25) !important;
+            background-color: #fdf2f2 !important;
+        }
+        
+        .is-invalid {
+            border-color: #dc3545 !important;
+            padding-right: calc(1.5em + 0.75rem) !important;
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc3545'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23dc3545' stroke='none'/%3e%3c/svg%3e") !important;
+            background-repeat: no-repeat !important;
+            background-position: right calc(0.375em + 0.1875rem) center !important;
+            background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem) !important;
+        }
+        
+        .text-danger {
+            color: #dc3545 !important;
         }
     </style>
 

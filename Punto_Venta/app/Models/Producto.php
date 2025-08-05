@@ -39,6 +39,11 @@ class Producto extends Model
         return $this->belongsTo(Subcategoria::class);
     }
 
+    public function categoria()
+    {
+        return $this->belongsTo(Categoria::class, 'categoria_id');
+    }
+
     public function marca()
     {
         return $this->belongsTo(Marca::class);
@@ -52,6 +57,11 @@ class Producto extends Model
     public function unidadMedidaCompra()
     {
         return $this->belongsTo(UnidadMedida::class, 'unidad_medida_compra_id');
+    }
+
+    public function unidadMedidaVenta()
+    {
+        return $this->belongsTo(UnidadMedida::class, 'unidad_medida_venta_id');
     }
 
     public function recibidosBodega()

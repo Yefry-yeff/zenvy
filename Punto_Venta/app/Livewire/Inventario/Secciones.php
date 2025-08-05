@@ -259,10 +259,9 @@ class Secciones extends Component
 
     public function verProductos($seccionId)
     {
-        // Placeholder para redirigir a la gestión de productos de la sección
-        // $this->dispatch('cambiarVista', ruta: 'Inventario.Productos', parametros: [
-        //     'seccionId' => $seccionId
-        // ]);
+        $this->dispatch('cambiarVista', ruta: 'Inventario.ProductosSeccion', parametros: [
+            'seccionId' => $seccionId
+        ]);
     }
 
     public function eliminarSeccion($seccionId)
