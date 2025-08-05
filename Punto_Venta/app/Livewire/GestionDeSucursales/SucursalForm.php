@@ -64,6 +64,12 @@ class SucursalForm extends Component
     public $mostrarAlerta = false;
     public $mensajeAlerta = '';
     public $campoConError = '';
+    
+    // Propiedades para modales de éxito y error
+    public $mostrarModalExito = false;
+    public $mensajeModalExito = '';
+    public $mostrarModalError = false;
+    public $mensajeModalError = '';
 
     protected function rules()
     {
@@ -301,19 +307,19 @@ class SucursalForm extends Component
             
             if ($this->isEditing) {
                 $sucursal->update($this->form);
-                session()->flash('mensaje', 'Sucursal actualizada correctamente.');
+                $this->mensajeModalExito = 'Sucursal actualizada correctamente.';
             } else {
                 $this->form['users_creador_id'] = Auth::id();
                 Tienda::create($this->form);
-                session()->flash('mensaje', 'Sucursal creada correctamente.');
+                $this->mensajeModalExito = 'Sucursal creada correctamente.';
             }
 
-            return $this->dispatch('cambiarVista', ruta: 'GestionDeSucursales.sucursales');
+            $this->mostrarModalExito = true;
 
         } catch (\Exception $e) {
             Log::error('Error al guardar sucursal: ' . $e->getMessage());
-            $this->mostrarAlerta = true;
-            $this->mensajeAlerta = 'Error al guardar la sucursal. Por favor, inténtelo de nuevo.';
+            $this->mensajeModalError = 'Error al guardar la sucursal. Por favor, inténtelo de nuevo.';
+            $this->mostrarModalError = true;
         }
     }
 
@@ -589,5 +595,22 @@ class SucursalForm extends Component
         }
         
         return '';
+    }
+
+    // ===== MÉTODOS PARA MODALES =====
+
+    public function cerrarModalExito()
+    {
+        $this->mostrarModalExito = false;
+        $this->mensajeModalExito = '';
+        
+        // Redirigir a la lista después de cerrar el modal
+        return $this->dispatch('cambiarVista', ruta: 'GestionDeSucursales.sucursales');
+    }
+
+    public function cerrarModalError()
+    {
+        $this->mostrarModalError = false;
+        $this->mensajeModalError = '';
     }
 }
