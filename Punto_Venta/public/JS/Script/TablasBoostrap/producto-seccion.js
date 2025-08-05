@@ -1,5 +1,5 @@
  var productosSeccionTableObserver = null;
-        function initProductosTable() {
+        function initproductosSeccionTable() {
             setTimeout(function() {
                 var $table = $('#productosSeccionTable');
                 if ($table.length) {

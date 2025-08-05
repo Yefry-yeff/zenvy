@@ -61,7 +61,7 @@
 
            <!-- Tabla de Productos -->
             <div class="table-responsive">
-                <table class="table mb-0 align-middle table-sm table-hover table-bordered">
+                <table id="productosSeccionTable" class="table mb-0 align-middle table-sm table-hover table-bordered">
                     <thead class="table-light">
                         <tr class="text-center align-middle">
                             <th>ID</th>
