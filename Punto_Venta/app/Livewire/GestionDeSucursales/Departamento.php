@@ -22,6 +22,9 @@ class Departamento extends Component
     public $isEdit = false;
     public $showMunicipioModal = false;
     public $editingMunicipio = false;
+    public $modalEliminarAbierto = false;
+    public $modalDepartamentoAbierto = false;
+    public $departamentoAEliminar = null;
     
     // Propiedades para alertas
     public $alertMessage = '';
@@ -66,23 +69,27 @@ class Departamento extends Component
                 $departamento->update([
                     'nombre' => $this->nombre_departamento,
                 ]);
-                $this->alertMessage = 'Departamento actualizado correctamente.';
+                session()->flash('mensaje', 'Departamento actualizado correctamente.');
             } else {
                 ModelDepartamento::create([
                     'nombre' => $this->nombre_departamento,
                     'user_registro_id' => Auth::id(),
                 ]);
-                $this->alertMessage = 'Departamento creado correctamente.';
+                session()->flash('mensaje', 'Departamento creado correctamente.');
             }
             
-            $this->alertType = 'success';
             $this->resetDepartamento();
-            $this->dispatch('cerrarModal');
             
         } catch (\Exception $e) {
-            $this->alertMessage = 'Error al procesar el departamento: ' . $e->getMessage();
-            $this->alertType = 'error';
+            session()->flash('error', 'Error al procesar el departamento: ' . $e->getMessage());
         }
+    }
+
+    // Función para abrir modal de crear departamento
+    public function abrirModalCrear()
+    {
+        $this->resetDepartamento();
+        $this->modalDepartamentoAbierto = true;
     }
 
     // Función para editar departamento
@@ -94,28 +101,44 @@ class Departamento extends Component
             $this->nombre_departamento = $departamento->nombre;
             $this->municipios = $departamento->municipios->toArray();
             $this->isEdit = true;
+            $this->modalDepartamentoAbierto = true;
         }
     }
 
+    // Función para confirmar eliminación
+    public function confirmarEliminar($id)
+    {
+        $this->departamentoAEliminar = $id;
+        $this->modalEliminarAbierto = true;
+    }
+
+    // Función para cerrar modal de eliminación
+    public function cerrarModalEliminar()
+    {
+        $this->modalEliminarAbierto = false;
+        $this->departamentoAEliminar = null;
+    }
+
     // Función para eliminar departamento
-    public function eliminarDepartamento($id)
+    public function eliminarDepartamento()
     {
         try {
-            $departamento = ModelDepartamento::find($id);
-            if ($departamento) {
-                // Verificar si tiene municipios asociados
-                if ($departamento->municipios()->count() > 0) {
-                    $this->alertMessage = 'No se puede eliminar el departamento porque tiene municipios asociados.';
-                    $this->alertType = 'warning';
-                } else {
-                    $departamento->delete();
-                    $this->alertMessage = 'Departamento eliminado correctamente.';
-                    $this->alertType = 'success';
+            if ($this->departamentoAEliminar) {
+                $departamento = ModelDepartamento::find($this->departamentoAEliminar);
+                if ($departamento) {
+                    // Verificar si tiene municipios asociados
+                    if ($departamento->municipios()->count() > 0) {
+                        session()->flash('error', 'No se puede eliminar el departamento porque tiene municipios asociados.');
+                    } else {
+                        $departamento->delete();
+                        session()->flash('mensaje', 'Departamento eliminado correctamente.');
+                    }
                 }
             }
+            $this->cerrarModalEliminar();
         } catch (\Exception $e) {
-            $this->alertMessage = 'Error al eliminar el departamento: ' . $e->getMessage();
-            $this->alertType = 'error';
+            session()->flash('error', 'Error al eliminar el departamento: ' . $e->getMessage());
+            $this->cerrarModalEliminar();
         }
     }
 
@@ -215,6 +238,7 @@ class Departamento extends Component
         $this->departamento_id = null;
         $this->isEdit = false;
         $this->municipios = [];
+        $this->modalDepartamentoAbierto = false;
         $this->resetErrorBag();
     }
 

@@ -1,84 +1,92 @@
-<div>
-    {{-- Alertas --}}
-    @if($alertMessage)
-        <div class="alert alert-{{ $alertType == 'success' ? 'success' : ($alertType == 'error' ? 'danger' : 'warning') }} alert-dismissible fade show" role="alert">
-            <i class="fas fa-{{ $alertType == 'success' ? 'check-circle' : ($alertType == 'error' ? 'exclamation-triangle' : 'exclamation-circle') }}"></i>
-            {{ $alertMessage }}
-            <button type="button" class="btn-close" wire:click="cerrarAlerta" aria-label="Close"></button>
-        </div>
-    @endif
+<div> {{-- ELEMENTO RAÍZ ÚNICO OBLIGATORIO --}}
 
-    {{-- Encabezado y botón para agregar --}}
-    <div class="row mb-3">
-        <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center">
-                <h4 class="mb-0">
-                    <i class="fas fa-map-marked-alt me-2"></i>
-                    Gestión de Departamentos
-                </h4>
-                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalDepartamento" wire:click="resetDepartamento">
-                    <i class="fas fa-plus me-1"></i>
-                    Nuevo Departamento
-                </button>
+    {{-- Tabla de Departamentos --}}
+    <div class="overflow-hidden border border-gray-300 rounded shadow" x-data x-init="$watch('theme', t => localStorage.setItem('theme', t))">
+
+        <!-- ENCABEZADO -->
+        <div class="flex items-center justify-between px-5 py-3 mb-4 font-semibold text-white rounded-t"
+            :class="{
+                'bg-emerald-600': theme === 'verde',
+                'bg-blue-600': theme === 'azul',
+                'bg-gray-900': theme === 'oscuro',
+                'bg-slate-700': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
+            }"
+        >
+            <h5 class="mb-0 text-lg">Gestión de Departamentos</h5>
+            <button wire:click="abrirModalCrear"
+                class="inline-flex items-center gap-1 px-3 py-2 text-sm text-gray-800 bg-white rounded hover:bg-gray-100">
+                <span>➕</span> Agregar Departamento
+            </button>
+        </div>
+
+        <!-- TABLA -->
+        <div class="px-4 py-3 pt-0 card-body">
+            <div class="table-responsive">
+                <table id="departamentosTable" class="table mb-0 align-middle table-sm table-hover table-bordered">
+                    <thead class="table-light">
+                        <tr class="text-center align-middle">
+                            <th>ID</th>
+                            <th>Nombre</th>
+                            <th>Municipios</th>
+                            <th>Registrado por</th>
+                            <th style="width: 150px;">Fecha Registro</th>
+                            <th style="width: 60px;">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($departamentos as $departamento)
+                            <tr class="text-center align-middle hover:bg-gray-50">
+                                <td class="cursor-pointer" wire:click="editarDepartamento({{ $departamento->id }})">{{ $departamento->id }}</td>
+                                <td class="text-start cursor-pointer" wire:click="editarDepartamento({{ $departamento->id }})">{{ $departamento->nombre }}</td>
+                                <td class="cursor-pointer" wire:click="editarDepartamento({{ $departamento->id }})">
+                                    <span class="badge bg-info">
+                                        {{ $departamento->municipios->count() }} municipios
+                                    </span>
+                                </td>
+                                <td class="cursor-pointer" wire:click="editarDepartamento({{ $departamento->id }})">{{ $departamento->userRegistro->name ?? 'N/A' }}</td>
+                                <td class="cursor-pointer" wire:click="editarDepartamento({{ $departamento->id }})">{{ $departamento->created_at ? $departamento->created_at->format('d/m/Y') : 'N/A' }}</td>
+                                <td>
+                                    <button type="button" class="p-0 btn btn-link" wire:click="confirmarEliminar({{ $departamento->id }})" title="Eliminar" onclick="event.stopPropagation();">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 7v12a2 2 0 002 2h8a2 2 0 002-2V7M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2m-7 0h10" style="color:#e3342f;" />
+                                            <line x1="10" y1="11" x2="10" y2="17" stroke="#e3342f" stroke-width="2"/>
+                                            <line x1="14" y1="11" x2="14" y2="17" stroke="#e3342f" stroke-width="2"/>
+                                        </svg>
+                                    </button>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="6" class="py-4 text-center text-muted">No hay departamentos disponibles.</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
             </div>
         </div>
+
     </div>
 
-    {{-- Tabla de departamentos --}}
-    <div class="row">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-table me-2"></i>
-                        Lista de Departamentos
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-striped table-hover" id="tablaDepartamentos">
-                            <thead class="table-dark">
-                                <tr>
-                                    <th>ID</th>
-                                    <th>Nombre</th>
-                                    <th>Municipios</th>
-                                    <th>Registrado por</th>
-                                    <th>Fecha Registro</th>
-                                    <th>Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach($departamentos as $departamento)
-                                    <tr>
-                                        <td>{{ $departamento->id }}</td>
-                                        <td>{{ $departamento->nombre }}</td>
-                                        <td>
-                                            <span class="badge bg-info">
-                                                {{ $departamento->municipios->count() }} municipios
-                                            </span>
-                                        </td>
-                                        <td>{{ $departamento->userRegistro->name ?? 'N/A' }}</td>
-                                        <td>{{ $departamento->created_at ? $departamento->created_at->format('d/m/Y H:i') : 'N/A' }}</td>
-                                        <td>
-                                            <div class="btn-group btn-group-sm" role="group">
-                                                <button type="button" class="btn btn-warning" 
-                                                        data-bs-toggle="modal" 
-                                                        data-bs-target="#modalDepartamento"
-                                                        wire:click="editarDepartamento({{ $departamento->id }})"
-                                                        title="Editar">
-                                                    <i class="fas fa-edit"></i>
-                                                </button>
-                                                <button type="button" class="btn btn-danger" 
-                                                        onclick="confirmarEliminacion({{ $departamento->id }})"
-                                                        title="Eliminar">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
+    <!-- Modal Confirmar Eliminación -->
+    <div wire:key="modal-confirmar-eliminar">
+        <div class="modal fade show"
+             tabindex="-1"
+             style="display: @if($modalEliminarAbierto ?? false) block @else none @endif; background: rgba(0,0,0,0.5); z-index: 1000;"
+             aria-modal="true"
+             role="dialog"
+             @click.self="@this.cerrarModalEliminar()"
+        >
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="text-white modal-header bg-danger">
+                        <h5 class="modal-title">¿Eliminar departamento?</h5>
+                    </div>
+                    <div class="modal-body">
+                        <p>¿Estás seguro que deseas eliminar este departamento? Esta acción no se puede deshacer.</p>
+                        <div class="flex justify-end gap-2 mt-4">
+                            <button type="button" class="btn btn-secondary" wire:click="cerrarModalEliminar">No</button>
+                            <button type="button" class="btn btn-danger" wire:click="eliminarDepartamento">Sí, eliminar</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -86,16 +94,23 @@
     </div>
 
     {{-- Modal para Departamento --}}
-    <div class="modal fade" id="modalDepartamento" tabindex="-1" aria-labelledby="modalDepartamentoLabel" aria-hidden="true" wire:ignore.self>
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="modalDepartamentoLabel">
-                        <i class="fas fa-{{ $isEdit ? 'edit' : 'plus' }} me-2"></i>
-                        {{ $isEdit ? 'Editar' : 'Nuevo' }} Departamento
-                    </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" wire:click="resetDepartamento"></button>
-                </div>
+    <div wire:key="modal-departamento">
+        <div class="modal fade show"
+             tabindex="-1"
+             style="display: @if($modalDepartamentoAbierto ?? false) block @else none @endif; background: rgba(0,0,0,0.5); z-index: 1000;"
+             aria-modal="true"
+             role="dialog"
+             @click.self="@this.resetDepartamento()"
+        >
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="modalDepartamentoLabel">
+                            <i class="fas fa-{{ $isEdit ? 'edit' : 'plus' }} me-2"></i>
+                            {{ $isEdit ? 'Editar' : 'Nuevo' }} Departamento
+                        </h5>
+                        <button type="button" class="btn-close" wire:click="resetDepartamento"></button>
+                    </div>
                 <div class="modal-body">
                     <form wire:submit.prevent="guardarDepartamento">
                         <div class="row">
@@ -105,10 +120,10 @@
                                         <i class="fas fa-map-marked-alt me-1"></i>
                                         Nombre del Departamento <span class="text-danger">*</span>
                                     </label>
-                                    <input type="text" 
-                                           class="form-control {{ $this->getClaseCampo('nombre_departamento') }}" 
-                                           id="nombre_departamento" 
-                                           wire:model="nombre_departamento" 
+                                    <input type="text"
+                                           class="form-control {{ $this->getClaseCampo('nombre_departamento') }}"
+                                           id="nombre_departamento"
+                                           wire:model="nombre_departamento"
                                            placeholder="Ingrese el nombre del departamento">
                                     @error('nombre_departamento')
                                         <div class="invalid-feedback">{{ $message }}</div>
@@ -119,9 +134,9 @@
 
                         {{-- Sección de municipios cuando se está editando --}}
                         @if($isEdit && count($municipios) > 0)
-                            <div class="row mt-4">
+                            <div class="mt-4 row">
                                 <div class="col-12">
-                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <div class="mb-3 d-flex justify-content-between align-items-center">
                                         <h6 class="mb-0">
                                             <i class="fas fa-city me-2"></i>
                                             Municipios del Departamento
@@ -147,12 +162,12 @@
                                                         <td>{{ $municipio['nombre'] }}</td>
                                                         <td>
                                                             <div class="btn-group btn-group-sm">
-                                                                <button type="button" class="btn btn-warning btn-sm" 
+                                                                <button type="button" class="btn btn-warning btn-sm"
                                                                         wire:click="editarMunicipio({{ $municipio['id'] }})"
                                                                         title="Editar">
                                                                     <i class="fas fa-edit"></i>
                                                                 </button>
-                                                                <button type="button" class="btn btn-danger btn-sm" 
+                                                                <button type="button" class="btn btn-danger btn-sm"
                                                                         onclick="confirmarEliminacionMunicipio({{ $municipio['id'] }})"
                                                                         title="Eliminar">
                                                                     <i class="fas fa-trash"></i>
@@ -169,9 +184,9 @@
                         @endif
 
                         @if($isEdit && count($municipios) == 0)
-                            <div class="row mt-4">
+                            <div class="mt-4 row">
                                 <div class="col-12">
-                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <div class="mb-3 d-flex justify-content-between align-items-center">
                                         <h6 class="mb-0">
                                             <i class="fas fa-city me-2"></i>
                                             Municipios del Departamento
@@ -190,7 +205,7 @@
                         @endif
 
                         <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" wire:click="resetDepartamento">
+                            <button type="button" class="btn btn-secondary" wire:click="resetDepartamento">
                                 <i class="fas fa-times me-1"></i>
                                 Cancelar
                             </button>
@@ -206,16 +221,23 @@
     </div>
 
     {{-- Modal para Municipio --}}
-    <div class="modal fade" id="modalMunicipio" tabindex="-1" aria-labelledby="modalMunicipioLabel" aria-hidden="true" wire:ignore.self>
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="modalMunicipioLabel">
-                        <i class="fas fa-{{ $editingMunicipio ? 'edit' : 'plus' }} me-2"></i>
-                        {{ $editingMunicipio ? 'Editar' : 'Nuevo' }} Municipio
-                    </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" wire:click="resetMunicipio"></button>
-                </div>
+    <div wire:key="modal-municipio">
+        <div class="modal fade show"
+             tabindex="-1"
+             style="display: @if($showMunicipioModal ?? false) block @else none @endif; background: rgba(0,0,0,0.5); z-index: 1001;"
+             aria-modal="true"
+             role="dialog"
+             @click.self="@this.resetMunicipio()"
+        >
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="modalMunicipioLabel">
+                            <i class="fas fa-{{ $editingMunicipio ? 'edit' : 'plus' }} me-2"></i>
+                            {{ $editingMunicipio ? 'Editar' : 'Nuevo' }} Municipio
+                        </h5>
+                        <button type="button" class="btn-close" wire:click="resetMunicipio"></button>
+                    </div>
                 <div class="modal-body">
                     <form wire:submit.prevent="guardarMunicipio">
                         <div class="mb-3">
@@ -223,17 +245,17 @@
                                 <i class="fas fa-city me-1"></i>
                                 Nombre del Municipio <span class="text-danger">*</span>
                             </label>
-                            <input type="text" 
-                                   class="form-control {{ $this->getClaseCampo('nombre_municipio') }}" 
-                                   id="nombre_municipio" 
-                                   wire:model="nombre_municipio" 
+                            <input type="text"
+                                   class="form-control {{ $this->getClaseCampo('nombre_municipio') }}"
+                                   id="nombre_municipio"
+                                   wire:model="nombre_municipio"
                                    placeholder="Ingrese el nombre del municipio">
                             @error('nombre_municipio')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                         </div>
                         <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" wire:click="resetMunicipio">
+                            <button type="button" class="btn btn-secondary" wire:click="resetMunicipio">
                                 <i class="fas fa-times me-1"></i>
                                 Cancelar
                             </button>
@@ -248,59 +270,46 @@
         </div>
     </div>
 
-    {{-- Scripts para confirmaciones y DataTable --}}
-    <script>
-        // Función para confirmar eliminación de departamento
-        function confirmarEliminacion(id) {
-            if (confirm('¿Está seguro de que desea eliminar este departamento?')) {
-                @this.eliminarDepartamento(id);
-            }
-        }
+    @if (session()->has('mensaje'))
+        <div x-data="{ show: true }" x-show="show"
+             @click.window="show = false"
+             @keydown.window="show = false"
+             @mousemove.window="show = false"
+             class="mt-3 mb-0 transition-opacity duration-300 alert alert-success">
+            {{ session('mensaje') }}
+        </div>
+    @endif
 
+    @if (session()->has('error'))
+        <div x-data="{ show: true }" x-show="show"
+             @click.window="show = false"
+             @keydown.window="show = false"
+             @mousemove.window="show = false"
+             class="mt-3 mb-0 transition-opacity duration-300 alert alert-danger">
+            {{ session('error') }}
+        </div>
+    @endif
+
+        @if($alertMessage)
+        <div x-data="{ show: true }" x-show="show"
+             @click.window="show = false"
+             @keydown.window="show = false"
+             @mousemove.window="show = false"
+             class="alert alert-{{ $alertType == 'success' ? 'success' : ($alertType == 'error' ? 'danger' : 'warning') }} mt-3 mb-0 transition-opacity duration-300">
+            <i class="fas fa-{{ $alertType == 'success' ? 'check-circle' : ($alertType == 'error' ? 'exclamation-triangle' : 'exclamation-circle') }}"></i>
+            {{ $alertMessage }}
+        </div>
+    @endif
+
+    <script>
         // Función para confirmar eliminación de municipio
         function confirmarEliminacionMunicipio(id) {
             if (confirm('¿Está seguro de que desea eliminar este municipio?')) {
                 @this.eliminarMunicipio(id);
             }
         }
-
-        // Event listeners para manejar modales
-        document.addEventListener('livewire:init', function () {
-            // Cerrar modal departamento
-            Livewire.on('cerrarModal', () => {
-                var modal = bootstrap.Modal.getInstance(document.getElementById('modalDepartamento'));
-                if (modal) {
-                    modal.hide();
-                }
-            });
-
-            // Cerrar modal municipio
-            Livewire.on('cerrarModalMunicipio', () => {
-                var modal = bootstrap.Modal.getInstance(document.getElementById('modalMunicipio'));
-                if (modal) {
-                    modal.hide();
-                }
-            });
-        });
-
-        // Mostrar modal municipio cuando se active la propiedad
-        document.addEventListener('livewire:updated', function () {
-            if (@js($showMunicipioModal)) {
-                var modal = new bootstrap.Modal(document.getElementById('modalMunicipio'));
-                modal.show();
-            }
-        });
-
-        // Inicializar DataTable después de que la vista se haya cargado
-        document.addEventListener('DOMContentLoaded', function() {
-            // Aquí puedes agregar la inicialización de DataTable si la necesitas
-            // $('#tablaDepartamentos').DataTable({
-            //     language: {
-            //         url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/es-ES.json'
-            //     },
-            //     responsive: true,
-            //     order: [[0, 'desc']]
-            // });
-        });
     </script>
-</div>
+
+</div> {{-- FIN ELEMENTO RAÍZ --}}
+
+</div> {{-- FIN ELEMENTO RAÍZ --}}
