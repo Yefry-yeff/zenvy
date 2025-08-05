@@ -24,6 +24,7 @@ class Departamento extends Component
     public $modalEliminarAbierto = false;
     public $modalDepartamentoAbierto = false;
     public $departamentoAEliminar = null;
+    public $renderModals = false;
     
     // Propiedades para alertas
     public $alertMessage = '';
@@ -42,6 +43,11 @@ class Departamento extends Component
         'nombre_municipio.min' => 'El nombre del municipio debe tener al menos 2 caracteres.',
         'nombre_municipio.max' => 'El nombre del municipio no puede exceder 45 caracteres.',
     ];
+
+    public function mount()
+    {
+        $this->renderModals = true;
+    }
 
     public function render()
     {
@@ -88,6 +94,7 @@ class Departamento extends Component
     public function abrirModalCrear()
     {
         $this->resetDepartamento();
+        $this->renderModals = true;
         $this->modalDepartamentoAbierto = true;
     }
 
@@ -100,6 +107,7 @@ class Departamento extends Component
             $this->nombre_departamento = $departamento->nombre;
             $this->municipios = $departamento->municipios->toArray();
             $this->isEdit = true;
+            $this->renderModals = true;
             $this->modalDepartamentoAbierto = true;
         }
     }
@@ -108,6 +116,7 @@ class Departamento extends Component
     public function confirmarEliminar($id)
     {
         $this->departamentoAEliminar = $id;
+        $this->renderModals = true;
         $this->modalEliminarAbierto = true;
     }
 
@@ -200,6 +209,7 @@ class Departamento extends Component
             return;
         }
         $this->resetMunicipio();
+        $this->renderModals = true;
         $this->showMunicipioModal = true;
     }
 
@@ -228,5 +238,14 @@ class Departamento extends Component
     {
         $this->alertMessage = '';
         $this->alertType = '';
+    }
+
+    // Función para limpiar estado al destruir el componente
+    public function dehydrate()
+    {
+        // Limpiar modales al cambiar de vista
+        if (!$this->modalDepartamentoAbierto && !$this->modalEliminarAbierto && !$this->showMunicipioModal) {
+            $this->renderModals = false;
+        }
     }
 }

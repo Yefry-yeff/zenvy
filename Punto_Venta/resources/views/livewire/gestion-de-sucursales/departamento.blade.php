@@ -67,50 +67,55 @@
 
     </div>
 
-    <!-- Modal Confirmar Eliminación -->
-    <div wire:key="modal-confirmar-eliminar">
-        <div class="modal fade show"
-             tabindex="-1"
-             style="display: @if($modalEliminarAbierto ?? false) block @else none @endif; background: rgba(0,0,0,0.5); z-index: 1000;"
-             aria-modal="true"
-             role="dialog"
-             @click.self="@this.cerrarModalEliminar()"
-        >
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content">
-                    <div class="text-white modal-header bg-danger">
-                        <h5 class="modal-title">¿Eliminar departamento?</h5>
-                    </div>
-                    <div class="modal-body">
-                        <p>¿Estás seguro que deseas eliminar este departamento? Esta acción no se puede deshacer.</p>
-                        <div class="flex justify-end gap-2 mt-4">
-                            <button type="button" class="btn btn-secondary" wire:click="cerrarModalEliminar">No</button>
-                            <button type="button" class="btn btn-danger" wire:click="eliminarDepartamento">Sí, eliminar</button>
+    {{-- Modales solo se renderizan cuando es necesario --}}
+    @if($renderModals ?? false)
+        <!-- Modal Confirmar Eliminación -->
+        @if($modalEliminarAbierto ?? false)
+            <div wire:key="modal-confirmar-eliminar-{{ $departamentoAEliminar }}">
+                <div class="modal fade show"
+                     tabindex="-1"
+                     style="display: block; background: rgba(0,0,0,0.5); z-index: 1000;"
+                     aria-modal="true"
+                     role="dialog"
+                     @click.self="@this.cerrarModalEliminar()"
+                >
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="text-white modal-header bg-danger">
+                                <h5 class="modal-title">¿Eliminar departamento?</h5>
+                            </div>
+                            <div class="modal-body">
+                                <p>¿Estás seguro que deseas eliminar este departamento? Esta acción no se puede deshacer.</p>
+                                <div class="flex justify-end gap-2 mt-4">
+                                    <button type="button" class="btn btn-secondary" wire:click="cerrarModalEliminar">No</button>
+                                    <button type="button" class="btn btn-danger" wire:click="eliminarDepartamento">Sí, eliminar</button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
+        @endif
 
-    {{-- Modal para Departamento --}}
-    <div wire:key="modal-departamento">
-        <div class="modal fade show"
-             tabindex="-1"
-             style="display: @if($modalDepartamentoAbierto ?? false) block @else none @endif; background: rgba(0,0,0,0.5); z-index: 1000;"
-             aria-modal="true"
-             role="dialog"
-             @click.self="@this.resetDepartamento()"
-        >
-            <div class="modal-dialog modal-lg">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="modalDepartamentoLabel">
-                            <i class="fas fa-{{ $isEdit ? 'edit' : 'plus' }} me-2"></i>
-                            {{ $isEdit ? 'Editar' : 'Nuevo' }} Departamento
-                        </h5>
-                        <button type="button" class="btn-close" wire:click="resetDepartamento"></button>
-                    </div>
+        {{-- Modal para Departamento --}}
+        @if($modalDepartamentoAbierto ?? false)
+            <div wire:key="modal-departamento-{{ $departamento_id ?? 'nuevo' }}">
+                <div class="modal fade show"
+                     tabindex="-1"
+                     style="display: block; background: rgba(0,0,0,0.5); z-index: 1000;"
+                     aria-modal="true"
+                     role="dialog"
+                     @click.self="@this.resetDepartamento()"
+                >
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="modalDepartamentoLabel">
+                                    <i class="fas fa-{{ $isEdit ? 'edit' : 'plus' }} me-2"></i>
+                                    {{ $isEdit ? 'Editar' : 'Nuevo' }} Departamento
+                                </h5>
+                                <button type="button" class="btn-close" wire:click="resetDepartamento"></button>
+                            </div>
                 <div class="modal-body">
                     <form wire:submit.prevent="guardarDepartamento">
                         <div class="row">
@@ -216,23 +221,25 @@
             </div>
         </div>
     </div>
+        @endif
 
-    {{-- Modal para Municipio --}}
-    <div wire:key="modal-municipio">
-        <div class="modal fade show"
-             tabindex="-1"
-             style="display: @if($showMunicipioModal ?? false) block @else none @endif; background: rgba(0,0,0,0.5); z-index: 1001;"
-             aria-modal="true"
-             role="dialog"
-             @click.self="@this.resetMunicipio()"
-        >
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="modalMunicipioLabel">
-                            <i class="fas fa-plus me-2"></i>
-                            Nuevo Municipio
-                        </h5>
+        {{-- Modal para Municipio --}}
+        @if($showMunicipioModal ?? false)
+            <div wire:key="modal-municipio-{{ $departamento_id ?? 'nuevo' }}">
+                <div class="modal fade show"
+                     tabindex="-1"
+                     style="display: block; background: rgba(0,0,0,0.5); z-index: 1001;"
+                     aria-modal="true"
+                     role="dialog"
+                     @click.self="@this.resetMunicipio()"
+                >
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="modalMunicipioLabel">
+                                    <i class="fas fa-plus me-2"></i>
+                                    Nuevo Municipio
+                                </h5>
                         <button type="button" class="btn-close" wire:click="resetMunicipio"></button>
                     </div>
                 <div class="modal-body">
@@ -266,6 +273,8 @@
             </div>
         </div>
     </div>
+        @endif
+    @endif
 
     @if (session()->has('mensaje'))
         <div x-data="{ show: true }" x-show="show"
