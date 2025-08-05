@@ -23,7 +23,7 @@
 
         <!-- CONTENIDO -->
         <div class="px-5 py-4" style="overflow: visible; position: relative; z-index: 2;">
-            
+
             <!-- Alerta de validación backend -->
             @if($mostrarAlerta)
                 <div class="mb-4 alert alert-danger alert-dismissible fade show" role="alert">
@@ -31,67 +31,76 @@
                     <button type="button" class="btn-close" wire:click="cerrarAlerta" aria-label="Close"></button>
                 </div>
             @endif
-            
+
             <!-- Búsqueda de Usuario -->
             <div class="mb-4" style="position: relative; z-index: 10;">
                 <div class="p-4 bg-white border shadow rounded-xl" style="overflow: visible;">
                     <h3 class="mb-3 text-lg font-semibold text-gray-700">
                         <i class="fas fa-search me-2"></i>Buscar Usuario
                     </h3>
-                    
-                    <div class="position-relative" style="z-index: 20;">
-                        <label for="buscarUsuario" class="form-label">Usuario <span class="text-red-600">*</span></label>
-                        <input type="text" 
-                               id="buscarUsuario"
-                               class="form-control {{ $this->getClaseCampo('buscarUsuario') }}" 
-                               wire:model.live="buscarUsuario"
-                               wire:focus="enfocarUsuario"
-                               wire:click="enfocarUsuario"
-                               placeholder="Escriba el nombre o email del usuario..."
-                               autocomplete="off">
-                        
-                        @if(in_array('buscarUsuario', $camposConError))
-                            <div class="text-danger mt-1 text-sm">❌ Debe seleccionar un usuario válido</div>
-                        @endif
-                        
-                        <!-- Lista desplegable de usuarios -->
-                        @if($mostrarSugerencias && count($usuariosSugeridos) > 0)
-                            <div class="dropdown-suggestions position-absolute w-100 bg-white border border-top-0 rounded-bottom shadow-lg">
-                                @foreach($usuariosSugeridos as $usuario)
-                                    <div wire:click="seleccionarUsuario({{ $usuario->id }})" 
-                                         class="dropdown-item-custom px-3 py-2 cursor-pointer border-bottom">
-                                        <div class="d-flex justify-content-between align-items-center">
-                                            <div>
-                                                <strong>{{ $usuario->name }}</strong><br>
-                                                <small class="text-muted">{{ $usuario->email }}</small>
-                                            </div>
-                                            <div class="text-end">
-                                                <small class="text-primary">
-                                                    {{ $usuario->tienda ? $usuario->tienda->denominacion_social : 'Sin sucursal' }}
-                                                </small>
-                                            </div>
-                                        </div>
-                                    </div>
-                                @endforeach
-                            </div>
-                        @endif
-                        
-                        @if($mostrarSugerencias && count($usuariosSugeridos) == 0 && strlen($buscarUsuario) >= 1)
-                            <div class="dropdown-suggestions position-absolute w-100 bg-white border border-top-0 rounded-bottom shadow-lg">
-                                <div class="px-3 py-2 text-muted text-center">
-                                    No se encontraron usuarios que coincidan con "{{ $buscarUsuario }}"
-                                </div>
-                            </div>
-                        @endif
 
-                        @if($mostrarSugerencias && count($usuariosSugeridos) == 0 && strlen($buscarUsuario) == 0)
-                            <div class="dropdown-suggestions position-absolute w-100 bg-white border border-top-0 rounded-bottom shadow-lg">
-                                <div class="px-3 py-2 text-muted text-center">
-                                    Haga clic para ver todos los usuarios disponibles
-                                </div>
-                            </div>
-                        @endif
+                  <div class="position-relative" style="z-index: 20;" x-data="{ abierto: false }" @click.away="abierto = false">
+    <label for="buscarUsuario" class="form-label">
+        Usuario <span class="text-red-600">*</span>
+    </label>
+    <input type="text"
+           id="buscarUsuario"
+           class="form-control {{ $this->getClaseCampo('buscarUsuario') }}"
+           wire:model.live="buscarUsuario"
+           @focus="abierto = true"
+           @click="abierto = true"
+           placeholder="Escriba el nombre o email del usuario..."
+           autocomplete="off">
+
+    @if(in_array('buscarUsuario', $camposConError))
+        <div class="mt-1 text-sm text-danger">
+            ❌ Debe seleccionar un usuario válido
+        </div>
+    @endif
+
+    {{-- Lista de sugerencias --}}
+    <template x-if="abierto && @js($mostrarSugerencias) && @js(count($usuariosSugeridos) > 0)">
+        <div class="bg-white border shadow-lg dropdown-suggestions position-absolute w-100 border-top-0 rounded-bottom">
+            @foreach($usuariosSugeridos as $usuario)
+                <div
+                    @mousedown.prevent="
+                        $wire.seleccionarUsuario({{ $usuario->id }});
+                        abierto = false;
+                    "
+                    class="px-3 py-2 cursor-pointer dropdown-item-custom border-bottom">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>{{ $usuario->name }}</strong><br>
+                            <small class="text-muted">{{ $usuario->email }}</small>
+                        </div>
+                        <div class="text-end">
+                            <small class="text-primary">
+                                {{ $usuario->tienda ? $usuario->tienda->denominacion_social : 'Sin sucursal' }}
+                            </small>
+                        </div>
                     </div>
+                </div>
+            @endforeach
+        </div>
+    </template>
+
+    <template x-if="abierto && @js($mostrarSugerencias) && @js(count($usuariosSugeridos) === 0 && strlen($buscarUsuario) >= 1)">
+        <div class="bg-white border shadow-lg dropdown-suggestions position-absolute w-100 border-top-0 rounded-bottom">
+            <div class="px-3 py-2 text-center text-muted">
+                No se encontraron usuarios que coincidan con "{{ $buscarUsuario }}"
+            </div>
+        </div>
+    </template>
+
+    <template x-if="abierto && @js($mostrarSugerencias) && @js(count($usuariosSugeridos) === 0 && strlen($buscarUsuario) === 0)">
+        <div class="bg-white border shadow-lg dropdown-suggestions position-absolute w-100 border-top-0 rounded-bottom">
+            <div class="px-3 py-2 text-center text-muted">
+                Haga clic para ver todos los usuarios disponibles
+            </div>
+        </div>
+    </template>
+</div>
+
                 </div>
             </div>
 
@@ -102,28 +111,28 @@
                         <h3 class="mb-3 text-lg font-semibold text-gray-700">
                             <i class="fas fa-user me-2"></i>Información del Usuario
                         </h3>
-                        
+
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label fw-bold">Nombre Completo</label>
-                                    <div class="p-2 bg-light rounded">{{ $nombreUsuario }}</div>
+                                    <div class="p-2 rounded bg-light">{{ $nombreUsuario }}</div>
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label fw-bold">Email</label>
-                                    <div class="p-2 bg-light rounded">{{ $emailUsuario }}</div>
+                                    <div class="p-2 rounded bg-light">{{ $emailUsuario }}</div>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label fw-bold">Sucursal Actual</label>
-                                    <div class="p-2 bg-light rounded">
+                                    <div class="p-2 rounded bg-light">
                                         <i class="fas fa-store me-2 text-primary"></i>{{ $sucursalActual }}
                                     </div>
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label fw-bold">Rol Asignado</label>
-                                    <div class="p-2 bg-light rounded">
+                                    <div class="p-2 rounded bg-light">
                                         <i class="fas fa-user-tag me-2 text-success"></i>{{ $rolUsuario }}
                                     </div>
                                 </div>
@@ -138,7 +147,7 @@
                         <h3 class="mb-3 text-lg font-semibold text-gray-700">
                             <i class="fas fa-map-marker-alt me-2"></i>Nueva Sucursal
                         </h3>
-                        
+
                         <div class="row">
                             <div class="col-md-8">
                                 <label for="nuevaSucursal" class="form-label">Seleccionar Nueva Sucursal <span class="text-red-600">*</span></label>
@@ -152,11 +161,11 @@
                                     @endforeach
                                 </select>
                                 @if(in_array('nuevaSucursalId', $camposConError))
-                                    <div class="text-danger mt-1 text-sm">❌ Debe seleccionar una nueva sucursal válida</div>
+                                    <div class="mt-1 text-sm text-danger">❌ Debe seleccionar una nueva sucursal válida</div>
                                 @endif
                             </div>
                             <div class="col-md-4 d-flex align-items-end">
-                                <button wire:click="confirmarCambio" 
+                                <button wire:click="confirmarCambio"
                                         class="btn w-100"
                                         :class="{
                                             'btn-success': theme === 'verde' && {{ $this->botonHabilitado ? 'true' : 'false' }},
@@ -213,7 +222,7 @@
         <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
             <div class="modal-dialog">
                 <div class="modal-content">
-                    <div class="modal-header bg-success text-white">
+                    <div class="text-white modal-header bg-success">
                         <h5 class="modal-title">
                             <i class="fas fa-check-circle me-2"></i>¡Éxito!
                         </h5>
@@ -239,7 +248,7 @@
         <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
             <div class="modal-dialog">
                 <div class="modal-content">
-                    <div class="modal-header bg-danger text-white">
+                    <div class="text-white modal-header bg-danger">
                         <h5 class="modal-title">
                             <i class="fas fa-exclamation-triangle me-2"></i>Error
                         </h5>
@@ -271,7 +280,7 @@
         .modal.show {
             display: block !important;
         }
-        
+
         /* Estilos para el dropdown de usuarios */
         .dropdown-suggestions {
             z-index: 9999 !important;
@@ -280,48 +289,47 @@
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15) !important;
             border: 1px solid #dee2e6 !important;
         }
-        
+
         .dropdown-item-custom {
-            transition: background-color 0.2s ease;
+            transition: background-color 0.60s ease;
         }
-        
+
         .dropdown-item-custom:hover {
             background-color: #f8f9fa !important;
             cursor: pointer;
         }
-        
+
         .dropdown-item-custom:last-child {
             border-bottom: none !important;
         }
-        
+
         /* Asegurar que el contenedor padre no corte el dropdown */
         .position-relative {
             overflow: visible !important;
         }
-        
+
         /* Mejorar la visualización en diferentes tamaños de pantalla */
         @media (max-width: 768px) {
             .dropdown-suggestions {
                 max-height: 250px;
             }
         }
-        
+
         /* Estilos para campos obligatorios con error */
         .campo-obligatorio-vacio {
             border-color: #dc3545 !important;
             box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25) !important;
             background-color: #fdf2f2 !important;
         }
-        
+
         .is-invalid {
             border-color: #dc3545 !important;
             padding-right: calc(1.5em + 0.75rem) !important;
-            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc3545'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23dc3545' stroke='none'/%3e%3c/svg%3e") !important;
             background-repeat: no-repeat !important;
             background-position: right calc(0.375em + 0.1875rem) center !important;
             background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem) !important;
         }
-        
+
         .text-danger {
             color: #dc3545 !important;
         }

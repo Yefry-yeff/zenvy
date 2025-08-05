@@ -16,25 +16,25 @@ class CambioDeSucursal extends Component
     public $usuarioSeleccionado = null;
     public $usuariosSugeridos = [];
     public $mostrarSugerencias = false;
-    
+
     // Datos del usuario seleccionado
     public $nombreUsuario = '';
     public $emailUsuario = '';
     public $sucursalActual = '';
     public $rolUsuario = '';
     public $sucursalActualId = null;
-    
+
     // Nueva sucursal
     public $nuevaSucursalId = null;
     public $tiendas = [];
-    
+
     // Modales y mensajes
     public $mostrarModalConfirmacion = false;
     public $mostrarModalExito = false;
     public $mostrarModalError = false;
     public $mensajeModalExito = '';
     public $mensajeModalError = '';
-    
+
     // Validación de campos obligatorios
     public $mostrarAlerta = false;
     public $mensajeAlerta = '';
@@ -49,7 +49,7 @@ class CambioDeSucursal extends Component
     {
         // Esta función se ejecuta automáticamente cuando cambia nuevaSucursalId
         // Fuerza la actualización del estado del botón
-        
+
         // Limpiar errores de validación para el campo sucursal
         $this->camposConError = array_filter($this->camposConError, fn($campo) => $campo !== 'nuevaSucursalId');
         if (empty($this->camposConError)) {
@@ -60,8 +60,8 @@ class CambioDeSucursal extends Component
 
     public function getBotonHabilitadoProperty()
     {
-        return $this->usuarioSeleccionado && 
-               $this->nuevaSucursalId && 
+        return $this->usuarioSeleccionado &&
+               $this->nuevaSucursalId &&
                $this->nuevaSucursalId != $this->sucursalActualId;
     }
 
@@ -116,39 +116,30 @@ class CambioDeSucursal extends Component
             $this->usuariosSugeridos = [];
         }
     }
+public function seleccionarUsuario($usuarioId)
+{
+    try {
+        $usuario = User::with('tienda', 'rol')->findOrFail($usuarioId);
 
-    public function seleccionarUsuario($usuarioId)
-    {
-        try {
-            $usuario = User::with(['tienda', 'rol'])->findOrFail($usuarioId);
-            
-            $this->usuarioSeleccionado = $usuario;
-            $this->buscarUsuario = $usuario->name;
-            $this->nombreUsuario = $usuario->name;
-            $this->emailUsuario = $usuario->email;
-            $this->sucursalActual = $usuario->tienda ? $usuario->tienda->denominacion_social : 'Sin asignar';
-            $this->sucursalActualId = $usuario->tienda_id;
-            $this->rolUsuario = $usuario->rol ? $usuario->rol->txt_nombre : 'Sin rol';
-            $this->nuevaSucursalId = null; // Inicializar vacío para forzar selección
-            
-            $this->mostrarSugerencias = false;
-            $this->usuariosSugeridos = [];
-            
-            // Limpiar errores de validación
-            $this->camposConError = array_filter($this->camposConError, fn($campo) => $campo !== 'buscarUsuario');
-            if (empty($this->camposConError)) {
-                $this->mostrarAlerta = false;
-                $this->mensajeAlerta = '';
-            }
-            
-        } catch (\Exception $e) {
-            Log::error('Error al seleccionar usuario', [
-                'usuario_id' => $usuarioId,
-                'mensaje' => $e->getMessage()
-            ]);
-            $this->mostrarError('Error al cargar los datos del usuario');
-        }
+        // Asignar solo lo necesario para mostrar al usuario
+        $this->usuarioSeleccionado = true;
+        $this->buscarUsuario = $usuario->name;
+        $this->nombreUsuario = $usuario->name;
+        $this->emailUsuario = $usuario->email;
+        $this->sucursalActual = $usuario->tienda->denominacion_social ?? 'Sin asignar';
+        $this->sucursalActualId = $usuario->tienda_id ?? null;
+        $this->rolUsuario = $usuario->rol->txt_nombre ?? 'Sin rol';
+
+        // No tocar aquí lógica de validaciones o sucursales para evitar parpadeo
+        $this->usuariosSugeridos = [];
+        $this->mostrarSugerencias = false;
+
+    } catch (\Exception $e) {
+        $this->mostrarModalError = true;
+        $this->mensajeModalError = 'Error al seleccionar el usuario.';
     }
+}
+
 
     public function limpiarSeleccion()
     {
@@ -184,7 +175,7 @@ class CambioDeSucursal extends Component
             DB::beginTransaction();
 
             $nuevaSucursal = Tiendas::findOrFail($this->nuevaSucursalId);
-            
+
             // Actualizar la sucursal del usuario
             User::where('id', $this->usuarioSeleccionado->id)
                 ->update([
@@ -205,14 +196,14 @@ class CambioDeSucursal extends Component
 
             $this->mostrarModalConfirmacion = false;
             $this->mostrarExito("Cambio de sucursal realizado exitosamente. {$this->nombreUsuario} ha sido transferido a {$nuevaSucursal->denominacion_social}");
-            
+
             // Actualizar la información mostrada
             $this->sucursalActual = $nuevaSucursal->denominacion_social;
             $this->sucursalActualId = $this->nuevaSucursalId;
 
         } catch (\Exception $e) {
             DB::rollback();
-            
+
             Log::error('Error al cambiar sucursal', [
                 'usuario_id' => $this->usuarioSeleccionado->id ?? 'N/A',
                 'nueva_sucursal_id' => $this->nuevaSucursalId,
@@ -298,7 +289,7 @@ class CambioDeSucursal extends Component
     private function validarCamposObligatorios()
     {
         $this->camposConError = [];
-        
+
         if (empty($this->buscarUsuario) || !$this->usuarioSeleccionado) {
             $this->camposConError[] = 'buscarUsuario';
             $this->mostrarAlerta = true;
