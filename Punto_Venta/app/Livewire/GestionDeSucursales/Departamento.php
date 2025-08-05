@@ -12,23 +12,25 @@ class Departamento extends Component
     // Propiedades para el departamento
     public $nombre_departamento = '';
     public $departamento_id = null;
-    
+
     // Propiedades para los municipios
     public $nombre_municipio = '';
     public $municipio_id = null;
     public $municipios = [];
-    
-        // Propiedades de control
+
+    // Propiedades de control
     public $isEdit = false;
     public $showMunicipioModal = false;
     public $modalEliminarAbierto = false;
     public $modalDepartamentoAbierto = false;
+    public $modalEliminarMunicipioAbierto = false;
     public $departamentoAEliminar = null;
-    
+    public $municipioAEliminar = null;
+
     // Propiedades para alertas
     public $alertMessage = '';
     public $alertType = '';
-    
+
     protected $rules = [
         'nombre_departamento' => 'required|min:2|max:45',
         'nombre_municipio' => 'required|min:2|max:45',
@@ -81,9 +83,9 @@ class Departamento extends Component
                 ]);
                 session()->flash('mensaje', 'Departamento creado correctamente.');
             }
-            
+
             $this->resetDepartamento();
-            
+
         } catch (\Exception $e) {
             session()->flash('error', 'Error al procesar el departamento: ' . $e->getMessage());
         }
@@ -165,28 +167,52 @@ class Departamento extends Component
                 'users_registro_id' => Auth::id(),
             ]);
             session()->flash('mensaje', 'Municipio creado correctamente.');
-            
+
             $this->resetMunicipio();
             $this->cargarMunicipios();
-            
+
         } catch (\Exception $e) {
             session()->flash('error', 'Error al procesar el municipio: ' . $e->getMessage());
         }
     }
 
-    // Función para eliminar municipio
-    public function eliminarMunicipio($id)
+    // Función para confirmar eliminación de municipio
+    public function confirmarEliminarMunicipio($id)
+    {
+        $this->municipioAEliminar = $id;
+        $this->modalEliminarMunicipioAbierto = true;
+    }
+
+    // Función para cerrar modal de eliminación de municipio
+    public function cerrarModalEliminarMunicipio()
+    {
+        $this->modalEliminarMunicipioAbierto = false;
+        $this->municipioAEliminar = null;
+    }
+
+    // Función para eliminar municipio confirmado
+    public function eliminarMunicipioConfirmado()
     {
         try {
-            $municipio = Municipio::find($id);
-            if ($municipio) {
-                $municipio->delete();
-                session()->flash('mensaje', 'Municipio eliminado correctamente.');
-                $this->cargarMunicipios();
+            if ($this->municipioAEliminar) {
+                $municipio = Municipio::find($this->municipioAEliminar);
+                if ($municipio) {
+                    $municipio->delete();
+                    session()->flash('mensaje', 'Municipio eliminado correctamente.');
+                    $this->cargarMunicipios();
+                }
             }
+            $this->cerrarModalEliminarMunicipio();
         } catch (\Exception $e) {
             session()->flash('error', 'Error al eliminar el municipio: ' . $e->getMessage());
+            $this->cerrarModalEliminarMunicipio();
         }
+    }
+
+    // Función para eliminar municipio (método para compatibilidad)
+    public function eliminarMunicipio($id)
+    {
+        $this->confirmarEliminarMunicipio($id);
     }
 
     // Función para cargar municipios del departamento actual

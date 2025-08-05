@@ -147,7 +147,7 @@
                                                         <td class="text-start">{{ $municipio['nombre'] }}</td>
                                                         <td>
                                                             <button type="button" class="p-0 btn btn-link"
-                                                                    onclick="confirmarEliminacionMunicipio({{ $municipio['id'] }})"
+                                                                    wire:click="confirmarEliminarMunicipio({{ $municipio['id'] }})"
                                                                     title="Eliminar">
                                                                 <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                                                     <path stroke-linecap="round" stroke-linejoin="round" d="M6 7v12a2 2 0 002 2h8a2 2 0 002-2V7M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2m-7 0h10" style="color:#e3342f;" />
@@ -268,6 +268,32 @@
         </div>
     </div>
 
+    <!-- Modal Confirmar Eliminación Municipio -->
+    <div wire:key="modal-confirmar-eliminar-municipio">
+        <div class="modal fade show"
+             tabindex="-1"
+             style="display: @if($modalEliminarMunicipioAbierto) block @else none @endif; background: rgba(0,0,0,0.5); z-index: 1002;"
+             aria-modal="true"
+             role="dialog"
+             @click.self="@this.cerrarModalEliminarMunicipio()"
+        >
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="text-white modal-header bg-danger">
+                        <h5 class="modal-title">¿Eliminar municipio?</h5>
+                    </div>
+                    <div class="modal-body">
+                        <p>¿Estás seguro que deseas eliminar este municipio? Esta acción no se puede deshacer.</p>
+                        <div class="flex justify-end gap-2 mt-4">
+                            <button type="button" class="btn btn-secondary" wire:click="cerrarModalEliminarMunicipio">No</button>
+                            <button type="button" class="btn btn-danger" wire:click="eliminarMunicipioConfirmado">Sí, eliminar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal Confirmar Eliminación -->
     <div wire:key="modal-confirmar-eliminar">
         <div class="modal fade show"
@@ -324,5 +350,7 @@
             {{ $alertMessage }}
         </div>
     @endif
+
+</div> {{-- FIN ELEMENTO RAÍZ --}}
 
 </div> {{-- FIN ELEMENTO RAÍZ --}}
