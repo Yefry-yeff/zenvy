@@ -203,8 +203,12 @@ class SucursalForm extends Component
                                        ->orderBy('nombre')
                                        ->get();
             $this->direccionForm['municipio_id'] = null;
+            
+            // Limpiar error de municipio si había uno
+            $this->limpiarErrorCampo('municipio_id');
         } else {
             $this->municipios = [];
+            $this->direccionForm['municipio_id'] = null;
         }
     }
 
@@ -378,6 +382,13 @@ class SucursalForm extends Component
 
     public function updatedDireccionFormMunicipioId()
     {
+        // Verificar que se haya seleccionado un departamento primero
+        if (empty($this->departamentoSeleccionado)) {
+            $this->mostrarErrorCampo('municipio_id', 'Debe seleccionar un departamento primero');
+            $this->direccionForm['municipio_id'] = null;
+            return;
+        }
+        
         if (empty($this->direccionForm['municipio_id'])) {
             $this->mostrarErrorCampo('municipio_id', 'Debe seleccionar un municipio');
         } else {
@@ -566,7 +577,8 @@ class SucursalForm extends Component
             'form.identificador_legal' => 'identificador_legal',
             'direccionForm.domicilio_tributario' => 'domicilio_tributario',
             'direccionForm.municipio_id' => 'municipio_id',
-            'direccionForm.tipo_direccion_id' => 'tipo_direccion_id'
+            'direccionForm.tipo_direccion_id' => 'tipo_direccion_id',
+            'departamentoSeleccionado' => 'departamento'
         ];
         
         $campoMapeado = $mapasCampos[$campo] ?? null;

@@ -243,22 +243,44 @@
 
                             <div class="mb-3 col-md-6">
                                 <label for="departamento" class="form-label">Departamento <span class="text-red-600">*</span></label>
-                                <select id="departamento" class="form-control" wire:model="departamentoSeleccionado">
+                                <select id="departamento" 
+                                        class="form-control" 
+                                        wire:model.lazy="departamentoSeleccionado"
+                                        wire:loading.attr="disabled">
                                     <option value="">Seleccionar departamento</option>
                                     @foreach($departamentos as $departamento)
                                         <option value="{{ $departamento->id }}">{{ $departamento->nombre }}</option>
                                     @endforeach
                                 </select>
+                                <div wire:loading wire:target="departamentoSeleccionado" class="mt-1">
+                                    <small class="text-info">
+                                        <i class="fas fa-spinner fa-spin"></i> Cargando municipios...
+                                    </small>
+                                </div>
                             </div>
 
                             <div class="mb-3 col-md-6">
                                 <label for="municipio_id" class="form-label">Municipio <span class="text-red-600">*</span></label>
-                                <select id="municipio_id" class="form-control {{ $this->getClaseCampo('direccionForm.municipio_id') }}" wire:model="direccionForm.municipio_id">
-                                    <option value="">Seleccionar municipio</option>
+                                <select id="municipio_id" 
+                                        class="form-control {{ $this->getClaseCampo('direccionForm.municipio_id') }}" 
+                                        wire:model="direccionForm.municipio_id"
+                                        @if(!$departamentoSeleccionado) disabled @endif>
+                                    <option value="">
+                                        @if(!$departamentoSeleccionado)
+                                            Primero seleccione un departamento
+                                        @else
+                                            Seleccionar municipio
+                                        @endif
+                                    </option>
                                     @foreach($municipios as $municipio)
                                         <option value="{{ $municipio->id }}">{{ $municipio->nombre }}</option>
                                     @endforeach
                                 </select>
+                                @if(!$departamentoSeleccionado)
+                                    <small class="form-text text-warning">
+                                        <i class="fas fa-exclamation-triangle"></i> Debe seleccionar un departamento primero
+                                    </small>
+                                @endif
                                 @error('direccionForm.municipio_id')
                                     <div class="mt-1 text-sm text-danger">{{ $message }}</div>
                                 @enderror
@@ -453,6 +475,34 @@
         /* Animación suave para cambios en los inputs */
         .form-control {
             transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+        }
+
+        /* Estilos para campos deshabilitados */
+        .form-control:disabled {
+            background-color: #f8f9fa !important;
+            border-color: #dee2e6 !important;
+            color: #6c757d !important;
+            cursor: not-allowed !important;
+        }
+
+        /* Estilos para texto de advertencia */
+        .text-warning {
+            color: #ffc107 !important;
+        }
+
+        /* Estilos para texto de información */
+        .text-info {
+            color: #17a2b8 !important;
+        }
+
+        /* Animación para el spinner */
+        .fa-spin {
+            animation: fa-spin 1s infinite linear;
+        }
+
+        @keyframes fa-spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
     </style>
 
