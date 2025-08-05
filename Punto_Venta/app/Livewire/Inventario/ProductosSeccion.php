@@ -323,6 +323,39 @@ class ProductosSeccion extends Component
         $this->dispatch('cambiarVista', ruta: 'Inventario.Bodegas');
     }
 
+    /**
+     * EDITAR PRODUCTO
+     * 
+     * Navega al formulario de edición de stock del producto
+     * Permite modificar las cantidades y datos de inventario
+     * 
+     * @param int $productoId ID del producto a editar
+     * @return void
+     */
+    public function editarProducto($productoId)
+    {
+        try {
+            // Verifica que el producto exista
+            $producto = \App\Models\Producto::findOrFail($productoId);
+            
+            // Navega al formulario de stock con parámetros para edición
+            $this->dispatch('cambiarVista', ruta: 'Inventario.StockForm', parametros: [
+                'productoId' => $productoId,
+                'seccionId' => $this->seccionId  // Para poder regresar al contexto
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error al editar stock del producto', [
+                'producto_id' => $productoId,
+                'seccion_id' => $this->seccionId,
+                'mensaje' => $e->getMessage(),
+                'usuario_id' => Auth::id()
+            ]);
+            
+            $this->mostrarError('Error al acceder al producto seleccionado');
+        }
+    }
+
     // =========================================================================
     // MÉTODOS DE FILTRADO Y BÚSQUEDA
     // =========================================================================

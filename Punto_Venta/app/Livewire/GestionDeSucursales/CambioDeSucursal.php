@@ -4,7 +4,7 @@ namespace App\Livewire\GestionDeSucursales;
 
 use Livewire\Component;
 use App\Models\User;
-use App\Models\Tiendas;
+use App\Models\Tienda;
 use App\Models\Rol;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
@@ -121,8 +121,8 @@ public function seleccionarUsuario($usuarioId)
     try {
         $usuario = User::with('tienda', 'rol')->findOrFail($usuarioId);
 
-        // Asignar solo lo necesario para mostrar al usuario
-        $this->usuarioSeleccionado = true;
+        // Guardar el objeto usuario completo para poder acceder a sus propiedades
+        $this->usuarioSeleccionado = $usuario;
         $this->buscarUsuario = $usuario->name;
         $this->nombreUsuario = $usuario->name;
         $this->emailUsuario = $usuario->email;
@@ -174,7 +174,7 @@ public function seleccionarUsuario($usuarioId)
         try {
             DB::beginTransaction();
 
-            $nuevaSucursal = Tiendas::findOrFail($this->nuevaSucursalId);
+            $nuevaSucursal = Tienda::findOrFail($this->nuevaSucursalId);
 
             // Actualizar la sucursal del usuario
             User::where('id', $this->usuarioSeleccionado->id)
@@ -234,7 +234,7 @@ public function seleccionarUsuario($usuarioId)
     private function cargarTiendas()
     {
         try {
-            $this->tiendas = Tiendas::where('estado_id', 1)
+            $this->tiendas = Tienda::where('estado_id', 1)
                 ->orderBy('denominacion_social')
                 ->get();
         } catch (\Exception $e) {

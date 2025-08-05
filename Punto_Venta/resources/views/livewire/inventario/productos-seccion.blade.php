@@ -156,8 +156,21 @@
                 - Header con 11 columnas
                 - Datos con @forelse para manejar casos vacíos
                 - Responsive design con Bootstrap
+                - Filas clickeables para editar stock
                 ============================================================
             --}}
+           
+           <!-- Información sobre funcionalidad -->
+           <div class="mb-3 p-3 bg-info bg-opacity-10 border border-info rounded">
+               <div class="d-flex align-items-center">
+                   <i class="fas fa-info-circle text-info me-2"></i>
+                   <div>
+                       <strong>Edición de Stock:</strong> 
+                       <small>Haga clic en cualquier fila para editar las cantidades de stock del producto. El stock en sección no puede exceder la cantidad del lote de compra.</small>
+                   </div>
+               </div>
+           </div>
+           
            <!-- Tabla de Productos -->
             <div class="table-responsive">
                 {{-- ID: Para posible integración con JavaScript/DataTables en el futuro --}}
@@ -171,7 +184,7 @@
                             <th>Marca</th>              {{-- producto.marca.nombre --}}
                             <th>Categoría</th>          {{-- producto.subcategoria.categoria.nombre --}}
                             <th>U. Medida</th>          {{-- producto.unidadMedidaCompra.nombre --}}
-                            <th>Stock</th>              {{-- recibido.cantidad_inicial_seccion --}}
+                            <th class="bg-warning bg-opacity-25"><i class="fas fa-cubes me-1"></i>Stock</th>   {{-- recibido.cantidad_inicial_seccion --}}
                             <th>F. Recibido</th>        {{-- recibido.fecha_recibido --}}
                             <th>F. Expiración</th>      {{-- recibido.fecha_expiracion --}}
                             <th>Precio Base</th>        {{-- producto.precio_base --}}
@@ -196,7 +209,10 @@
                             ================================================
                         --}}
                         @forelse($productos as $recibido)
-                            <tr class="text-center align-middle hover:bg-gray-50">
+                            <tr class="text-center align-middle cursor-pointer transition-colors duration-200 hover:bg-blue-50 hover:shadow-sm" 
+                                wire:click="editarProducto({{ $recibido->producto->id }})"
+                                title="🖱️ Haga clic para editar el stock de este producto"
+                                style="user-select: none;">
                                 {{-- COLUMNA 1: ID DEL PRODUCTO --}}
                                 <td>{{ $recibido->producto->id }}</td>
                                 {{-- ORIGEN: RecibidoBodega->producto->id --}}
