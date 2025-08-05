@@ -18,13 +18,12 @@ class Departamento extends Component
     public $municipio_id = null;
     public $municipios = [];
     
-    // Propiedades de control
+        // Propiedades de control
     public $isEdit = false;
     public $showMunicipioModal = false;
     public $modalEliminarAbierto = false;
     public $modalDepartamentoAbierto = false;
     public $departamentoAEliminar = null;
-    public $renderModals = false;
     
     // Propiedades para alertas
     public $alertMessage = '';
@@ -46,7 +45,7 @@ class Departamento extends Component
 
     public function mount()
     {
-        $this->renderModals = true;
+        // Inicialización del componente
     }
 
     public function render()
@@ -94,7 +93,6 @@ class Departamento extends Component
     public function abrirModalCrear()
     {
         $this->resetDepartamento();
-        $this->renderModals = true;
         $this->modalDepartamentoAbierto = true;
     }
 
@@ -107,7 +105,6 @@ class Departamento extends Component
             $this->nombre_departamento = $departamento->nombre;
             $this->municipios = $departamento->municipios->toArray();
             $this->isEdit = true;
-            $this->renderModals = true;
             $this->modalDepartamentoAbierto = true;
         }
     }
@@ -116,7 +113,6 @@ class Departamento extends Component
     public function confirmarEliminar($id)
     {
         $this->departamentoAEliminar = $id;
-        $this->renderModals = true;
         $this->modalEliminarAbierto = true;
     }
 
@@ -209,7 +205,6 @@ class Departamento extends Component
             return;
         }
         $this->resetMunicipio();
-        $this->renderModals = true;
         $this->showMunicipioModal = true;
     }
 
@@ -243,9 +238,6 @@ class Departamento extends Component
     // Función para limpiar estado al destruir el componente
     public function dehydrate()
     {
-        // Limpiar modales al cambiar de vista
-        if (!$this->modalDepartamentoAbierto && !$this->modalEliminarAbierto && !$this->showMunicipioModal) {
-            $this->renderModals = false;
-        }
+        // Método para limpiar estado (sin renderModals)
     }
 }

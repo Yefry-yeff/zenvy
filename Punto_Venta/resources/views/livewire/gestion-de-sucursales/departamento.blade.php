@@ -67,55 +67,30 @@
 
     </div>
 
-    {{-- Modales solo se renderizan cuando es necesario --}}
-    @if($renderModals ?? false)
-        <!-- Modal Confirmar Eliminación -->
-        @if($modalEliminarAbierto ?? false)
-            <div wire:key="modal-confirmar-eliminar-{{ $departamentoAEliminar }}">
-                <div class="modal fade show"
-                     tabindex="-1"
-                     style="display: block; background: rgba(0,0,0,0.5); z-index: 1000;"
-                     aria-modal="true"
-                     role="dialog"
-                     @click.self="@this.cerrarModalEliminar()"
-                >
-                    <div class="modal-dialog modal-dialog-centered">
-                        <div class="modal-content">
-                            <div class="text-white modal-header bg-danger">
-                                <h5 class="modal-title">¿Eliminar departamento?</h5>
-                            </div>
-                            <div class="modal-body">
-                                <p>¿Estás seguro que deseas eliminar este departamento? Esta acción no se puede deshacer.</p>
-                                <div class="flex justify-end gap-2 mt-4">
-                                    <button type="button" class="btn btn-secondary" wire:click="cerrarModalEliminar">No</button>
-                                    <button type="button" class="btn btn-danger" wire:click="eliminarDepartamento">Sí, eliminar</button>
-                                </div>
-                            </div>
-                        </div>
+    {{-- Modal para Departamento --}}
+    <div wire:key="modal-departamento">
+        <div class="modal fade show"
+             tabindex="-1"
+             style="display: @if($modalDepartamentoAbierto) block @else none @endif; background: rgba(0,0,0,0.5); z-index: 1000;"
+             aria-modal="true"
+             role="dialog"
+             @click.self="@this.resetDepartamento()"
+        >
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header text-white"
+                         :class="{
+                             'bg-emerald-600': theme === 'verde',
+                             'bg-blue-600': theme === 'azul',
+                             'bg-gray-900': theme === 'oscuro',
+                             'bg-slate-700': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
+                         }">
+                        <h5 class="modal-title" id="modalDepartamentoLabel">
+                            <i class="fas fa-{{ $isEdit ? 'edit' : 'plus' }} me-2"></i>
+                            {{ $isEdit ? 'Editar' : 'Nuevo' }} Departamento
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" wire:click="resetDepartamento"></button>
                     </div>
-                </div>
-            </div>
-        @endif
-
-        {{-- Modal para Departamento --}}
-        @if($modalDepartamentoAbierto ?? false)
-            <div wire:key="modal-departamento-{{ $departamento_id ?? 'nuevo' }}">
-                <div class="modal fade show"
-                     tabindex="-1"
-                     style="display: block; background: rgba(0,0,0,0.5); z-index: 1000;"
-                     aria-modal="true"
-                     role="dialog"
-                     @click.self="@this.resetDepartamento()"
-                >
-                    <div class="modal-dialog modal-lg">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title" id="modalDepartamentoLabel">
-                                    <i class="fas fa-{{ $isEdit ? 'edit' : 'plus' }} me-2"></i>
-                                    {{ $isEdit ? 'Editar' : 'Nuevo' }} Departamento
-                                </h5>
-                                <button type="button" class="btn-close" wire:click="resetDepartamento"></button>
-                            </div>
                 <div class="modal-body">
                     <form wire:submit.prevent="guardarDepartamento">
                         <div class="row">
@@ -146,9 +121,8 @@
                                             <i class="fas fa-city me-2"></i>
                                             Municipios del Departamento
                                         </h6>
-                                        <button type="button" class="btn btn-sm btn-success" wire:click="mostrarModalMunicipio">
-                                            <i class="fas fa-plus me-1"></i>
-                                            Agregar Municipio
+                                        <button type="button" class="inline-flex items-center gap-1 px-3 py-2 text-sm text-gray-800 bg-white rounded hover:bg-gray-100" wire:click="mostrarModalMunicipio">
+                                            <span>➕</span> Agregar Municipio
                                         </button>
                                     </div>
                                     <div class="table-responsive">
@@ -193,9 +167,8 @@
                                             <i class="fas fa-city me-2"></i>
                                             Municipios del Departamento
                                         </h6>
-                                        <button type="button" class="btn btn-sm btn-success" wire:click="mostrarModalMunicipio">
-                                            <i class="fas fa-plus me-1"></i>
-                                            Agregar Municipio
+                                        <button type="button" class="inline-flex items-center gap-1 px-3 py-2 text-sm text-gray-800 bg-white rounded hover:bg-gray-100" wire:click="mostrarModalMunicipio">
+                                            <span>➕</span> Agregar Municipio
                                         </button>
                                     </div>
                                     <div class="alert alert-info">
@@ -207,11 +180,13 @@
                         @endif
 
                         <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" wire:click="resetDepartamento">
-                                <i class="fas fa-times me-1"></i>
-                                Cancelar
-                            </button>
-                            <button type="submit" class="btn btn-primary">
+                            <button type="submit" class="btn text-white"
+                                    :class="{
+                                        'bg-emerald-600 hover:bg-emerald-700': theme === 'verde',
+                                        'bg-blue-600 hover:bg-blue-700': theme === 'azul',
+                                        'bg-gray-900 hover:bg-gray-800': theme === 'oscuro',
+                                        'bg-slate-700 hover:bg-slate-800': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
+                                    }">
                                 <i class="fas fa-save me-1"></i>
                                 {{ $isEdit ? 'Actualizar' : 'Guardar' }}
                             </button>
@@ -221,60 +196,91 @@
             </div>
         </div>
     </div>
-        @endif
 
-        {{-- Modal para Municipio --}}
-        @if($showMunicipioModal ?? false)
-            <div wire:key="modal-municipio-{{ $departamento_id ?? 'nuevo' }}">
-                <div class="modal fade show"
-                     tabindex="-1"
-                     style="display: block; background: rgba(0,0,0,0.5); z-index: 1001;"
-                     aria-modal="true"
-                     role="dialog"
-                     @click.self="@this.resetMunicipio()"
-                >
-                    <div class="modal-dialog">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title" id="modalMunicipioLabel">
-                                    <i class="fas fa-plus me-2"></i>
-                                    Nuevo Municipio
-                                </h5>
-                        <button type="button" class="btn-close" wire:click="resetMunicipio"></button>
+    {{-- Modal para Municipio --}}
+    <div wire:key="modal-municipio">
+        <div class="modal fade show"
+             tabindex="-1"
+             style="display: @if($showMunicipioModal) block @else none @endif; background: rgba(0,0,0,0.5); z-index: 1001;"
+             aria-modal="true"
+             role="dialog"
+             @click.self="@this.resetMunicipio()"
+        >
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header text-white"
+                         :class="{
+                             'bg-emerald-600': theme === 'verde',
+                             'bg-blue-600': theme === 'azul',
+                             'bg-gray-900': theme === 'oscuro',
+                             'bg-slate-700': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
+                         }">
+                        <h5 class="modal-title" id="modalMunicipioLabel">
+                            <i class="fas fa-plus me-2"></i>
+                            Nuevo Municipio
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" wire:click="resetMunicipio"></button>
                     </div>
-                <div class="modal-body">
-                    <form wire:submit.prevent="guardarMunicipio">
-                        <div class="mb-3">
-                            <label for="nombre_municipio" class="form-label">
-                                <i class="fas fa-city me-1"></i>
-                                Nombre del Municipio <span class="text-danger">*</span>
-                            </label>
-                            <input type="text"
-                                   class="form-control {{ $this->getClaseCampo('nombre_municipio') }}"
-                                   id="nombre_municipio"
-                                   wire:model="nombre_municipio"
-                                   placeholder="Ingrese el nombre del municipio">
-                            @error('nombre_municipio')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" wire:click="resetMunicipio">
-                                <i class="fas fa-times me-1"></i>
-                                Cancelar
-                            </button>
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-save me-1"></i>
-                                Guardar
-                            </button>
-                        </div>
-                    </form>
+                    <div class="modal-body">
+                        <form wire:submit.prevent="guardarMunicipio">
+                            <div class="mb-3">
+                                <label for="nombre_municipio" class="form-label">
+                                    <i class="fas fa-city me-1"></i>
+                                    Nombre del Municipio <span class="text-danger">*</span>
+                                </label>
+                                <input type="text"
+                                       class="form-control {{ $this->getClaseCampo('nombre_municipio') }}"
+                                       id="nombre_municipio"
+                                       wire:model="nombre_municipio"
+                                       placeholder="Ingrese el nombre del municipio">
+                                @error('nombre_municipio')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+                            <div class="modal-footer">
+                                <button type="submit" class="btn text-white"
+                                        :class="{
+                                            'bg-emerald-600 hover:bg-emerald-700': theme === 'verde',
+                                            'bg-blue-600 hover:bg-blue-700': theme === 'azul',
+                                            'bg-gray-900 hover:bg-gray-800': theme === 'oscuro',
+                                            'bg-slate-700 hover:bg-slate-800': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
+                                        }">
+                                    <i class="fas fa-save me-1"></i>
+                                    Guardar
+                                </button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-        @endif
-    @endif
+
+    <!-- Modal Confirmar Eliminación -->
+    <div wire:key="modal-confirmar-eliminar">
+        <div class="modal fade show"
+             tabindex="-1"
+             style="display: @if($modalEliminarAbierto) block @else none @endif; background: rgba(0,0,0,0.5); z-index: 1000;"
+             aria-modal="true"
+             role="dialog"
+             @click.self="@this.cerrarModalEliminar()"
+        >
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="text-white modal-header bg-danger">
+                        <h5 class="modal-title">¿Eliminar departamento?</h5>
+                    </div>
+                    <div class="modal-body">
+                        <p>¿Estás seguro que deseas eliminar este departamento? Esta acción no se puede deshacer.</p>
+                        <div class="flex justify-end gap-2 mt-4">
+                            <button type="button" class="btn btn-secondary" wire:click="cerrarModalEliminar">No</button>
+                            <button type="button" class="btn btn-danger" wire:click="eliminarDepartamento">Sí, eliminar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     @if (session()->has('mensaje'))
         <div x-data="{ show: true }" x-show="show"
