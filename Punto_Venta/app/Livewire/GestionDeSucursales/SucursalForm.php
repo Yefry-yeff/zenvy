@@ -52,6 +52,10 @@ class SucursalForm extends Component
     public $departamentos = [];
     public $municipios = [];
     public $departamentoSeleccionado = null;
+    
+    // Control para sucursal principal
+    public $existeSucursalPrincipal = false;
+    public $tipoTiendaSucursal = null;
 
     // Propiedades para validación backend
     public $mostrarAlerta = false;
@@ -107,6 +111,40 @@ class SucursalForm extends Component
         $this->estados = Estado::orderBy('descripcion')->get();
         $this->tiposDireccion = TipoDireccion::orderBy('nombre')->get();
         $this->departamentos = Departamento::orderBy('nombre')->get();
+        
+        // Verificar si ya existe una sucursal principal
+        $this->verificarSucursalPrincipal();
+    }
+    
+    private function verificarSucursalPrincipal()
+    {
+        // Buscar tipo de tienda "Principal" (ajusta el nombre según tu BD)
+        $tipoTiendaPrincipal = TipoTienda::where('nombre', 'LIKE', '%principal%')
+                                        ->orWhere('nombre', 'LIKE', '%Principal%')
+                                        ->orWhere('nombre', 'LIKE', '%PRINCIPAL%')
+                                        ->first();
+        
+        if ($tipoTiendaPrincipal) {
+            // Verificar si ya existe una sucursal con tipo principal
+            $sucursalPrincipalExiste = Tienda::where('tipo_tienda_id', $tipoTiendaPrincipal->id)
+                                           ->where('id', '!=', $this->sucursalId ?? 0) // Excluir la sucursal actual si está editando
+                                           ->exists();
+            
+            if ($sucursalPrincipalExiste) {
+                $this->existeSucursalPrincipal = true;
+                
+                // Buscar tipo de tienda "Sucursal"
+                $this->tipoTiendaSucursal = TipoTienda::where('nombre', 'LIKE', '%sucursal%')
+                                                     ->orWhere('nombre', 'LIKE', '%Sucursal%')
+                                                     ->orWhere('nombre', 'LIKE', '%SUCURSAL%')
+                                                     ->first();
+                
+                // Si existe sucursal principal y no estamos editando una sucursal principal, forzar tipo sucursal
+                if ($this->tipoTiendaSucursal && !$this->isEditing) {
+                    $this->form['tipo_tienda_id'] = $this->tipoTiendaSucursal->id;
+                }
+            }
+        }
     }
 
     public function updatedDepartamentoSeleccionado($departamentoId)
@@ -158,6 +196,9 @@ class SucursalForm extends Component
                     $this->updatedDepartamentoSeleccionado($this->departamentoSeleccionado);
                 }
             }
+            
+            // Verificar nuevamente después de cargar los datos de la sucursal
+            $this->verificarSucursalPrincipal();
         }
     }
 

@@ -67,12 +67,34 @@
 
                             <div class="mb-3 col-md-6">
                                 <label for="tipo_tienda_id" class="form-label">Tipo de Tienda <span class="text-red-600">*</span></label>
-                                <select id="tipo_tienda_id" class="form-control {{ $this->getClaseCampo('form.tipo_tienda_id') }}" wire:model="form.tipo_tienda_id">
-                                    <option value="">Seleccionar tipo de tienda</option>
-                                    @foreach($tiposTienda as $tipo)
-                                        <option value="{{ $tipo->id }}">{{ $tipo->nombre }}</option>
-                                    @endforeach
-                                </select>
+                                
+                                @if($existeSucursalPrincipal && $tipoTiendaSucursal)
+                                    {{-- Campo bloqueado cuando ya existe sucursal principal --}}
+                                    <div class="input-group">
+                                        <input type="text" 
+                                               class="form-control bg-light" 
+                                               value="{{ $tipoTiendaSucursal->nombre }}" 
+                                               readonly 
+                                               style="background-color: #f8f9fa !important; cursor: not-allowed;">
+                                        <span class="input-group-text bg-light border-start-0" style="background-color: #f8f9fa !important;">
+                                            <i class="fas fa-lock text-muted" title="Ya existe una sucursal principal"></i>
+                                        </span>
+                                    </div>
+                                    <small class="text-muted">
+                                        <i class="fas fa-info-circle"></i> Ya existe una sucursal principal. Las nuevas sucursales deben ser de tipo "{{ $tipoTiendaSucursal->nombre }}".
+                                    </small>
+                                    {{-- Campo oculto para mantener el valor --}}
+                                    <input type="hidden" wire:model="form.tipo_tienda_id">
+                                @else
+                                    {{-- Campo normal cuando no existe sucursal principal --}}
+                                    <select id="tipo_tienda_id" class="form-control {{ $this->getClaseCampo('form.tipo_tienda_id') }}" wire:model="form.tipo_tienda_id">
+                                        <option value="">Seleccionar tipo de tienda</option>
+                                        @foreach($tiposTienda as $tipo)
+                                            <option value="{{ $tipo->id }}">{{ $tipo->nombre }}</option>
+                                        @endforeach
+                                    </select>
+                                @endif
+                                
                                 @error('form.tipo_tienda_id')
                                     <div class="mt-1 text-sm text-danger">{{ $message }}</div>
                                 @enderror
@@ -334,6 +356,20 @@
         /* Ocultar elementos antes de que Alpine.js los maneje */
         [x-cloak] {
             display: none !important;
+        }
+        
+        /* Estilos para campo bloqueado */
+        .form-control[readonly] {
+            background-color: #f8f9fa !important;
+            border-color: #dee2e6 !important;
+            color: #6c757d !important;
+            cursor: not-allowed !important;
+        }
+        
+        .input-group-text.bg-light {
+            background-color: #f8f9fa !important;
+            border-color: #dee2e6 !important;
+            color: #6c757d !important;
         }
     </style>
 
