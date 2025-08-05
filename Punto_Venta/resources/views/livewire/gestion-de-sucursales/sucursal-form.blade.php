@@ -211,12 +211,31 @@
 
                             <div class="mb-3 col-md-6">
                                 <label for="tipo_direccion_id" class="form-label">Tipo de Dirección <span class="text-red-600">*</span></label>
-                                <select id="tipo_direccion_id" class="form-control {{ $this->getClaseCampo('direccionForm.tipo_direccion_id') }}" wire:model="direccionForm.tipo_direccion_id">
-                                    <option value="">Seleccionar tipo</option>
-                                    @foreach($tiposDireccion as $tipo)
-                                        <option value="{{ $tipo->id }}">{{ $tipo->nombre }}</option>
-                                    @endforeach
-                                </select>
+
+                                @if($tipoDireccionTienda)
+                                    {{-- Campo bloqueado siempre como "Tienda" --}}
+                                    <div class="input-group">
+                                        <input type="text"
+                                               class="form-control bg-light"
+                                               value="{{ $tipoDireccionTienda->nombre }}"
+                                               readonly
+                                               style="background-color: #f8f9fa !important; cursor: not-allowed;">
+                                        <span class="input-group-text bg-light border-start-0" style="background-color: #f8f9fa !important;">
+                                            <i class="fas fa-store text-muted" title="Tipo de dirección para tienda"></i>
+                                        </span>
+                                    </div>
+                                    {{-- Campo oculto para mantener el valor --}}
+                                    <input type="hidden" wire:model="direccionForm.tipo_direccion_id">
+                                @else
+                                    {{-- Campo normal como fallback --}}
+                                    <select id="tipo_direccion_id" class="form-control {{ $this->getClaseCampo('direccionForm.tipo_direccion_id') }}" wire:model="direccionForm.tipo_direccion_id">
+                                        <option value="">Seleccionar tipo</option>
+                                        @foreach($tiposDireccion as $tipo)
+                                            <option value="{{ $tipo->id }}">{{ $tipo->nombre }}</option>
+                                        @endforeach
+                                    </select>
+                                @endif
+
                                 @error('direccionForm.tipo_direccion_id')
                                     <div class="mt-1 text-sm text-danger">{{ $message }}</div>
                                 @enderror

@@ -56,6 +56,9 @@ class SucursalForm extends Component
     // Control para sucursal principal
     public $existeSucursalPrincipal = false;
     public $tipoTiendaSucursal = null;
+    
+    // Control para tipo de dirección (siempre Tienda)
+    public $tipoDireccionTienda = null;
 
     // Propiedades para validación backend
     public $mostrarAlerta = false;
@@ -141,8 +144,25 @@ class SucursalForm extends Component
         $this->tiposDireccion = TipoDireccion::orderBy('nombre')->get();
         $this->departamentos = Departamento::orderBy('nombre')->get();
         
+        // Configurar tipo de dirección como "Tienda" automáticamente
+        $this->configurarTipoDireccionTienda();
+        
         // Verificar si ya existe una sucursal principal
         $this->verificarSucursalPrincipal();
+    }
+    
+    private function configurarTipoDireccionTienda()
+    {
+        // Buscar tipo de dirección "Tienda"
+        $this->tipoDireccionTienda = TipoDireccion::where('nombre', 'LIKE', '%tienda%')
+                                                  ->orWhere('nombre', 'LIKE', '%Tienda%')
+                                                  ->orWhere('nombre', 'LIKE', '%TIENDA%')
+                                                  ->first();
+        
+        // Si existe el tipo "Tienda", configurarlo automáticamente
+        if ($this->tipoDireccionTienda) {
+            $this->direccionForm['tipo_direccion_id'] = $this->tipoDireccionTienda->id;
+        }
     }
     
     private function verificarSucursalPrincipal()
@@ -225,6 +245,9 @@ class SucursalForm extends Component
                     $this->updatedDepartamentoSeleccionado($this->departamentoSeleccionado);
                 }
             }
+            
+            // Reconfigurar tipo de dirección como "Tienda"
+            $this->configurarTipoDireccionTienda();
             
             // Verificar nuevamente después de cargar los datos de la sucursal
             $this->verificarSucursalPrincipal();
