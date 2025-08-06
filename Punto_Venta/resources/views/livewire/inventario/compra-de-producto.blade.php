@@ -108,14 +108,13 @@
                         
                         <!-- Fila única de facturación -->
                         <div class="p-3 border rounded bg-gray-50">
-                            <!-- Vista Desktop (md y arriba) - Distribución flexible -->
-                            <div class="d-none d-md-block">
-                                <!-- Primera fila: Producto, Precio, Cantidad -->
-                                <div class="row g-3 mb-3">
+                            <!-- Vista Desktop Grande (lg y arriba) - Una sola fila -->
+                            <div class="d-none d-lg-block">
+                                <div class="row g-2 align-items-end">
                                     <!-- Búsqueda/Selección de Producto -->
-                                    <div class="col-md-4">
+                                    <div class="col-lg-2">
                                         <label for="busqueda_producto" class="form-label">
-                                            <strong>Producto / Código Barras</strong> <span class="text-red-600">*</span>
+                                            <strong>Producto / Código</strong> <span class="text-red-600">*</span>
                                         </label>
                                         <div class="position-relative">
                                             <input type="text" 
@@ -151,7 +150,7 @@
                                     </div>
 
                                     <!-- Precio -->
-                                    <div class="col-md-4">
+                                    <div class="col-lg-2">
                                         <label for="precio" class="form-label"><strong>Precio</strong> <span class="text-red-600">*</span></label>
                                         <div class="input-group">
                                             <span class="input-group-text">L.</span>
@@ -166,8 +165,145 @@
                                     </div>
 
                                     <!-- Cantidad con botones +/- -->
+                                    <div class="col-lg-1">
+                                        <label for="cantidad" class="form-label"><strong>Cant.</strong> <span class="text-red-600">*</span></label>
+                                        <div class="d-flex align-items-center justify-content-center">
+                                            <!-- Botones + y - verticales a la izquierda -->
+                                            <div class="d-flex flex-column me-2">
+                                                <button type="button" 
+                                                        class="btn btn-outline-secondary p-1 mb-1" 
+                                                        wire:click="incrementarCantidad"
+                                                        style="width: 20px; height: 20px; font-size: 10px; line-height: 1;">
+                                                    +
+                                                </button>
+                                                <button type="button" 
+                                                        class="btn btn-outline-secondary p-1" 
+                                                        wire:click="decrementarCantidad"
+                                                        style="width: 20px; height: 20px; font-size: 10px; line-height: 1;">
+                                                    -
+                                                </button>
+                                            </div>
+                                            <!-- Número a la derecha -->
+                                            <span class="badge bg-secondary px-2 py-1" style="min-width: 30px; font-size: 0.8rem;">
+                                                {{ $productoTemporal['cantidad_ingresada'] }}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Unidad -->
+                                    <div class="col-lg-2">
+                                        <label for="unidad_compra" class="form-label"><strong>Unidad</strong> <span class="text-red-600">*</span></label>
+                                        <select id="unidad_compra" class="form-select" wire:model.live="productoTemporal.unidad_compra_id">
+                                            <option value="">Seleccionar</option>
+                                            @foreach($unidadesCompra as $unidad)
+                                                <option value="{{ $unidad['id'] }}">{{ $unidad['nombre'] }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+
+                                    <!-- ISV -->
+                                    <div class="col-lg-1">
+                                        <label for="isv" class="form-label"><strong>ISV</strong></label>
+                                        <div class="input-group">
+                                            <input type="number" 
+                                                   id="isv" 
+                                                   class="form-control text-center" 
+                                                   step="0.01" 
+                                                   min="0" 
+                                                   max="100"
+                                                   wire:model.live="productoTemporal.isv"
+                                                   placeholder="0">
+                                            <span class="input-group-text">%</span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Fecha de Expiración -->
+                                    <div class="col-lg-2">
+                                        <label for="fecha_expiracion" class="form-label"><strong>Exp.</strong></label>
+                                        <input type="date" 
+                                               id="fecha_expiracion" 
+                                               class="form-control" 
+                                               wire:model.live="productoTemporal.fecha_expiracion">
+                                    </div>
+
+                                    <!-- Botón Agregar -->
+                                    <div class="col-lg-2">
+                                        <label class="form-label">&nbsp;</label>
+                                        <button type="button" 
+                                                class="btn w-100 d-flex align-items-center justify-content-center" 
+                                                wire:click="agregarProducto"
+                                                @disabled(!$this->botonHabilitado)
+                                                :class="{
+                                                    'btn-success': theme === 'verde' || !theme,
+                                                    'btn-primary': theme === 'azul',
+                                                    'btn-dark': theme === 'oscuro',
+                                                    'btn-secondary': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro' && theme
+                                                }">
+                                            <span style="font-size: 16px;">➕</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Vista Desktop Mediana (md-lg) - 3 elementos por fila + botón al final -->
+                            <div class="d-none d-md-block d-lg-none">
+                                <!-- Primera fila: Producto, Precio, Cantidad -->
+                                <div class="row g-3 mb-3">
+                                    <!-- Búsqueda/Selección de Producto -->
                                     <div class="col-md-4">
-                                        <label for="cantidad" class="form-label"><strong>Cantidad</strong> <span class="text-red-600">*</span></label>
+                                        <label for="busqueda_producto_md" class="form-label">
+                                            <strong>Producto / Código Barras</strong> <span class="text-red-600">*</span>
+                                        </label>
+                                        <div class="position-relative">
+                                            <input type="text" 
+                                                   id="busqueda_producto_md" 
+                                                   class="form-control" 
+                                                   wire:model.live="busquedaProducto" 
+                                                   placeholder="Escanear o buscar...">
+                                            @if($busquedaProducto && $productoTemporal['producto_id'])
+                                                <button type="button" 
+                                                        class="btn btn-sm btn-outline-secondary position-absolute"
+                                                        style="right: 5px; top: 5px; padding: 2px 6px;"
+                                                        wire:click="limpiarBusqueda">
+                                                    ✕
+                                                </button>
+                                            @endif
+                                        </div>
+                                        
+                                        <!-- Lista de productos filtrados -->
+                                        @if($mostrarListaProductos && count($productosFiltrados) > 0)
+                                            <div class="position-absolute w-100 bg-white border rounded shadow-lg" style="z-index: 1000; max-height: 200px; overflow-y: auto;">
+                                                @foreach($productosFiltrados as $producto)
+                                                    <div class="p-2 cursor-pointer hover:bg-gray-100" 
+                                                         wire:click="seleccionarProducto({{ $producto['id'] }})">
+                                                        <strong>{{ $producto['nombre'] }}</strong>
+                                                        @if($producto['codigo_barra'])
+                                                            <br><small class="text-muted">{{ $producto['codigo_barra'] }} - {{ $producto['marca'] }}</small>
+                                                        @endif
+                                                    </div>
+                                                @endforeach
+                                            </div>
+                                        @endif
+                                    </div>
+
+                                    <!-- Precio -->
+                                    <div class="col-md-4">
+                                        <label for="precio_md" class="form-label"><strong>Precio</strong> <span class="text-red-600">*</span></label>
+                                        <div class="input-group">
+                                            <span class="input-group-text">L.</span>
+                                            <input type="number" 
+                                                   id="precio_md" 
+                                                   class="form-control" 
+                                                   step="0.01" 
+                                                   min="0.01"
+                                                   wire:model.live="productoTemporal.precio"
+                                                   placeholder="0.00">
+                                        </div>
+                                    </div>
+
+                                    <!-- Cantidad con botones +/- -->
+                                    <div class="col-md-4">
+                                        <label for="cantidad_md" class="form-label"><strong>Cantidad</strong> <span class="text-red-600">*</span></label>
                                         <div class="d-flex align-items-center">
                                             <!-- Botones + y - verticales a la izquierda -->
                                             <div class="d-flex flex-column me-2">
@@ -196,8 +332,8 @@
                                 <div class="row g-3 mb-3">
                                     <!-- Unidad -->
                                     <div class="col-md-4">
-                                        <label for="unidad_compra" class="form-label"><strong>Unidad</strong> <span class="text-red-600">*</span></label>
-                                        <select id="unidad_compra" class="form-select" wire:model.live="productoTemporal.unidad_compra_id">
+                                        <label for="unidad_compra_md" class="form-label"><strong>Unidad</strong> <span class="text-red-600">*</span></label>
+                                        <select id="unidad_compra_md" class="form-select" wire:model.live="productoTemporal.unidad_compra_id">
                                             <option value="">Seleccionar</option>
                                             @foreach($unidadesCompra as $unidad)
                                                 <option value="{{ $unidad['id'] }}">{{ $unidad['nombre'] }}</option>
@@ -207,10 +343,10 @@
 
                                     <!-- ISV -->
                                     <div class="col-md-4">
-                                        <label for="isv" class="form-label"><strong>ISV</strong></label>
+                                        <label for="isv_md" class="form-label"><strong>ISV</strong></label>
                                         <div class="input-group">
                                             <input type="number" 
-                                                   id="isv" 
+                                                   id="isv_md" 
                                                    class="form-control text-center" 
                                                    step="0.01" 
                                                    min="0" 
@@ -223,9 +359,9 @@
 
                                     <!-- Fecha de Expiración -->
                                     <div class="col-md-4">
-                                        <label for="fecha_expiracion" class="form-label"><strong>Fecha de Expiración</strong></label>
+                                        <label for="fecha_expiracion_md" class="form-label"><strong>Fecha de Expiración</strong></label>
                                         <input type="date" 
-                                               id="fecha_expiracion" 
+                                               id="fecha_expiracion_md" 
                                                class="form-control" 
                                                wire:model.live="productoTemporal.fecha_expiracion">
                                     </div>
@@ -251,8 +387,13 @@
                                 </div>
                             </div>
 
-                            <!-- Vista Mobile (sm y abajo) - Lista vertical -->
-                            <div class="d-md-none">
+                            <!-- Vista Mobile (≤412px) - Lista vertical -->
+                            <div class="d-block d-md-none" style="display: none !important;">
+                                <!-- Solo se muestra en móviles muy pequeños mediante CSS -->
+                            </div>
+                            
+                            <!-- Vista Mobile Real (≤412px) -->
+                            <div class="mobile-only-view">
                                 <!-- Búsqueda/Selección de Producto -->
                                 <div class="mb-3">
                                     <label for="busqueda_producto_mobile" class="form-label">
@@ -697,6 +838,14 @@
         .table-responsive {
             border-radius: 8px;
             overflow: hidden;
+            overflow-x: auto;
+            min-height: 200px;
+        }
+
+        /* Asegurar que la tabla no se comprima demasiado */
+        .table {
+            min-width: 700px;
+            margin-bottom: 0;
         }
 
         /* Botón deshabilitado */
@@ -829,7 +978,28 @@
         .table-light th {
             background-color: #f8f9fa;
             border-bottom: 2px solid #dee2e6;
+            white-space: nowrap !important;
+            font-size: 0.875rem;
+            padding: 0.6rem 0.4rem;
         }
+
+        /* Encabezados de tabla no se rompen */
+        .table thead th {
+            white-space: nowrap !important;
+            text-overflow: ellipsis;
+            overflow: hidden;
+            min-width: fit-content;
+        }
+
+        /* Ancho específico para columnas */
+        .table th:nth-child(1) { min-width: 140px; } /* Producto */
+        .table th:nth-child(2) { min-width: 60px; }  /* Cant. */
+        .table th:nth-child(3) { min-width: 80px; }  /* Unidad */
+        .table th:nth-child(4) { min-width: 90px; }  /* Precio */
+        .table th:nth-child(5) { min-width: 90px; }  /* Subtotal */
+        .table th:nth-child(6) { min-width: 50px; }  /* ISV */
+        .table th:nth-child(7) { min-width: 90px; }  /* Total */
+        .table th:nth-child(8) { min-width: 70px; }  /* Acción */
 
         /* Totales de factura profesional */
         .border-bottom {
@@ -911,6 +1081,38 @@
                 width: 28px !important;
                 height: 28px !important;
                 font-size: 12px !important;
+            }
+            
+            /* Mostrar solo vista móvil en 412px o menos */
+            .mobile-only-view {
+                display: block !important;
+            }
+        }
+
+        /* Ocultar vista móvil por defecto */
+        .mobile-only-view {
+            display: none !important;
+        }
+
+        /* Mostrar vista móvil solo en pantallas muy pequeñas */
+        @media (max-width: 412px) {
+            .mobile-only-view {
+                display: block !important;
+            }
+        }
+
+        /* Estilos para vistas Desktop */
+        @media (min-width: 413px) and (max-width: 991px) {
+            /* Vista mediana: 3 elementos por fila */
+            .d-md-block.d-lg-none {
+                display: block !important;
+            }
+        }
+
+        @media (min-width: 992px) {
+            /* Vista grande: una sola fila */
+            .d-lg-block {
+                display: block !important;
             }
         }
 
