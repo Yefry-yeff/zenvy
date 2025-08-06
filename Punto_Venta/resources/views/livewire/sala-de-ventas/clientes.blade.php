@@ -27,7 +27,7 @@
 
             <!-- Tabla de clientes -->
             <div class="table-responsive">
-                <table class="table mb-0 align-middle table-sm table-hover table-bordered">
+                <table class="table mb-0 align-middle table-sm table-hover table-bordered" id="clientesTable">
                     <thead class="table-light">
                         <tr class="text-center align-middle">
                             <th>ID</th>
@@ -36,18 +36,18 @@
                             <th>Correo</th>
                             <th>Tipo Persona</th>
                             <th>Tipo Cliente</th>
-                            <th>Ubicación</th>
+                            <th>Dirección</th>
                             <th>Estado</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse($clientes as $cliente)
-                            <tr class="text-center align-middle cursor-pointer" 
+                            <tr class="text-center align-middle cursor-pointer"
                                 wire:click="editarCliente({{ $cliente->id }})"
                                 style="cursor: pointer;"
                                 title="Clic para editar cliente">
                                 <td>{{ $cliente->id }}</td>
-                                
+
                                 <td class="text-start">
                                     <div>
                                         <strong>{{ $cliente->nombre }}</strong><br>
@@ -56,7 +56,7 @@
                                         </small>
                                     </div>
                                 </td>
-                                
+
                                 <td>
                                     @if($cliente->identidad)
                                         <span class="badge bg-primary">ID: {{ $cliente->identidad }}</span><br>
@@ -68,27 +68,26 @@
                                         <span class="text-muted">N/A</span>
                                     @endif
                                 </td>
-                                
+
                                 <td>
                                     {{ $cliente->correo ?? 'N/A' }}
                                 </td>
-                                
+
                                 <td>
                                     <span class="badge bg-info">
                                         {{ $cliente->tipoPersona->nombre ?? 'N/A' }}
                                     </span>
                                 </td>
-                                
+
                                 <td>
                                     <span class="badge bg-success">
                                         {{ $cliente->tipoCliente->nombre ?? 'N/A' }}
                                     </span>
                                 </td>
-                                
+
                                 <td class="text-start">
                                     @if($cliente->direccion)
                                         <div>
-                                            <strong>ID: {{ $cliente->direccion->id }}</strong><br>
                                             <small>
                                                 @php
                                                     $ubicacion = collect([
@@ -100,7 +99,7 @@
                                                 @if($ubicacion)
                                                     {{ $ubicacion }}<br>
                                                 @endif
-                                                {{ $cliente->direccion->municipio->nombre ?? 'N/A' }}, 
+                                                {{ $cliente->direccion->municipio->nombre ?? 'N/A' }},
                                                 {{ $cliente->direccion->municipio->departamento->nombre ?? 'N/A' }}
                                             </small>
                                         </div>
@@ -108,7 +107,7 @@
                                         <span class="text-muted">Sin dirección</span>
                                     @endif
                                 </td>
-                                
+
                                 <td>
                                     <span class="badge {{ $cliente->estado_id == 1 ? 'bg-success' : 'bg-secondary' }}">
                                         {{ $cliente->estado_id == 1 ? 'Activo' : 'Inactivo' }}
@@ -118,7 +117,7 @@
                         @empty
                             <tr>
                                 <td colspan="8" class="py-4 text-center text-muted">
-                                    <i class="fas fa-users fa-3x mb-3 text-light"></i><br>
+                                    <i class="mb-3 fas fa-users fa-3x text-light"></i><br>
                                     No hay clientes registrados
                                 </td>
                             </tr>
