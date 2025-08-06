@@ -108,9 +108,9 @@
                         
                         <!-- Fila única de facturación -->
                         <div class="p-3 border rounded bg-gray-50">
-                            <div class="row align-items-end">
+                            <div class="row g-2 align-items-end">
                                 <!-- Búsqueda/Selección de Producto -->
-                                <div class="mb-3 col-md-3">
+                                <div class="col-12 col-sm-6 col-md-4 col-lg-3 mb-3">
                                     <label for="busqueda_producto" class="form-label">
                                         <strong>Producto / Código Barras</strong> <span class="text-red-600">*</span>
                                     </label>
@@ -148,7 +148,7 @@
                                 </div>
 
                                 <!-- Precio -->
-                                <div class="mb-3 col-md-2">
+                                <div class="col-6 col-sm-4 col-md-2 col-lg-2 mb-3">
                                     <label for="precio" class="form-label"><strong>Precio</strong> <span class="text-red-600">*</span></label>
                                     <div class="input-group">
                                         <span class="input-group-text">L.</span>
@@ -157,30 +157,37 @@
                                                class="form-control" 
                                                step="0.01" 
                                                min="0.01"
-                                               wire:model.defer="productoTemporal.precio"
+                                               wire:model.live="productoTemporal.precio"
                                                placeholder="0.00">
                                     </div>
                                 </div>
 
                                 <!-- Cantidad con botones +/- -->
-                                <div class="mb-3 col-md-1">
+                                <div class="col-6 col-sm-4 col-md-2 col-lg-1 mb-3">
                                     <label for="cantidad" class="form-label"><strong>Cant.</strong> <span class="text-red-600">*</span></label>
-                                    <div class="input-group">
-                                        <button type="button" class="btn btn-outline-secondary" wire:click="decrementarCantidad">-</button>
-                                        <input type="number" 
-                                               class="form-control text-center" 
-                                               wire:model.defer="productoTemporal.cantidad_ingresada"
-                                               min="1"
-                                               readonly
-                                               style="max-width: 60px;">
-                                        <button type="button" class="btn btn-outline-secondary" wire:click="incrementarCantidad">+</button>
+                                    <div class="d-flex align-items-center justify-content-center">
+                                        <button type="button" 
+                                                class="btn btn-sm btn-outline-secondary me-1" 
+                                                wire:click="decrementarCantidad"
+                                                style="width: 30px; height: 30px;">
+                                            ➖
+                                        </button>
+                                        <span class="badge bg-secondary mx-1 px-2 py-1" style="min-width: 40px; font-size: 0.9rem;">
+                                            {{ $productoTemporal['cantidad_ingresada'] }}
+                                        </span>
+                                        <button type="button" 
+                                                class="btn btn-sm btn-outline-secondary ms-1" 
+                                                wire:click="incrementarCantidad"
+                                                style="width: 30px; height: 30px;">
+                                            ➕
+                                        </button>
                                     </div>
                                 </div>
 
                                 <!-- Unidad -->
-                                <div class="mb-3 col-md-2">
+                                <div class="col-12 col-sm-6 col-md-2 col-lg-2 mb-3">
                                     <label for="unidad_compra" class="form-label"><strong>Unidad</strong> <span class="text-red-600">*</span></label>
-                                    <select id="unidad_compra" class="form-select" wire:model.defer="productoTemporal.unidad_compra_id">
+                                    <select id="unidad_compra" class="form-select" wire:model.live="productoTemporal.unidad_compra_id">
                                         <option value="">Seleccionar</option>
                                         @foreach($unidadesCompra as $unidad)
                                             <option value="{{ $unidad['id'] }}">{{ $unidad['nombre'] }}</option>
@@ -189,34 +196,45 @@
                                 </div>
 
                                 <!-- ISV -->
-                                <div class="mb-3 col-md-1">
-                                    <label for="isv" class="form-label"><strong>ISV (%)</strong></label>
-                                    <input type="number" 
-                                           id="isv" 
-                                           class="form-control" 
-                                           step="0.01" 
-                                           min="0" 
-                                           max="100"
-                                           wire:model.defer="productoTemporal.isv"
-                                           placeholder="0">
+                                <div class="col-6 col-sm-3 col-md-1 col-lg-1 mb-3">
+                                    <label for="isv" class="form-label"><strong>ISV</strong></label>
+                                    <div class="input-group">
+                                        <input type="number" 
+                                               id="isv" 
+                                               class="form-control text-center" 
+                                               step="0.01" 
+                                               min="0" 
+                                               max="100"
+                                               wire:model.live="productoTemporal.isv"
+                                               placeholder="0">
+                                        <span class="input-group-text">%</span>
+                                    </div>
                                 </div>
 
                                 <!-- Fecha de Expiración -->
-                                <div class="mb-3 col-md-2">
+                                <div class="col-6 col-sm-3 col-md-2 col-lg-2 mb-3">
                                     <label for="fecha_expiracion" class="form-label"><strong>Exp.</strong></label>
                                     <input type="date" 
                                            id="fecha_expiracion" 
                                            class="form-control" 
-                                           wire:model.defer="productoTemporal.fecha_expiracion">
+                                           wire:model.live="productoTemporal.fecha_expiracion">
                                 </div>
 
                                 <!-- Botón Agregar -->
-                                <div class="mb-3 col-md-1">
+                                <div class="col-12 col-sm-12 col-md-1 col-lg-1 mb-3">
+                                    <label class="form-label d-none d-md-block">&nbsp;</label>
                                     <button type="button" 
-                                            class="btn btn-success w-100 d-flex align-items-center justify-content-center" 
+                                            class="btn w-100 d-flex align-items-center justify-content-center" 
                                             wire:click="agregarProducto"
-                                            @if(!$productoTemporal['producto_id'] || !$productoTemporal['precio'] || !$productoTemporal['unidad_compra_id']) disabled @endif>
-                                        <span style="font-size: 18px;">➕</span>
+                                            @disabled(!$this->botonHabilitado)
+                                            :class="{
+                                                'btn-success': theme === 'verde' || !theme,
+                                                'btn-primary': theme === 'azul',
+                                                'btn-dark': theme === 'oscuro',
+                                                'btn-secondary': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro' && theme
+                                            }">
+                                        <span style="font-size: 16px;">➕</span>
+                                        <span class="d-md-none ms-2">Agregar</span>
                                     </button>
                                 </div>
                             </div>
@@ -246,81 +264,145 @@
                     <div class="p-4 bg-white border shadow rounded-xl">
                         <h2 class="mb-4 text-lg font-semibold text-gray-700">📝 Productos en la Compra</h2>
                         
-                        <div class="table-responsive">
-                            <table class="table table-striped">
-                                <thead>
-                                    <tr>
-                                        <th>Producto</th>
-                                        <th>Código</th>
-                                        <th>Precio</th>
-                                        <th>Cantidad</th>
-                                        <th>Unidad</th>
-                                        <th>ISV %</th>
-                                        <th>Subtotal</th>
-                                        <th>Total</th>
-                                        <th>Acciones</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach($productosCompra as $index => $producto)
-                                    <tr>
-                                        <td>{{ $producto['producto_nombre'] }}</td>
-                                        <td>{{ $producto['producto_codigo'] ?? 'N/A' }}</td>
-                                        <td>L. {{ number_format($producto['precio'], 2) }}</td>
-                                        <td>{{ $producto['cantidad_ingresada'] }}</td>
-                                        <td>{{ $producto['unidad_compra_nombre'] }}</td>
-                                        <td>{{ $producto['isv'] }}%</td>
-                                        <td>L. {{ number_format($producto['sub_total_producto'], 2) }}</td>
-                                        <td>L. {{ number_format($producto['precio_total'], 2) }}</td>
-                                        <td>
-                                            <button type="button" class="btn btn-sm btn-danger" 
+                        <!-- Encabezados para desktop -->
+                        <div class="d-none d-lg-block">
+                            <div class="row bg-light p-2 rounded mb-2 fw-bold">
+                                <div class="col-3">Producto</div>
+                                <div class="col-1 text-center">Cant.</div>
+                                <div class="col-2 text-center">Unidad</div>
+                                <div class="col-2 text-center">Precio</div>
+                                <div class="col-2 text-center">Total</div>
+                                <div class="col-1 text-center">ISV</div>
+                                <div class="col-1 text-center">Acción</div>
+                            </div>
+                            
+                            @foreach($productosCompra as $index => $producto)
+                                <div class="row align-items-center p-2 border-bottom">
+                                    <div class="col-3">
+                                        <strong>{{ $producto['producto_nombre'] }}</strong>
+                                        @if($producto['producto_codigo'])
+                                            <br><small class="text-muted">{{ $producto['producto_codigo'] }}</small>
+                                        @endif
+                                    </div>
+                                    <div class="col-1 text-center">
+                                        <span class="badge bg-secondary">{{ $producto['cantidad_ingresada'] }}</span>
+                                    </div>
+                                    <div class="col-2 text-center">{{ $producto['unidad_compra_nombre'] }}</div>
+                                    <div class="col-2 text-center">L. {{ number_format($producto['precio'], 2) }}</div>
+                                    <div class="col-2 text-center">
+                                        <strong>L. {{ number_format($producto['precio_total'], 2) }}</strong>
+                                    </div>
+                                    <div class="col-1 text-center">{{ $producto['isv'] }}%</div>
+                                    <div class="col-1 text-center">
+                                        <button type="button" 
+                                                class="btn btn-sm btn-outline-danger" 
+                                                wire:click="eliminarProducto({{ $index }})">
+                                            🗑️
+                                        </button>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                        
+                        <!-- Vista Mobile/Tablet -->
+                        <div class="d-lg-none">
+                            @foreach($productosCompra as $index => $producto)
+                                <div class="card mb-3">
+                                    <div class="card-body p-3">
+                                        <div class="d-flex justify-content-between align-items-start mb-2">
+                                            <div class="flex-grow-1">
+                                                <h6 class="mb-1">{{ $producto['producto_nombre'] }}</h6>
+                                                @if($producto['producto_codigo'])
+                                                    <small class="text-muted">Código: {{ $producto['producto_codigo'] }}</small>
+                                                @endif
+                                            </div>
+                                            <button type="button" 
+                                                    class="btn btn-sm btn-outline-danger ms-2" 
                                                     wire:click="eliminarProducto({{ $index }})">
                                                 🗑️
                                             </button>
-                                        </td>
-                                    </tr>
-                                    @endforeach
-                                </tbody>
-                                <tfoot class="table-secondary">
-                                    <tr>
-                                        <td colspan="6" class="text-end"><strong>Subtotal:</strong></td>
-                                        <td><strong>L. {{ number_format($subtotal, 2) }}</strong></td>
-                                        <td colspan="2"></td>
-                                    </tr>
-                                    <tr>
-                                        <td colspan="6" class="text-end"><strong>ISV:</strong></td>
-                                        <td><strong>L. {{ number_format($totalIsv, 2) }}</strong></td>
-                                        <td colspan="2"></td>
-                                    </tr>
-                                    <tr>
-                                        <td colspan="6" class="text-end"><strong>TOTAL:</strong></td>
-                                        <td><strong>L. {{ number_format($total, 2) }}</strong></td>
-                                        <td colspan="2"></td>
-                                    </tr>
-                                </tfoot>
-                            </table>
+                                        </div>
+                                        
+                                        <div class="row g-2">
+                                            <div class="col-6">
+                                                <small class="text-muted">Cantidad:</small><br>
+                                                <span class="badge bg-secondary">{{ $producto['cantidad_ingresada'] }}</span>
+                                                <span class="ms-1">{{ $producto['unidad_compra_nombre'] }}</span>
+                                            </div>
+                                            <div class="col-6 text-end">
+                                                <small class="text-muted">Precio:</small><br>
+                                                L. {{ number_format($producto['precio'], 2) }}
+                                            </div>
+                                            <div class="col-6">
+                                                <small class="text-muted">ISV:</small><br>
+                                                {{ $producto['isv'] }}%
+                                            </div>
+                                            <div class="col-6 text-end">
+                                                <small class="text-muted">Subtotal:</small><br>
+                                                <strong class="text-success">
+                                                    L. {{ number_format($producto['sub_total_producto'], 2) }}
+                                                </strong>
+                                            </div>
+                                            <div class="col-12 text-end">
+                                                <strong class="text-primary">
+                                                    Total: L. {{ number_format($producto['precio_total'], 2) }}
+                                                </strong>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                        
+                        <!-- Resumen Totales -->
+                        <div class="mt-4 p-3 bg-light rounded">
+                            <div class="row">
+                                <div class="col-12 col-md-4 mb-2">
+                                    <div class="text-center text-md-start">
+                                        <strong>Subtotal:</strong> L. {{ number_format($subtotal, 2) }}
+                                    </div>
+                                </div>
+                                <div class="col-12 col-md-4 mb-2">
+                                    <div class="text-center">
+                                        <strong>ISV:</strong> L. {{ number_format($totalIsv, 2) }}
+                                    </div>
+                                </div>
+                                <div class="col-12 col-md-4 mb-2">
+                                    <div class="text-center text-md-end">
+                                        <h5 class="mb-0 text-success">
+                                            <strong>TOTAL: L. {{ number_format($total, 2) }}</strong>
+                                        </h5>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
                 @endif
 
                 <!-- Botones -->
-                <div class="flex justify-end gap-3 mt-4">
-                    <button type="button" wire:click="resetFormulario"
-                        class="px-4 py-2 text-gray-700 bg-gray-200 rounded hover:bg-gray-300">
-                        🔄 Limpiar Todo
-                    </button>
-                    <button type="submit"
-                        class="px-4 py-2 text-white rounded"
-                        :class="{
-                            'bg-emerald-600 hover:bg-emerald-700': theme === 'verde',
-                            'bg-blue-600 hover:bg-blue-700': theme === 'azul',
-                            'bg-gray-900 hover:bg-gray-800': theme === 'oscuro',
-                            'bg-slate-700 hover:bg-slate-800': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
-                        }"
-                        @if(count($productosCompra) == 0) disabled @endif>
-                        💾 Guardar Compra
-                    </button>
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="d-flex flex-column flex-md-row justify-content-end gap-2">
+                            <button type="button" 
+                                    wire:click="resetFormulario"
+                                    class="btn btn-outline-secondary order-2 order-md-1">
+                                🔄 Limpiar Todo
+                            </button>
+                            
+                            <button type="submit"
+                                    class="btn order-1 order-md-2"
+                                    @disabled(!$this->botonGuardarHabilitado)
+                                    :class="{
+                                        'btn-success': theme === 'verde' || !theme,
+                                        'btn-primary': theme === 'azul',
+                                        'btn-dark': theme === 'oscuro',
+                                        'btn-secondary': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro' && theme
+                                    }">
+                                💾 Guardar Compra
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
             </form>
@@ -454,6 +536,46 @@
             background-color: #e9ecef;
             border-color: #ced4da;
         }
+
+        /* Botones pequeños de cantidad */
+        .btn-sm {
+            font-size: 0.75rem;
+        }
+
+        /* Badge para cantidad */
+        .badge {
+            font-size: 0.9rem !important;
+        }
+
+        /* Input group pequeño */
+        .input-group-sm .form-control,
+        .input-group-sm .input-group-text {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        /* Botones de cantidad hover */
+        .btn-outline-secondary:hover {
+            background-color: #6c757d;
+            border-color: #6c757d;
+            color: white;
+        }
+
+        /* Estilos para campos pequeños */
+        .form-control-sm {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        .form-select-sm {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        /* Alineación de elementos en fila de facturación */
+        .d-flex.align-items-center {
+            height: 38px; /* Altura estándar de form-control */
+        }
     </style>
 
     <!-- Modal de Éxito con Alpine.js -->
@@ -585,7 +707,28 @@
                     }
                 }, 100);
             });
+
+            // Actualizar estado del botón cuando cambien los datos
+            Livewire.hook('morph.updated', () => {
+                actualizarBotonAgregar();
+            });
         });
+
+        // Función para actualizar el estado del botón agregar
+        function actualizarBotonAgregar() {
+            const botonAgregar = document.querySelector('button[wire\\:click="agregarProducto"]');
+            if (botonAgregar) {
+                const productoId = @this.productoTemporal?.producto_id;
+                const precio = parseFloat(@this.productoTemporal?.precio || 0);
+                const unidadId = @this.productoTemporal?.unidad_compra_id;
+                
+                const habilitado = productoId && precio > 0 && unidadId;
+                botonAgregar.disabled = !habilitado;
+                
+                // Cambiar opacidad visualmente
+                botonAgregar.style.opacity = habilitado ? '1' : '0.6';
+            }
+        }
 
         // Manejar Enter en campos para navegación rápida
         document.addEventListener('keydown', function(e) {
@@ -594,7 +737,7 @@
                 
                 // Si está en búsqueda y hay producto seleccionado, ir a precio
                 if (activeElement.id === 'busqueda_producto') {
-                    const productoId = @this.productoTemporal.producto_id;
+                    const productoId = @this.productoTemporal?.producto_id;
                     if (productoId) {
                         e.preventDefault();
                         setTimeout(() => {
@@ -607,13 +750,13 @@
                     }
                 }
                 
-                // Si está en precio, ir a cantidad (aunque sea readonly, puede activar los botones)
+                // Si está en precio, ir a unidad
                 else if (activeElement.id === 'precio') {
                     e.preventDefault();
                     setTimeout(() => {
-                        const cantidadField = document.querySelector('input[wire\\:model\\.defer="productoTemporal.cantidad_ingresada"]');
-                        if (cantidadField) {
-                            cantidadField.focus();
+                        const unidadField = document.getElementById('unidad_compra');
+                        if (unidadField) {
+                            unidadField.focus();
                         }
                     }, 100);
                 }
@@ -621,7 +764,10 @@
                 // Si está en ISV, agregar producto automáticamente
                 else if (activeElement.id === 'isv') {
                     e.preventDefault();
-                    @this.agregarProducto();
+                    const botonAgregar = document.querySelector('button[wire\\:click="agregarProducto"]');
+                    if (botonAgregar && !botonAgregar.disabled) {
+                        @this.agregarProducto();
+                    }
                 }
             }
             
@@ -635,6 +781,9 @@
                 @this.decrementarCantidad();
             }
         });
+
+        // Verificar estado del botón periódicamente
+        setInterval(actualizarBotonAgregar, 500);
     </script>
 
 </div> {{-- FIN ELEMENTO RAÍZ --}}

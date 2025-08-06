@@ -183,8 +183,6 @@ class CompraDeProducto extends Component
             if ($productoPorCodigo) {
                 // Auto-seleccionar producto si coincide el código de barras exacto
                 $this->seleccionarProducto($productoPorCodigo['id']);
-                $this->productosFiltrados = [];
-                $this->mostrarListaProductos = false;
                 return;
             }
 
@@ -207,9 +205,6 @@ class CompraDeProducto extends Component
             $this->productoTemporal['producto_id'] = $producto['id'];
             $this->busquedaProducto = $producto['nombre'] . ' (' . ($producto['codigo_barra'] ?? 'Sin código') . ')';
             $this->mostrarListaProductos = false;
-            
-            // Auto-focus en el campo precio después de seleccionar producto
-            $this->dispatch('enfocar-precio');
         }
     }
 
@@ -230,7 +225,22 @@ class CompraDeProducto extends Component
         $this->busquedaProducto = '';
         $this->productoTemporal['producto_id'] = null;
         $this->mostrarListaProductos = false;
-        $this->dispatch('enfocar-busqueda');
+    }
+
+        // Propiedad computada para habilitar/deshabilitar el botón de agregar producto
+    public function getBotonHabilitadoProperty()
+    {
+        return !empty($this->productoTemporal['producto_id']) && 
+               !empty($this->productoTemporal['precio']) && 
+               $this->productoTemporal['precio'] > 0 && 
+               !empty($this->productoTemporal['unidad_compra_id']);
+    }
+
+    // Propiedad computada para habilitar/deshabilitar el botón de guardar compra
+    public function getBotonGuardarHabilitadoProperty()
+    {
+        return count($this->productosCompra) > 0 && 
+               !empty($this->proveedorSeleccionado);
     }
 
     public function agregarProducto()
@@ -331,9 +341,6 @@ class CompraDeProducto extends Component
         ];
         $this->busquedaProducto = '';
         $this->mostrarListaProductos = false;
-        
-        // Auto-focus en el campo de búsqueda
-        $this->dispatch('enfocar-busqueda');
     }
 
     public function guardarCompra()
