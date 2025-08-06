@@ -30,9 +30,8 @@ class ClienteForm extends Component
         'estado_id' => 1,
     ];
 
-    // Formulario de dirección (igual que en sucursales)
+    // Formulario de dirección (sin domicilio tributario)
     public $direccionForm = [
-        'domicilio_tributario' => '',
         'colonia' => '',
         'calle_blv' => '',
         'sector_zona' => '',
@@ -52,9 +51,6 @@ class ClienteForm extends Component
     public $departamentos = [];
     public $municipios = [];
     public $departamentoSeleccionado = null;
-    
-    // Control para tipo de dirección (siempre Cliente)
-    public $tipoDireccionCliente = null;
 
     // Propiedades para validación backend
     public $mostrarAlerta = false;
@@ -108,8 +104,7 @@ class ClienteForm extends Component
             'form.tipo_cliente_id' => 'required|exists:tipo_cliente,id',
             'form.estado_id' => 'required|exists:estado,id',
             
-            // Validaciones de dirección
-            'direccionForm.domicilio_tributario' => 'required|min:10|max:255',
+            // Validaciones de dirección (sin domicilio tributario)
             'direccionForm.tipo_direccion_id' => 'required|exists:tipo_direccion,id',
             'direccionForm.municipio_id' => 'required|exists:municipio,id',
             'direccionForm.colonia' => 'nullable|max:100',
@@ -134,9 +129,7 @@ class ClienteForm extends Component
             'form.tipo_cliente_id.required' => 'Debe seleccionar un tipo de cliente',
             'form.tipo_cliente_id.exists' => 'El tipo de cliente seleccionado no es válido',
             
-            // Mensajes de dirección
-            'direccionForm.domicilio_tributario.required' => 'El domicilio tributario es obligatorio',
-            'direccionForm.domicilio_tributario.min' => 'El domicilio debe tener al menos 10 caracteres',
+            // Mensajes de dirección (sin domicilio tributario)
             'direccionForm.tipo_direccion_id.required' => 'Debe seleccionar un tipo de dirección',
             'direccionForm.municipio_id.required' => 'Debe seleccionar un municipio',
         ];
@@ -158,12 +151,9 @@ class ClienteForm extends Component
         try {
             $this->tiposPersona = TipoPersona::activos()->orderBy('nombre')->get();
             $this->tiposCliente = TipoCliente::activos()->orderBy('nombre')->get();
-            $this->estados = Estado::orderBy('nombre')->get();
-            $this->tiposDireccion = TipoDireccion::orderBy('nombre')->get();
+            $this->estados = Estado::orderBy('descripcion')->get();
+            $this->tiposDireccion = TipoDireccion::where('nombre', '!=', 'Tienda')->orderBy('nombre')->get();
             $this->departamentos = Departamento::orderBy('nombre')->get();
-            
-            // Configurar tipo de dirección como "Cliente" automáticamente
-            $this->configurarTipoDireccionCliente();
             
         } catch (\Exception $e) {
             Log::error('Error al cargar datos iniciales para cliente', [
@@ -172,23 +162,6 @@ class ClienteForm extends Component
                 'linea' => $e->getLine()
             ]);
             $this->mostrarError('Error al cargar los datos iniciales');
-        }
-    }
-
-    private function configurarTipoDireccionCliente()
-    {
-        try {
-            // Buscar el tipo de dirección "Cliente"
-            $tipoDireccionCliente = TipoDireccion::where('nombre', 'Cliente')->first();
-            
-            if ($tipoDireccionCliente) {
-                $this->tipoDireccionCliente = $tipoDireccionCliente;
-                $this->direccionForm['tipo_direccion_id'] = $tipoDireccionCliente->id;
-            }
-        } catch (\Exception $e) {
-            Log::error('Error al configurar tipo de dirección cliente', [
-                'mensaje' => $e->getMessage()
-            ]);
         }
     }
 
@@ -210,7 +183,6 @@ class ClienteForm extends Component
             // Cargar dirección si existe
             if ($cliente->direccion) {
                 $this->direccionForm = [
-                    'domicilio_tributario' => $cliente->direccion->domicilio_tributario,
                     'colonia' => $cliente->direccion->colonia,
                     'calle_blv' => $cliente->direccion->calle_blv,
                     'sector_zona' => $cliente->direccion->sector_zona,

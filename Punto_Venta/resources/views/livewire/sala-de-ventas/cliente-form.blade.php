@@ -103,51 +103,26 @@
                     </div>
                 </div>
 
-                <!-- Información de Dirección (Igual que en sucursales) -->
+                <!-- Información de Dirección (reordenada) -->
                 <div class="p-4">
                     <div class="p-4 bg-white border shadow rounded-xl">
                         <h2 class="mb-4 text-lg font-semibold text-gray-700">📍 Dirección del Cliente</h2>
                         <div class="row">
-                            <div class="mb-3 col-md-6">
-                                <label for="domicilio_tributario" class="form-label">Domicilio Tributario <span class="text-red-600">*</span></label>
-                                <input type="text" id="domicilio_tributario" class="form-control {{ $this->getClaseCampo('direccionForm.domicilio_tributario') }}" wire:model="direccionForm.domicilio_tributario" placeholder="Dirección completa del cliente">
-                                @error('direccionForm.domicilio_tributario')
-                                    <div class="mt-1 text-sm text-danger">{{ $message }}</div>
-                                @enderror
-                            </div>
-
+                            <!-- Tipo de Dirección - PRIMERO -->
                             <div class="mb-3 col-md-6">
                                 <label for="tipo_direccion_id" class="form-label">Tipo de Dirección <span class="text-red-600">*</span></label>
-
-                                @if($tipoDireccionCliente)
-                                    {{-- Campo bloqueado siempre como "Cliente" --}}
-                                    <div class="input-group">
-                                        <input type="text"
-                                               class="form-control bg-light"
-                                               value="{{ $tipoDireccionCliente->nombre }}"
-                                               readonly
-                                               style="background-color: #f8f9fa !important; cursor: not-allowed;">
-                                        <span class="input-group-text bg-light border-start-0" style="background-color: #f8f9fa !important;">
-                                            <i class="fas fa-user text-muted" title="Tipo de dirección para cliente"></i>
-                                        </span>
-                                    </div>
-                                    {{-- Campo oculto para mantener el valor --}}
-                                    <input type="hidden" wire:model="direccionForm.tipo_direccion_id">
-                                @else
-                                    {{-- Campo normal como fallback --}}
-                                    <select id="tipo_direccion_id" class="form-control {{ $this->getClaseCampo('direccionForm.tipo_direccion_id') }}" wire:model="direccionForm.tipo_direccion_id">
-                                        <option value="">Seleccionar tipo</option>
-                                        @foreach($tiposDireccion as $tipo)
-                                            <option value="{{ $tipo->id }}">{{ $tipo->nombre }}</option>
-                                        @endforeach
-                                    </select>
-                                @endif
-
+                                <select id="tipo_direccion_id" class="form-control {{ $this->getClaseCampo('direccionForm.tipo_direccion_id') }}" wire:model="direccionForm.tipo_direccion_id">
+                                    <option value="">Seleccionar tipo de dirección</option>
+                                    @foreach($tiposDireccion as $tipo)
+                                        <option value="{{ $tipo->id }}">{{ $tipo->nombre }}</option>
+                                    @endforeach
+                                </select>
                                 @error('direccionForm.tipo_direccion_id')
                                     <div class="mt-1 text-sm text-danger">{{ $message }}</div>
                                 @enderror
                             </div>
 
+                            <!-- Departamento - SEGUNDO -->
                             <div class="mb-3 col-md-6">
                                 <label for="departamento" class="form-label">Departamento <span class="text-red-600">*</span></label>
                                 <select id="departamento" 
@@ -166,6 +141,7 @@
                                 </div>
                             </div>
 
+                            <!-- Municipio - TERCERO -->
                             <div class="mb-3 col-md-6">
                                 <label for="municipio_id" class="form-label">Municipio <span class="text-red-600">*</span></label>
                                 <select id="municipio_id" 
@@ -193,33 +169,37 @@
                                 @enderror
                             </div>
 
+                            <!-- Colonia - CUARTO -->
                             <div class="mb-3 col-md-6">
                                 <label for="colonia" class="form-label">Colonia</label>
-                                <input type="text" id="colonia" class="form-control {{ $this->getClaseCampo('direccionForm.colonia') }}" wire:model="direccionForm.colonia">
+                                <input type="text" id="colonia" class="form-control {{ $this->getClaseCampo('direccionForm.colonia') }}" wire:model="direccionForm.colonia" placeholder="Nombre de la colonia">
                                 @error('direccionForm.colonia')
                                     <div class="mt-1 text-sm text-danger">{{ $message }}</div>
                                 @enderror
                             </div>
 
+                            <!-- Calle/Boulevard - QUINTO -->
                             <div class="mb-3 col-md-6">
                                 <label for="calle_blv" class="form-label">Calle/Boulevard</label>
-                                <input type="text" id="calle_blv" class="form-control {{ $this->getClaseCampo('direccionForm.calle_blv') }}" wire:model="direccionForm.calle_blv">
+                                <input type="text" id="calle_blv" class="form-control {{ $this->getClaseCampo('direccionForm.calle_blv') }}" wire:model="direccionForm.calle_blv" placeholder="Nombre de la calle o boulevard">
                                 @error('direccionForm.calle_blv')
                                     <div class="mt-1 text-sm text-danger">{{ $message }}</div>
                                 @enderror
                             </div>
 
+                            <!-- Sector/Zona - SEXTO -->
                             <div class="mb-3 col-md-6">
                                 <label for="sector_zona" class="form-label">Sector/Zona</label>
-                                <input type="text" id="sector_zona" class="form-control {{ $this->getClaseCampo('direccionForm.sector_zona') }}" wire:model="direccionForm.sector_zona">
+                                <input type="text" id="sector_zona" class="form-control {{ $this->getClaseCampo('direccionForm.sector_zona') }}" wire:model="direccionForm.sector_zona" placeholder="Sector o zona">
                                 @error('direccionForm.sector_zona')
                                     <div class="mt-1 text-sm text-danger">{{ $message }}</div>
                                 @enderror
                             </div>
 
+                            <!-- Bloque - SÉPTIMO -->
                             <div class="mb-3 col-md-6">
                                 <label for="bloque" class="form-label">Bloque</label>
-                                <input type="text" id="bloque" class="form-control {{ $this->getClaseCampo('direccionForm.bloque') }}" wire:model="direccionForm.bloque">
+                                <input type="text" id="bloque" class="form-control {{ $this->getClaseCampo('direccionForm.bloque') }}" wire:model="direccionForm.bloque" placeholder="Número de bloque">
                                 @error('direccionForm.bloque')
                                     <div class="mt-1 text-sm text-danger">{{ $message }}</div>
                                 @enderror
