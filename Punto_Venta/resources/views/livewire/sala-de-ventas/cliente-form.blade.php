@@ -1,40 +1,4 @@
 <div> {{-- ELEMENTO RAÍZ ÚNICO OBLIGATORIO --}}
-    <!-- Estilos para alertas flotantes -->
-    <style>
-        .alerta-flotante {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 9999;
-            max-width: 400px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-            border-radius: 8px;
-            animation: slideInRight 0.3s ease-out;
-        }
-        
-        @keyframes slideInRight {
-            from {
-                transform: translateX(100%);
-                opacity: 0;
-            }
-            to {
-                transform: translateX(0);
-                opacity: 1;
-            }
-        }
-        
-        .alerta-flotante .btn-close {
-            background: none;
-            border: none;
-            font-size: 1.2em;
-            opacity: 0.8;
-            cursor: pointer;
-        }
-        
-        .alerta-flotante .btn-close:hover {
-            opacity: 1;
-        }
-    </style>
 
     <div class="overflow-hidden border border-gray-300 rounded shadow" x-data x-init="$watch('theme', t => localStorage.setItem('theme', t))">
 
@@ -63,20 +27,12 @@
 
         <!-- FORMULARIO -->
         <div class="px-5 py-4">
-            <!-- Alerta de validación flotante -->
+            <!-- Alerta de validación backend -->
             @if($mostrarAlerta)
-                <div class="alerta-flotante alert alert-danger alert-dismissible fade show" 
-                     role="alert" 
-                     x-data="{ show: true }" 
-                     x-show="show" 
-                     x-transition:enter="transition ease-out duration-300"
-                     x-transition:enter-start="opacity-0 transform scale-90"
-                     x-transition:enter-end="opacity-100 transform scale-100"
-                     x-transition:leave="transition ease-in duration-300"
-                     x-transition:leave-start="opacity-100 transform scale-100"
-                     x-transition:leave-end="opacity-0 transform scale-90">
-                    <strong>⚠️ Error de validación:</strong> {{ $mensajeAlerta }}
-                    <button type="button" class="btn-close" wire:click="cerrarAlerta" @click="show = false" aria-label="Close"></button>
+                <div class="alert-campo-obligatorio">
+                    <strong>⚠️ Campo Obligatorio</strong>
+                    <button wire:click="cerrarAlerta" style="float: right; background: none; border: none; font-size: 18px; cursor: pointer;">×</button>
+                    <br><small>{{ $mensajeAlerta }}</small>
                 </div>
             @endif
 
@@ -171,7 +127,7 @@
                             <div class="mb-3 col-md-6">
                                 <label for="departamento" class="form-label">Departamento <span class="text-red-600">*</span></label>
                                 <select id="departamento" 
-                                        class="form-control" 
+                                        class="form-control {{ $this->getClaseCampo('departamentoSeleccionado') }}" 
                                         wire:model.lazy="departamentoSeleccionado"
                                         wire:loading.attr="disabled">
                                     <option value="">Seleccionar departamento</option>
@@ -385,17 +341,49 @@
     <!-- Estilos CSS para validación -->
     <style>
         /* Campo con error - solo rojos */
-        .is-invalid {
+        .is-invalid, .campo-obligatorio-vacio {
             border: 2px solid #dc3545 !important;
             background-color: #fff5f5 !important;
             box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25) !important;
         }
-        
+
         /* Mensaje de error personalizado */
         .text-danger {
             color: #dc3545 !important;
             font-size: 0.875rem;
             font-weight: 500;
+        }
+
+        /* Alerta flotante personalizada */
+        .alert-campo-obligatorio {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            background: #f8d7da;
+            color: #721c24;
+            padding: 12px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+            border-left: 4px solid #dc3545;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        /* Estilo para labels de campos obligatorios */
+        .text-red-600 {
+            color: #dc3545 !important;
+            font-weight: bold;
+        }
+
+        /* Ocultar elementos antes de que Alpine.js los maneje */
+        [x-cloak] {
+            display: none !important;
         }
     </style>
 

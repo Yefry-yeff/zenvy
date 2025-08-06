@@ -56,6 +56,8 @@ class ClienteForm extends Component
     public $mostrarAlerta = false;
     public $mensajeAlerta = '';
     public $campoConError = '';
+    public $camposConError = [];
+    public $erroresValidacion = [];
     
     // Propiedades para modales de éxito y error
     public $mostrarModalExito = false;
@@ -384,10 +386,8 @@ class ClienteForm extends Component
     // Método para obtener clases CSS según validación
     public function getClaseCampo($campo)
     {
-        $errors = $this->getErrorBag();
-        
-        if ($errors->has($campo)) {
-            return 'is-invalid';
+        if (in_array($campo, $this->camposConError)) {
+            return 'is-invalid campo-obligatorio-vacio';
         }
         
         return '';
@@ -400,6 +400,11 @@ class ClienteForm extends Component
         $this->mensajeAlerta = $mensaje;
         $this->campoConError = $campo;
         $this->mostrarAlerta = true;
+        
+        // Agregar campo a la lista de errores si se especifica
+        if (!empty($campo)) {
+            $this->mostrarErrorCampo($campo, $mensaje);
+        }
     }
 
     public function cerrarAlerta()
@@ -407,5 +412,31 @@ class ClienteForm extends Component
         $this->mostrarAlerta = false;
         $this->mensajeAlerta = '';
         $this->campoConError = '';
+        $this->camposConError = [];
+        $this->erroresValidacion = [];
+    }
+
+    private function mostrarErrorCampo($campo, $mensaje)
+    {
+        $this->camposConError[] = $campo;
+        $this->camposConError = array_unique($this->camposConError);
+
+        $this->mostrarAlerta = true;
+        $this->mensajeAlerta = $mensaje;
+        $this->campoConError = $campo;
+
+        // Guardar error en array de errores
+        $this->erroresValidacion[$campo] = $mensaje;
+    }
+
+    private function limpiarErrorCampo($campo)
+    {
+        // Remover de errores
+        $this->camposConError = array_filter($this->camposConError, function($c) use ($campo) {
+            return $c !== $campo;
+        });
+
+        // Remover de errores
+        unset($this->erroresValidacion[$campo]);
     }
 }
