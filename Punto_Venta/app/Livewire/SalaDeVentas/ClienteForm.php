@@ -219,6 +219,11 @@ class ClienteForm extends Component
     {
         $this->direccionForm['municipio_id'] = null;
         $this->cargarMunicipios();
+        
+        // Limpiar error de departamento si tenía
+        $this->limpiarErrorCampo('departamentoSeleccionado');
+        // También limpiar error de municipio ya que se resetea
+        $this->limpiarErrorCampo('direccionForm.municipio_id');
     }
 
     private function cargarMunicipios()
@@ -359,27 +364,94 @@ class ClienteForm extends Component
 
     public function updatedFormNombre()
     {
-        $this->validateOnly('form.nombre');
+        try {
+            $this->validateOnly('form.nombre');
+            $this->limpiarErrorCampo('form.nombre');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            $this->mostrarErrorCampo('form.nombre', 'El nombre del cliente es obligatorio');
+        }
     }
 
     public function updatedFormCorreo()
     {
         if (!empty($this->form['correo'])) {
-            $this->validateOnly('form.correo');
+            try {
+                $this->validateOnly('form.correo');
+                $this->limpiarErrorCampo('form.correo');
+            } catch (\Illuminate\Validation\ValidationException $e) {
+                $this->mostrarErrorCampo('form.correo', 'El formato del correo electrónico no es válido');
+            }
+        } else {
+            $this->limpiarErrorCampo('form.correo');
         }
     }
 
     public function updatedFormIdentidad()
     {
         if (!empty($this->form['identidad'])) {
-            $this->validateOnly('form.identidad');
+            try {
+                $this->validateOnly('form.identidad');
+                $this->limpiarErrorCampo('form.identidad');
+            } catch (\Illuminate\Validation\ValidationException $e) {
+                $this->mostrarErrorCampo('form.identidad', 'Esta identidad ya está registrada por otro cliente');
+            }
+        } else {
+            $this->limpiarErrorCampo('form.identidad');
         }
     }
 
     public function updatedFormRtn()
     {
         if (!empty($this->form['rtn'])) {
-            $this->validateOnly('form.rtn');
+            try {
+                $this->validateOnly('form.rtn');
+                $this->limpiarErrorCampo('form.rtn');
+            } catch (\Illuminate\Validation\ValidationException $e) {
+                $this->mostrarErrorCampo('form.rtn', 'Este RTN ya está registrado por otro cliente');
+            }
+        } else {
+            $this->limpiarErrorCampo('form.rtn');
+        }
+    }
+
+    public function updatedFormTipoPersonaId()
+    {
+        try {
+            $this->validateOnly('form.tipo_persona_id');
+            $this->limpiarErrorCampo('form.tipo_persona_id');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            $this->mostrarErrorCampo('form.tipo_persona_id', 'Debe seleccionar un tipo de persona');
+        }
+    }
+
+    public function updatedFormTipoClienteId()
+    {
+        try {
+            $this->validateOnly('form.tipo_cliente_id');
+            $this->limpiarErrorCampo('form.tipo_cliente_id');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            $this->mostrarErrorCampo('form.tipo_cliente_id', 'Debe seleccionar un tipo de cliente');
+        }
+    }
+
+    // Métodos para campos de dirección
+    public function updatedDireccionFormTipoDireccionId()
+    {
+        try {
+            $this->validateOnly('direccionForm.tipo_direccion_id');
+            $this->limpiarErrorCampo('direccionForm.tipo_direccion_id');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            $this->mostrarErrorCampo('direccionForm.tipo_direccion_id', 'Debe seleccionar un tipo de dirección');
+        }
+    }
+
+    public function updatedDireccionFormMunicipioId()
+    {
+        try {
+            $this->validateOnly('direccionForm.municipio_id');
+            $this->limpiarErrorCampo('direccionForm.municipio_id');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            $this->mostrarErrorCampo('direccionForm.municipio_id', 'Debe seleccionar un municipio');
         }
     }
 
@@ -436,7 +508,14 @@ class ClienteForm extends Component
             return $c !== $campo;
         });
 
-        // Remover de errores
+        // Remover de errores de validación
         unset($this->erroresValidacion[$campo]);
+        
+        // Si no hay más campos con error, ocultar la alerta
+        if (empty($this->camposConError)) {
+            $this->mostrarAlerta = false;
+            $this->mensajeAlerta = '';
+            $this->campoConError = '';
+        }
     }
 }

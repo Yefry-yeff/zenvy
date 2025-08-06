@@ -77,7 +77,7 @@
 
                             <div class="mb-3 col-md-6">
                                 <label for="tipo_persona_id" class="form-label">Tipo de Persona <span class="text-red-600">*</span></label>
-                                <select id="tipo_persona_id" class="form-control {{ $this->getClaseCampo('form.tipo_persona_id') }}" wire:model="form.tipo_persona_id">
+                                <select id="tipo_persona_id" class="form-control {{ $this->getClaseCampo('form.tipo_persona_id') }}" wire:model.live="form.tipo_persona_id">
                                     <option value="">Seleccionar tipo de persona</option>
                                     @foreach($tiposPersona as $tipo)
                                         <option value="{{ $tipo->id }}">{{ $tipo->nombre }}</option>
@@ -90,7 +90,7 @@
 
                             <div class="mb-3 col-md-6">
                                 <label for="tipo_cliente_id" class="form-label">Tipo de Cliente <span class="text-red-600">*</span></label>
-                                <select id="tipo_cliente_id" class="form-control {{ $this->getClaseCampo('form.tipo_cliente_id') }}" wire:model="form.tipo_cliente_id">
+                                <select id="tipo_cliente_id" class="form-control {{ $this->getClaseCampo('form.tipo_cliente_id') }}" wire:model.live="form.tipo_cliente_id">
                                     <option value="">Seleccionar tipo de cliente</option>
                                     @foreach($tiposCliente as $tipo)
                                         <option value="{{ $tipo->id }}">{{ $tipo->nombre }}</option>
@@ -112,7 +112,7 @@
                             <!-- Tipo de Dirección - PRIMERO -->
                             <div class="mb-3 col-md-6">
                                 <label for="tipo_direccion_id" class="form-label">Tipo de Dirección <span class="text-red-600">*</span></label>
-                                <select id="tipo_direccion_id" class="form-control {{ $this->getClaseCampo('direccionForm.tipo_direccion_id') }}" wire:model="direccionForm.tipo_direccion_id">
+                                <select id="tipo_direccion_id" class="form-control {{ $this->getClaseCampo('direccionForm.tipo_direccion_id') }}" wire:model.live="direccionForm.tipo_direccion_id">
                                     <option value="">Seleccionar tipo de dirección</option>
                                     @foreach($tiposDireccion as $tipo)
                                         <option value="{{ $tipo->id }}">{{ $tipo->nombre }}</option>
@@ -147,7 +147,7 @@
                                 <label for="municipio_id" class="form-label">Municipio <span class="text-red-600">*</span></label>
                                 <select id="municipio_id" 
                                         class="form-control {{ $this->getClaseCampo('direccionForm.municipio_id') }}" 
-                                        wire:model="direccionForm.municipio_id"
+                                        wire:model.live="direccionForm.municipio_id"
                                         @if(!$departamentoSeleccionado) disabled @endif>
                                     <option value="">
                                         @if(!$departamentoSeleccionado)
