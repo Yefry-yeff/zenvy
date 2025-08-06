@@ -46,6 +46,9 @@ class CompraDeProducto extends Component
     public $busquedaProducto = '';
     public $productosFiltrados = [];
     public $mostrarListaProductos = false;
+    
+    // Control de visibilidad de sección de productos
+    public $mostrarSeccionProductosActiva = false;
 
     // Propiedades para validación y modales
     public $mostrarAlerta = false;
@@ -227,20 +230,71 @@ class CompraDeProducto extends Component
         $this->mostrarListaProductos = false;
     }
 
-        // Propiedad computada para habilitar/deshabilitar el botón de agregar producto
+    // Propiedad computada para habilitar/deshabilitar el botón de agregar producto
     public function getBotonHabilitadoProperty()
     {
+        // Solo requiere producto, precio y unidad para agregar productos
         return !empty($this->productoTemporal['producto_id']) && 
                !empty($this->productoTemporal['precio']) && 
                $this->productoTemporal['precio'] > 0 && 
-               !empty($this->productoTemporal['unidad_compra_id']);
+               !empty($this->productoTemporal['unidad_compra_id']) &&
+               $this->productoTemporal['cantidad_ingresada'] > 0;
     }
 
     // Propiedad computada para habilitar/deshabilitar el botón de guardar compra
     public function getBotonGuardarHabilitadoProperty()
     {
-        return count($this->productosCompra) > 0 && 
+        // Solo requiere que haya productos agregados, ya que la información de compra 
+        // es prerequisito para mostrar la sección de productos
+        return count($this->productosCompra) > 0;
+    }
+
+    // Propiedad computada para mostrar la sección de agregar productos
+    public function getMostrarSeccionProductosProperty()
+    {
+        // Solo mostrar sección de productos cuando la información básica esté completa
+        return !empty($this->compra['numero_factura']) && 
+               !empty($this->compra['fecha_emision']) && 
+               !empty($this->compra['fecha_recepcion']) && 
                !empty($this->proveedorSeleccionado);
+    }
+
+    // Método para activar la sección de productos
+    public function activarSeccionProductos()
+    {
+        $this->mostrarSeccionProductosActiva = true;
+    }
+
+    // Método para validar campos y activar la sección de productos
+    public function validarYActivarSeccionProductos()
+    {
+        // Validar campos obligatorios
+        $errores = [];
+        
+        if (empty($this->compra['numero_factura'])) {
+            $errores[] = 'El número de factura es obligatorio';
+        }
+        
+        if (empty($this->compra['fecha_emision'])) {
+            $errores[] = 'La fecha de emisión es obligatoria';
+        }
+        
+        if (empty($this->compra['fecha_recepcion'])) {
+            $errores[] = 'La fecha de recepción es obligatoria';
+        }
+        
+        if (empty($this->proveedorSeleccionado)) {
+            $errores[] = 'Debe seleccionar un proveedor';
+        }
+        
+        // Si hay errores, mostrar alerta
+        if (!empty($errores)) {
+            $this->mostrarAlertaError('Complete los siguientes campos: ' . implode(', ', $errores));
+            return;
+        }
+        
+        // Si todo está correcto, activar la sección de productos
+        $this->mostrarSeccionProductosActiva = true;
     }
 
     public function agregarProducto()
@@ -426,6 +480,7 @@ class CompraDeProducto extends Component
         ];
         $this->proveedorSeleccionado = null;
         $this->productosCompra = [];
+        $this->mostrarSeccionProductosActiva = false;
         $this->resetProductoTemporal();
         $this->calcularTotales();
     }

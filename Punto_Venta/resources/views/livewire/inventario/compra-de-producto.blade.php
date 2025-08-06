@@ -1,5 +1,13 @@
 <div> {{-- ELEMENTO RAÍZ ÚNICO OBLIGATORIO --}}
 
+    <!-- Mensajes de error -->
+    @if (session()->has('error'))
+        <div class="mb-4 px-4 py-3 rounded relative bg-red-100 border border-red-400 text-red-700" role="alert">
+            <strong class="font-bold">Error:</strong>
+            <span class="block sm:inline">{{ session('error') }}</span>
+        </div>
+    @endif
+
     <div class="overflow-hidden border border-gray-300 rounded shadow" x-data x-init="$watch('theme', t => localStorage.setItem('theme', t))">
 
         <!-- ENCABEZADO -->
@@ -44,7 +52,7 @@
                         <div class="row">
                             <div class="mb-3 col-md-6">
                                 <label for="numero_factura" class="form-label">Número de Factura <span class="text-red-600">*</span></label>
-                                <input type="text" id="numero_factura" class="form-control" wire:model.defer="compra.numero_factura" autofocus>
+                                <input type="text" id="numero_factura" class="form-control" wire:model.defer="compra.numero_factura">
                                 @error('compra.numero_factura')
                                     <div class="mt-1 text-sm text-danger">❌ {{ $message }}</div>
                                 @enderror
@@ -98,10 +106,41 @@
                                 @enderror
                             </div>
                         </div>
+
+                        <!-- Botón Ingresar Productos (siempre visible) -->
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                @if($this->mostrarSeccionProductos && !$mostrarSeccionProductosActiva)
+                                    <div class="alert alert-success d-flex align-items-center justify-content-between">
+                                        <div>
+                                            <strong>✅ Información completa!</strong>
+                                            <span class="ms-2">Ya puede proceder a agregar productos.</span>
+                                        </div>
+                                        <button type="button" 
+                                                class="btn btn-primary btn-sm px-4 py-2 d-flex align-items-center"
+                                                wire:click="activarSeccionProductos">
+                                            <span style="font-size: 16px;" class="me-2">📦</span>
+                                            <span class="fw-bold">Ingresar Productos</span>
+                                        </button>
+                                    </div>
+                                @else
+                                    <div class="d-flex justify-content-center">
+                                        <button type="button" 
+                                                class="btn btn-primary btn-lg px-5 py-3 d-flex align-items-center"
+                                                wire:click="validarYActivarSeccionProductos">
+                                            <span style="font-size: 18px;" class="me-2">📦</span>
+                                            <span class="fw-bold">Ingresar Productos</span>
+                                        </button>
+                                    </div>
+                                @endif
+                            </div>
+                        </div>
                     </div>
                 </div>
 
                 <!-- Agregar Productos -->
+                @if($this->mostrarSeccionProductos && $mostrarSeccionProductosActiva)
+                        <!-- Sección completa de agregar productos -->
                 <div class="p-4 mb-4">
                     <div class="p-4 bg-white border shadow rounded-xl">
                         <h2 class="mb-4 text-lg font-semibold text-gray-700">📦 Agregar Productos</h2>
@@ -121,8 +160,7 @@
                                                    id="busqueda_producto" 
                                                    class="form-control" 
                                                    wire:model.live="busquedaProducto" 
-                                                   placeholder="Escanear o buscar..."
-                                                   autofocus>
+                                                   placeholder="Escanear o buscar...">
                                             @if($busquedaProducto && $productoTemporal['producto_id'])
                                                 <button type="button" 
                                                         class="btn btn-sm btn-outline-secondary position-absolute"
@@ -542,6 +580,26 @@
                         </div>
                     </div>
                 </div>
+                @endif
+
+                <!-- Mensaje para completar información de compra cuando no está completa -->
+                @if(!$this->mostrarSeccionProductos)
+                <!-- Mensaje para completar información de compra -->
+                <div class="p-4 mb-4">
+                    <div class="p-4 bg-white border shadow rounded-xl">
+                        <div class="text-center py-5">
+                            <div class="mb-3">
+                                <i class="text-muted" style="font-size: 3rem;">📋</i>
+                            </div>
+                            <h4 class="text-muted mb-3">Complete la Información de la Compra</h4>
+                            <p class="text-muted mb-0">
+                                Para agregar productos, primero complete todos los campos obligatorios 
+                                en la sección "Información de la Compra" arriba.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                @endif
 
                 <!-- Lista de Productos Agregados -->
                 @if(count($productosCompra) > 0)
