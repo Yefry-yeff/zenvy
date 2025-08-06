@@ -175,11 +175,25 @@ class CompraDeProducto extends Component
     public function updatedBusquedaProducto()
     {
         if (strlen($this->busquedaProducto) >= 2) {
+            // Buscar por código de barras exacto primero
+            $productoPorCodigo = collect($this->productos)->first(function($producto) {
+                return $producto['codigo_barra'] === $this->busquedaProducto;
+            });
+
+            if ($productoPorCodigo) {
+                // Auto-seleccionar producto si coincide el código de barras exacto
+                $this->seleccionarProducto($productoPorCodigo['id']);
+                $this->productosFiltrados = [];
+                $this->mostrarListaProductos = false;
+                return;
+            }
+
+            // Si no es código exacto, mostrar lista filtrada
             $this->productosFiltrados = collect($this->productos)->filter(function($producto) {
                 return stripos($producto['nombre'], $this->busquedaProducto) !== false ||
                        stripos($producto['codigo_barra'], $this->busquedaProducto) !== false;
             })->take(10)->values()->toArray();
-            $this->mostrarListaProductos = true;
+            $this->mostrarListaProductos = count($this->productosFiltrados) > 0;
         } else {
             $this->productosFiltrados = [];
             $this->mostrarListaProductos = false;
@@ -191,9 +205,32 @@ class CompraDeProducto extends Component
         $producto = collect($this->productos)->firstWhere('id', $productoId);
         if ($producto) {
             $this->productoTemporal['producto_id'] = $producto['id'];
-            $this->busquedaProducto = $producto['nombre'];
+            $this->busquedaProducto = $producto['nombre'] . ' (' . ($producto['codigo_barra'] ?? 'Sin código') . ')';
             $this->mostrarListaProductos = false;
+            
+            // Auto-focus en el campo precio después de seleccionar producto
+            $this->dispatch('enfocar-precio');
         }
+    }
+
+    public function incrementarCantidad()
+    {
+        $this->productoTemporal['cantidad_ingresada']++;
+    }
+
+    public function decrementarCantidad()
+    {
+        if ($this->productoTemporal['cantidad_ingresada'] > 1) {
+            $this->productoTemporal['cantidad_ingresada']--;
+        }
+    }
+
+    public function limpiarBusqueda()
+    {
+        $this->busquedaProducto = '';
+        $this->productoTemporal['producto_id'] = null;
+        $this->mostrarListaProductos = false;
+        $this->dispatch('enfocar-busqueda');
     }
 
     public function agregarProducto()
@@ -294,6 +331,9 @@ class CompraDeProducto extends Component
         ];
         $this->busquedaProducto = '';
         $this->mostrarListaProductos = false;
+        
+        // Auto-focus en el campo de búsqueda
+        $this->dispatch('enfocar-busqueda');
     }
 
     public function guardarCompra()

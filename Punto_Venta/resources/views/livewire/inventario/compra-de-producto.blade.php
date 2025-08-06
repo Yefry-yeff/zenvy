@@ -106,70 +106,136 @@
                     <div class="p-4 bg-white border shadow rounded-xl">
                         <h2 class="mb-4 text-lg font-semibold text-gray-700">📦 Agregar Productos</h2>
                         
-                        <!-- Búsqueda de productos -->
-                        <div class="mb-3 position-relative">
-                            <label for="busqueda_producto" class="form-label">Buscar Producto</label>
-                            <input type="text" id="busqueda_producto" class="form-control" 
-                                   wire:model.live="busquedaProducto" 
-                                   placeholder="Buscar por nombre o código de barras...">
-                            
-                            <!-- Lista de productos filtrados -->
-                            @if($mostrarListaProductos && count($productosFiltrados) > 0)
-                                <div class="position-absolute w-100 bg-white border rounded shadow-lg" style="z-index: 1000; max-height: 200px; overflow-y: auto;">
-                                    @foreach($productosFiltrados as $producto)
-                                        <div class="p-2 cursor-pointer hover:bg-gray-100" 
-                                             wire:click="seleccionarProducto({{ $producto['id'] }})">
-                                            <strong>{{ $producto['nombre'] }}</strong>
-                                            @if($producto['codigo_barra'])
-                                                <br><small class="text-muted">Código: {{ $producto['codigo_barra'] }}</small>
-                                            @endif
+                        <!-- Fila única de facturación -->
+                        <div class="p-3 border rounded bg-gray-50">
+                            <div class="row align-items-end">
+                                <!-- Búsqueda/Selección de Producto -->
+                                <div class="mb-3 col-md-3">
+                                    <label for="busqueda_producto" class="form-label">
+                                        <strong>Producto / Código Barras</strong> <span class="text-red-600">*</span>
+                                    </label>
+                                    <div class="position-relative">
+                                        <input type="text" 
+                                               id="busqueda_producto" 
+                                               class="form-control" 
+                                               wire:model.live="busquedaProducto" 
+                                               placeholder="Escanear o buscar..."
+                                               autofocus>
+                                        @if($busquedaProducto && $productoTemporal['producto_id'])
+                                            <button type="button" 
+                                                    class="btn btn-sm btn-outline-secondary position-absolute"
+                                                    style="right: 5px; top: 5px; padding: 2px 6px;"
+                                                    wire:click="limpiarBusqueda">
+                                                ✕
+                                            </button>
+                                        @endif
+                                    </div>
+                                    
+                                    <!-- Lista de productos filtrados -->
+                                    @if($mostrarListaProductos && count($productosFiltrados) > 0)
+                                        <div class="position-absolute w-100 bg-white border rounded shadow-lg" style="z-index: 1000; max-height: 200px; overflow-y: auto;">
+                                            @foreach($productosFiltrados as $producto)
+                                                <div class="p-2 cursor-pointer hover:bg-gray-100" 
+                                                     wire:click="seleccionarProducto({{ $producto['id'] }})">
+                                                    <strong>{{ $producto['nombre'] }}</strong>
+                                                    @if($producto['codigo_barra'])
+                                                        <br><small class="text-muted">{{ $producto['codigo_barra'] }} - {{ $producto['marca'] }}</small>
+                                                    @endif
+                                                </div>
+                                            @endforeach
                                         </div>
-                                    @endforeach
+                                    @endif
                                 </div>
+
+                                <!-- Precio -->
+                                <div class="mb-3 col-md-2">
+                                    <label for="precio" class="form-label"><strong>Precio</strong> <span class="text-red-600">*</span></label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">L.</span>
+                                        <input type="number" 
+                                               id="precio" 
+                                               class="form-control" 
+                                               step="0.01" 
+                                               min="0.01"
+                                               wire:model.defer="productoTemporal.precio"
+                                               placeholder="0.00">
+                                    </div>
+                                </div>
+
+                                <!-- Cantidad con botones +/- -->
+                                <div class="mb-3 col-md-1">
+                                    <label for="cantidad" class="form-label"><strong>Cant.</strong> <span class="text-red-600">*</span></label>
+                                    <div class="input-group">
+                                        <button type="button" class="btn btn-outline-secondary" wire:click="decrementarCantidad">-</button>
+                                        <input type="number" 
+                                               class="form-control text-center" 
+                                               wire:model.defer="productoTemporal.cantidad_ingresada"
+                                               min="1"
+                                               readonly
+                                               style="max-width: 60px;">
+                                        <button type="button" class="btn btn-outline-secondary" wire:click="incrementarCantidad">+</button>
+                                    </div>
+                                </div>
+
+                                <!-- Unidad -->
+                                <div class="mb-3 col-md-2">
+                                    <label for="unidad_compra" class="form-label"><strong>Unidad</strong> <span class="text-red-600">*</span></label>
+                                    <select id="unidad_compra" class="form-select" wire:model.defer="productoTemporal.unidad_compra_id">
+                                        <option value="">Seleccionar</option>
+                                        @foreach($unidadesCompra as $unidad)
+                                            <option value="{{ $unidad['id'] }}">{{ $unidad['nombre'] }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+
+                                <!-- ISV -->
+                                <div class="mb-3 col-md-1">
+                                    <label for="isv" class="form-label"><strong>ISV (%)</strong></label>
+                                    <input type="number" 
+                                           id="isv" 
+                                           class="form-control" 
+                                           step="0.01" 
+                                           min="0" 
+                                           max="100"
+                                           wire:model.defer="productoTemporal.isv"
+                                           placeholder="0">
+                                </div>
+
+                                <!-- Fecha de Expiración -->
+                                <div class="mb-3 col-md-2">
+                                    <label for="fecha_expiracion" class="form-label"><strong>Exp.</strong></label>
+                                    <input type="date" 
+                                           id="fecha_expiracion" 
+                                           class="form-control" 
+                                           wire:model.defer="productoTemporal.fecha_expiracion">
+                                </div>
+
+                                <!-- Botón Agregar -->
+                                <div class="mb-3 col-md-1">
+                                    <button type="button" 
+                                            class="btn btn-success w-100 d-flex align-items-center justify-content-center" 
+                                            wire:click="agregarProducto"
+                                            @if(!$productoTemporal['producto_id'] || !$productoTemporal['precio'] || !$productoTemporal['unidad_compra_id']) disabled @endif>
+                                        <span style="font-size: 18px;">➕</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Información del producto seleccionado -->
+                            @if($productoTemporal['producto_id'])
+                                @php
+                                    $productoSeleccionado = collect($productos)->firstWhere('id', $productoTemporal['producto_id']);
+                                @endphp
+                                @if($productoSeleccionado)
+                                    <div class="mt-2 p-2 bg-info bg-opacity-10 border border-info rounded">
+                                        <small class="text-info">
+                                            <strong>Producto:</strong> {{ $productoSeleccionado['nombre'] }} | 
+                                            <strong>Marca:</strong> {{ $productoSeleccionado['marca'] }} | 
+                                            <strong>Categoría:</strong> {{ $productoSeleccionado['subcategoria'] }}
+                                        </small>
+                                    </div>
+                                @endif
                             @endif
-                        </div>
-
-                        <!-- Detalles del producto -->
-                        <div class="row">
-                            <div class="mb-3 col-md-3">
-                                <label for="precio" class="form-label">Precio <span class="text-red-600">*</span></label>
-                                <input type="number" id="precio" class="form-control" step="0.01" min="0.01"
-                                       wire:model.defer="productoTemporal.precio">
-                            </div>
-                            <div class="mb-3 col-md-2">
-                                <label for="cantidad" class="form-label">Cantidad <span class="text-red-600">*</span></label>
-                                <input type="number" id="cantidad" class="form-control" min="1"
-                                       wire:model.defer="productoTemporal.cantidad_ingresada">
-                            </div>
-                            <div class="mb-3 col-md-3">
-                                <label for="unidad_compra" class="form-label">Unidad <span class="text-red-600">*</span></label>
-                                <select id="unidad_compra" class="form-select" wire:model.defer="productoTemporal.unidad_compra_id">
-                                    <option value="">Seleccionar unidad</option>
-                                    @foreach($unidadesCompra as $unidad)
-                                        <option value="{{ $unidad['id'] }}">{{ $unidad['nombre'] }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            <div class="mb-3 col-md-2">
-                                <label for="isv" class="form-label">ISV (%)</label>
-                                <input type="number" id="isv" class="form-control" step="0.01" min="0" max="100"
-                                       wire:model.defer="productoTemporal.isv">
-                            </div>
-                            <div class="mb-3 col-md-2">
-                                <label class="form-label">&nbsp;</label>
-                                <button type="button" class="btn btn-primary w-100" wire:click="agregarProducto">
-                                    ➕ Agregar
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Fecha de expiración opcional -->
-                        <div class="row">
-                            <div class="mb-3 col-md-4">
-                                <label for="fecha_expiracion" class="form-label">Fecha de Expiración (Opcional)</label>
-                                <input type="date" id="fecha_expiracion" class="form-control" 
-                                       wire:model.defer="productoTemporal.fecha_expiracion">
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -335,6 +401,59 @@
             opacity: 0.6;
             cursor: not-allowed;
         }
+
+        /* Estilos para la fila de facturación */
+        .bg-gray-50 {
+            background-color: #f8f9fa !important;
+        }
+
+        /* Botones de cantidad */
+        .input-group .btn {
+            border-color: #dee2e6;
+        }
+
+        .input-group .btn:hover {
+            background-color: #e9ecef;
+        }
+
+        /* Campo de cantidad centrado */
+        .text-center {
+            text-align: center !important;
+        }
+
+        /* Información del producto seleccionado */
+        .bg-info.bg-opacity-10 {
+            background-color: rgba(13, 202, 240, 0.1) !important;
+        }
+
+        .border-info {
+            border-color: #0dcaf0 !important;
+        }
+
+        .text-info {
+            color: #0dcaf0 !important;
+        }
+
+        /* Mejorar la lista de productos filtrados */
+        .position-absolute {
+            position: absolute !important;
+        }
+
+        /* Botón de limpiar búsqueda */
+        .position-absolute .btn {
+            z-index: 5;
+        }
+
+        /* Campos obligatorios destacados */
+        .form-label strong {
+            font-weight: 600;
+        }
+
+        /* Input group con moneda */
+        .input-group-text {
+            background-color: #e9ecef;
+            border-color: #ced4da;
+        }
     </style>
 
     <!-- Modal de Éxito con Alpine.js -->
@@ -433,15 +552,88 @@
         </div>
     </div>
 
-    <!-- Script para auto-focus -->
+    <!-- Script para auto-focus y manejo de eventos -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            // Auto-focus inicial en el campo de búsqueda
             setTimeout(() => {
-                const numeroFacturaField = document.getElementById('numero_factura');
-                if (numeroFacturaField) {
-                    numeroFacturaField.focus();
+                const busquedaField = document.getElementById('busqueda_producto');
+                if (busquedaField) {
+                    busquedaField.focus();
                 }
             }, 100);
+        });
+
+        document.addEventListener('livewire:init', () => {
+            // Escuchar eventos de Livewire para enfocar campos
+            Livewire.on('enfocar-busqueda', () => {
+                setTimeout(() => {
+                    const busquedaField = document.getElementById('busqueda_producto');
+                    if (busquedaField) {
+                        busquedaField.focus();
+                        busquedaField.select();
+                    }
+                }, 100);
+            });
+
+            Livewire.on('enfocar-precio', () => {
+                setTimeout(() => {
+                    const precioField = document.getElementById('precio');
+                    if (precioField) {
+                        precioField.focus();
+                        precioField.select();
+                    }
+                }, 100);
+            });
+        });
+
+        // Manejar Enter en campos para navegación rápida
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                const activeElement = document.activeElement;
+                
+                // Si está en búsqueda y hay producto seleccionado, ir a precio
+                if (activeElement.id === 'busqueda_producto') {
+                    const productoId = @this.productoTemporal.producto_id;
+                    if (productoId) {
+                        e.preventDefault();
+                        setTimeout(() => {
+                            const precioField = document.getElementById('precio');
+                            if (precioField) {
+                                precioField.focus();
+                                precioField.select();
+                            }
+                        }, 100);
+                    }
+                }
+                
+                // Si está en precio, ir a cantidad (aunque sea readonly, puede activar los botones)
+                else if (activeElement.id === 'precio') {
+                    e.preventDefault();
+                    setTimeout(() => {
+                        const cantidadField = document.querySelector('input[wire\\:model\\.defer="productoTemporal.cantidad_ingresada"]');
+                        if (cantidadField) {
+                            cantidadField.focus();
+                        }
+                    }, 100);
+                }
+                
+                // Si está en ISV, agregar producto automáticamente
+                else if (activeElement.id === 'isv') {
+                    e.preventDefault();
+                    @this.agregarProducto();
+                }
+            }
+            
+            // Atajos de teclado
+            if (e.ctrlKey && e.key === '+') {
+                e.preventDefault();
+                @this.incrementarCantidad();
+            }
+            if (e.ctrlKey && e.key === '-') {
+                e.preventDefault();
+                @this.decrementarCantidad();
+            }
         });
     </script>
 
