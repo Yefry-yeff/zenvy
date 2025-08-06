@@ -124,6 +124,8 @@ class ClienteForm extends Component
             'form.nombre.max' => 'El nombre no puede exceder 150 caracteres',
             'form.correo.email' => 'El formato del correo electrónico no es válido',
             'form.correo.max' => 'El correo no puede exceder 45 caracteres',
+            'form.identidad.max' => 'El número de identidad no puede exceder 45 caracteres',
+            'form.rtn.max' => 'El RTN no puede exceder 45 caracteres',
             'form.tipo_persona_id.required' => 'Debe seleccionar un tipo de persona',
             'form.tipo_persona_id.exists' => 'El tipo de persona seleccionado no es válido',
             'form.tipo_cliente_id.required' => 'Debe seleccionar un tipo de cliente',
