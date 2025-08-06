@@ -266,12 +266,8 @@ class CompraDeProducto extends Component
             return;
         }
 
-        // Verificar si el producto ya está en la lista
-        $existe = collect($this->productosCompra)->contains('producto_id', $this->productoTemporal['producto_id']);
-        if ($existe) {
-            $this->mostrarAlertaError('Este producto ya está agregado a la compra');
-            return;
-        }
+        // Verificar si el producto ya está en la lista - ELIMINADO para permitir duplicados
+        // Los productos pueden agregarse múltiples veces sin restricciones
 
         // Calcular subtotal e ISV para este producto
         $precio = (float) $this->productoTemporal['precio'];
@@ -314,6 +310,36 @@ class CompraDeProducto extends Component
         unset($this->productosCompra[$index]);
         $this->productosCompra = array_values($this->productosCompra); // Reindexar array
         $this->calcularTotales();
+    }
+
+    public function actualizarCantidad($index, $nuevaCantidad)
+    {
+        $nuevaCantidad = (int) $nuevaCantidad;
+        
+        if ($nuevaCantidad <= 0) {
+            $this->mostrarAlertaError('La cantidad debe ser mayor a cero');
+            return;
+        }
+
+        if (isset($this->productosCompra[$index])) {
+            // Actualizar la cantidad
+            $this->productosCompra[$index]['cantidad_ingresada'] = $nuevaCantidad;
+            $this->productosCompra[$index]['cantidad_sin_asignar'] = $nuevaCantidad;
+            
+            // Recalcular los totales para este producto
+            $precio = $this->productosCompra[$index]['precio'];
+            $isv = $this->productosCompra[$index]['isv'];
+            
+            $subtotalProducto = $precio * $nuevaCantidad;
+            $isvProducto = $subtotalProducto * ($isv / 100);
+            $totalProducto = $subtotalProducto + $isvProducto;
+            
+            $this->productosCompra[$index]['sub_total_producto'] = $subtotalProducto;
+            $this->productosCompra[$index]['precio_total'] = $totalProducto;
+            
+            // Recalcular totales generales
+            $this->calcularTotales();
+        }
     }
 
     public function calcularTotales()
