@@ -353,6 +353,26 @@
                 console.log('Producto guardado exitosamente');
             });
         });
+
+        // Auto-focus en el campo de código de barras al cargar el componente
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(() => {
+                const codigoBarraField = document.getElementById('codigo_barra');
+                if (codigoBarraField) {
+                    codigoBarraField.focus();
+                }
+            }, 100);
+        });
+
+        // También enfocar cuando Livewire termina de cargar
+        document.addEventListener('livewire:navigated', () => {
+            setTimeout(() => {
+                const codigoBarraField = document.getElementById('codigo_barra');
+                if (codigoBarraField) {
+                    codigoBarraField.focus();
+                }
+            }, 100);
+        });
     </script>
 
 </div> {{-- FIN ELEMENTO RAÍZ --}}

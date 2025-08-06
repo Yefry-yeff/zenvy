@@ -49,6 +49,30 @@ class Producto extends Model
         return $this->belongsTo(Marca::class);
     }
 
+    // Relación con compras
+    public function compras()
+    {
+        return $this->belongsToMany(Compra::class, 'compra_has_producto')
+                    ->withPivot([
+                        'id',
+                        'precio',
+                        'cantidad_ingresada',
+                        'cantidad_sin_asignar',
+                        'fecha_expiracion',
+                        'sub_total_producto',
+                        'isv',
+                        'precio_total',
+                        'unidad_compra_id'
+                    ])
+                    ->withTimestamps();
+    }
+
+    // Relación con los detalles de compra
+    public function compraHasProductos()
+    {
+        return $this->hasMany(CompraHasProducto::class, 'producto_id');
+    }
+
     public function unidadMedida()
     {
         return $this->belongsTo(UnidadMedida::class, 'unidad_medida_compra_id');
