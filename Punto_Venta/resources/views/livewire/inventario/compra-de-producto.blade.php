@@ -552,23 +552,23 @@
                         <!-- Tabla para desktop -->
                         <div class="d-none d-md-block">
                             <div class="table-responsive">
-                                <table class="table table-sm">
+                                <table class="table table-sm table-striped">
                                     <thead class="table-light">
                                         <tr>
-                                            <th class="fw-bold">Producto</th>
-                                            <th class="text-center fw-bold">Cant.</th>
-                                            <th class="text-center fw-bold">Unidad</th>
-                                            <th class="text-end fw-bold">Precio</th>
-                                            <th class="text-end fw-bold">Subtotal</th>
-                                            <th class="text-center fw-bold">ISV</th>
-                                            <th class="text-end fw-bold">Total</th>
-                                            <th class="text-center fw-bold">Acción</th>
+                                            <th style="width: 25%;">Producto</th>
+                                            <th style="width: 10%;" class="text-center">Cant.</th>
+                                            <th style="width: 10%;" class="text-center">Unidad</th>
+                                            <th style="width: 12%;" class="text-end">Precio</th>
+                                            <th style="width: 12%;" class="text-end">Subtotal</th>
+                                            <th style="width: 8%;" class="text-center">ISV</th>
+                                            <th style="width: 13%;" class="text-end">Total</th>
+                                            <th style="width: 10%;" class="text-center">Acción</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         @foreach($productosCompra as $index => $producto)
                                             <tr>
-                                                <td>
+                                                <td class="text-start">
                                                     <strong>{{ $producto['producto_nombre'] }}</strong>
                                                     @if($producto['producto_codigo'])
                                                         <br><small class="text-muted">{{ $producto['producto_codigo'] }}</small>
@@ -971,35 +971,38 @@
         /* Estilos para tabla de factura */
         .table-sm th,
         .table-sm td {
-            padding: 0.75rem 0.5rem;
+            padding: 0.5rem 0.25rem;
             vertical-align: middle;
+            border: 1px solid #dee2e6;
         }
 
         .table-light th {
             background-color: #f8f9fa;
             border-bottom: 2px solid #dee2e6;
-            white-space: nowrap !important;
+            white-space: nowrap;
             font-size: 0.875rem;
-            padding: 0.6rem 0.4rem;
+            padding: 0.5rem 0.25rem;
+            font-weight: 600;
         }
 
-        /* Encabezados de tabla no se rompen */
+        /* Encabezados de tabla */
         .table thead th {
-            white-space: nowrap !important;
-            text-overflow: ellipsis;
-            overflow: hidden;
-            min-width: fit-content;
+            white-space: nowrap;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background-color: #f8f9fa;
         }
 
-        /* Ancho específico para columnas */
-        .table th:nth-child(1) { min-width: 140px; } /* Producto */
-        .table th:nth-child(2) { min-width: 60px; }  /* Cant. */
-        .table th:nth-child(3) { min-width: 80px; }  /* Unidad */
-        .table th:nth-child(4) { min-width: 90px; }  /* Precio */
-        .table th:nth-child(5) { min-width: 90px; }  /* Subtotal */
-        .table th:nth-child(6) { min-width: 50px; }  /* ISV */
-        .table th:nth-child(7) { min-width: 90px; }  /* Total */
-        .table th:nth-child(8) { min-width: 70px; }  /* Acción */
+        /* Layout fijo de tabla */
+        .table {
+            table-layout: fixed;
+            width: 100%;
+        }
+
+
+
+
 
         /* Totales de factura profesional */
         .border-bottom {
