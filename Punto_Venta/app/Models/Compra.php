@@ -16,6 +16,8 @@ class Compra extends Model
         'fecha_vencimiento',
         'fecha_emision',
         'fecha_recepcion',
+        'estado_id',
+        'cliente_id',
     ];
 
     protected $casts = [
@@ -46,5 +48,17 @@ class Compra extends Model
     public function detallesCompra()
     {
         return $this->hasMany(CompraHasProducto::class, 'compra_id');
+    }
+
+    // Relación con el proveedor (cliente)
+    public function proveedor()
+    {
+        return $this->belongsTo(Cliente::class, 'cliente_id');
+    }
+
+    // Relación con el estado
+    public function estado()
+    {
+        return $this->belongsTo(Estado::class, 'estado_id');
     }
 }

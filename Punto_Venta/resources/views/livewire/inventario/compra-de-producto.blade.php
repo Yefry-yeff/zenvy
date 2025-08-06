@@ -43,7 +43,7 @@
                 </div>
             @endif
 
-            <form wire:submit.prevent="guardarCompra">
+            <form wire:submit.prevent="guardarCompra" novalidate>
 
                 <!-- Información de la Compra -->
                 <div class="p-4 mb-4">
@@ -117,8 +117,14 @@
                                             <span class="ms-2">Ya puede proceder a agregar productos.</span>
                                         </div>
                                         <button type="button" 
-                                                class="btn btn-primary btn-sm px-4 py-2 d-flex align-items-center"
-                                                wire:click="activarSeccionProductos">
+                                                class="btn btn-sm px-4 py-2 d-flex align-items-center"
+                                                wire:click="activarSeccionProductos"
+                                                :class="{
+                                                    'btn-success': theme === 'verde' || !theme,
+                                                    'btn-primary': theme === 'azul',
+                                                    'btn-dark': theme === 'oscuro',
+                                                    'btn-secondary': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro' && theme
+                                                }">
                                             <span style="font-size: 16px;" class="me-2">📦</span>
                                             <span class="fw-bold">Ingresar Productos</span>
                                         </button>
@@ -126,8 +132,14 @@
                                 @else
                                     <div class="d-flex justify-content-center">
                                         <button type="button" 
-                                                class="btn btn-primary btn-lg px-5 py-3 d-flex align-items-center"
-                                                wire:click="validarYActivarSeccionProductos">
+                                                class="btn btn-lg px-5 py-3 d-flex align-items-center"
+                                                wire:click="validarYActivarSeccionProductos"
+                                                :class="{
+                                                    'btn-success': theme === 'verde' || !theme,
+                                                    'btn-primary': theme === 'azul',
+                                                    'btn-dark': theme === 'oscuro',
+                                                    'btn-secondary': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro' && theme
+                                                }">
                                             <span style="font-size: 18px;" class="me-2">📦</span>
                                             <span class="fw-bold">Ingresar Productos</span>
                                         </button>
@@ -194,9 +206,9 @@
                                             <span class="input-group-text">L.</span>
                                             <input type="number" 
                                                    id="precio" 
+                                                   name="precio_lg"
                                                    class="form-control" 
                                                    step="0.01" 
-                                                   min="0.01"
                                                    wire:model.live="productoTemporal.precio"
                                                    placeholder="0.00">
                                         </div>
@@ -231,7 +243,7 @@
                                     <!-- Unidad -->
                                     <div class="col-lg-2">
                                         <label for="unidad_compra" class="form-label"><strong>Unidad</strong> <span class="text-red-600">*</span></label>
-                                        <select id="unidad_compra" class="form-select" wire:model.live="productoTemporal.unidad_compra_id">
+                                        <select id="unidad_compra" name="unidad_compra_lg" class="form-select" wire:model.live="productoTemporal.unidad_compra_id">
                                             <option value="">Seleccionar</option>
                                             @foreach($unidadesCompra as $unidad)
                                                 <option value="{{ $unidad['id'] }}">{{ $unidad['nombre'] }}</option>
@@ -245,6 +257,7 @@
                                         <div class="input-group">
                                             <input type="number" 
                                                    id="isv" 
+                                                   name="isv_lg"
                                                    class="form-control text-center" 
                                                    step="0.01" 
                                                    min="0" 
@@ -331,9 +344,9 @@
                                             <span class="input-group-text">L.</span>
                                             <input type="number" 
                                                    id="precio_md" 
+                                                   name="precio_md"
                                                    class="form-control" 
                                                    step="0.01" 
-                                                   min="0.01"
                                                    wire:model.live="productoTemporal.precio"
                                                    placeholder="0.00">
                                         </div>
@@ -371,7 +384,7 @@
                                     <!-- Unidad -->
                                     <div class="col-md-4">
                                         <label for="unidad_compra_md" class="form-label"><strong>Unidad</strong> <span class="text-red-600">*</span></label>
-                                        <select id="unidad_compra_md" class="form-select" wire:model.live="productoTemporal.unidad_compra_id">
+                                        <select id="unidad_compra_md" name="unidad_compra_md" class="form-select" wire:model.live="productoTemporal.unidad_compra_id">
                                             <option value="">Seleccionar</option>
                                             @foreach($unidadesCompra as $unidad)
                                                 <option value="{{ $unidad['id'] }}">{{ $unidad['nombre'] }}</option>
@@ -385,6 +398,7 @@
                                         <div class="input-group">
                                             <input type="number" 
                                                    id="isv_md" 
+                                                   name="isv_md"
                                                    class="form-control text-center" 
                                                    step="0.01" 
                                                    min="0" 
@@ -476,9 +490,9 @@
                                         <span class="input-group-text">L.</span>
                                         <input type="number" 
                                                id="precio_mobile" 
+                                               name="precio_mobile"
                                                class="form-control" 
                                                step="0.01" 
-                                               min="0.01"
                                                wire:model.live="productoTemporal.precio"
                                                placeholder="0.00">
                                     </div>
@@ -510,7 +524,7 @@
                                     </div>
                                     <div class="col-6">
                                         <label for="unidad_compra_mobile" class="form-label"><strong>Unidad</strong> <span class="text-red-600">*</span></label>
-                                        <select id="unidad_compra_mobile" class="form-select" wire:model.live="productoTemporal.unidad_compra_id">
+                                        <select id="unidad_compra_mobile" name="unidad_compra_mobile" class="form-select" wire:model.live="productoTemporal.unidad_compra_id">
                                             <option value="">Seleccionar</option>
                                             @foreach($unidadesCompra as $unidad)
                                                 <option value="{{ $unidad['id'] }}">{{ $unidad['nombre'] }}</option>
@@ -526,6 +540,7 @@
                                         <div class="input-group">
                                             <input type="number" 
                                                    id="isv_mobile" 
+                                                   name="isv_mobile"
                                                    class="form-control text-center" 
                                                    step="0.01" 
                                                    min="0" 

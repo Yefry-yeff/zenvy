@@ -11,6 +11,8 @@ class CompraHasProducto extends Model
 
     protected $table = 'compra_has_producto';
 
+    public $timestamps = false; // Deshabilitar timestamps automáticos
+
     protected $fillable = [
         'precio',
         'cantidad_ingresada',

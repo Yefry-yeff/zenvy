@@ -436,6 +436,8 @@ class CompraDeProducto extends Component
                 'fecha_vencimiento' => $this->compra['fecha_vencimiento'] ?: null,
                 'fecha_emision' => $this->compra['fecha_emision'],
                 'fecha_recepcion' => $this->compra['fecha_recepcion'],
+                'estado_id' => 1, // Estado "Activo" por defecto
+                'cliente_id' => $this->proveedorSeleccionado, // Proveedor seleccionado
             ]);
 
             // Guardar los productos de la compra
