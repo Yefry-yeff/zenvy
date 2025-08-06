@@ -24,10 +24,6 @@ class ProductoForm extends Component
         'estado_id' => 1,
         'subcategoria_id' => null,
         'marca_id' => null,
-        'precio1' => 0,
-        'precio2' => 0,
-        'precio3' => 0,
-        'precio4' => 0,
     ];
 
     // Datos para los selectores
@@ -57,10 +53,6 @@ class ProductoForm extends Component
         'form.estado_id' => 'required|integer',
         'form.subcategoria_id' => 'required|integer|exists:subcategoria,id',
         'form.marca_id' => 'required|integer|exists:marca,id',
-        'form.precio1' => 'required|numeric|min:0.01',
-        'form.precio2' => 'nullable|numeric|min:0',
-        'form.precio3' => 'nullable|numeric|min:0',
-        'form.precio4' => 'nullable|numeric|min:0',
     ];
 
     protected $messages = [
@@ -71,9 +63,6 @@ class ProductoForm extends Component
         'form.subcategoria_id.exists' => 'La subcategoría seleccionada no existe',
         'form.marca_id.required' => 'La marca es obligatoria',
         'form.marca_id.exists' => 'La marca seleccionada no existe',
-        'form.precio1.required' => 'El precio 1 es obligatorio',
-        'form.precio1.numeric' => 'El precio 1 debe ser un número',
-        'form.precio1.min' => 'El precio 1 no puede ser 0, debe ser mayor a 0',
     ];
 
     public function mount($id = null)
@@ -106,10 +95,6 @@ class ProductoForm extends Component
                 'estado_id' => $producto->estado_id,
                 'subcategoria_id' => $producto->subcategoria_id,
                 'marca_id' => $producto->marca_id,
-                'precio1' => $producto->precio1,
-                'precio2' => $producto->precio2,
-                'precio3' => $producto->precio3,
-                'precio4' => $producto->precio4,
             ];
 
             // Cargar categoría y subcategorías correspondientes
@@ -270,20 +255,6 @@ class ProductoForm extends Component
             $this->limpiarErrorCampo('subcategoria');
         } catch (\Illuminate\Validation\ValidationException $e) {
             $this->mostrarErrorCampo('subcategoria', 'Debe seleccionar una subcategoría');
-        }
-    }
-
-    public function updatedFormPrecio1()
-    {
-        try {
-            $this->validateOnly('form.precio1');
-            $this->limpiarErrorCampo('precio1');
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            if ($this->form['precio1'] == 0) {
-                $this->mostrarErrorCampo('precio1', 'El precio 1 no puede ser 0, debe ser mayor a 0');
-            } else {
-                $this->mostrarErrorCampo('precio1', 'El precio 1 debe ser mayor a 0');
-            }
         }
     }
 

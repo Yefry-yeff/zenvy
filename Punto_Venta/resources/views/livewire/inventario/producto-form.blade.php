@@ -121,55 +121,6 @@
                     </div>
                 </div>
 
-                <!-- Precios de Venta -->
-                <div class="p-4">
-                    <div class="p-4 bg-white border shadow rounded-xl">
-                        <h2 class="mb-4 text-lg font-semibold text-gray-700">💵 Precios de Venta</h2>
-                        <div class="row">
-                            <div class="mb-3 col-md-3">
-                                <label for="precio1" class="form-label">Precio 1 <span class="text-red-600">*</span></label>
-                                <div class="input-group">
-                                    <span class="input-group-text bg-light">L.</span>
-                                    <input type="number" id="precio1" class="form-control {{ $this->getClaseCampo('precio1') }}" wire:model.live="form.precio1" step="0.01" min="0" placeholder="0.00">
-                                </div>
-                                @error('form.precio1')
-                                    <div class="mt-1 text-sm text-danger">❌ El precio 1 no puede ser 0, debe ser mayor a 0</div>
-                                @enderror
-                            </div>
-                            <div class="mb-3 col-md-3">
-                                <label for="precio2" class="form-label">Precio 2</label>
-                                <div class="input-group">
-                                    <span class="input-group-text bg-light">L.</span>
-                                    <input type="number" id="precio2" class="form-control" wire:model.defer="form.precio2" step="0.01" min="0" placeholder="0.00">
-                                </div>
-                                @error('form.precio2')
-                                    <div class="mt-1 text-sm text-danger">{{ $message }}</div>
-                                @enderror
-                            </div>
-                            <div class="mb-3 col-md-3">
-                                <label for="precio3" class="form-label">Precio 3</label>
-                                <div class="input-group">
-                                    <span class="input-group-text bg-light">L.</span>
-                                    <input type="number" id="precio3" class="form-control" wire:model.defer="form.precio3" step="0.01" min="0" placeholder="0.00">
-                                </div>
-                                @error('form.precio3')
-                                    <div class="mt-1 text-sm text-danger">{{ $message }}</div>
-                                @enderror
-                            </div>
-                            <div class="mb-3 col-md-3">
-                                <label for="precio4" class="form-label">Precio 4</label>
-                                <div class="input-group">
-                                    <span class="input-group-text bg-light">L.</span>
-                                    <input type="number" id="precio4" class="form-control" wire:model.defer="form.precio4" step="0.01" min="0" placeholder="0.00">
-                                </div>
-                                @error('form.precio4')
-                                    <div class="mt-1 text-sm text-danger">{{ $message }}</div>
-                                @enderror
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
                 <!-- Botones -->
                 <div class="flex justify-end gap-3 mt-4">
                     <button type="button" wire:click="volverALista"
