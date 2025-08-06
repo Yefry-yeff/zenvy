@@ -22,6 +22,11 @@ class Clientes extends Component
     public $mensajeModalExito = '';
     public $mensajeModalError = '';
 
+    // Propiedades para alertas de validación
+    public $mostrarAlerta = false;
+    public $mensajeAlerta = '';
+    public $campoConError = '';
+
     public function render()
     {
         $clientes = Cliente::with(['tipoPersona', 'tipoCliente', 'direccion.municipio.departamento'])
@@ -71,5 +76,21 @@ class Clientes extends Component
     {
         $this->mostrarModalError = false;
         $this->mensajeModalError = '';
+    }
+
+    // ===== MÉTODOS DE GESTIÓN DE ALERTAS =====
+
+    public function mostrarAlerta($mensaje, $campo = '')
+    {
+        $this->mensajeAlerta = $mensaje;
+        $this->campoConError = $campo;
+        $this->mostrarAlerta = true;
+    }
+
+    public function cerrarAlerta()
+    {
+        $this->mostrarAlerta = false;
+        $this->mensajeAlerta = '';
+        $this->campoConError = '';
     }
 }

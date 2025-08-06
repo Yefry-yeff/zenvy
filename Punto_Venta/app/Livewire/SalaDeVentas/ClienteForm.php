@@ -246,8 +246,27 @@ class ClienteForm extends Component
     public function guardar()
     {
         try {
+            // Limpiar alertas previas
+            $this->cerrarAlerta();
+            
             // Validar formulario
             $this->validate();
+            
+            // Verificar si hay errores después de la validación
+            if ($this->getErrorBag()->isNotEmpty()) {
+                $errors = $this->getErrorBag()->toArray();
+                $firstError = collect($errors)->flatten()->first();
+                $firstField = array_key_first($errors);
+                
+                Log::info('Errores de validación detectados', [
+                    'errores' => $errors,
+                    'primer_error' => $firstError,
+                    'primer_campo' => $firstField
+                ]);
+                
+                $this->mostrarAlerta($firstError, $firstField);
+                return;
+            }
 
             // Crear o actualizar dirección primero
             $direccionData = $this->direccionForm;
@@ -278,10 +297,18 @@ class ClienteForm extends Component
             }
 
         } catch (\Illuminate\Validation\ValidationException $e) {
-            // Errores de validación se muestran automáticamente
-            Log::info('Errores de validación en cliente', [
+            // Errores de validación - mostrar alerta con el primer error
+            Log::info('Errores de validación en cliente (catch)', [
                 'errores' => $e->errors()
             ]);
+            
+            // Obtener el primer error para mostrar en la alerta
+            $errors = $e->errors();
+            $firstError = collect($errors)->flatten()->first();
+            $firstField = array_key_first($errors);
+            
+            $this->mostrarAlerta($firstError, $firstField);
+            
         } catch (\Exception $e) {
             Log::error('Error al guardar cliente', [
                 'mensaje' => $e->getMessage(),
@@ -364,5 +391,21 @@ class ClienteForm extends Component
         }
         
         return '';
+    }
+
+    // ===== MÉTODOS DE GESTIÓN DE ALERTAS =====
+
+    public function mostrarAlerta($mensaje, $campo = '')
+    {
+        $this->mensajeAlerta = $mensaje;
+        $this->campoConError = $campo;
+        $this->mostrarAlerta = true;
+    }
+
+    public function cerrarAlerta()
+    {
+        $this->mostrarAlerta = false;
+        $this->mensajeAlerta = '';
+        $this->campoConError = '';
     }
 }

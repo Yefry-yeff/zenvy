@@ -14,7 +14,7 @@
     <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
 
     <!-- Vite -->
-    <link rel="stylesheet" href="{{ asset('build/assets/app-C5j7_1Z8.css') }}">
+    <link rel="stylesheet" href="{{ asset('build/assets/app-Et4cMqhu.css') }}">
 <script type="module" src="{{ asset('build/assets/app-BLl8G-P3.js') }}"></script>
 </head>
 <body class="font-sans antialiased bg-gray-100">

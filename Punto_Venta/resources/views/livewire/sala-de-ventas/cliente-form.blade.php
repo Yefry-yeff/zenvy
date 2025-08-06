@@ -1,4 +1,40 @@
 <div> {{-- ELEMENTO RAÍZ ÚNICO OBLIGATORIO --}}
+    <!-- Estilos para alertas flotantes -->
+    <style>
+        .alerta-flotante {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            max-width: 400px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            border-radius: 8px;
+            animation: slideInRight 0.3s ease-out;
+        }
+        
+        @keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        .alerta-flotante .btn-close {
+            background: none;
+            border: none;
+            font-size: 1.2em;
+            opacity: 0.8;
+            cursor: pointer;
+        }
+        
+        .alerta-flotante .btn-close:hover {
+            opacity: 1;
+        }
+    </style>
 
     <div class="overflow-hidden border border-gray-300 rounded shadow" x-data x-init="$watch('theme', t => localStorage.setItem('theme', t))">
 
@@ -28,10 +64,19 @@
         <!-- FORMULARIO -->
         <div class="px-5 py-4">
             <!-- Alerta de validación flotante -->
-           @if($mostrarAlerta)
-                <div class="mb-4 alert alert-danger alert-dismissible fade show" role="alert">
-                    <strong>⚠️ Campo requerido:</strong> {{ $mensajeAlerta }}
-                    <button type="button" class="btn-close" wire:click="cerrarAlerta" aria-label="Close"></button>
+            @if($mostrarAlerta)
+                <div class="alerta-flotante alert alert-danger alert-dismissible fade show" 
+                     role="alert" 
+                     x-data="{ show: true }" 
+                     x-show="show" 
+                     x-transition:enter="transition ease-out duration-300"
+                     x-transition:enter-start="opacity-0 transform scale-90"
+                     x-transition:enter-end="opacity-100 transform scale-100"
+                     x-transition:leave="transition ease-in duration-300"
+                     x-transition:leave-start="opacity-100 transform scale-100"
+                     x-transition:leave-end="opacity-0 transform scale-90">
+                    <strong>⚠️ Error de validación:</strong> {{ $mensajeAlerta }}
+                    <button type="button" class="btn-close" wire:click="cerrarAlerta" @click="show = false" aria-label="Close"></button>
                 </div>
             @endif
 
