@@ -43,6 +43,22 @@
                         <h2 class="mb-4 text-lg font-semibold text-gray-700">📝 Información Básica</h2>
                         <div class="row">
                             <div class="mb-3 col-md-6">
+                                <label for="codigo_barra" class="form-label">Código de Barras</label>
+                                <input type="text" id="codigo_barra" class="form-control" wire:model.defer="form.codigo_barra" autofocus>
+                                @error('form.codigo_barra')
+                                    <div class="mt-1 text-sm text-danger">{{ $message }}</div>
+                                @enderror
+                            </div>
+                            <div class="mb-3 col-md-6">
+                                <label for="codigo_estatal" class="form-label">Código Estatal</label>
+                                <input type="text" id="codigo_estatal" class="form-control" wire:model.defer="form.codigo_estatal">
+                                @error('form.codigo_estatal')
+                                    <div class="mt-1 text-sm text-danger">{{ $message }}</div>
+                                @enderror
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="mb-3 col-md-6">
                                 <label for="nombre" class="form-label">Nombre <span class="text-red-600">*</span></label>
                                 <input type="text" id="nombre" class="form-control {{ $this->getClaseCampo('nombre') }}" wire:model.live="form.nombre">
                                 @error('form.nombre')
@@ -53,22 +69,6 @@
                                 <label for="descripcion" class="form-label">Descripción</label>
                                 <input type="text" id="descripcion" class="form-control" wire:model.defer="form.descripcion">
                                 @error('form.descripcion')
-                                    <div class="mt-1 text-sm text-danger">{{ $message }}</div>
-                                @enderror
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="mb-3 col-md-6">
-                                <label for="codigo_barra" class="form-label">Código de Barras</label>
-                                <input type="text" id="codigo_barra" class="form-control" wire:model.defer="form.codigo_barra">
-                                @error('form.codigo_barra')
-                                    <div class="mt-1 text-sm text-danger">{{ $message }}</div>
-                                @enderror
-                            </div>
-                            <div class="mb-3 col-md-6">
-                                <label for="codigo_estatal" class="form-label">Código Estatal</label>
-                                <input type="text" id="codigo_estatal" class="form-control" wire:model.defer="form.codigo_estatal">
-                                @error('form.codigo_estatal')
                                     <div class="mt-1 text-sm text-danger">{{ $message }}</div>
                                 @enderror
                             </div>
