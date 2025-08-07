@@ -66,7 +66,20 @@ class CompraDeProductos extends Component
         $this->render(); // Force re-render
     }
 
-    // Método público para refrescar manualmente el componente
+    // Método para ir a la vista de recibir producto específico
+    public function irARecibirProducto($compraId)
+    {
+        $compra = Compra::with(['estado'])->find($compraId);
+        if ($compra && $compra->estado && strtolower($compra->estado->nombre) === 'activo') {
+            // Redirigir a la vista de recibir producto con el ID de la compra
+            $this->dispatch('cambiarVista', ruta: 'Inventario.recibirproductocompra', parametros: ['compraId' => $compraId]);
+        } else {
+            $this->mostrarAlerta = true;
+            $this->mensajeAlerta = 'Solo se pueden recibir productos de compras en estado "activo".';
+        }
+    }
+
+    // Método para refrescar manualmente el componente
     public function refrescarComponente()
     {
         $this->resetPage();

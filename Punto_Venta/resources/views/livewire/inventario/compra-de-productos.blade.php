@@ -101,12 +101,38 @@
                                     <td class="text-end"><strong>L. {{ number_format($compra->detallesCompra->sum('precio_total'), 2) }}</strong></td>
                                     <td class="text-center" onclick="event.stopPropagation()">
                                         @if($compra->estado && strtolower($compra->estado->nombre) === 'activo')
-                                            <button type="button"
-                                                    class="btn btn-sm btn-outline-danger"
-                                                    wire:click="abrirModalAnular({{ $compra->id }})"
-                                                    title="Anular compra">
-                                                ❌ Anular
-                                            </button>
+                                            <div class="relative" x-data="{ open: false }">
+                                                <button @click="open = !open" 
+                                                        class="btn btn-sm btn-outline-secondary"
+                                                        type="button">
+                                                    <i class="fas fa-cog"></i> Acciones
+                                                    <i class="fas fa-chevron-down ms-1" :class="{ 'rotate-180': open }"></i>
+                                                </button>
+                                                <div x-show="open" 
+                                                     @click.away="open = false"
+                                                     x-transition:enter="transition ease-out duration-100"
+                                                     x-transition:enter-start="transform opacity-0 scale-95"
+                                                     x-transition:enter-end="transform opacity-100 scale-100"
+                                                     x-transition:leave="transition ease-in duration-75"
+                                                     x-transition:leave-start="transform opacity-100 scale-100"
+                                                     x-transition:leave-end="transform opacity-0 scale-95"
+                                                     class="absolute right-0 z-10 mt-2 w-48 bg-white border border-gray-200 rounded-md shadow-lg">
+                                                    <div class="py-1">
+                                                        <button type="button"
+                                                                class="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                                                                wire:click="abrirModalAnular({{ $compra->id }})"
+                                                                @click="open = false">
+                                                            <i class="fas fa-times me-2"></i>Anular
+                                                        </button>
+                                                        <button type="button"
+                                                                class="flex items-center w-full px-4 py-2 text-sm text-blue-600 hover:bg-blue-50"
+                                                                wire:click="irARecibirProducto({{ $compra->id }})"
+                                                                @click="open = false">
+                                                            <i class="fas fa-warehouse me-2"></i>Recibir Producto
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         @else
                                             <span class="text-muted small">Sin acciones</span>
                                         @endif
@@ -481,6 +507,21 @@
             .max-h-80 {
                 max-height: 60vh;
             }
+        }
+
+        /* Dropdown personalizado con Alpine.js */
+        .rotate-180 {
+            transform: rotate(180deg);
+        }
+
+        /* Transiciones para el icono del dropdown */
+        .fas.fa-chevron-down {
+            transition: transform 0.2s ease;
+        }
+
+        /* Estilos para el dropdown menu */
+        [x-cloak] {
+            display: none !important;
         }
     </style>
 
