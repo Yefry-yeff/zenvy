@@ -49,6 +49,11 @@ class Cliente extends Model
         return $this->belongsTo(User::class, 'users_id');
     }
 
+    public function compras()
+    {
+        return $this->hasMany(Compra::class, 'cliente_id');
+    }
+
     // Scopes
     public function scopeActivos($query)
     {

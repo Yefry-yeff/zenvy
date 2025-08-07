@@ -56,6 +56,12 @@ class Compra extends Model
         return $this->belongsTo(Cliente::class, 'cliente_id');
     }
 
+    // Relación con el cliente (alias para proveedor)
+    public function cliente()
+    {
+        return $this->belongsTo(Cliente::class, 'cliente_id');
+    }
+
     // Relación con el estado
     public function estado()
     {

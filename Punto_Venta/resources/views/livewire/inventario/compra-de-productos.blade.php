@@ -63,14 +63,13 @@
                     <table class="table table-hover table-sm">
                         <thead class="table-light">
                             <tr>
-                                <th style="width: 8%;">ID</th>
-                                <th style="width: 15%;">N° Factura</th>
-                                <th style="width: 20%;">Proveedor</th>
-                                <th style="width: 12%;">Fecha Emisión</th>
-                                <th style="width: 12%;">Fecha Recepción</th>
-                                <th style="width: 10%;">Estado</th>
+                                <th style="width: 18%;">N° Factura</th>
+                                <th style="width: 22%;">Proveedor</th>
+                                <th style="width: 14%;">Fecha Emisión</th>
+                                <th style="width: 14%;">Fecha Recepción</th>
+                                <th style="width: 12%;">Estado</th>
                                 <th style="width: 8%;">Productos</th>
-                                <th style="width: 15%;" class="text-end">Total</th>
+                                <th style="width: 12%;" class="text-end">Total</th>
                                 <th style="width: 10%;" class="text-center">Acciones</th>
                             </tr>
                         </thead>
@@ -79,7 +78,6 @@
                                 <tr style="cursor: pointer;" 
                                     wire:click="verDetalle({{ $compra->id }})"
                                     title="Clic para ver detalle">
-                                    <td><span class="badge bg-secondary">#{{ $compra->id }}</span></td>
                                     <td><strong>{{ $compra->numero_factura }}</strong></td>
                                     <td>{{ $compra->proveedor->nombre ?? 'N/A' }}</td>
                                     <td>{{ \Carbon\Carbon::parse($compra->fecha_emision)->format('d/m/Y') }}</td>
@@ -116,7 +114,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="9" class="py-4 text-center text-muted">
+                                    <td colspan="8" class="py-4 text-center text-muted">
                                         <div>
                                             <i style="font-size: 2rem;">📦</i>
                                             <p class="mt-2 mb-0">No se encontraron compras</p>

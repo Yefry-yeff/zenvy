@@ -9,6 +9,9 @@ use App\Models\RecibidoBodega;
 use App\Models\UnidadMedida;
 use App\Models\Bodega;
 use App\Models\Segmento;
+use App\Models\Cliente;
+use App\Models\Compra;
+use App\Models\CompraHasProducto;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -48,6 +51,28 @@ class RecibirEnBodega extends Component
     public $mostrarSugerenciasBodegas = false;
     public $bodegaSeleccionada = null;
     public $nombreBodega = '';
+
+    // Nuevas propiedades para distribución de compras
+    public $comprasActivas = [];
+    public $proveedores = [];
+    public $filtroProducto = '';
+    public $filtroProveedor = '';
+    public $filtroEstadoDistribucion = '';
+    
+    // Modal de distribución
+    public $mostrarModalDistribucion = false;
+    public $productoParaDistribuir = null;
+    public $cantidadDistribuir = '';
+    public $fechaDistribucion = '';
+    public $bodegaDistribucion = '';
+    public $segmentoDistribucion = '';
+    public $seccionDistribucion = '';
+    public $comentarioDistribucion = '';
+    public $bodegas = [];
+    public $segmentos = [];
+    public $nombreBodegaDistribucion = '';
+    public $nombreSegmentoDistribucion = '';
+    public $nombreSeccionDistribucion = '';
     
     public $buscarSegmento = '';
     public $segmentosSugeridos = [];
@@ -70,7 +95,11 @@ class RecibirEnBodega extends Component
     public function mount()
     {
         $this->fechaRecibido = date('Y-m-d');
+        $this->fechaDistribucion = date('Y-m-d');
         $this->cargarUnidadesMedida();
+        $this->cargarComprasActivas();
+        $this->cargarProveedores();
+        $this->cargarBodegas();
     }
 
     // Búsqueda de Bodegas
@@ -580,6 +609,372 @@ class RecibirEnBodega extends Component
     {
         $this->mostrarModalError = false;
         $this->mensajeModalError = '';
+    }
+
+    // Métodos para la nueva funcionalidad de distribución
+
+    private function cargarComprasActivas()
+    {
+        try {
+            // Cargar compras con productos que tengan cantidad sin asignar
+            $compras = \App\Models\Compra::with([
+                'detallesCompra.producto.marca',
+                'detallesCompra.unidadCompra',
+                'estado',
+                'cliente.tipoCliente'
+            ])
+            ->whereHas('detallesCompra', function($query) {
+                $query->where('cantidad_sin_asignar', '>', 0);
+            })
+            ->whereHas('estado', function($query) {
+                $query->where('descripcion', 'like', '%activ%');
+            })
+            ->whereHas('cliente.tipoCliente', function($query) {
+                $query->where('nombre', 'like', '%proveedor%');
+            })
+            ->get();
+
+            $this->comprasActivas = [];
+            
+            foreach ($compras as $compra) {
+                foreach ($compra->detallesCompra as $detalle) {
+                    if ($detalle->cantidad_sin_asignar > 0) {
+                        // Aplicar filtros si están definidos
+                        $cumpleFiltros = true;
+                        
+                        if ($this->filtroProducto && stripos($detalle->producto->nombre ?? '', $this->filtroProducto) === false) {
+                            $cumpleFiltros = false;
+                        }
+                        
+                        if ($this->filtroProveedor && stripos($compra->cliente->nombre ?? '', $this->filtroProveedor) === false) {
+                            $cumpleFiltros = false;
+                        }
+                        
+                        if ($this->filtroEstadoDistribucion === 'pendiente' && $detalle->cantidad_sin_asignar == 0) {
+                            $cumpleFiltros = false;
+                        }
+                        
+                        if ($this->filtroEstadoDistribucion === 'parcial' && ($detalle->cantidad_sin_asignar == 0 || $detalle->cantidad_sin_asignar == $detalle->cantidad_ingresada)) {
+                            $cumpleFiltros = false;
+                        }
+                        
+                        if ($cumpleFiltros) {
+                            $this->comprasActivas[] = [
+                                'compra_id' => $compra->id,
+                                'producto_id' => $detalle->producto_id,
+                                'detalle_id' => $detalle->id,
+                                'numero_factura' => $compra->numero_factura,
+                                'fecha_compra' => $compra->fecha_emision,
+                                'producto_nombre' => $detalle->producto->nombre ?? 'Sin nombre',
+                                'codigo_barra' => $detalle->producto->codigo_barra ?? '',
+                                'marca' => $detalle->producto->marca->nombre ?? 'Sin marca',
+                                'proveedor' => $compra->cliente->nombre ?? 'Sin proveedor',
+                                'proveedor_nombre' => $compra->cliente->nombre ?? 'Sin proveedor',
+                                'cantidad_total' => $detalle->cantidad_ingresada,
+                                'cantidad_comprada' => $detalle->cantidad_ingresada, // Agregar esta clave
+                                'cantidad_pendiente' => $detalle->cantidad_sin_asignar,
+                                'cantidad_distribuida' => $detalle->cantidad_ingresada - $detalle->cantidad_sin_asignar,
+                                'unidad' => $detalle->unidadCompra->nombre ?? 'Unidad',
+                                'precio_unitario' => $detalle->precio,
+                                'estado_distribucion' => $this->determinarEstadoDistribucion($detalle),
+                                'fecha_expiracion' => $detalle->fecha_expiracion,
+                            ];
+                        }
+                    }
+                }
+            }
+            
+        } catch (\Exception $e) {
+            Log::error('Error al cargar compras activas', [
+                'mensaje' => $e->getMessage(),
+                'archivo' => $e->getFile(),
+                'linea' => $e->getLine()
+            ]);
+            $this->comprasActivas = [];
+        }
+    }
+
+    private function determinarEstadoDistribucion($detalle)
+    {
+        if ($detalle->cantidad_sin_asignar == $detalle->cantidad_ingresada) {
+            return 'Pendiente';
+        } elseif ($detalle->cantidad_sin_asignar > 0) {
+            return 'Parcial';
+        } else {
+            return 'Completo';
+        }
+    }
+
+    private function cargarProveedores()
+    {
+        try {
+            // Cargar proveedores únicos que tienen compras activas
+            $this->proveedores = \App\Models\Cliente::whereHas('compras.detallesCompra', function($query) {
+                $query->where('cantidad_sin_asignar', '>', 0);
+            })
+            ->whereHas('compras.estado', function($query) {
+                $query->where('descripcion', 'like', '%activ%');
+            })
+            ->whereHas('tipoCliente', function($query) {
+                $query->where('nombre', 'like', '%proveedor%');
+            })
+            ->select('id', 'nombre')
+            ->orderBy('nombre')
+            ->get(); // Eliminar ->toArray() para mantener como objetos
+            
+        } catch (\Exception $e) {
+            Log::error('Error al cargar proveedores', [
+                'mensaje' => $e->getMessage(),
+                'archivo' => $e->getFile(),
+                'linea' => $e->getLine()
+            ]);
+            $this->proveedores = collect(); // Usar collect() en lugar de array vacío
+        }
+    }
+
+    private function cargarBodegas()
+    {
+        try {
+            $this->bodegas = Bodega::all();
+        } catch (\Exception $e) {
+            Log::error('Error al cargar bodegas', [
+                'mensaje' => $e->getMessage()
+            ]);
+            $this->bodegas = [];
+        }
+    }
+
+    public function limpiarFiltros()
+    {
+        $this->filtroProducto = '';
+        $this->filtroProveedor = '';
+        $this->filtroEstadoDistribucion = '';
+        $this->cargarComprasActivas();
+    }
+
+    // Métodos para actualización de filtros en tiempo real
+    public function updatedFiltroProducto()
+    {
+        $this->cargarComprasActivas();
+    }
+
+    public function updatedFiltroProveedor()
+    {
+        $this->cargarComprasActivas();
+    }
+
+    public function updatedFiltroEstadoDistribucion()
+    {
+        $this->cargarComprasActivas();
+    }
+
+    public function abrirModalDistribuir($compraId, $productoId)
+    {
+        try {
+            // Buscar los datos del producto en las compras activas
+            $productoCompra = collect($this->comprasActivas)->first(function($item) use ($compraId, $productoId) {
+                return $item['compra_id'] == $compraId && $item['producto_id'] == $productoId;
+            });
+            
+            if ($productoCompra) {
+                $this->productoParaDistribuir = [
+                    'compra_id' => $productoCompra['compra_id'],
+                    'producto_id' => $productoCompra['producto_id'],
+                    'detalle_id' => $productoCompra['detalle_id'],
+                    'numero_factura' => $productoCompra['numero_factura'],
+                    'nombre' => $productoCompra['producto_nombre'], // Usar producto_nombre para nombre
+                    'cantidad_pendiente' => $productoCompra['cantidad_pendiente'],
+                    'unidad' => $productoCompra['unidad'],
+                    'proveedor' => $productoCompra['proveedor']
+                ];
+            } else {
+                // Si no se encuentra en la lista actual, buscar en la base de datos
+                $detalle = CompraHasProducto::with(['compra.cliente', 'producto', 'unidadCompra'])
+                    ->where('compra_id', $compraId)
+                    ->where('producto_id', $productoId)
+                    ->first();
+                
+                if ($detalle) {
+                    $this->productoParaDistribuir = [
+                        'compra_id' => $detalle->compra_id,
+                        'producto_id' => $detalle->producto_id,
+                        'detalle_id' => $detalle->id,
+                        'numero_factura' => $detalle->compra->numero_factura,
+                        'nombre' => $detalle->producto->nombre, // Cambiar producto_nombre por nombre
+                        'cantidad_pendiente' => $detalle->cantidad_sin_asignar,
+                        'unidad' => $detalle->unidadCompra->nombre ?? 'Unidad',
+                        'proveedor' => $detalle->compra->cliente->nombre ?? 'Sin proveedor'
+                    ];
+                } else {
+                    $this->mostrarError('No se encontró el producto en la compra especificada.');
+                    return;
+                }
+            }
+            
+            // Limpiar campos del modal
+            $this->cantidadDistribuir = '';
+            $this->fechaDistribucion = date('Y-m-d');
+            $this->bodegaDistribucion = '';
+            $this->segmentoDistribucion = '';
+            $this->seccionDistribucion = '';
+            $this->comentarioDistribucion = '';
+            
+            // Limpiar listas dependientes
+            $this->segmentos = [];
+            $this->secciones = [];
+            
+            $this->mostrarModalDistribucion = true;
+            
+        } catch (\Exception $e) {
+            Log::error('Error al abrir modal de distribución', [
+                'compra_id' => $compraId,
+                'producto_id' => $productoId,
+                'mensaje' => $e->getMessage(),
+                'archivo' => $e->getFile(),
+                'linea' => $e->getLine()
+            ]);
+            $this->mostrarError('Error al cargar los datos del producto: ' . $e->getMessage());
+        }
+    }
+
+    public function cerrarModalDistribucion()
+    {
+        $this->mostrarModalDistribucion = false;
+        $this->productoParaDistribuir = null;
+        $this->cantidadDistribuir = '';
+        $this->bodegaDistribucion = '';
+        $this->segmentoDistribucion = '';
+        $this->seccionDistribucion = '';
+        $this->comentarioDistribucion = '';
+        $this->segmentos = [];
+        $this->secciones = [];
+    }
+
+    public function updatedBodegaDistribucion()
+    {
+        if ($this->bodegaDistribucion) {
+            try {
+                $this->segmentos = Segmento::where('bodega_id', $this->bodegaDistribucion)->get();
+                $this->nombreBodegaDistribucion = Bodega::find($this->bodegaDistribucion)->nombre ?? '';
+            } catch (\Exception $e) {
+                $this->segmentos = [];
+            }
+        } else {
+            $this->segmentos = [];
+        }
+        $this->segmentoDistribucion = '';
+        $this->seccionDistribucion = '';
+        $this->secciones = [];
+    }
+
+    public function updatedSegmentoDistribucion()
+    {
+        if ($this->segmentoDistribucion) {
+            try {
+                $this->secciones = Seccion::where('segmento_id', $this->segmentoDistribucion)->get();
+                $this->nombreSegmentoDistribucion = Segmento::find($this->segmentoDistribucion)->descripcion ?? '';
+            } catch (\Exception $e) {
+                $this->secciones = [];
+            }
+        } else {
+            $this->secciones = [];
+        }
+        $this->seccionDistribucion = '';
+    }
+
+    public function updatedSeccionDistribucion()
+    {
+        if ($this->seccionDistribucion) {
+            try {
+                $seccion = Seccion::find($this->seccionDistribucion);
+                $this->nombreSeccionDistribucion = $seccion ? $seccion->descripcion : '';
+            } catch (\Exception $e) {
+                $this->nombreSeccionDistribucion = '';
+            }
+        } else {
+            $this->nombreSeccionDistribucion = '';
+        }
+    }
+
+    public function confirmarDistribucion()
+    {
+        // Validaciones
+        if (!$this->cantidadDistribuir || !$this->fechaDistribucion || !$this->seccionDistribucion) {
+            $this->mostrarError('Todos los campos obligatorios deben estar completos.');
+            return;
+        }
+
+        if (!is_numeric($this->cantidadDistribuir) || $this->cantidadDistribuir <= 0) {
+            $this->mostrarError('La cantidad debe ser un número mayor a cero.');
+            return;
+        }
+
+        if (!$this->productoParaDistribuir) {
+            $this->mostrarError('No hay producto seleccionado para distribuir.');
+            return;
+        }
+
+        $cantidadDistribuir = floatval($this->cantidadDistribuir);
+        $cantidadPendiente = floatval($this->productoParaDistribuir['cantidad_pendiente']);
+
+        if ($cantidadDistribuir > $cantidadPendiente) {
+            $this->mostrarError("La cantidad a distribuir ({$cantidadDistribuir}) no puede ser mayor a la cantidad pendiente ({$cantidadPendiente}).");
+            return;
+        }
+
+        try {
+            DB::beginTransaction();
+
+            // Buscar el detalle de compra
+            $detalleCompra = CompraHasProducto::find($this->productoParaDistribuir['detalle_id']);
+            
+            if (!$detalleCompra) {
+                throw new \Exception('No se encontró el detalle de compra.');
+            }
+
+            // Verificar que la cantidad aún esté disponible
+            if ($detalleCompra->cantidad_sin_asignar < $cantidadDistribuir) {
+                throw new \Exception('La cantidad disponible ha cambiado. Cantidad actual: ' . $detalleCompra->cantidad_sin_asignar);
+            }
+
+            // Crear registro en recibido_bodega
+            $recibidoBodega = RecibidoBodega::create([
+                'producto_id' => $this->productoParaDistribuir['producto_id'],
+                'seccion_id' => $this->seccionDistribucion,
+                'cantidad_compra_lote' => $cantidadDistribuir,
+                'cantidad_inicial_seccion' => $cantidadDistribuir,
+                'cantidad_disponible' => $cantidadDistribuir,
+                'fecha_recibido' => $this->fechaDistribucion,
+                'fecha_expiracion' => $detalleCompra->fecha_expiracion,
+                'comentario' => $this->comentarioDistribucion,
+                'unidades_compra' => $cantidadDistribuir,
+                'unidad_compra_id' => $detalleCompra->unidad_compra_id,
+                'users_registro_id' => Auth::id(),
+                'estado_id' => 1 // Estado activo
+            ]);
+
+            // Actualizar la cantidad sin asignar en el detalle de compra
+            $detalleCompra->cantidad_sin_asignar -= $cantidadDistribuir;
+            $detalleCompra->save();
+
+            DB::commit();
+
+            $this->mostrarExito("Se distribuyeron {$cantidadDistribuir} {$this->productoParaDistribuir['unidad']} de {$this->productoParaDistribuir['producto_nombre']} exitosamente a la bodega.");
+            $this->cerrarModalDistribucion();
+            $this->cargarComprasActivas(); // Recargar datos
+            
+        } catch (\Exception $e) {
+            DB::rollback();
+            Log::error('Error al distribuir producto', [
+                'detalle_compra_id' => $this->productoParaDistribuir['detalle_id'] ?? null,
+                'cantidad' => $cantidadDistribuir,
+                'seccion_id' => $this->seccionDistribucion,
+                'mensaje' => $e->getMessage(),
+                'archivo' => $e->getFile(),
+                'linea' => $e->getLine()
+            ]);
+            $this->mostrarError('Error al distribuir el producto: ' . $e->getMessage());
+        }
     }
 
     public function render()
