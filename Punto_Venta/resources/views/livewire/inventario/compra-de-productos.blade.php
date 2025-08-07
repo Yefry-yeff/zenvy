@@ -83,7 +83,7 @@
             <div class="p-4 bg-white border shadow rounded-xl">
                 <div class="mb-4 d-flex justify-content-between align-items-center">
                     <h2 class="text-lg font-semibold text-gray-700">📋 Compras Realizadas</h2>
-                    <small class="text-muted">Total: {{ count($compras) }} compras</small>
+                    <small class="text-muted">Total: {{ $compras->total() }} compras</small>
                 </div>
 
                 <!-- Tabla de Compras -->
@@ -105,27 +105,29 @@
                         <tbody>
                             @forelse($compras as $compra)
                                 <tr>
-                                    <td><span class="badge bg-secondary">#{{ $compra['id'] }}</span></td>
-                                    <td><strong>{{ $compra['numero_factura'] }}</strong></td>
-                                    <td>{{ $compra['proveedor_nombre'] }}</td>
-                                    <td>{{ \Carbon\Carbon::parse($compra['fecha_emision'])->format('d/m/Y') }}</td>
-                                    <td>{{ \Carbon\Carbon::parse($compra['fecha_recepcion'])->format('d/m/Y') }}</td>
+                                    <td><span class="badge bg-secondary">#{{ $compra->id }}</span></td>
+                                    <td><strong>{{ $compra->numero_factura }}</strong></td>
+                                    <td>{{ $compra->proveedor->nombre ?? 'N/A' }}</td>
+                                    <td>{{ \Carbon\Carbon::parse($compra->fecha_emision)->format('d/m/Y') }}</td>
+                                    <td>{{ \Carbon\Carbon::parse($compra->fecha_recepcion)->format('d/m/Y') }}</td>
                                     <td>
-                                        @if($compra['estado'] === 'activo')
+                                        @if($compra->estado->nombre === 'activo')
                                             <span class="badge bg-success">Activo</span>
-                                        @elseif($compra['estado'] === 'distribuido')
+                                        @elseif($compra->estado->nombre === 'distribuido')
                                             <span class="badge bg-warning">Distribuido</span>
-                                        @elseif($compra['estado'] === 'anulado')
+                                        @elseif($compra->estado->nombre === 'anulado')
                                             <span class="badge bg-danger">Anulado</span>
+                                        @else
+                                            <span class="badge bg-secondary">{{ ucfirst($compra->estado->nombre ?? 'N/A') }}</span>
                                         @endif
                                     </td>
-                                    <td class="text-center">{{ $compra['total_productos'] }}</td>
-                                    <td class="text-end"><strong>L. {{ number_format($compra['total'], 2) }}</strong></td>
+                                    <td class="text-center">{{ $compra->detallesCompra->count() }}</td>
+                                    <td class="text-end"><strong>L. {{ number_format($compra->detallesCompra->sum('precio_total'), 2) }}</strong></td>
                                     <td class="text-center">
-                                        @if($compra['estado'] === 'activo')
+                                        @if($compra->estado->nombre === 'activo')
                                             <button type="button" 
                                                     class="btn btn-sm btn-outline-danger" 
-                                                    wire:click="abrirModalAnular({{ $compra['id'] }})"
+                                                    wire:click="abrirModalAnular({{ $compra->id }})"
                                                     title="Anular compra">
                                                 ❌ Anular
                                             </button>
@@ -149,11 +151,9 @@
                 </div>
 
                 <!-- Paginación -->
-                @if(method_exists($compras, 'links'))
-                    <div class="mt-3">
-                        {{ $compras->links() }}
-                    </div>
-                @endif
+                <div class="mt-3">
+                    {{ $compras->links() }}
+                </div>
             </div>
         </div>
 

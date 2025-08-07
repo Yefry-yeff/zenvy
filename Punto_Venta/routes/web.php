@@ -40,4 +40,3 @@ Route::post('/debug-log', function (Request $request) {
     Log::debug('📩 [JS DEBUG] ' . $request->input('mensaje'));
     return response()->json(['status' => 'ok']);
 });
-
