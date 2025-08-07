@@ -309,6 +309,7 @@
                                         <th class="text-center">TOTALES:</th>
                                         <th class="text-center">{{ $totalDistribuido ?? 0 }}</th>
                                         <th class="text-center">-</th>
+                                        <th class="text-center">-</th>
                                         <th class="text-center">L. {{ number_format(array_sum(array_map(function($dist) { return (float)$dist['cantidad_distribuida'] * (float)$dist['precio_unitario']; }, $distribuciones ?? [])), 2) }}</th>
                                         <th class="text-center">-</th>
                                         <th class="text-center">-</th>
