@@ -194,10 +194,10 @@
                                 <input type="text" 
                                        id="precio_total" 
                                        class="form-control bg-light" 
-                                       value="L. {{ number_format((float)($form['cantidad_distribuir'] ?? 0) * (float)($form['precio_unitario'] ?? 0), 2) }}"
+                                       value="L. {{ number_format((float)($form['cantidad_distribuir'] ?? 0) * (float)($producto->precio_base ?? 0), 2) }}"
                                        readonly>
                                 <small class="text-info">
-                                    <i class="fas fa-calculator me-1"></i>{{ $form['cantidad_distribuir'] ?? 0 }} × L. {{ number_format((float)($form['precio_unitario'] ?? 0), 2) }}
+                                    <i class="fas fa-calculator me-1"></i>{{ $form['cantidad_distribuir'] ?? 0 }} × L. {{ number_format((float)($producto->precio_base ?? 0), 2) }}
                                 </small>
                             </div>
                         </div>
