@@ -378,12 +378,16 @@ class RecibirProductoCompra extends Component
 
             DB::commit();
 
-            // Preparar mensaje de éxito
-            $mensaje = "Se distribuyeron {$cantidadDistribuir} {$this->detalleSeleccionado['unidad_medida']} de {$this->detalleSeleccionado['nombre_producto']} exitosamente a la bodega.";
+            // Preparar mensaje de éxito detallado
+            $mensaje = "✅ Distribución exitosa:\n\n";
+            $mensaje .= "📦 Producto: {$this->detalleSeleccionado['nombre_producto']}\n";
+            $mensaje .= "🔢 Cantidad: {$cantidadDistribuir} {$this->detalleSeleccionado['unidad_medida']}\n";
+            $mensaje .= "🏢 Bodega: {$this->nombreBodegaDistribucion}\n";
+            $mensaje .= "📍 Ubicación: {$this->nombreSegmentoDistribucion} > {$this->nombreSeccionDistribucion}";
             
             // Si la compra se completó, agregar información adicional
             if ($productosConCantidadPendiente == 0) {
-                $mensaje .= " ¡La factura {$compra->numero_factura} ha sido marcada como completamente distribuida!";
+                $mensaje .= "\n\n🎉 ¡La factura {$compra->numero_factura} ha sido completamente distribuida!";
             }
             
             $this->mostrarExito($mensaje);

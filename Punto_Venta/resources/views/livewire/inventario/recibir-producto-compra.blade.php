@@ -307,17 +307,58 @@
     <!-- Modal de Éxito -->
     @if($mostrarModalExito)
         <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
-            <div class="modal-dialog">
+            <div class="modal-dialog modal-md">
                 <div class="modal-content">
                     <div class="text-white modal-header bg-success">
                         <h5 class="modal-title">
-                            <i class="fas fa-check-circle me-2"></i>¡Éxito!
+                            <i class="fas fa-check-circle me-2"></i>¡Distribución Exitosa!
                         </h5>
                     </div>
                     <div class="modal-body">
-                        <div class="text-center">
+                        <div class="text-center mb-3">
                             <i class="fas fa-check-circle text-success" style="font-size: 3rem;"></i>
-                            <p class="mt-3 mb-0">{{ $mensajeModalExito }}</p>
+                        </div>
+                        
+                        <!-- Información detallada de la distribución -->
+                        <div class="bg-light p-3 rounded mb-3">
+                            @php
+                                $lineas = explode("\n", $mensajeModalExito);
+                            @endphp
+                            
+                            @foreach($lineas as $linea)
+                                @if(trim($linea))
+                                    <div class="mb-2">
+                                        @if(str_contains($linea, '📦 Producto:'))
+                                            <div class="d-flex align-items-center">
+                                                <i class="fas fa-box text-primary me-2"></i>
+                                                <strong>{{ str_replace('📦 Producto:', '', $linea) }}</strong>
+                                            </div>
+                                        @elseif(str_contains($linea, '🔢 Cantidad:'))
+                                            <div class="d-flex align-items-center">
+                                                <i class="fas fa-sort-numeric-up text-info me-2"></i>
+                                                <span>{{ str_replace('🔢 Cantidad:', 'Cantidad:', $linea) }}</span>
+                                            </div>
+                                        @elseif(str_contains($linea, '🏢 Bodega:'))
+                                            <div class="d-flex align-items-center">
+                                                <i class="fas fa-warehouse text-warning me-2"></i>
+                                                <span>{{ str_replace('🏢 Bodega:', 'Bodega:', $linea) }}</span>
+                                            </div>
+                                        @elseif(str_contains($linea, '📍 Ubicación:'))
+                                            <div class="d-flex align-items-center">
+                                                <i class="fas fa-map-marker-alt text-danger me-2"></i>
+                                                <span>{{ str_replace('📍 Ubicación:', 'Ubicación:', $linea) }}</span>
+                                            </div>
+                                        @elseif(str_contains($linea, '🎉'))
+                                            <div class="alert alert-success mt-3 mb-0">
+                                                <i class="fas fa-trophy me-2"></i>
+                                                <strong>{{ str_replace('🎉 ', '', $linea) }}</strong>
+                                            </div>
+                                        @else
+                                            <div>{{ $linea }}</div>
+                                        @endif
+                                    </div>
+                                @endif
+                            @endforeach
                         </div>
                     </div>
                     <div class="modal-footer">
