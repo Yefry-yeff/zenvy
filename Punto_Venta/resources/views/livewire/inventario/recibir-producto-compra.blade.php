@@ -189,12 +189,17 @@
                                     <label for="cantidadDistribuir" class="form-label">Cantidad a Distribuir <span class="text-red-600">*</span></label>
                                     <input type="number" 
                                            id="cantidadDistribuir" 
-                                           class="form-control" 
+                                           class="form-control @if($cantidadDistribuir > $detalleSeleccionado['cantidad_sin_asignar']) is-invalid @endif" 
                                            wire:model.live="cantidadDistribuir"
                                            min="1" 
                                            max="{{ $detalleSeleccionado['cantidad_sin_asignar'] }}"
                                            placeholder="Cantidad a distribuir">
                                     <small class="text-muted">Máximo: {{ $detalleSeleccionado['cantidad_sin_asignar'] }} {{ $detalleSeleccionado['unidad_medida'] }}</small>
+                                    @if($cantidadDistribuir > $detalleSeleccionado['cantidad_sin_asignar'])
+                                        <div class="invalid-feedback">
+                                            ⚠️ No puede exceder la cantidad disponible ({{ $detalleSeleccionado['cantidad_sin_asignar'] }} {{ $detalleSeleccionado['unidad_medida'] }})
+                                        </div>
+                                    @endif
                                 </div>
                             </div>
                             <div class="col-md-6">
@@ -274,7 +279,7 @@
                         <button type="button" 
                                 wire:click="confirmarDistribucion" 
                                 class="btn btn-primary"
-                                @if(!$this->puedeConfirmarDistribucion()) disabled @endif>
+                                @if(!$this->puedeConfirmarDistribucion() || $cantidadDistribuir > $detalleSeleccionado['cantidad_sin_asignar']) disabled @endif>
                             <i class="fas fa-check me-2"></i>Confirmar Distribución
                         </button>
                     </div>
@@ -335,6 +340,14 @@
         </div>
     @endif
 
+    <!-- Alerta flotante para validación de cantidad -->
+    @if($cantidadDistribuir && $detalleSeleccionado && $cantidadDistribuir > $detalleSeleccionado['cantidad_sin_asignar'])
+        <div class="alert-cantidad-excedida">
+            <strong>⚠️ Cantidad Excedida</strong>
+            <br><small>No puede distribuir más de {{ $detalleSeleccionado['cantidad_sin_asignar'] }} {{ $detalleSeleccionado['unidad_medida'] }}</small>
+        </div>
+    @endif
+
     <!-- Estilos CSS adicionales -->
     <style>
         .hover-bg-light:hover {
@@ -345,6 +358,51 @@
         }
         .modal.show {
             display: block !important;
+        }
+
+        /* Alerta flotante para cantidad excedida */
+        .alert-cantidad-excedida {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            background: #f8d7da;
+            color: #721c24;
+            padding: 12px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+            border-left: 4px solid #dc3545;
+            animation: slideInAlert 0.3s ease-out;
+            max-width: 300px;
+        }
+
+        @keyframes slideInAlert {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        /* Input con error */
+        .form-control.is-invalid {
+            border-color: #dc3545;
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc3545'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath d='m5.8 3.6.4.4.4-.4M6 7v.01'/%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right calc(0.375em + 0.1875rem) center;
+            background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+        }
+
+        .form-control.is-invalid:focus {
+            border-color: #dc3545;
+            box-shadow: 0 0 0 0.25rem rgba(220, 53, 69, 0.25);
+        }
+
+        /* Feedback de error */
+        .invalid-feedback {
+            display: block;
+            width: 100%;
+            margin-top: 0.25rem;
+            font-size: 0.875em;
+            color: #dc3545;
         }
 
         /* Filas deshabilitadas */
