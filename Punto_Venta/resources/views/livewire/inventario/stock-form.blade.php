@@ -142,19 +142,14 @@
                             <!-- Precio Unitario -->
                             <div class="col-md-6 mb-3">
                                 <label for="precio_unitario" class="form-label">
-                                    Precio Unitario (LPS) <span class="text-red-600">*</span>
-                                    <small class="text-muted d-block">Precio por unidad</small>
+                                    Precio Unitario (LPS)
+                                    <small class="text-muted d-block">Precio base del producto (no editable)</small>
                                 </label>
-                                <input type="number" 
-                                       id="precio_unitario" 
-                                       class="form-control {{ $this->getClaseCampo('precio_unitario') }}" 
-                                       wire:model.live="form.precio_unitario" 
-                                       placeholder="Ej: 15.50"
-                                       min="0.01"
-                                       step="0.01">
-                                @error('form.precio_unitario')
-                                    <div class="text-danger mt-1 text-sm">❌ {{ $message }}</div>
-                                @enderror
+                                <input type="text"
+                                       id="precio_unitario"
+                                       class="form-control bg-light"
+                                       value="L. {{ number_format($producto->precio_base ?? 0, 2) }}"
+                                       readonly>
                             </div>
                         </div>
 
