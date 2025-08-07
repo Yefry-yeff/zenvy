@@ -171,11 +171,21 @@
                         @if($productoParaDistribuir)
                             <!-- Información del producto -->
                             <div class="alert alert-info">
-                                <h6><i class="fas fa-box me-2"></i>Producto a Distribuir</h6>
-                                <p class="mb-1"><strong>Producto:</strong> {{ $productoParaDistribuir['nombre'] }}</p>
-                                <p class="mb-1"><strong>Factura:</strong> {{ $productoParaDistribuir['numero_factura'] }}</p>
-                                <p class="mb-1"><strong>Cantidad Pendiente:</strong> {{ $productoParaDistribuir['cantidad_pendiente'] }} {{ $productoParaDistribuir['unidad'] }}</p>
-                                <p class="mb-0"><strong>Proveedor:</strong> {{ $productoParaDistribuir['proveedor'] }}</p>
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <h6><i class="fas fa-box me-2"></i>Producto a Distribuir</h6>
+                                        <p class="mb-1"><strong>Producto:</strong> {{ $productoParaDistribuir['nombre'] }}</p>
+                                        <p class="mb-1"><strong>Factura:</strong> {{ $productoParaDistribuir['numero_factura'] }}</p>
+                                        <p class="mb-1"><strong>Cantidad Pendiente:</strong> {{ $productoParaDistribuir['cantidad_pendiente'] }} {{ $productoParaDistribuir['unidad'] }}</p>
+                                        <p class="mb-0"><strong>Proveedor:</strong> {{ $productoParaDistribuir['proveedor'] }}</p>
+                                    </div>
+                                    <button type="button" 
+                                            wire:click="actualizarDatosProducto" 
+                                            class="btn btn-sm btn-outline-secondary"
+                                            title="Actualizar datos del producto">
+                                        <i class="fas fa-sync-alt"></i>
+                                    </button>
+                                </div>
                             </div>
 
                             <!-- Formulario de distribución -->
@@ -186,7 +196,7 @@
                                         <input type="number" 
                                                id="cantidadDistribuir" 
                                                class="form-control" 
-                                               wire:model="cantidadDistribuir"
+                                               wire:model.live="cantidadDistribuir"
                                                min="1" 
                                                max="{{ $productoParaDistribuir['cantidad_pendiente'] }}"
                                                placeholder="Cantidad a distribuir">
@@ -199,7 +209,7 @@
                                         <input type="date" 
                                                id="fechaDistribucion" 
                                                class="form-control" 
-                                               wire:model="fechaDistribucion">
+                                               wire:model.live="fechaDistribucion">
                                     </div>
                                 </div>
                             </div>
@@ -234,7 +244,7 @@
                             @if($segmentoDistribucion)
                                 <div class="mb-3">
                                     <label for="seccionDistribucion" class="form-label">Sección <span class="text-red-600">*</span></label>
-                                    <select id="seccionDistribucion" class="form-select" wire:model="seccionDistribucion">
+                                    <select id="seccionDistribucion" class="form-select" wire:model.live="seccionDistribucion">
                                         <option value="">Seleccionar sección</option>
                                         @if(isset($secciones) && is_iterable($secciones))
                                             @foreach($secciones as $seccion)
@@ -271,7 +281,7 @@
                         <button type="button" 
                                 wire:click="confirmarDistribucion" 
                                 class="btn btn-primary"
-                                @disabled(!$cantidadDistribuir || !$fechaDistribucion || !$seccionDistribucion)>
+                                @if(!$this->puedeConfirmarDistribucion()) disabled @endif>
                             <i class="fas fa-check me-2"></i>Confirmar Distribución
                         </button>
                     </div>

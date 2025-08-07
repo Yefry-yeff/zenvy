@@ -627,7 +627,9 @@ class RecibirEnBodega extends Component
                 $query->where('cantidad_sin_asignar', '>', 0);
             })
             ->whereHas('estado', function($query) {
-                $query->where('descripcion', 'like', '%activ%');
+                $query->where('descripcion', 'like', '%activ%')
+                      ->orWhere('descripcion', 'like', '%proceso%')
+                      ->orWhere('descripcion', 'like', '%pendiente%');
             })
             ->whereHas('cliente.tipoCliente', function($query) {
                 $query->where('nombre', 'like', '%proveedor%');
@@ -713,7 +715,9 @@ class RecibirEnBodega extends Component
                 $query->where('cantidad_sin_asignar', '>', 0);
             })
             ->whereHas('compras.estado', function($query) {
-                $query->where('descripcion', 'like', '%activ%');
+                $query->where('descripcion', 'like', '%activ%')
+                      ->orWhere('descripcion', 'like', '%proceso%')
+                      ->orWhere('descripcion', 'like', '%pendiente%');
             })
             ->whereHas('tipoCliente', function($query) {
                 $query->where('nombre', 'like', '%proveedor%');
@@ -896,6 +900,40 @@ class RecibirEnBodega extends Component
         }
     }
 
+    public function puedeConfirmarDistribucion()
+    {
+        return !empty($this->cantidadDistribuir) && 
+               $this->cantidadDistribuir > 0 && 
+               !empty($this->fechaDistribucion) && 
+               !empty($this->seccionDistribucion);
+    }
+
+    public function actualizarDatosProducto()
+    {
+        if ($this->productoParaDistribuir && isset($this->productoParaDistribuir['detalle_id'])) {
+            try {
+                $detalle = CompraHasProducto::with(['compra.cliente', 'producto', 'unidadCompra'])
+                    ->find($this->productoParaDistribuir['detalle_id']);
+                
+                if ($detalle) {
+                    $this->productoParaDistribuir['cantidad_pendiente'] = $detalle->cantidad_sin_asignar;
+                    
+                    // Si ya no hay cantidad disponible, cerrar el modal y recargar
+                    if ($detalle->cantidad_sin_asignar <= 0) {
+                        $this->mostrarError('Este producto ya no tiene cantidad disponible para distribuir.');
+                        $this->cerrarModalDistribucion();
+                        $this->cargarComprasActivas();
+                    }
+                }
+            } catch (\Exception $e) {
+                Log::error('Error al actualizar datos del producto', [
+                    'detalle_id' => $this->productoParaDistribuir['detalle_id'],
+                    'mensaje' => $e->getMessage()
+                ]);
+            }
+        }
+    }
+
     public function confirmarDistribucion()
     {
         // Validaciones
@@ -925,7 +963,7 @@ class RecibirEnBodega extends Component
         try {
             DB::beginTransaction();
 
-            // Buscar el detalle de compra
+            // Buscar el detalle de compra y verificar estado actual
             $detalleCompra = CompraHasProducto::find($this->productoParaDistribuir['detalle_id']);
             
             if (!$detalleCompra) {
@@ -934,7 +972,14 @@ class RecibirEnBodega extends Component
 
             // Verificar que la cantidad aún esté disponible
             if ($detalleCompra->cantidad_sin_asignar < $cantidadDistribuir) {
-                throw new \Exception('La cantidad disponible ha cambiado. Cantidad actual: ' . $detalleCompra->cantidad_sin_asignar);
+                // Si la cantidad cambió, actualizar los datos del modal
+                $this->productoParaDistribuir['cantidad_pendiente'] = $detalleCompra->cantidad_sin_asignar;
+                
+                if ($detalleCompra->cantidad_sin_asignar <= 0) {
+                    throw new \Exception('Este producto ya no tiene cantidad disponible para distribuir. La página se actualizará automáticamente.');
+                } else {
+                    throw new \Exception("La cantidad disponible ha cambiado. Solo quedan {$detalleCompra->cantidad_sin_asignar} unidades disponibles. Por favor, ajuste la cantidad a distribuir.");
+                }
             }
 
             // Crear registro en recibido_bodega
@@ -957,14 +1002,72 @@ class RecibirEnBodega extends Component
             $detalleCompra->cantidad_sin_asignar -= $cantidadDistribuir;
             $detalleCompra->save();
 
+            // Verificar si todos los productos de la compra están completamente distribuidos
+            $compra = $detalleCompra->compra;
+            $productosConCantidadPendiente = $compra->detallesCompra()
+                ->where('cantidad_sin_asignar', '>', 0)
+                ->count();
+            
+            // Log para debugging
+            Log::info('Verificando estado de distribución', [
+                'compra_id' => $compra->id,
+                'numero_factura' => $compra->numero_factura,
+                'productos_con_cantidad_pendiente' => $productosConCantidadPendiente,
+                'total_productos' => $compra->detallesCompra()->count()
+            ]);
+            
+            // Si no hay productos con cantidad pendiente, cambiar estado a "Distribuido"
+            if ($productosConCantidadPendiente == 0) {
+                $estadoAnterior = $compra->estado_id;
+                $compra->estado_id = 3; // Estado "Distribuido"
+                $compra->save();
+                
+                Log::info('Compra marcada como distribuida', [
+                    'compra_id' => $compra->id,
+                    'numero_factura' => $compra->numero_factura,
+                    'nuevo_estado_id' => 3,
+                    'estado_anterior' => $estadoAnterior
+                ]);
+                
+                // Emitir eventos globales para notificar a otros componentes
+                $this->dispatch('compra-distribuida', $compra->id);
+                $this->dispatch('estado-compra-actualizado', $compra->id, 'distribuido');
+                $this->dispatch('compra-actualizada', $compra->id);
+            } else {
+                Log::info('Compra aún tiene productos pendientes', [
+                    'compra_id' => $compra->id,
+                    'numero_factura' => $compra->numero_factura,
+                    'productos_pendientes' => $productosConCantidadPendiente
+                ]);
+            }
+
             DB::commit();
 
-            $this->mostrarExito("Se distribuyeron {$cantidadDistribuir} {$this->productoParaDistribuir['unidad']} de {$this->productoParaDistribuir['producto_nombre']} exitosamente a la bodega.");
+            // Preparar mensaje de éxito
+            $mensaje = "Se distribuyeron {$cantidadDistribuir} {$this->productoParaDistribuir['unidad']} de {$this->productoParaDistribuir['nombre']} exitosamente a la bodega.";
+            
+            // Si la compra se completó, agregar información adicional
+            if ($productosConCantidadPendiente == 0) {
+                $mensaje .= " ¡La factura {$compra->numero_factura} ha sido marcada como completamente distribuida!";
+            }
+            
+            $this->mostrarExito($mensaje);
             $this->cerrarModalDistribucion();
             $this->cargarComprasActivas(); // Recargar datos
             
+            // Emitir evento global para actualizar cualquier vista que muestre compras
+            $this->dispatch('compra-actualizada', $compra->id);
+            
         } catch (\Exception $e) {
             DB::rollback();
+            
+            // Si es un error de cantidad, intentar actualizar los datos
+            if (str_contains($e->getMessage(), 'cantidad disponible ha cambiado') || 
+                str_contains($e->getMessage(), 'ya no tiene cantidad disponible')) {
+                $this->actualizarDatosProducto();
+                $this->cargarComprasActivas(); // Recargar la tabla
+            }
+            
             Log::error('Error al distribuir producto', [
                 'detalle_compra_id' => $this->productoParaDistribuir['detalle_id'] ?? null,
                 'cantidad' => $cantidadDistribuir,

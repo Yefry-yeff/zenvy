@@ -7,6 +7,7 @@ use Livewire\WithPagination;
 use App\Models\Compra;
 use App\Models\Estado;
 use Illuminate\Support\Facades\Log;
+use Livewire\Attributes\On;
 
 class CompraDeProductos extends Component
 {
@@ -29,6 +30,48 @@ class CompraDeProductos extends Component
     // Propiedades para modal de detalle
     public $mostrarModalDetalle = false;
     public $compraDetalle = null;
+
+        // Escuchar evento de distribución completada
+    #[On('compra-distribuida')]
+    public function actualizarDespuesDistribucion($compraId = null)
+    {
+        // Refrescar la vista para mostrar los nuevos estados
+        $this->resetPage(); // Reset pagination to show changes
+        $this->render(); // Force re-render
+        
+        // Agregar mensaje de confirmación
+        if ($compraId) {
+            $compra = Compra::find($compraId);
+            if ($compra) {
+                session()->flash('success', "La factura {$compra->numero_factura} ha sido marcada como distribuida.");
+            }
+        }
+    }
+
+    // Escuchar evento de cambio de estado de compra
+    #[On('estado-compra-actualizado')]
+    public function refrescarListado($compraId = null, $nuevoEstado = null)
+    {
+        // Refrescar la vista cuando se actualiza el estado de una compra
+        $this->resetPage();
+        $this->render(); // Force re-render
+    }
+
+    // Escuchar evento de cualquier actualización de compra
+    #[On('compra-actualizada')]
+    public function actualizarCompra($compraId = null)
+    {
+        // Refrescar la vista cuando se actualiza cualquier compra
+        $this->resetPage();
+        $this->render(); // Force re-render
+    }
+
+    // Método público para refrescar manualmente el componente
+    public function refrescarComponente()
+    {
+        $this->resetPage();
+        $this->render();
+    }
 
     // Resetear paginación cuando se cambian los filtros
     public function updatedBusqueda()
