@@ -26,6 +26,10 @@ class CompraDeProductos extends Component
     public $compraSeleccionada = null;
     public $motivoAnulacion = '';
 
+    // Propiedades para modal de detalle
+    public $mostrarModalDetalle = false;
+    public $compraDetalle = null;
+
     // Resetear paginación cuando se cambian los filtros
     public function updatedBusqueda()
     {
@@ -80,6 +84,47 @@ class CompraDeProductos extends Component
         $this->mostrarModalAnular = false;
         $this->compraSeleccionada = null;
         $this->motivoAnulacion = '';
+    }
+
+    // Método para abrir modal de detalle
+    public function verDetalle($compraId)
+    {
+        $compra = Compra::with(['proveedor', 'estado', 'detallesCompra.producto', 'detallesCompra.unidadCompra'])->find($compraId);
+        if ($compra) {
+            $this->compraDetalle = [
+                'id' => $compra->id,
+                'numero_factura' => $compra->numero_factura,
+                'proveedor_nombre' => $compra->proveedor->nombre ?? 'N/A',
+                'fecha_emision' => $compra->fecha_emision,
+                'fecha_recepcion' => $compra->fecha_recepcion,
+                'fecha_vencimiento' => $compra->fecha_vencimiento,
+                'estado' => $compra->estado->nombre ?? 'Sin Estado',
+                'productos' => $compra->detallesCompra->map(function($detalle) {
+                    return [
+                        'nombre' => $detalle->producto->nombre ?? 'N/A',
+                        'cantidad' => $detalle->cantidad_ingresada,
+                        'precio_unitario' => $detalle->precio,
+                        'subtotal' => $detalle->sub_total_producto,
+                        'isv' => $detalle->isv,
+                        'precio_total' => $detalle->precio_total,
+                        'unidad' => $detalle->unidadCompra->nombre ?? 'N/A',
+                        'fecha_expiracion' => $detalle->fecha_expiracion
+                    ];
+                })->toArray(),
+                'total_productos' => $compra->detallesCompra->count(),
+                'subtotal_general' => $compra->detallesCompra->sum('sub_total_producto'),
+                'isv_general' => $compra->detallesCompra->sum('isv'),
+                'total_general' => $compra->detallesCompra->sum('precio_total')
+            ];
+            $this->mostrarModalDetalle = true;
+        }
+    }
+
+    // Método para cerrar modal de detalle
+    public function cerrarModalDetalle()
+    {
+        $this->mostrarModalDetalle = false;
+        $this->compraDetalle = null;
     }
 
     // Método para confirmar anulación

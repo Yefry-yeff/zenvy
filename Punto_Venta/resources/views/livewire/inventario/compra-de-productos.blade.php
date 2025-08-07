@@ -49,35 +49,7 @@
                 </div>
             @endif
 
-            <!-- FILTROS Y BÚSQUEDA -->
-            <div class="p-4 mb-4 bg-white border shadow rounded-xl">
-                <div class="row align-items-end">
-                    <div class="col-md-6">
-                        <label for="busqueda" class="form-label">Buscar compras</label>
-                        <input type="text" 
-                               id="busqueda" 
-                               class="form-control" 
-                               wire:model.live="busqueda" 
-                               placeholder="Buscar por número de factura, proveedor...">
-                    </div>
-                    <div class="col-md-3">
-                        <label for="filtroEstado" class="form-label">Estado</label>
-                        <select id="filtroEstado" class="form-select" wire:model.live="filtroEstado">
-                            <option value="">Todos los estados</option>
-                            <option value="activo">Activo</option>
-                            <option value="distribuido">Distribuido</option>
-                            <option value="anulado">Anulado</option>
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <label for="filtroFecha" class="form-label">Fecha</label>
-                        <input type="date" 
-                               id="filtroFecha" 
-                               class="form-control" 
-                               wire:model.live="filtroFecha">
-                    </div>
-                </div>
-            </div>
+
 
             <!-- TABLA DE COMPRAS -->
             <div class="p-4 bg-white border shadow rounded-xl">
@@ -104,7 +76,9 @@
                         </thead>
                         <tbody>
                             @forelse($compras as $compra)
-                                <tr>
+                                <tr style="cursor: pointer;" 
+                                    wire:click="verDetalle({{ $compra->id }})"
+                                    title="Clic para ver detalle">
                                     <td><span class="badge bg-secondary">#{{ $compra->id }}</span></td>
                                     <td><strong>{{ $compra->numero_factura }}</strong></td>
                                     <td>{{ $compra->proveedor->nombre ?? 'N/A' }}</td>
@@ -127,7 +101,7 @@
                                     </td>
                                     <td class="text-center">{{ $compra->detallesCompra->count() }}</td>
                                     <td class="text-end"><strong>L. {{ number_format($compra->detallesCompra->sum('precio_total'), 2) }}</strong></td>
-                                    <td class="text-center">
+                                    <td class="text-center" onclick="event.stopPropagation()">
                                         @if($compra->estado && strtolower($compra->estado->nombre) === 'activo')
                                             <button type="button"
                                                     class="btn btn-sm btn-outline-danger"
@@ -161,6 +135,149 @@
             </div>
         </div>
 
+    </div>
+
+    <!-- Modal de Detalle de Compra -->
+    <div x-data="{ open: @entangle('mostrarModalDetalle') }"
+         x-show="open"
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0 transform scale-90"
+         x-transition:enter-end="opacity-100 transform scale-100"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100 transform scale-100"
+         x-transition:leave-end="opacity-0 transform scale-90"
+         x-cloak
+         class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+         @click.self="$wire.cerrarModalDetalle()"
+         @keydown.escape.window="$wire.cerrarModalDetalle()">
+
+        <div class="w-full max-w-4xl mx-4">
+            <div class="overflow-hidden bg-white rounded-lg shadow-xl">
+                <!-- Header -->
+                <div class="p-4 text-white bg-blue-600">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <svg class="w-6 h-6 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path>
+                                <path fill-rule="evenodd" d="M4 5a2 2 0 012-2v1a1 1 0 001 1h6a1 1 0 001-1V3a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 3a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"></path>
+                            </svg>
+                            <h3 class="text-lg font-semibold">Detalle de Compra</h3>
+                        </div>
+                        <button wire:click="cerrarModalDetalle" class="text-white hover:text-gray-200">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Body -->
+                <div class="p-6 max-h-96 overflow-y-auto">
+                    @if($compraDetalle)
+                    <!-- Información General -->
+                    <div class="mb-6">
+                        <h4 class="text-lg font-semibold text-gray-800 mb-3">📋 Información General</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="p-3 bg-gray-50 rounded border">
+                                <p class="mb-1"><strong>N° Factura:</strong> {{ $compraDetalle['numero_factura'] }}</p>
+                                <p class="mb-1"><strong>Proveedor:</strong> {{ $compraDetalle['proveedor_nombre'] }}</p>
+                                <p class="mb-0"><strong>Estado:</strong> 
+                                    @if(strtolower($compraDetalle['estado']) === 'activo')
+                                        <span class="badge bg-success">{{ $compraDetalle['estado'] }}</span>
+                                    @elseif(strtolower($compraDetalle['estado']) === 'distribuido')
+                                        <span class="badge bg-warning">{{ $compraDetalle['estado'] }}</span>
+                                    @elseif(strtolower($compraDetalle['estado']) === 'anulado')
+                                        <span class="badge bg-danger">{{ $compraDetalle['estado'] }}</span>
+                                    @else
+                                        <span class="badge bg-secondary">{{ $compraDetalle['estado'] }}</span>
+                                    @endif
+                                </p>
+                            </div>
+                            <div class="p-3 bg-gray-50 rounded border">
+                                <p class="mb-1"><strong>Fecha Emisión:</strong> {{ \Carbon\Carbon::parse($compraDetalle['fecha_emision'])->format('d/m/Y') }}</p>
+                                <p class="mb-1"><strong>Fecha Recepción:</strong> {{ \Carbon\Carbon::parse($compraDetalle['fecha_recepcion'])->format('d/m/Y') }}</p>
+                                @if($compraDetalle['fecha_vencimiento'])
+                                <p class="mb-0"><strong>Fecha Vencimiento:</strong> {{ \Carbon\Carbon::parse($compraDetalle['fecha_vencimiento'])->format('d/m/Y') }}</p>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Productos -->
+                    <div class="mb-6">
+                        <h4 class="text-lg font-semibold text-gray-800 mb-3">📦 Productos ({{ $compraDetalle['total_productos'] }})</h4>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Producto</th>
+                                        <th>Cantidad</th>
+                                        <th>Unidad</th>
+                                        <th>Precio Unit.</th>
+                                        <th>Subtotal</th>
+                                        <th>ISV</th>
+                                        <th>Total</th>
+                                        <th>Vencimiento</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($compraDetalle['productos'] as $producto)
+                                    <tr>
+                                        <td>{{ $producto['nombre'] }}</td>
+                                        <td class="text-center">{{ $producto['cantidad'] }}</td>
+                                        <td class="text-center">{{ $producto['unidad'] }}</td>
+                                        <td class="text-end">L. {{ number_format($producto['precio_unitario'], 2) }}</td>
+                                        <td class="text-end">L. {{ number_format($producto['subtotal'], 2) }}</td>
+                                        <td class="text-end">L. {{ number_format($producto['isv'], 2) }}</td>
+                                        <td class="text-end"><strong>L. {{ number_format($producto['precio_total'], 2) }}</strong></td>
+                                        <td class="text-center">
+                                            @if($producto['fecha_expiracion'])
+                                                {{ \Carbon\Carbon::parse($producto['fecha_expiracion'])->format('d/m/Y') }}
+                                            @else
+                                                <span class="text-muted">N/A</span>
+                                            @endif
+                                        </td>
+                                    </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Totales -->
+                    <div class="border-t pt-4">
+                        <h4 class="text-lg font-semibold text-gray-800 mb-3">💰 Resumen de Totales</h4>
+                        <div class="row">
+                            <div class="col-md-6 offset-md-6">
+                                <table class="table table-sm">
+                                    <tr>
+                                        <td><strong>Subtotal:</strong></td>
+                                        <td class="text-end">L. {{ number_format($compraDetalle['subtotal_general'], 2) }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>ISV:</strong></td>
+                                        <td class="text-end">L. {{ number_format($compraDetalle['isv_general'], 2) }}</td>
+                                    </tr>
+                                    <tr class="table-primary">
+                                        <td><strong>Total General:</strong></td>
+                                        <td class="text-end"><strong>L. {{ number_format($compraDetalle['total_general'], 2) }}</strong></td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    @endif
+                </div>
+
+                <!-- Footer -->
+                <div class="flex justify-end gap-2 px-6 py-3 bg-gray-50">
+                    <button wire:click="cerrarModalDetalle"
+                            class="px-4 py-2 text-gray-700 transition-colors duration-200 bg-gray-200 rounded-md hover:bg-gray-300">
+                        Cerrar
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Modal de Anulación -->
@@ -303,6 +420,14 @@
         /* Hover en filas */
         .table tbody tr:hover {
             background-color: #f8f9fa;
+            transform: scale(1.01);
+            transition: all 0.2s ease;
+        }
+
+        /* Filas clickeables */
+        .table tbody tr[style*="cursor: pointer"]:hover {
+            background-color: #e3f2fd !important;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
 
         /* Estados de compra */
