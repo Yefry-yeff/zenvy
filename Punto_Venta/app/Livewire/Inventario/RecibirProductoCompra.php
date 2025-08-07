@@ -154,11 +154,20 @@ class RecibirProductoCompra extends Component
             
             try {
                 $this->segmentos = Segmento::where('bodega_id', $this->bodegaDistribucion)
-                    ->where('estado', 1)
                     ->orderBy('descripcion')
                     ->get();
+                    
+                Log::info('Segmentos cargados para bodega', [
+                    'bodega_id' => $this->bodegaDistribucion,
+                    'bodega_nombre' => $this->nombreBodegaDistribucion,
+                    'segmentos_count' => count($this->segmentos)
+                ]);
+                
             } catch (\Exception $e) {
-                Log::error('Error al cargar segmentos', ['error' => $e->getMessage()]);
+                Log::error('Error al cargar segmentos', [
+                    'bodega_id' => $this->bodegaDistribucion,
+                    'error' => $e->getMessage()
+                ]);
                 $this->segmentos = [];
             }
         } else {
@@ -179,11 +188,21 @@ class RecibirProductoCompra extends Component
             
             try {
                 $this->secciones = Seccion::where('segmento_id', $this->segmentoDistribucion)
-                    ->where('estado', 1)
+                    ->where('estado_id', 1) // Cambiado de 'estado' a 'estado_id'
                     ->orderBy('descripcion')
                     ->get();
+                    
+                Log::info('Secciones cargadas para segmento', [
+                    'segmento_id' => $this->segmentoDistribucion,
+                    'segmento_nombre' => $this->nombreSegmentoDistribucion,
+                    'secciones_count' => count($this->secciones)
+                ]);
+                
             } catch (\Exception $e) {
-                Log::error('Error al cargar secciones', ['error' => $e->getMessage()]);
+                Log::error('Error al cargar secciones', [
+                    'segmento_id' => $this->segmentoDistribucion,
+                    'error' => $e->getMessage()
+                ]);
                 $this->secciones = [];
             }
         } else {

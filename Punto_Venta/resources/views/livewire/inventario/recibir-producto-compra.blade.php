@@ -222,35 +222,51 @@
                                     @foreach($bodegas as $bodega)
                                         <option value="{{ $bodega->id }}">{{ $bodega->nombre }}</option>
                                     @endforeach
+                                @else
+                                    <option value="" disabled>No hay bodegas disponibles</option>
                                 @endif
                             </select>
+                            <div wire:loading wire:target="bodegaDistribucion" class="text-muted small mt-1">
+                                <i class="fas fa-spinner fa-spin me-1"></i>Cargando segmentos...
+                            </div>
                         </div>
 
                         @if($bodegaDistribucion)
                             <div class="mb-3">
                                 <label for="segmentoDistribucion" class="form-label">Segmento <span class="text-red-600">*</span></label>
-                                <select id="segmentoDistribucion" class="form-select" wire:model.live="segmentoDistribucion">
+                                <select id="segmentoDistribucion" class="form-select" wire:model.live="segmentoDistribucion" 
+                                        wire:loading.attr="disabled" wire:target="bodegaDistribucion">
                                     <option value="">Seleccionar segmento</option>
-                                    @if(isset($segmentos) && is_iterable($segmentos))
+                                    @if(isset($segmentos) && is_iterable($segmentos) && count($segmentos) > 0)
                                         @foreach($segmentos as $segmento)
                                             <option value="{{ $segmento->id }}">{{ $segmento->descripcion }}</option>
                                         @endforeach
                                     @endif
                                 </select>
+                                @if(isset($segmentos) && count($segmentos) === 0 && $bodegaDistribucion)
+                                    <small class="text-warning">No hay segmentos disponibles para esta bodega</small>
+                                @endif
+                                <div wire:loading wire:target="segmentoDistribucion" class="text-muted small mt-1">
+                                    <i class="fas fa-spinner fa-spin me-1"></i>Cargando secciones...
+                                </div>
                             </div>
                         @endif
 
                         @if($segmentoDistribucion)
                             <div class="mb-3">
                                 <label for="seccionDistribucion" class="form-label">Sección <span class="text-red-600">*</span></label>
-                                <select id="seccionDistribucion" class="form-select" wire:model.live="seccionDistribucion">
+                                <select id="seccionDistribucion" class="form-select" wire:model.live="seccionDistribucion"
+                                        wire:loading.attr="disabled" wire:target="segmentoDistribucion">
                                     <option value="">Seleccionar sección</option>
-                                    @if(isset($secciones) && is_iterable($secciones))
+                                    @if(isset($secciones) && is_iterable($secciones) && count($secciones) > 0)
                                         @foreach($secciones as $seccion)
                                             <option value="{{ $seccion->id }}">{{ $seccion->descripcion }} ({{ $seccion->numeracion }})</option>
                                         @endforeach
                                     @endif
                                 </select>
+                                @if(isset($secciones) && count($secciones) === 0 && $segmentoDistribucion)
+                                    <small class="text-warning">No hay secciones disponibles para este segmento</small>
+                                @endif
                             </div>
                         @endif
 
@@ -403,6 +419,28 @@
             margin-top: 0.25rem;
             font-size: 0.875em;
             color: #dc3545;
+        }
+
+        /* Estados de carga */
+        [wire\:loading] {
+            color: #6c757d;
+            font-style: italic;
+        }
+
+        [wire\:loading] .fa-spinner {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Select deshabilitado durante carga */
+        select[disabled] {
+            background-color: #f8f9fa;
+            opacity: 0.7;
+            cursor: not-allowed;
         }
 
         /* Filas deshabilitadas */
