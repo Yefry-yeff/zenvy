@@ -163,7 +163,8 @@ class StockForm extends Component
             // Crear nueva distribución
             $distribucion = DistribucionStock::create([
                 'cantidad_distribuida' => $this->form['cantidad_distribuir'],
-                'precio_unitario' => $this->form['precio_unitario'],
+                'precio_unitario' => $this->producto->precio_base ?? 0,
+                'unidad_medida' => $this->producto->unidadMedidaVenta->nombre ?? 'N/A',
                 'fecha_distribucion' => $this->form['fecha_distribucion'],
                 'comentario' => $this->form['comentario'],
                 'recibido_bodega_id' => $this->recibidoId,

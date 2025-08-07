@@ -269,6 +269,7 @@
                                         <th class="text-center">Fecha Distribución</th>
                                         <th class="text-center">Cantidad</th>
                                         <th class="text-center">Precio Unit.</th>
+                                        <th class="text-center">Unidad de Venta</th>
                                         <th class="text-center">Total</th>
                                         <th class="text-center">Usuario</th>
                                         <th class="text-center">Creado</th>
@@ -286,6 +287,7 @@
                                             <span class="badge bg-primary">{{ $distribucion['cantidad_distribuida'] }}</span>
                                         </td>
                                         <td class="text-center">L. {{ number_format((float)$distribucion['precio_unitario'], 2) }}</td>
+                                        <td class="text-center">{{ $distribucion['unidad_medida'] ?? 'N/A' }}</td>
                                         <td class="text-center">
                                             <strong>L. {{ number_format((float)$distribucion['cantidad_distribuida'] * (float)$distribucion['precio_unitario'], 2) }}</strong>
                                         </td>

@@ -23,7 +23,8 @@ class DistribucionStock extends Model
         'fecha_distribucion',
         'comentario',
         'recibido_bodega_id',
-        'users_id'
+        'users_id',
+        'unidad_medida'
     ];
 
     protected $casts = [
