@@ -60,7 +60,7 @@
 
                 <!-- Tabla de Compras -->
                 <div class="table-responsive">
-                    <table class="table table-hover table-sm">
+                    <table id="comprasTabla" class="table table-hover table-sm">
                         <thead class="table-light">
                             <tr>
                                 <th style="width: 18%;">N° Factura</th>
@@ -75,9 +75,7 @@
                         </thead>
                         <tbody>
                             @forelse($compras as $compra)
-                                <tr style="cursor: pointer;" 
-                                    wire:click="verDetalle({{ $compra->id }})"
-                                    title="Clic para ver detalle">
+                                <tr wire:click="verDetalle({{ $compra->id }})">
                                     <td><strong>{{ $compra->numero_factura }}</strong></td>
                                     <td>{{ $compra->proveedor->nombre ?? 'N/A' }}</td>
                                     <td>{{ \Carbon\Carbon::parse($compra->fecha_emision)->format('d/m/Y') }}</td>
@@ -101,33 +99,17 @@
                                     <td class="text-end"><strong>L. {{ number_format($compra->detallesCompra->sum('precio_total'), 2) }}</strong></td>
                                     <td class="text-center" onclick="event.stopPropagation()">
                                         @if($compra->estado && strtolower($compra->estado->nombre) === 'activo')
-                                            <div class="relative" x-data="{ open: false }">
-                                                <button @click="open = !open" 
-                                                        class="btn btn-sm btn-outline-secondary"
-                                                        type="button">
+                                            <div x-data="{ open: false }">
+                                                <button @click="open = !open" class="btn btn-sm btn-outline-secondary" type="button">
                                                     <i class="fas fa-cog"></i> Acciones
-                                                    <i class="fas fa-chevron-down ms-1" :class="{ 'rotate-180': open }"></i>
+                                                    <i class="fas fa-chevron-down ms-1"></i>
                                                 </button>
-                                                <div x-show="open" 
-                                                     @click.away="open = false"
-                                                     x-transition:enter="transition ease-out duration-100"
-                                                     x-transition:enter-start="transform opacity-0 scale-95"
-                                                     x-transition:enter-end="transform opacity-100 scale-100"
-                                                     x-transition:leave="transition ease-in duration-75"
-                                                     x-transition:leave-start="transform opacity-100 scale-100"
-                                                     x-transition:leave-end="transform opacity-0 scale-95"
-                                                     class="absolute right-0 z-10 mt-2 w-48 bg-white border border-gray-200 rounded-md shadow-lg">
-                                                    <div class="py-1">
-                                                        <button type="button"
-                                                                class="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50"
-                                                                wire:click="abrirModalAnular({{ $compra->id }})"
-                                                                @click="open = false">
+                                                <div x-show="open" @click.away="open = false" class="bg-white border rounded shadow position-absolute">
+                                                    <div>
+                                                        <button type="button" class="text-red-600 btn btn-link" wire:click="abrirModalAnular({{ $compra->id }})" @click="open = false">
                                                             <i class="fas fa-times me-2"></i>Anular
                                                         </button>
-                                                        <button type="button"
-                                                                class="flex items-center w-full px-4 py-2 text-sm text-blue-600 hover:bg-blue-50"
-                                                                wire:click="irARecibirProducto({{ $compra->id }})"
-                                                                @click="open = false">
+                                                        <button type="button" class="text-blue-600 btn btn-link" wire:click="irARecibirProducto({{ $compra->id }})" @click="open = false">
                                                             <i class="fas fa-warehouse me-2"></i>Recibir Producto
                                                         </button>
                                                     </div>
@@ -187,7 +169,7 @@
                             </svg>
                             <h3 class="text-lg font-semibold">Detalle de Compra</h3>
                         </div>
-                        <button wire:click="cerrarModalDetalle" class="text-white hover:text-gray-200 transition-colors">
+                        <button wire:click="cerrarModalDetalle" class="text-white transition-colors hover:text-gray-200">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                             </svg>
@@ -196,33 +178,33 @@
                 </div>
 
                 <!-- Body -->
-                <div class="p-4 max-h-80 overflow-y-auto custom-scrollbar">
+                <div class="p-4 overflow-y-auto max-h-80 custom-scrollbar">
                     @if($compraDetalle)
                     <!-- Información General -->
                     <div class="mb-4">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            <div class="p-3 bg-gray-50 rounded-lg border-l-4 border-blue-500">
-                                <div class="text-xs text-gray-600 uppercase tracking-wide font-medium mb-1">Información General</div>
-                                <p class="text-sm mb-1"><span class="font-medium">N° Factura:</span> {{ $compraDetalle['numero_factura'] }}</p>
-                                <p class="text-sm mb-1"><span class="font-medium">Proveedor:</span> {{ $compraDetalle['proveedor_nombre'] }}</p>
-                                <p class="text-sm mb-0"><span class="font-medium">Estado:</span> 
+                        <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+                            <div class="p-3 border-l-4 border-blue-500 rounded-lg bg-gray-50">
+                                <div class="mb-1 text-xs font-medium tracking-wide text-gray-600 uppercase">Información General</div>
+                                <p class="mb-1 text-sm"><span class="font-medium">N° Factura:</span> {{ $compraDetalle['numero_factura'] }}</p>
+                                <p class="mb-1 text-sm"><span class="font-medium">Proveedor:</span> {{ $compraDetalle['proveedor_nombre'] }}</p>
+                                <p class="mb-0 text-sm"><span class="font-medium">Estado:</span>
                                     @if(strtolower($compraDetalle['estado']) === 'activo')
-                                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">{{ $compraDetalle['estado'] }}</span>
+                                        <span class="inline-flex items-center px-2 py-1 text-xs text-green-800 bg-green-100 rounded-full">{{ $compraDetalle['estado'] }}</span>
                                     @elseif(strtolower($compraDetalle['estado']) === 'distribuido')
-                                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-yellow-100 text-yellow-800">{{ $compraDetalle['estado'] }}</span>
+                                        <span class="inline-flex items-center px-2 py-1 text-xs text-yellow-800 bg-yellow-100 rounded-full">{{ $compraDetalle['estado'] }}</span>
                                     @elseif(strtolower($compraDetalle['estado']) === 'anulado')
-                                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-red-100 text-red-800">{{ $compraDetalle['estado'] }}</span>
+                                        <span class="inline-flex items-center px-2 py-1 text-xs text-red-800 bg-red-100 rounded-full">{{ $compraDetalle['estado'] }}</span>
                                     @else
-                                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-800">{{ $compraDetalle['estado'] }}</span>
+                                        <span class="inline-flex items-center px-2 py-1 text-xs text-gray-800 bg-gray-100 rounded-full">{{ $compraDetalle['estado'] }}</span>
                                     @endif
                                 </p>
                             </div>
-                            <div class="p-3 bg-gray-50 rounded-lg border-l-4 border-green-500">
-                                <div class="text-xs text-gray-600 uppercase tracking-wide font-medium mb-1">Fechas</div>
-                                <p class="text-sm mb-1"><span class="font-medium">Emisión:</span> {{ \Carbon\Carbon::parse($compraDetalle['fecha_emision'])->format('d/m/Y') }}</p>
-                                <p class="text-sm mb-1"><span class="font-medium">Recepción:</span> {{ \Carbon\Carbon::parse($compraDetalle['fecha_recepcion'])->format('d/m/Y') }}</p>
+                            <div class="p-3 border-l-4 border-green-500 rounded-lg bg-gray-50">
+                                <div class="mb-1 text-xs font-medium tracking-wide text-gray-600 uppercase">Fechas</div>
+                                <p class="mb-1 text-sm"><span class="font-medium">Emisión:</span> {{ \Carbon\Carbon::parse($compraDetalle['fecha_emision'])->format('d/m/Y') }}</p>
+                                <p class="mb-1 text-sm"><span class="font-medium">Recepción:</span> {{ \Carbon\Carbon::parse($compraDetalle['fecha_recepcion'])->format('d/m/Y') }}</p>
                                 @if($compraDetalle['fecha_vencimiento'])
-                                <p class="text-sm mb-0"><span class="font-medium">Vencimiento:</span> {{ \Carbon\Carbon::parse($compraDetalle['fecha_vencimiento'])->format('d/m/Y') }}</p>
+                                <p class="mb-0 text-sm"><span class="font-medium">Vencimiento:</span> {{ \Carbon\Carbon::parse($compraDetalle['fecha_vencimiento'])->format('d/m/Y') }}</p>
                                 @endif
                             </div>
                         </div>
@@ -231,13 +213,13 @@
                     <!-- Productos -->
                     <div class="mb-4">
                         <div class="flex items-center justify-between mb-2">
-                            <div class="text-xs text-gray-600 uppercase tracking-wide font-medium">Productos Comprados</div>
-                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800">{{ $compraDetalle['total_productos'] }} productos</span>
+                            <div class="text-xs font-medium tracking-wide text-gray-600 uppercase">Productos Comprados</div>
+                            <span class="inline-flex items-center px-2 py-1 text-xs text-blue-800 bg-blue-100 rounded-full">{{ $compraDetalle['total_productos'] }} productos</span>
                         </div>
                         <div class="overflow-x-auto">
                             <table class="w-full text-sm">
                                 <thead>
-                                    <tr class="bg-gray-100 text-xs text-gray-600 uppercase tracking-wide">
+                                    <tr class="text-xs tracking-wide text-gray-600 uppercase bg-gray-100">
                                         <th class="px-2 py-2 text-left">Producto</th>
                                         <th class="px-2 py-2 text-center">Cant.</th>
                                         <th class="px-2 py-2 text-center">Unidad</th>
@@ -252,7 +234,7 @@
                                         <td class="px-2 py-2 text-center">{{ $producto['cantidad'] }}</td>
                                         <td class="px-2 py-2 text-center text-gray-600">{{ $producto['unidad'] }}</td>
                                         <td class="px-2 py-2 text-right text-gray-600">L. {{ number_format($producto['precio_unitario'], 2) }}</td>
-                                        <td class="px-2 py-2 text-right font-medium">L. {{ number_format($producto['precio_total'], 2) }}</td>
+                                        <td class="px-2 py-2 font-medium text-right">L. {{ number_format($producto['precio_total'], 2) }}</td>
                                     </tr>
                                     @endforeach
                                 </tbody>
@@ -261,9 +243,9 @@
                     </div>
 
                     <!-- Totales -->
-                    <div class="border-t pt-3">
-                        <div class="bg-blue-50 rounded-lg p-3">
-                            <div class="text-xs text-gray-600 uppercase tracking-wide font-medium mb-2">Resumen Financiero</div>
+                    <div class="pt-3 border-t">
+                        <div class="p-3 rounded-lg bg-blue-50">
+                            <div class="mb-2 text-xs font-medium tracking-wide text-gray-600 uppercase">Resumen Financiero</div>
                             <div class="grid grid-cols-3 gap-4 text-sm">
                                 <div class="text-center">
                                     <div class="text-gray-600">Subtotal</div>
@@ -284,10 +266,10 @@
                 </div>
 
                 <!-- Footer -->
-                <div class="px-4 py-3 bg-gray-50 border-t">
+                <div class="px-4 py-3 border-t bg-gray-50">
                     <div class="flex justify-end">
                         <button wire:click="cerrarModalDetalle"
-                                class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors">
+                                class="px-4 py-2 text-sm font-medium text-gray-700 transition-colors bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
                             Cerrar
                         </button>
                     </div>
@@ -413,115 +395,9 @@
             display: none !important;
         }
 
-        /* Tabla responsive */
-        .table-responsive {
-            border-radius: 8px;
-            overflow: hidden;
-            overflow-x: auto;
-            min-height: 200px;
-        }
-
-        /* Asegurar que la tabla no se comprima demasiado */
-        .table {
-            min-width: 900px;
-            margin-bottom: 0;
-        }
-
-        /* Botón deshabilitado */
-        button:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-
-        /* Hover en filas */
-        .table tbody tr:hover {
-            background-color: #f8f9fa;
-            transform: scale(1.01);
-            transition: all 0.2s ease;
-        }
-
-        /* Filas clickeables */
-        .table tbody tr[style*="cursor: pointer"]:hover {
-            background-color: #e3f2fd !important;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-
         /* Estados de compra */
         .badge {
             font-size: 0.75rem;
-        }
-
-        /* Botones de acción */
-        .btn-sm {
-            padding: 0.25rem 0.5rem;
-            font-size: 0.75rem;
-        }
-
-        /* Modal responsive */
-        @media (max-width: 576px) {
-            .fixed.inset-0 .w-full.max-w-md {
-                max-width: 95%;
-                margin: 1rem;
-            }
-        }
-
-        /* Mejoras para tabla en móvil */
-        @media (max-width: 768px) {
-            .table {
-                min-width: 800px;
-            }
-
-            .table th,
-            .table td {
-                padding: 0.5rem 0.25rem;
-                font-size: 0.875rem;
-            }
-        }
-
-        /* Scrollbar personalizado */
-        .custom-scrollbar::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        .custom-scrollbar::-webkit-scrollbar-track {
-            background: #f1f1f1;
-            border-radius: 10px;
-        }
-
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: #c1c1c1;
-            border-radius: 10px;
-        }
-
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-            background: #a8a8a8;
-        }
-
-        /* Modal responsive mejorado */
-        @media (max-width: 768px) {
-            .fixed.inset-0 .w-full.max-w-3xl {
-                max-width: 95%;
-                margin: 0.5rem;
-            }
-            
-            .max-h-80 {
-                max-height: 60vh;
-            }
-        }
-
-        /* Dropdown personalizado con Alpine.js */
-        .rotate-180 {
-            transform: rotate(180deg);
-        }
-
-        /* Transiciones para el icono del dropdown */
-        .fas.fa-chevron-down {
-            transition: transform 0.2s ease;
-        }
-
-        /* Estilos para el dropdown menu */
-        [x-cloak] {
-            display: none !important;
         }
     </style>
 
