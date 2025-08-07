@@ -22,14 +22,6 @@
             <h5 class="mb-0 text-lg">
                 🛒 Nueva Compra de Productos
             </h5>
-            <button wire:click="resetFormulario"
-                class="inline-flex items-center gap-1 px-3 py-2 text-sm text-gray-800 bg-white rounded hover:bg-gray-100">
-                <span>🔄</span> Limpiar
-            </button>
-            <button wire:click="debugClientes"
-                class="inline-flex items-center gap-1 px-3 py-2 text-sm text-gray-800 bg-yellow-200 rounded hover:bg-yellow-300">
-                <span>🔍</span> Debug Clientes
-            </button>
         </div>
 
         <!-- FORMULARIO -->
