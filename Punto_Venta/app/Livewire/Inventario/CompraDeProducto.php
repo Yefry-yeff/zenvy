@@ -426,7 +426,11 @@ class CompraDeProducto extends Component
     public function guardarCompra()
     {
         try {
+            // Validar campos básicos primero
             $this->validate();
+
+            // Validar número de factura único
+            $this->validarNumeroFacturaUnico();
 
             DB::beginTransaction();
 
@@ -469,6 +473,69 @@ class CompraDeProducto extends Component
             Log::error('Error al guardar compra: ' . $e->getMessage());
             $this->mostrarModalError = true;
             $this->mensajeModalError = 'Error al guardar la compra: ' . $e->getMessage();
+        }
+    }
+
+    /**
+     * Valida que el número de factura sea único
+     * Solo permite duplicados si la compra anterior está anulada
+     */
+    private function validarNumeroFacturaUnico()
+    {
+        $numeroFactura = $this->compra['numero_factura'];
+        
+        // Buscar compras existentes con el mismo número de factura
+        $compraExistente = Compra::where('numero_factura', $numeroFactura)
+            ->with('estado')
+            ->first();
+
+        if ($compraExistente) {
+            // Verificar si la compra existente está anulada
+            $estadoAnulado = strtolower($compraExistente->estado->nombre ?? '') === 'anulado';
+            
+            if (!$estadoAnulado) {
+                // Si existe una compra activa con el mismo número, lanzar error
+                $this->addError('compra.numero_factura', 
+                    'Ya existe una compra con este número de factura. Solo se puede reutilizar si la compra anterior está anulada.');
+                
+                // También mostrar alerta visual
+                $this->mostrarAlerta = true;
+                $this->mensajeAlerta = 'El número de factura "' . $numeroFactura . '" ya está en uso. Solo se puede reutilizar si la compra anterior está anulada.';
+                
+                throw new \Exception('Número de factura duplicado');
+            }
+        }
+    }
+
+    /**
+     * Valida el número de factura en tiempo real
+     */
+    public function updatedCompraNumeroFactura($value)
+    {
+        // Limpiar errores previos
+        $this->resetErrorBag('compra.numero_factura');
+        $this->mostrarAlerta = false;
+
+        if (!empty($value)) {
+            // Buscar compras existentes con el mismo número de factura
+            $compraExistente = Compra::where('numero_factura', $value)
+                ->with('estado')
+                ->first();
+
+            if ($compraExistente) {
+                // Verificar si la compra existente está anulada
+                $estadoAnulado = strtolower($compraExistente->estado->nombre ?? '') === 'anulado';
+                
+                if (!$estadoAnulado) {
+                    // Mostrar error inmediato
+                    $this->addError('compra.numero_factura', 
+                        'Este número de factura ya está en uso. Solo se puede reutilizar si la compra anterior está anulada.');
+                } else {
+                    // Mostrar advertencia pero permitir continuar
+                    $this->mostrarAlerta = true;
+                    $this->mensajeAlerta = 'ℹ️ Información: Este número de factura fue usado anteriormente en una compra anulada. Puede reutilizarlo.';
+                }
+            }
         }
     }
 

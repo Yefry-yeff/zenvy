@@ -51,7 +51,7 @@
                         <div class="row">
                             <div class="mb-3 col-md-6">
                                 <label for="numero_factura" class="form-label">Número de Factura <span class="text-red-600">*</span></label>
-                                <input type="text" id="numero_factura" class="form-control" wire:model.defer="compra.numero_factura">
+                                <input type="text" id="numero_factura" class="form-control" wire:model.live="compra.numero_factura">
                                 @error('compra.numero_factura')
                                     <div class="mt-1 text-sm text-danger">❌ {{ $message }}</div>
                                 @enderror
@@ -846,8 +846,8 @@
 
     <!-- Alerta de validación flotante -->
     @if($mostrarAlerta)
-        <div class="alert-campo-obligatorio">
-            <strong>⚠️ Error</strong>
+        <div class="alert-campo-obligatorio {{ str_contains($mensajeAlerta, 'ℹ️') ? 'alert-info' : '' }}">
+            <strong>{{ str_contains($mensajeAlerta, 'ℹ️') ? 'ℹ️ Información' : '⚠️ Error' }}</strong>
             <button wire:click="cerrarAlerta" style="float: right; background: none; border: none; font-size: 18px; cursor: pointer;">×</button>
             <br><small>{{ $mensajeAlerta }}</small>
         </div>
@@ -875,14 +875,26 @@
             top: 20px;
             right: 20px;
             z-index: 9999;
-            background: #f8d7da;
-            color: #721c24;
             padding: 12px 16px;
             border-radius: 6px;
             font-size: 14px;
             box-shadow: 0 6px 20px rgba(0,0,0,0.15);
-            border-left: 4px solid #dc3545;
             animation: slideIn 0.3s ease-out;
+            max-width: 400px;
+        }
+
+        /* Alerta de error (por defecto) */
+        .alert-campo-obligatorio {
+            background: #f8d7da;
+            color: #721c24;
+            border-left: 4px solid #dc3545;
+        }
+
+        /* Alerta de información */
+        .alert-campo-obligatorio.alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border-left: 4px solid #17a2b8;
         }
 
         @keyframes slideIn {
