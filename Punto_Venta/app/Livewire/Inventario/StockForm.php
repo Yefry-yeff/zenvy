@@ -96,8 +96,22 @@ class StockForm extends Component
     private function cargarDatosRecibido()
     {
         if ($this->recibido) {
-            // Cargar distribuciones existentes
-            $this->distribuciones = $this->recibido->distribucionesStock()->orderBy('fecha_distribucion', 'desc')->get()->toArray();
+            // Cargar distribuciones existentes con información del usuario
+            $this->distribuciones = $this->recibido->distribucionesStock()
+                ->with('usuario')
+                ->orderBy('fecha_distribucion', 'desc')
+                ->get()
+                ->map(function($distribucion) {
+                    return [
+                        'cantidad_distribuida' => $distribucion->cantidad_distribuida,
+                        'precio_unitario' => $distribucion->precio_unitario,
+                        'fecha_distribucion' => (string) $distribucion->fecha_distribucion,
+                        'comentario' => $distribucion->comentario,
+                        'usuario_nombre' => $distribucion->usuario ? $distribucion->usuario->name : 'Usuario no encontrado',
+                        'created_at' => $distribucion->created_at ? $distribucion->created_at->format('d/m/Y H:i') : 'Sin fecha',
+                    ];
+                })
+                ->toArray();
             
             // Calcular totales
             $distribucionesCollection = $this->recibido->distribucionesStock;
@@ -153,6 +167,7 @@ class StockForm extends Component
                 'fecha_distribucion' => $this->form['fecha_distribucion'],
                 'comentario' => $this->form['comentario'],
                 'recibido_bodega_id' => $this->recibidoId,
+                'users_id' => Auth::id(),
             ]);
 
             Log::info('Distribución de stock creada exitosamente', [
