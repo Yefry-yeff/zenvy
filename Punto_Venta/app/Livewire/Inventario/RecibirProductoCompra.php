@@ -98,9 +98,45 @@ class RecibirProductoCompra extends Component
     public function cargarBodegas()
     {
         try {
-            $this->bodegas = Bodega::where('estado', 1)->orderBy('nombre')->get();
+            $user = Auth::user();
+            
+            if (!$user) {
+                Log::warning('Usuario no autenticado intentando cargar bodegas');
+                $this->bodegas = [];
+                return;
+            }
+            
+            $query = Bodega::with('tienda')
+                ->where('estado_id', 1);
+                
+            // Si el usuario no es Admin, solo mostrar bodegas de su tienda
+            if ($user->rol && $user->rol->txt_nombre !== 'Admin') {
+                if (!$user->tienda_id) {
+                    Log::warning('Usuario sin tienda asignada intentando cargar bodegas', [
+                        'user_id' => $user->id,
+                        'user_name' => $user->name
+                    ]);
+                    $this->bodegas = [];
+                    return;
+                }
+                $query->where('tienda_id', $user->tienda_id);
+            }
+                
+            $this->bodegas = $query->orderBy('nombre')->get();
+            
+            Log::info('Bodegas cargadas exitosamente', [
+                'user_id' => $user->id,
+                'user_role' => $user->rol->txt_nombre ?? 'Sin rol',
+                'user_tienda_id' => $user->tienda_id,
+                'bodegas_count' => count($this->bodegas)
+            ]);
+            
         } catch (\Exception $e) {
-            Log::error('Error al cargar bodegas', ['error' => $e->getMessage()]);
+            Log::error('Error al cargar bodegas', [
+                'error' => $e->getMessage(),
+                'user_id' => Auth::id(),
+                'user_role' => Auth::user()->rol->txt_nombre ?? 'Sin rol'
+            ]);
             $this->bodegas = [];
         }
     }
@@ -187,6 +223,18 @@ class RecibirProductoCompra extends Component
             $this->segmentoDistribucion = '';
             $this->seccionDistribucion = '';
             $this->comentarioDistribucion = '';
+            
+            // Recargar bodegas para asegurar datos actualizados
+            $this->cargarBodegas();
+            
+            // Debug: verificar bodegas cargadas
+            Log::info('Modal abierto - Bodegas disponibles', [
+                'user_id' => Auth::id(),
+                'bodegas_count' => count($this->bodegas),
+                'producto' => $detalle['nombre_producto'],
+                'user_role' => Auth::user()->rol->txt_nombre ?? 'Sin rol',
+                'user_tienda_id' => Auth::user()->tienda_id
+            ]);
             
             $this->mostrarModalDistribucion = true;
             
