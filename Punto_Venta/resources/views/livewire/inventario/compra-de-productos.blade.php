@@ -151,20 +151,20 @@
          @click.self="$wire.cerrarModalDetalle()"
          @keydown.escape.window="$wire.cerrarModalDetalle()">
 
-        <div class="w-full max-w-4xl mx-4">
-            <div class="overflow-hidden bg-white rounded-lg shadow-xl">
+        <div class="w-full max-w-3xl mx-4">
+            <div class="overflow-hidden bg-white rounded-lg shadow-2xl">
                 <!-- Header -->
-                <div class="p-4 text-white bg-blue-600">
+                <div class="px-4 py-3 text-white bg-gradient-to-r from-blue-600 to-blue-700">
                     <div class="flex items-center justify-between">
                         <div class="flex items-center">
-                            <svg class="w-6 h-6 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                            <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
                                 <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path>
                                 <path fill-rule="evenodd" d="M4 5a2 2 0 012-2v1a1 1 0 001 1h6a1 1 0 001-1V3a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 3a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"></path>
                             </svg>
                             <h3 class="text-lg font-semibold">Detalle de Compra</h3>
                         </div>
-                        <button wire:click="cerrarModalDetalle" class="text-white hover:text-gray-200">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <button wire:click="cerrarModalDetalle" class="text-white hover:text-gray-200 transition-colors">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                             </svg>
                         </button>
@@ -172,71 +172,63 @@
                 </div>
 
                 <!-- Body -->
-                <div class="p-6 max-h-96 overflow-y-auto">
+                <div class="p-4 max-h-80 overflow-y-auto custom-scrollbar">
                     @if($compraDetalle)
                     <!-- Información General -->
-                    <div class="mb-6">
-                        <h4 class="text-lg font-semibold text-gray-800 mb-3">📋 Información General</h4>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div class="p-3 bg-gray-50 rounded border">
-                                <p class="mb-1"><strong>N° Factura:</strong> {{ $compraDetalle['numero_factura'] }}</p>
-                                <p class="mb-1"><strong>Proveedor:</strong> {{ $compraDetalle['proveedor_nombre'] }}</p>
-                                <p class="mb-0"><strong>Estado:</strong> 
+                    <div class="mb-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div class="p-3 bg-gray-50 rounded-lg border-l-4 border-blue-500">
+                                <div class="text-xs text-gray-600 uppercase tracking-wide font-medium mb-1">Información General</div>
+                                <p class="text-sm mb-1"><span class="font-medium">N° Factura:</span> {{ $compraDetalle['numero_factura'] }}</p>
+                                <p class="text-sm mb-1"><span class="font-medium">Proveedor:</span> {{ $compraDetalle['proveedor_nombre'] }}</p>
+                                <p class="text-sm mb-0"><span class="font-medium">Estado:</span> 
                                     @if(strtolower($compraDetalle['estado']) === 'activo')
-                                        <span class="badge bg-success">{{ $compraDetalle['estado'] }}</span>
+                                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">{{ $compraDetalle['estado'] }}</span>
                                     @elseif(strtolower($compraDetalle['estado']) === 'distribuido')
-                                        <span class="badge bg-warning">{{ $compraDetalle['estado'] }}</span>
+                                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-yellow-100 text-yellow-800">{{ $compraDetalle['estado'] }}</span>
                                     @elseif(strtolower($compraDetalle['estado']) === 'anulado')
-                                        <span class="badge bg-danger">{{ $compraDetalle['estado'] }}</span>
+                                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-red-100 text-red-800">{{ $compraDetalle['estado'] }}</span>
                                     @else
-                                        <span class="badge bg-secondary">{{ $compraDetalle['estado'] }}</span>
+                                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-800">{{ $compraDetalle['estado'] }}</span>
                                     @endif
                                 </p>
                             </div>
-                            <div class="p-3 bg-gray-50 rounded border">
-                                <p class="mb-1"><strong>Fecha Emisión:</strong> {{ \Carbon\Carbon::parse($compraDetalle['fecha_emision'])->format('d/m/Y') }}</p>
-                                <p class="mb-1"><strong>Fecha Recepción:</strong> {{ \Carbon\Carbon::parse($compraDetalle['fecha_recepcion'])->format('d/m/Y') }}</p>
+                            <div class="p-3 bg-gray-50 rounded-lg border-l-4 border-green-500">
+                                <div class="text-xs text-gray-600 uppercase tracking-wide font-medium mb-1">Fechas</div>
+                                <p class="text-sm mb-1"><span class="font-medium">Emisión:</span> {{ \Carbon\Carbon::parse($compraDetalle['fecha_emision'])->format('d/m/Y') }}</p>
+                                <p class="text-sm mb-1"><span class="font-medium">Recepción:</span> {{ \Carbon\Carbon::parse($compraDetalle['fecha_recepcion'])->format('d/m/Y') }}</p>
                                 @if($compraDetalle['fecha_vencimiento'])
-                                <p class="mb-0"><strong>Fecha Vencimiento:</strong> {{ \Carbon\Carbon::parse($compraDetalle['fecha_vencimiento'])->format('d/m/Y') }}</p>
+                                <p class="text-sm mb-0"><span class="font-medium">Vencimiento:</span> {{ \Carbon\Carbon::parse($compraDetalle['fecha_vencimiento'])->format('d/m/Y') }}</p>
                                 @endif
                             </div>
                         </div>
                     </div>
 
                     <!-- Productos -->
-                    <div class="mb-6">
-                        <h4 class="text-lg font-semibold text-gray-800 mb-3">📦 Productos ({{ $compraDetalle['total_productos'] }})</h4>
-                        <div class="table-responsive">
-                            <table class="table table-sm table-bordered">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th>Producto</th>
-                                        <th>Cantidad</th>
-                                        <th>Unidad</th>
-                                        <th>Precio Unit.</th>
-                                        <th>Subtotal</th>
-                                        <th>ISV</th>
-                                        <th>Total</th>
-                                        <th>Vencimiento</th>
+                    <div class="mb-4">
+                        <div class="flex items-center justify-between mb-2">
+                            <div class="text-xs text-gray-600 uppercase tracking-wide font-medium">Productos Comprados</div>
+                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800">{{ $compraDetalle['total_productos'] }} productos</span>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm">
+                                <thead>
+                                    <tr class="bg-gray-100 text-xs text-gray-600 uppercase tracking-wide">
+                                        <th class="px-2 py-2 text-left">Producto</th>
+                                        <th class="px-2 py-2 text-center">Cant.</th>
+                                        <th class="px-2 py-2 text-center">Unidad</th>
+                                        <th class="px-2 py-2 text-right">P. Unit.</th>
+                                        <th class="px-2 py-2 text-right">Total</th>
                                     </tr>
                                 </thead>
-                                <tbody>
+                                <tbody class="divide-y divide-gray-200">
                                     @foreach($compraDetalle['productos'] as $producto)
-                                    <tr>
-                                        <td>{{ $producto['nombre'] }}</td>
-                                        <td class="text-center">{{ $producto['cantidad'] }}</td>
-                                        <td class="text-center">{{ $producto['unidad'] }}</td>
-                                        <td class="text-end">L. {{ number_format($producto['precio_unitario'], 2) }}</td>
-                                        <td class="text-end">L. {{ number_format($producto['subtotal'], 2) }}</td>
-                                        <td class="text-end">L. {{ number_format($producto['isv'], 2) }}</td>
-                                        <td class="text-end"><strong>L. {{ number_format($producto['precio_total'], 2) }}</strong></td>
-                                        <td class="text-center">
-                                            @if($producto['fecha_expiracion'])
-                                                {{ \Carbon\Carbon::parse($producto['fecha_expiracion'])->format('d/m/Y') }}
-                                            @else
-                                                <span class="text-muted">N/A</span>
-                                            @endif
-                                        </td>
+                                    <tr class="hover:bg-gray-50">
+                                        <td class="px-2 py-2 font-medium text-gray-900">{{ $producto['nombre'] }}</td>
+                                        <td class="px-2 py-2 text-center">{{ $producto['cantidad'] }}</td>
+                                        <td class="px-2 py-2 text-center text-gray-600">{{ $producto['unidad'] }}</td>
+                                        <td class="px-2 py-2 text-right text-gray-600">L. {{ number_format($producto['precio_unitario'], 2) }}</td>
+                                        <td class="px-2 py-2 text-right font-medium">L. {{ number_format($producto['precio_total'], 2) }}</td>
                                     </tr>
                                     @endforeach
                                 </tbody>
@@ -245,24 +237,22 @@
                     </div>
 
                     <!-- Totales -->
-                    <div class="border-t pt-4">
-                        <h4 class="text-lg font-semibold text-gray-800 mb-3">💰 Resumen de Totales</h4>
-                        <div class="row">
-                            <div class="col-md-6 offset-md-6">
-                                <table class="table table-sm">
-                                    <tr>
-                                        <td><strong>Subtotal:</strong></td>
-                                        <td class="text-end">L. {{ number_format($compraDetalle['subtotal_general'], 2) }}</td>
-                                    </tr>
-                                    <tr>
-                                        <td><strong>ISV:</strong></td>
-                                        <td class="text-end">L. {{ number_format($compraDetalle['isv_general'], 2) }}</td>
-                                    </tr>
-                                    <tr class="table-primary">
-                                        <td><strong>Total General:</strong></td>
-                                        <td class="text-end"><strong>L. {{ number_format($compraDetalle['total_general'], 2) }}</strong></td>
-                                    </tr>
-                                </table>
+                    <div class="border-t pt-3">
+                        <div class="bg-blue-50 rounded-lg p-3">
+                            <div class="text-xs text-gray-600 uppercase tracking-wide font-medium mb-2">Resumen Financiero</div>
+                            <div class="grid grid-cols-3 gap-4 text-sm">
+                                <div class="text-center">
+                                    <div class="text-gray-600">Subtotal</div>
+                                    <div class="font-semibold">L. {{ number_format($compraDetalle['subtotal_general'], 2) }}</div>
+                                </div>
+                                <div class="text-center">
+                                    <div class="text-gray-600">ISV</div>
+                                    <div class="font-semibold">L. {{ number_format($compraDetalle['isv_general'], 2) }}</div>
+                                </div>
+                                <div class="text-center">
+                                    <div class="text-gray-600">Total</div>
+                                    <div class="text-lg font-bold text-blue-600">L. {{ number_format($compraDetalle['total_general'], 2) }}</div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -270,11 +260,13 @@
                 </div>
 
                 <!-- Footer -->
-                <div class="flex justify-end gap-2 px-6 py-3 bg-gray-50">
-                    <button wire:click="cerrarModalDetalle"
-                            class="px-4 py-2 text-gray-700 transition-colors duration-200 bg-gray-200 rounded-md hover:bg-gray-300">
-                        Cerrar
-                    </button>
+                <div class="px-4 py-3 bg-gray-50 border-t">
+                    <div class="flex justify-end">
+                        <button wire:click="cerrarModalDetalle"
+                                class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors">
+                            Cerrar
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -459,6 +451,37 @@
             .table td {
                 padding: 0.5rem 0.25rem;
                 font-size: 0.875rem;
+            }
+        }
+
+        /* Scrollbar personalizado */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 10px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+
+        /* Modal responsive mejorado */
+        @media (max-width: 768px) {
+            .fixed.inset-0 .w-full.max-w-3xl {
+                max-width: 95%;
+                margin: 0.5rem;
+            }
+            
+            .max-h-80 {
+                max-height: 60vh;
             }
         }
     </style>
