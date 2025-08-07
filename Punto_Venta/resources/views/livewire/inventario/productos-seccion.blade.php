@@ -1,18 +1,18 @@
-{{-- 
+{{--
     ============================================================================
     VISTA: PRODUCTOS POR SECCIÓN
     ============================================================================
-    
+
     PROPÓSITO: Mostrar todos los productos que están almacenados en una sección específica
-    
+
     FLUJO DE DATOS:
     1. Recibe $seccionId desde la URL
     2. ProductosSeccion.php carga la sección y sus productos
     3. Esta vista muestra la información jerárquica y la tabla de productos
-    
+
     ESTRUCTURA JERÁRQUICA:
     Tienda → Bodega → Segmento → Sección → Productos
-    
+
     DATOS PRINCIPALES:
     - $seccion: Información de la sección actual con relaciones cargadas
     - $productos: Colección de RecibidoBodega con productos y sus relaciones
@@ -21,17 +21,17 @@
 
 <div> {{-- ELEMENTO RAÍZ ÚNICO OBLIGATORIO PARA LIVEWIRE --}}
 
-    {{-- 
+    {{--
         ========================================================================
         SECCIÓN 1: ENCABEZADO DINÁMICO CON TEMA
         ========================================================================
-        
+
         FUNCIONALIDAD:
         - Título principal con ícono
         - Información contextual de la sección actual
         - Botón de navegación para volver
         - Tema dinámico basado en preferencias del usuario
-        
+
         DATOS MOSTRADOS:
         - Nombre de la bodega, segmento y sección
         - Navegación jerárquica visual
@@ -45,7 +45,7 @@
             {{-- SISTEMA DE TEMAS DINÁMICO - Los colores cambian según la preferencia del usuario --}}
             :class="{
                 'bg-emerald-600': theme === 'verde',
-                'bg-blue-600': theme === 'azul', 
+                'bg-blue-600': theme === 'azul',
                 'bg-gray-900': theme === 'oscuro',
                 'bg-slate-700': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
             }"
@@ -66,38 +66,38 @@
             </div>
         </div>
 
-        {{-- 
+        {{--
             ================================================================
             SECCIÓN 2: CONTENIDO PRINCIPAL
             ================================================================
-            
+
             ESTRUCTURA:
             1. Información jerárquica de la sección
             2. Tabla de productos con todas sus relaciones
-            
+
             PADDING: px-4 py-3 pt-0 card-body (estilo consistente con otras vistas)
             ================================================================
         --}}
         <!-- CONTENIDO PRINCIPAL -->
         <div class="px-4 py-3 pt-0 card-body">
-            {{-- 
+            {{--
                 ============================================================
                 SUBSECCIÓN 2.1: INFORMACIÓN JERÁRQUICA DE LA SECCIÓN
                 ============================================================
-                
+
                 PROPÓSITO: Mostrar la ubicación completa del contexto actual
-                
+
                 JERARQUÍA MOSTRADA:
                 Tienda → Bodega → Segmento → Sección
-                
+
                 ORIGEN DE DATOS:
                 $seccion viene de ProductosSeccion.php, cargado con:
                 Seccion::with(['segmento.bodega.tienda'])
-                
+
                 RELACIONES NAVEGADAS:
                 $seccion->segmento->bodega->tienda->denominacion_social
                 $seccion->segmento->bodega->nombre
-                $seccion->segmento->descripcion  
+                $seccion->segmento->descripcion
                 $seccion->descripcion
                 ============================================================
             --}}
@@ -111,21 +111,21 @@
                             {{-- ORIGEN: $seccion->segmento->bodega->tienda->denominacion_social --}}
                             {{ $seccion->segmento->bodega->tienda->denominacion_social ?? 'N/A' }}
                         </div>
-                        
+
                         {{-- BODEGA - Segundo nivel de la jerarquía --}}
                         <div class="col-md-3">
                             <strong><i class="fas fa-warehouse text-primary me-2"></i>Bodega:</strong><br>
                             {{-- ORIGEN: $seccion->segmento->bodega->nombre --}}
                             {{ $seccion->segmento->bodega->nombre }}
                         </div>
-                        
+
                         {{-- SEGMENTO - Tercer nivel de la jerarquía --}}
                         <div class="col-md-3">
                             <strong><i class="fas fa-layer-group text-success me-2"></i>Segmento:</strong><br>
                             {{-- ORIGEN: $seccion->segmento->descripcion --}}
                             {{ $seccion->segmento->descripcion }}
                         </div>
-                        
+
                         {{-- SECCIÓN - Nivel actual donde están los productos --}}
                         <div class="col-md-3">
                             <strong><i class="fas fa-cube text-info me-2"></i>Sección:</strong><br>
@@ -136,22 +136,22 @@
                 </div>
             @endif
 
-           {{-- 
+           {{--
                 ============================================================
                 SUBSECCIÓN 2.2: TABLA DE PRODUCTOS
                 ============================================================
-                
+
                 PROPÓSITO: Mostrar todos los productos almacenados en esta sección
-                
+
                 ORIGEN DE DATOS:
                 $productos viene de ProductosSeccion->obtenerProductos()
                 Cada elemento es un RecibidoBodega con eager loading de:
                 - producto.marca
-                - producto.subcategoria.categoria  
+                - producto.subcategoria.categoria
                 - producto.subcategoria
                 - producto.unidadMedidaCompra
                 - producto.unidadMedidaVenta
-                
+
                 ESTRUCTURA:
                 - Header con 11 columnas
                 - Datos con @forelse para manejar casos vacíos
@@ -159,18 +159,18 @@
                 - Filas clickeables para editar stock
                 ============================================================
             --}}
-           
+
            <!-- Información sobre funcionalidad -->
-           <div class="mb-3 p-3 bg-info bg-opacity-10 border border-info rounded">
+           <div class="p-3 mb-3 border rounded bg-info bg-opacity-10 border-info">
                <div class="d-flex align-items-center">
                    <i class="fas fa-info-circle text-info me-2"></i>
                    <div>
-                       <strong>Edición de Stock:</strong> 
+                       <strong>Edición de Stock:</strong>
                        <small>Haga clic en cualquier fila para editar las cantidades de stock del producto. El stock en sección no puede exceder la cantidad del lote de compra.</small>
                    </div>
                </div>
            </div>
-           
+
            <!-- Tabla de Productos -->
             <div class="table-responsive">
                 {{-- ID: Para posible integración con JavaScript/DataTables en el futuro --}}
@@ -184,7 +184,7 @@
                             <th>Marca</th>              {{-- producto.marca.nombre --}}
                             <th>Categoría</th>          {{-- producto.subcategoria.categoria.nombre --}}
                             <th>U. Medida</th>          {{-- producto.unidadMedidaCompra.nombre --}}
-                            <th class="bg-warning bg-opacity-25"><i class="fas fa-cubes me-1"></i>Stock</th>   {{-- recibido.cantidad_inicial_seccion --}}
+                            <th class="bg-opacity-25 bg-warning"><i class="fas fa-cubes me-1"></i>Stock</th>   {{-- recibido.cantidad_inicial_seccion --}}
                             <th>F. Recibido</th>        {{-- recibido.fecha_recibido --}}
                             <th>F. Expiración</th>      {{-- recibido.fecha_expiracion --}}
                             <th>Precio Base</th>        {{-- producto.precio_base --}}
@@ -192,14 +192,14 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {{-- 
+                        {{--
                             ================================================
                             ITERACIÓN DE PRODUCTOS
                             ================================================
-                            
+
                             @forelse: Itera sobre $productos con manejo de casos vacíos
                             $recibido: Cada elemento es un modelo RecibidoBodega
-                            
+
                             EAGER LOADING DISPONIBLE:
                             - $recibido->producto (Modelo Producto)
                             - $recibido->producto->marca (Modelo Marca)
@@ -209,27 +209,27 @@
                             ================================================
                         --}}
                         @forelse($productos as $recibido)
-                            <tr class="text-center align-middle cursor-pointer transition-colors duration-200 hover:bg-blue-50 hover:shadow-sm" 
+                            <tr class="text-center align-middle transition-colors duration-200 cursor-pointer hover:bg-blue-50 hover:shadow-sm"
                                 wire:click="editarProducto({{ $recibido->producto->id }})"
                                 title="🖱️ Haga clic para editar el stock de este producto"
                                 style="user-select: none;">
                                 {{-- COLUMNA 1: ID DEL PRODUCTO --}}
                                 <td>{{ $recibido->producto->id }}</td>
                                 {{-- ORIGEN: RecibidoBodega->producto->id --}}
-                                
+
                                 {{-- COLUMNA 2: INFORMACIÓN DEL PRODUCTO --}}
                                 <td class="text-start">
                                     <div>
                                         {{-- NOMBRE PRINCIPAL --}}
                                         <strong>{{ $recibido->producto->nombre }}</strong><br>
                                         {{-- ORIGEN: RecibidoBodega->producto->nombre --}}
-                                        
+
                                         {{-- DESCRIPCIÓN TRUNCADA --}}
                                         <small class="text-muted">{{ \Illuminate\Support\Str::limit($recibido->producto->descripcion, 50) }}</small>
                                         {{-- ORIGEN: RecibidoBodega->producto->descripcion (limitada a 50 caracteres) --}}
                                     </div>
                                 </td>
-                                
+
                                 {{-- COLUMNA 3: CÓDIGOS DEL PRODUCTO --}}
                                 <td>
                                     {{-- CÓDIGO DE BARRA (si existe) --}}
@@ -237,31 +237,31 @@
                                         <span class="badge bg-primary">{{ $recibido->producto->codigo_barra }}</span><br>
                                         {{-- ORIGEN: RecibidoBodega->producto->codigo_barra --}}
                                     @endif
-                                    
+
                                     {{-- CÓDIGO ESTATAL (si existe) --}}
                                     @if($recibido->producto->codigo_estatal)
                                         <span class="badge bg-secondary">{{ $recibido->producto->codigo_estatal }}</span>
                                         {{-- ORIGEN: RecibidoBodega->producto->codigo_estatal --}}
                                     @endif
                                 </td>
-                                
+
                                 {{-- COLUMNA 4: MARCA --}}
                                 <td>{{ $recibido->producto->marca->nombre ?? 'Sin marca' }}</td>
                                 {{-- ORIGEN: RecibidoBodega->producto->marca->nombre --}}
                                 {{-- RELACIÓN: producto belongsTo marca --}}
-                                
+
                                 {{-- COLUMNA 5: CATEGORÍA Y SUBCATEGORÍA --}}
                                 <td>
                                     {{-- CATEGORÍA PRINCIPAL --}}
                                     {{ $recibido->producto->subcategoria->categoria->nombre ?? 'Sin categoría' }}<br>
                                     {{-- ORIGEN: RecibidoBodega->producto->subcategoria->categoria->nombre --}}
                                     {{-- RELACIÓN: producto->subcategoria->categoria (relación anidada) --}}
-                                    
+
                                     {{-- SUBCATEGORÍA --}}
                                     <small class="text-muted">{{ $recibido->producto->subcategoria->txt_nombre ?? 'N/A' }}</small>
                                     {{-- ORIGEN: RecibidoBodega->producto->subcategoria->txt_nombre --}}
                                 </td>
-                                
+
                                 {{-- COLUMNA 6: UNIDAD DE MEDIDA --}}
                                 <td>
                                     <span class="badge bg-info">
@@ -270,12 +270,12 @@
                                         {{-- RELACIÓN: producto belongsTo unidadMedidaCompra --}}
                                     </span>
                                 </td>
-                                
+
                                 {{-- COLUMNA 7: STOCK CON CÓDIGO DE COLORES --}}
                                 <td>
                                     {{-- LÓGICA DE COLORES: Verde >10, Amarillo >0, Rojo =0 --}}
-                                    <span class="badge {{ $recibido->cantidad_inicial_seccion > 10 ? 'bg-success' : ($recibido->cantidad_inicial_seccion > 0 ? 'bg-warning' : 'bg-danger') }}">
-                                        {{ $recibido->cantidad_inicial_seccion }}
+                                    <span class="badge {{ $recibido->cantidad_disponible > 10 ? 'bg-success' : ($recibido->cantidad_disponible > 0 ? 'bg-warning' : 'bg-danger') }}">
+                                        {{ $recibido->cantidad_disponible }}
                                         {{-- ORIGEN: RecibidoBodega->cantidad_inicial_seccion --}}
                                     </span>
                                 </td>
@@ -283,7 +283,7 @@
                                 <td>{{ $this->formatearFecha($recibido->fecha_recibido) }}</td>
                                 {{-- ORIGEN: RecibidoBodega->fecha_recibido --}}
                                 {{-- PROCESAMIENTO: Método formatearFecha() convierte a d/m/Y --}}
-                                
+
                                 {{-- COLUMNA 9: FECHA DE EXPIRACIÓN CON VALIDACIÓN --}}
                                 <td>
                                     @if($recibido->fecha_expiracion)
@@ -298,13 +298,13 @@
                                         {{-- CASO: Producto sin fecha de expiración --}}
                                     @endif
                                 </td>
-                                
+
                                 {{-- COLUMNA 10: PRECIO BASE FORMATEADO --}}
                                 <td class="text-end">L. {{ number_format($recibido->producto->precio_base ?? 0, 2) }}</td>
                                 {{-- ORIGEN: RecibidoBodega->producto->precio_base --}}
                                 {{-- PROCESAMIENTO: number_format() con 2 decimales --}}
                                 {{-- FORMATO: L. 1,234.56 --}}
-                                
+
                                 {{-- COLUMNA 11: ESTADO CON MÉTODOS DE UTILIDAD --}}
                                 <td>
                                     <span class="{{ $this->obtenerEstadoClase($recibido->producto->estado_id) }}">
@@ -330,18 +330,18 @@
         </div>
         {{-- FIN DEL CONTENIDO PRINCIPAL --}}
 
-        {{-- 
+        {{--
             ================================================================
             SECCIÓN 3: MODALES DE RETROALIMENTACIÓN
             ================================================================
-            
+
             PROPÓSITO: Mostrar mensajes de éxito o error al usuario
-            
+
             FUNCIONAMIENTO:
             - Se muestran condicionalmente basado en variables Livewire
             - $mostrarModalExito y $mostrarModalError controlan la visibilidad
             - Los mensajes vienen de $mensajeModalExito y $mensajeModalError
-            
+
             EVENTOS:
             - wire:click llama métodos Livewire para cerrar los modales
             ================================================================
@@ -407,20 +407,20 @@
     </div>
     {{-- FIN DEL CONTENEDOR PRINCIPAL --}}
 
-    {{-- 
+    {{--
         ====================================================================
         SECCIÓN 4: ESTILOS CSS Y MENSAJES DE SESIÓN
         ====================================================================
-        
+
         PROPÓSITO:
         1. Estilos CSS personalizados para la vista
         2. Manejo de mensajes de sesión de Laravel
-        
+
         ESTILOS INCLUIDOS:
         - Estilos para modales
         - Mejoras visuales para badges en tablas
         - Diseño responsive para móviles
-        
+
         MENSAJES DE SESIÓN:
         - session('mensaje'): Mensajes de éxito
         - session('error'): Mensajes de error
@@ -474,23 +474,23 @@
     @endif
 
 </div>
-{{-- 
+{{--
     ============================================================================
     FIN DE LA VISTA PRODUCTOS-SECCION
     ============================================================================
-    
+
     RESUMEN DEL FLUJO COMPLETO:
-    
+
     1. ENTRADA: URL con $seccionId
     2. LIVEWIRE: ProductosSeccion.php procesa y carga datos
     3. VISTA: Esta vista recibe $seccion y $productos
     4. RENDERIZADO: Se muestra la jerarquía y tabla de productos
     5. INTERACCIÓN: Usuario puede navegar y ver modales
-    
+
     DATOS PRINCIPALES UTILIZADOS:
     - $seccion: Información jerárquica (Tienda→Bodega→Segmento→Sección)
     - $productos: Colección de RecibidoBodega con eager loading completo
-    
+
     TECNOLOGÍAS INTEGRADAS:
     - Laravel Livewire: Componente reactivo
     - Alpine.js: Interactividad del frontend

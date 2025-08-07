@@ -4,25 +4,25 @@
  * ============================================================================
  * COMPONENTE LIVEWIRE: PRODUCTOS POR SECCIÓN
  * ============================================================================
- * 
+ *
  * PROPÓSITO:
  * Gestiona la visualización de productos almacenados en una sección específica
  * de bodega, mostrando información jerárquica completa y datos detallados.
- * 
+ *
  * FUNCIONALIDADES PRINCIPALES:
  * 1. Carga y muestra productos de una sección específica
  * 2. Navegación jerárquica (Tienda→Bodega→Segmento→Sección)
  * 3. Filtrado y búsqueda de productos
  * 4. Manejo de modales para retroalimentación
  * 5. Formateo de datos para presentación
- * 
+ *
  * FLUJO DE DATOS:
  * URL($seccionId) → mount() → cargarDatos() → render() → obtenerProductos() → Vista
- * 
+ *
  * RELACIONES UTILIZADAS:
  * - Seccion → Segmento → Bodega → Tienda
  * - RecibidoBodega → Producto → Marca/Subcategoria/UnidadMedida
- * 
+ *
  * @package App\Livewire\Inventario
  * @author Johann Ruiz
  * @version 1.0
@@ -43,7 +43,7 @@ use Illuminate\Support\Facades\Auth;  // Sistema de autenticación
  * ============================================================================
  * CLASE PRINCIPAL: ProductosSeccion
  * ============================================================================
- * 
+ *
  * Extiende Livewire\Component para funcionalidad reactiva
  * Maneja toda la lógica de negocio para mostrar productos por sección
  */
@@ -53,13 +53,13 @@ class ProductosSeccion extends Component
     // =========================================================================
     // PROPIEDADES DEL COMPONENTE
     // =========================================================================
-    
+
     /**
      * ID de la sección actual - Recibido desde la URL
      * @var int
      */
     public $seccionId;
-    
+
     /**
      * Objeto Seccion con relaciones cargadas
      * Contiene la jerarquía completa: Seccion→Segmento→Bodega→Tienda
@@ -68,14 +68,14 @@ class ProductosSeccion extends Component
     public $seccion;
 
     // ===== PROPIEDADES DE FILTRADO Y BÚSQUEDA =====
-    
+
     /**
      * Término de búsqueda para filtrar productos
      * Busca en: nombre, descripción, código_barra, código_estatal
      * @var string
      */
     public $buscar = '';
-    
+
     /**
      * Filtro por estado de producto (activo/inactivo)
      * @var string
@@ -83,25 +83,25 @@ class ProductosSeccion extends Component
     public $filtroEstado = '';
 
     // ===== PROPIEDADES PARA MODALES DE RETROALIMENTACIÓN =====
-    
+
     /**
      * Controla la visibilidad del modal de éxito
      * @var bool
      */
     public $mostrarModalExito = false;
-    
+
     /**
      * Controla la visibilidad del modal de error
      * @var bool
      */
     public $mostrarModalError = false;
-    
+
     /**
      * Mensaje a mostrar en el modal de éxito
      * @var string
      */
     public $mensajeModalExito = '';
-    
+
     /**
      * Mensaje a mostrar en el modal de error
      * @var string
@@ -124,10 +124,10 @@ class ProductosSeccion extends Component
 
     /**
      * MÉTODO DE INICIALIZACIÓN
-     * 
+     *
      * Se ejecuta automáticamente cuando se instancia el componente
      * Recibe el ID de la sección desde la URL y carga los datos iniciales
-     * 
+     *
      * @param int $seccionId ID de la sección a mostrar
      * @return void
      */
@@ -139,15 +139,15 @@ class ProductosSeccion extends Component
 
     /**
      * CARGA DE DATOS INICIALES
-     * 
+     *
      * Carga la sección con todas sus relaciones jerárquicas usando Eager Loading
      * Maneja errores y muestra mensaje en caso de problemas
-     * 
+     *
      * RELACIONES CARGADAS:
      * - segmento: Segmento al que pertenece la sección
      * - segmento.bodega: Bodega que contiene el segmento
      * - segmento.bodega.tienda: Tienda que posee la bodega
-     * 
+     *
      * @return void
      */
     private function cargarDatos()
@@ -155,7 +155,7 @@ class ProductosSeccion extends Component
         try {
             // EAGER LOADING: Carga sección con toda la jerarquía de una sola consulta
             $this->seccion = Seccion::with(['segmento.bodega.tienda'])->findOrFail($this->seccionId);
-            
+
         } catch (\Exception $e) {
             // MANEJO DE ERRORES: Log del error y notificación al usuario
             Log::error('Error al cargar datos de la sección', [
@@ -164,7 +164,7 @@ class ProductosSeccion extends Component
                 'usuario_id' => Auth::id(),      // ID del usuario actual
                 'timestamp' => now()             // Timestamp del error
             ]);
-            
+
             // Muestra modal de error al usuario
             $this->mostrarError('Error al cargar los datos de la sección');
         }
@@ -172,10 +172,10 @@ class ProductosSeccion extends Component
 
     /**
      * MÉTODO DE RENDERIZADO
-     * 
+     *
      * Se ejecuta automáticamente en cada actualización del componente
      * Obtiene los productos y pasa los datos a la vista Blade
-     * 
+     *
      * @return \Illuminate\View\View Vista con datos de productos
      */
     public function render()
@@ -195,20 +195,20 @@ class ProductosSeccion extends Component
 
     /**
      * OBTENCIÓN DE PRODUCTOS CON FILTROS
-     * 
+     *
      * Método principal que construye la consulta de productos con:
      * - Eager Loading de todas las relaciones necesarias
      * - Filtros de búsqueda por texto
      * - Filtros por estado
      * - Ordenación por fecha
      * - Solo productos con stock disponible
-     * 
+     *
      * MODELO BASE: RecibidoBodega
      * ¿Por qué RecibidoBodega y no Producto?
      * - RecibidoBodega contiene la relación específica con la sección
      * - Incluye datos de stock, fechas de recepción y expiración
      * - Un mismo producto puede estar en múltiples secciones
-     * 
+     *
      * @return \Illuminate\Support\Collection Colección de RecibidoBodega
      */
     private function obtenerProductos()
@@ -218,7 +218,7 @@ class ProductosSeccion extends Component
             $query = RecibidoBodega::with([
                 // EAGER LOADING: Carga todas las relaciones necesarias de una vez
                 // Evita el problema N+1 (múltiples consultas por cada producto)
-                
+
                 'producto.marca',                    // Producto → Marca
                 'producto.subcategoria.categoria',   // Producto → Subcategoría → Categoría
                 'producto.subcategoria',            // Producto → Subcategoría
@@ -226,7 +226,7 @@ class ProductosSeccion extends Component
                 'producto.unidadMedidaVenta'        // Producto → Unidad de Medida Venta
             ])
             ->where('seccion_id', $this->seccionId)           // Solo de esta sección
-            ->where('cantidad_inicial_seccion', '>', 0);      // Solo con stock disponible
+            ->where('cantidad_disponible', '>', 0);      // Solo con stock disponible
 
             // ===== APLICACIÓN DE FILTROS =====
 
@@ -277,14 +277,14 @@ class ProductosSeccion extends Component
 
     /**
      * NAVEGACIÓN: VOLVER A SECCIONES
-     * 
+     *
      * Navega de vuelta a la vista de secciones del segmento actual
      * Utiliza el sistema de eventos de Livewire para comunicación entre componentes
-     * 
+     *
      * PARÁMETROS ENVIADOS:
      * - bodegaId: Para mantener contexto de la bodega
      * - segmentoId: Para mostrar secciones del segmento actual
-     * 
+     *
      * @return void
      */
     public function volverASecciones()
@@ -297,10 +297,10 @@ class ProductosSeccion extends Component
 
     /**
      * NAVEGACIÓN: VOLVER A SEGMENTOS
-     * 
+     *
      * Navega a la vista de segmentos de la bodega actual
      * Útil para navegación rápida saltando un nivel
-     * 
+     *
      * @return void
      */
     public function volverASegmentos()
@@ -312,10 +312,10 @@ class ProductosSeccion extends Component
 
     /**
      * NAVEGACIÓN: VOLVER A BODEGAS
-     * 
+     *
      * Navega a la vista principal de bodegas
      * Regresa al nivel más alto de la jerarquía
-     * 
+     *
      * @return void
      */
     public function volverABodegas()
@@ -325,10 +325,10 @@ class ProductosSeccion extends Component
 
     /**
      * EDITAR PRODUCTO
-     * 
+     *
      * Navega al formulario de edición de stock del producto
      * Permite modificar las cantidades y datos de inventario
-     * 
+     *
      * @param int $productoId ID del producto a editar
      * @return void
      */
@@ -337,7 +337,7 @@ class ProductosSeccion extends Component
         try {
             // Verifica que el producto exista
             $producto = \App\Models\Producto::findOrFail($productoId);
-            
+
             // Navega al formulario de stock con parámetros para edición
             $this->dispatch('cambiarVista', ruta: 'Inventario.StockForm', parametros: [
                 'productoId' => $productoId,
@@ -351,7 +351,7 @@ class ProductosSeccion extends Component
                 'mensaje' => $e->getMessage(),
                 'usuario_id' => Auth::id()
             ]);
-            
+
             $this->mostrarError('Error al acceder al producto seleccionado');
         }
     }
@@ -362,10 +362,10 @@ class ProductosSeccion extends Component
 
     /**
      * LIMPIAR TODOS LOS FILTROS
-     * 
+     *
      * Resetea todos los filtros a sus valores por defecto
      * Útil para mostrar todos los productos sin restricciones
-     * 
+     *
      * @return void
      */
     public function limpiarFiltros()
@@ -377,10 +377,10 @@ class ProductosSeccion extends Component
 
     /**
      * LISTENER: ACTUALIZACIÓN DE BÚSQUEDA
-     * 
+     *
      * Se ejecuta automáticamente cuando cambia la propiedad $buscar
      * Livewire detecta el cambio y re-ejecuta render() automáticamente
-     * 
+     *
      * @return void
      */
     public function updatedBuscar()
@@ -391,10 +391,10 @@ class ProductosSeccion extends Component
 
     /**
      * LISTENER: ACTUALIZACIÓN DE FILTRO DE ESTADO
-     * 
+     *
      * Se ejecuta automáticamente cuando cambia la propiedad $filtroEstado
      * Livewire detecta el cambio y re-ejecuta render() automáticamente
-     * 
+     *
      * @return void
      */
     public function updatedFiltroEstado()
@@ -409,10 +409,10 @@ class ProductosSeccion extends Component
 
     /**
      * MOSTRAR MODAL DE ÉXITO
-     * 
+     *
      * Configura y muestra un modal de éxito con mensaje personalizado
      * Utilizado para notificar operaciones exitosas al usuario
-     * 
+     *
      * @param string $mensaje Mensaje a mostrar en el modal
      * @return void
      */
@@ -425,10 +425,10 @@ class ProductosSeccion extends Component
 
     /**
      * MOSTRAR MODAL DE ERROR
-     * 
+     *
      * Configura y muestra un modal de error con mensaje personalizado
      * Utilizado para notificar errores o problemas al usuario
-     * 
+     *
      * @param string $mensaje Mensaje a mostrar en el modal
      * @return void
      */
@@ -441,10 +441,10 @@ class ProductosSeccion extends Component
 
     /**
      * CERRAR MODAL DE ÉXITO
-     * 
+     *
      * Oculta el modal de éxito
      * Llamado desde el frontend cuando el usuario hace clic en "Entendido"
-     * 
+     *
      * @return void
      */
     public function cerrarModalExito()
@@ -456,10 +456,10 @@ class ProductosSeccion extends Component
 
     /**
      * CERRAR MODAL DE ERROR
-     * 
+     *
      * Oculta el modal de error
      * Llamado desde el frontend cuando el usuario hace clic en "Cerrar"
-     * 
+     *
      * @return void
      */
     public function cerrarModalError()
@@ -475,14 +475,14 @@ class ProductosSeccion extends Component
 
     /**
      * OBTENER TEXTO DEL ESTADO
-     * 
+     *
      * Convierte el ID numérico del estado a texto legible para el usuario
      * Centraliza la lógica de mapeo de estados
-     * 
+     *
      * MAPEO DE ESTADOS:
      * - 1 = 'Activo'    (producto disponible)
      * - 0 = 'Inactivo'  (producto no disponible)
-     * 
+     *
      * @param int $estado ID del estado (0 o 1)
      * @return string Texto del estado
      */
@@ -493,14 +493,14 @@ class ProductosSeccion extends Component
 
     /**
      * OBTENER CLASE CSS DEL ESTADO
-     * 
+     *
      * Convierte el ID numérico del estado a clases CSS apropiadas
      * Proporciona feedback visual consistente en toda la aplicación
-     * 
+     *
      * MAPEO DE CLASES:
      * - 1 = 'badge bg-success'   (verde para activo)
      * - 0 = 'badge bg-secondary' (gris para inactivo)
-     * 
+     *
      * @param int $estado ID del estado (0 o 1)
      * @return string Clases CSS para el badge
      */
@@ -511,13 +511,13 @@ class ProductosSeccion extends Component
 
     /**
      * FORMATEAR FECHA PARA DISPLAY
-     * 
+     *
      * Convierte fechas de base de datos a formato legible en español
      * Maneja valores nulos de forma segura
-     * 
+     *
      * FORMATO DE ENTRADA: Y-m-d (2024-12-31)
      * FORMATO DE SALIDA:  d/m/Y (31/12/2024)
-     * 
+     *
      * @param string|null $fecha Fecha en formato Y-m-d
      * @return string Fecha formateada o 'N/A' si es null
      */
@@ -528,16 +528,16 @@ class ProductosSeccion extends Component
 
     /**
      * FORMATEAR MONEDA PARA DISPLAY
-     * 
+     *
      * Convierte valores numéricos a formato de moneda hondureña
      * Proporciona formato consistente en toda la aplicación
-     * 
+     *
      * FORMATO: L. 1,234.56
      * - Prefijo: L. (Lempiras)
      * - Separador de miles: coma (,)
      * - Separador decimal: punto (.)
      * - Decimales: 2 dígitos
-     * 
+     *
      * @param float $monto Monto numérico
      * @return string Monto formateado como moneda
      */
@@ -551,27 +551,27 @@ class ProductosSeccion extends Component
  * ============================================================================
  * DOCUMENTACIÓN TÉCNICA ADICIONAL
  * ============================================================================
- * 
+ *
  * PATRONES UTILIZADOS:
  * - Repository Pattern: A través de modelos Eloquent
  * - Observer Pattern: Listeners de Livewire (updated* methods)
  * - Strategy Pattern: Diferentes métodos de formateo según el tipo de dato
- * 
+ *
  * PERFORMANCE OPTIMIZATIONS:
  * - Eager Loading: Previene consultas N+1
  * - Query Filtering: Filtros aplicados a nivel de base de datos
  * - Collection Caching: Uso de collect() para manejo eficiente de resultados
- * 
+ *
  * SEGURIDAD:
  * - Validación de entrada: findOrFail para IDs
  * - Escape de SQL: Uso de parámetros bound en consultas like
  * - Error Handling: Try-catch con logging detallado
- * 
+ *
  * MANTENIBILIDAD:
  * - Separación de responsabilidades: Métodos específicos para cada función
  * - Documentación inline: Comentarios explicativos detallados
  * - Naming Conventions: Nombres descriptivos y consistentes
- * 
+ *
  * EXTENSIBILIDAD:
  * - Métodos modulares: Fácil agregar nuevos filtros o formatos
  * - Event System: Comunicación desacoplada entre componentes

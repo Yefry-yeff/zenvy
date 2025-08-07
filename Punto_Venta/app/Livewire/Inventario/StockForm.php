@@ -69,7 +69,7 @@ class StockForm extends Component
                     ->where('seccion_id', $seccionId)
                     ->with(['producto', 'seccion.segmento.bodega.tienda'])
                     ->firstOrFail();
-                
+
                 $this->recibidoId = $this->recibido->id;
                 $this->isEditing = true;
                 $this->cargarDatosRecibido();
@@ -112,15 +112,15 @@ class StockForm extends Component
                     ];
                 })
                 ->toArray();
-            
+
             // Calcular totales
             $distribucionesCollection = $this->recibido->distribucionesStock;
             $this->totalDistribuido = $distribucionesCollection->sum('cantidad_distribuida') ?? 0;
-            $this->stockDisponible = ($this->recibido->cantidad_inicial_seccion ?? 0) - $this->totalDistribuido;
-            
+            $this->stockDisponible = $this->recibido->cantidad_disponible ?? 0;
+
             // Inicializar formulario
             $this->form = [
-                'cantidad_asignada_bodega' => $this->recibido->cantidad_inicial_seccion ?? 0,
+                'cantidad_asignada_bodega' => $this->recibido->cantidad_compra_lote ?? 0,
                 'cantidad_distribuir' => 0,
                 'precio_unitario' => 0,
                 'fecha_distribucion' => now()->format('Y-m-d'),
@@ -139,7 +139,7 @@ class StockForm extends Component
     private function validarCantidadDistribuir()
     {
         if ($this->form['cantidad_distribuir'] > $this->stockDisponible) {
-            $this->mostrarErrorCampo('cantidad_distribuir', 
+            $this->mostrarErrorCampo('cantidad_distribuir',
                 'La cantidad a distribuir no puede ser mayor al stock disponible (' . $this->stockDisponible . ')');
         } else {
             $this->limpiarErrorCampo('cantidad_distribuir');
@@ -150,7 +150,7 @@ class StockForm extends Component
     {
         // Validar que la cantidad no exceda el stock disponible
         if ($this->form['cantidad_distribuir'] > $this->stockDisponible) {
-            $this->mostrarErrorCampo('cantidad_distribuir', 
+            $this->mostrarErrorCampo('cantidad_distribuir',
                 'La cantidad a distribuir no puede ser mayor al stock disponible (' . $this->stockDisponible . ')');
             return;
         }
@@ -171,6 +171,13 @@ class StockForm extends Component
                 'users_id' => Auth::id(),
             ]);
 
+            // Actualizar cantidades en RecibidoBodega
+            if ($this->recibido) {
+                $this->recibido->cantidad_inicial_seccion = $this->recibido->cantidad_inicial_seccion + $this->form['cantidad_distribuir'];
+                $this->recibido->cantidad_disponible = $this->recibido->cantidad_disponible - $this->form['cantidad_distribuir'];
+                $this->recibido->save();
+            }
+
             Log::info('Distribución de stock creada exitosamente', [
                 'distribucion_id' => $distribucion->id,
                 'recibido_id' => $this->recibidoId,
@@ -180,10 +187,10 @@ class StockForm extends Component
             ]);
 
             $this->mostrarExito('Distribución registrada exitosamente.');
-            
+
             // Recargar datos
             $this->cargarDatosRecibido();
-            
+
             // Limpiar formulario para nueva distribución
             $this->form['cantidad_distribuir'] = 0;
             $this->form['precio_unitario'] = 0;
@@ -256,7 +263,7 @@ class StockForm extends Component
         if (($key = array_search($campo, $this->camposConError)) !== false) {
             unset($this->camposConError[$key]);
         }
-        
+
         if ($this->campoConError === $campo) {
             $this->cerrarAlerta();
         }
@@ -278,9 +285,9 @@ class StockForm extends Component
 
     public function getFormularioCompletoProperty()
     {
-        return !empty($this->form['cantidad_distribuir']) && 
+        return !empty($this->form['cantidad_distribuir']) &&
                $this->form['cantidad_distribuir'] > 0 &&
-               !empty($this->form['precio_unitario']) && 
+               !empty($this->form['precio_unitario']) &&
                $this->form['precio_unitario'] > 0 &&
                !empty($this->form['fecha_distribucion']) &&
                $this->form['cantidad_distribuir'] <= $this->stockDisponible;

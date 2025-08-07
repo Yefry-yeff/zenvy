@@ -18,12 +18,12 @@ class RecibirProductoCompra extends Component
     public $compraId;
     public $compra;
     public $detallesCompra = [];
-    
+
     // Propiedades para el modal de distribución
     public $mostrarModalDistribucion = false;
     public $productoSeleccionado = null;
     public $detalleSeleccionado = null;
-    
+
     // Datos del formulario de distribución
     public $cantidadDistribuir = '';
     public $fechaDistribucion = '';
@@ -31,7 +31,7 @@ class RecibirProductoCompra extends Component
     public $segmentoDistribucion = '';
     public $seccionDistribucion = '';
     public $comentarioDistribucion = '';
-    
+
     // Datos de ubicación
     public $bodegas = [];
     public $segmentos = [];
@@ -39,7 +39,7 @@ class RecibirProductoCompra extends Component
     public $nombreBodegaDistribucion = '';
     public $nombreSegmentoDistribucion = '';
     public $nombreSeccionDistribucion = '';
-    
+
     // Propiedades para modales de mensaje
     public $mostrarModalExito = false;
     public $mensajeModalExito = '';
@@ -58,7 +58,7 @@ class RecibirProductoCompra extends Component
     {
         try {
             $this->compra = Compra::with(['proveedor', 'estado'])->findOrFail($this->compraId);
-            
+
             // Cargar detalles de la compra con productos y relaciones necesarias
             $this->detallesCompra = CompraHasProducto::with([
                 'producto.marca',
@@ -85,7 +85,7 @@ class RecibirProductoCompra extends Component
                     'unidad_compra_id' => $detalle->unidad_compra_id
                 ];
             })->toArray();
-            
+
         } catch (\Exception $e) {
             Log::error('Error al cargar datos de compra', [
                 'compra_id' => $this->compraId,
@@ -99,16 +99,16 @@ class RecibirProductoCompra extends Component
     {
         try {
             $user = Auth::user();
-            
+
             if (!$user) {
                 Log::warning('Usuario no autenticado intentando cargar bodegas');
                 $this->bodegas = [];
                 return;
             }
-            
+
             $query = Bodega::with('tienda')
                 ->where('estado_id', 1);
-                
+
             // Si el usuario no es Admin, solo mostrar bodegas de su tienda
             if ($user->rol && $user->rol->txt_nombre !== 'Admin') {
                 if (!$user->tienda_id) {
@@ -121,16 +121,16 @@ class RecibirProductoCompra extends Component
                 }
                 $query->where('tienda_id', $user->tienda_id);
             }
-                
+
             $this->bodegas = $query->orderBy('nombre')->get();
-            
+
             Log::info('Bodegas cargadas exitosamente', [
                 'user_id' => $user->id,
                 'user_role' => $user->rol->txt_nombre ?? 'Sin rol',
                 'user_tienda_id' => $user->tienda_id,
                 'bodegas_count' => count($this->bodegas)
             ]);
-            
+
         } catch (\Exception $e) {
             Log::error('Error al cargar bodegas', [
                 'error' => $e->getMessage(),
@@ -151,18 +151,18 @@ class RecibirProductoCompra extends Component
         if ($this->bodegaDistribucion) {
             $bodega = collect($this->bodegas)->firstWhere('id', $this->bodegaDistribucion);
             $this->nombreBodegaDistribucion = $bodega ? $bodega->nombre : '';
-            
+
             try {
                 $this->segmentos = Segmento::where('bodega_id', $this->bodegaDistribucion)
                     ->orderBy('descripcion')
                     ->get();
-                    
+
                 Log::info('Segmentos cargados para bodega', [
                     'bodega_id' => $this->bodegaDistribucion,
                     'bodega_nombre' => $this->nombreBodegaDistribucion,
                     'segmentos_count' => count($this->segmentos)
                 ]);
-                
+
             } catch (\Exception $e) {
                 Log::error('Error al cargar segmentos', [
                     'bodega_id' => $this->bodegaDistribucion,
@@ -185,19 +185,19 @@ class RecibirProductoCompra extends Component
         if ($this->segmentoDistribucion) {
             $segmento = collect($this->segmentos)->firstWhere('id', $this->segmentoDistribucion);
             $this->nombreSegmentoDistribucion = $segmento ? $segmento->descripcion : '';
-            
+
             try {
                 $this->secciones = Seccion::where('segmento_id', $this->segmentoDistribucion)
                     ->where('estado_id', 1) // Cambiado de 'estado' a 'estado_id'
                     ->orderBy('descripcion')
                     ->get();
-                    
+
                 Log::info('Secciones cargadas para segmento', [
                     'segmento_id' => $this->segmentoDistribucion,
                     'segmento_nombre' => $this->nombreSegmentoDistribucion,
                     'secciones_count' => count($this->secciones)
                 ]);
-                
+
             } catch (\Exception $e) {
                 Log::error('Error al cargar secciones', [
                     'segmento_id' => $this->segmentoDistribucion,
@@ -225,7 +225,7 @@ class RecibirProductoCompra extends Component
     {
         try {
             $detalle = collect($this->detallesCompra)->firstWhere('id', $detalleId);
-            
+
             if (!$detalle) {
                 $this->mostrarError('No se encontró el detalle del producto.');
                 return;
@@ -242,10 +242,10 @@ class RecibirProductoCompra extends Component
             $this->segmentoDistribucion = '';
             $this->seccionDistribucion = '';
             $this->comentarioDistribucion = '';
-            
+
             // Recargar bodegas para asegurar datos actualizados
             $this->cargarBodegas();
-            
+
             // Debug: verificar bodegas cargadas
             Log::info('Modal abierto - Bodegas disponibles', [
                 'user_id' => Auth::id(),
@@ -254,9 +254,9 @@ class RecibirProductoCompra extends Component
                 'user_role' => Auth::user()->rol->txt_nombre ?? 'Sin rol',
                 'user_tienda_id' => Auth::user()->tienda_id
             ]);
-            
+
             $this->mostrarModalDistribucion = true;
-            
+
         } catch (\Exception $e) {
             Log::error('Error al abrir modal de distribución', [
                 'detalle_id' => $detalleId,
@@ -281,10 +281,10 @@ class RecibirProductoCompra extends Component
 
     public function puedeConfirmarDistribucion()
     {
-        return $this->cantidadDistribuir && 
-               $this->fechaDistribucion && 
-               $this->bodegaDistribucion && 
-               $this->segmentoDistribucion && 
+        return $this->cantidadDistribuir &&
+               $this->fechaDistribucion &&
+               $this->bodegaDistribucion &&
+               $this->segmentoDistribucion &&
                $this->seccionDistribucion &&
                is_numeric($this->cantidadDistribuir) &&
                $this->cantidadDistribuir > 0 &&
@@ -323,7 +323,7 @@ class RecibirProductoCompra extends Component
 
             // Buscar el detalle de compra
             $detalleCompra = CompraHasProducto::find($this->detalleSeleccionado['id']);
-            
+
             if (!$detalleCompra) {
                 throw new \Exception('No se encontró el detalle de compra.');
             }
@@ -338,7 +338,7 @@ class RecibirProductoCompra extends Component
                 'producto_id' => $this->detalleSeleccionado['producto_id'],
                 'seccion_id' => $this->seccionDistribucion,
                 'cantidad_compra_lote' => $cantidadDistribuir,
-                'cantidad_inicial_seccion' => $cantidadDistribuir,
+                'cantidad_inicial_seccion' => 0,
                 'cantidad_disponible' => $cantidadDistribuir,
                 'fecha_recibido' => $this->fechaDistribucion,
                 'fecha_expiracion' => $detalleCompra->fecha_expiracion,
@@ -358,18 +358,18 @@ class RecibirProductoCompra extends Component
             $productosConCantidadPendiente = $compra->detallesCompra()
                 ->where('cantidad_sin_asignar', '>', 0)
                 ->count();
-            
+
             // Si no hay productos con cantidad pendiente, cambiar estado a "Distribuido"
             if ($productosConCantidadPendiente == 0) {
                 $compra->estado_id = 3; // Estado "Distribuido"
                 $compra->save();
-                
+
                 Log::info('Compra marcada como distribuida', [
                     'compra_id' => $compra->id,
                     'numero_factura' => $compra->numero_factura,
                     'nuevo_estado_id' => 3
                 ]);
-                
+
                 // Emitir eventos para notificar a otros componentes
                 $this->dispatch('compra-distribuida', $compra->id);
                 $this->dispatch('estado-compra-actualizado', $compra->id, 'distribuido');
@@ -384,19 +384,19 @@ class RecibirProductoCompra extends Component
             $mensaje .= "🔢 Cantidad: {$cantidadDistribuir} {$this->detalleSeleccionado['unidad_medida']}\n";
             $mensaje .= "🏢 Bodega: {$this->nombreBodegaDistribucion}\n";
             $mensaje .= "📍 Ubicación: {$this->nombreSegmentoDistribucion} > {$this->nombreSeccionDistribucion}";
-            
+
             // Si la compra se completó, agregar información adicional
             if ($productosConCantidadPendiente == 0) {
                 $mensaje .= "\n\n🎉 ¡La factura {$compra->numero_factura} ha sido completamente distribuida!";
             }
-            
+
             $this->mostrarExito($mensaje);
             $this->cerrarModalDistribucion();
             $this->cargarDatosCompra(); // Recargar datos para actualizar cantidades
-            
+
         } catch (\Exception $e) {
             DB::rollback();
-            
+
             Log::error('Error al distribuir producto', [
                 'detalle_compra_id' => $this->detalleSeleccionado['id'] ?? null,
                 'cantidad' => $cantidadDistribuir,
