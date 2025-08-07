@@ -80,7 +80,7 @@
 
                     <!-- Tabla responsive -->
                     <div class="table-responsive">
-                        <table class="table table-hover table-sm">
+                        <table id="productosTabla" class="table table-hover table-sm">
                             <thead class="table-light">
                                 <tr>
                                     <th style="width: 12%;">Cód. Producto</th>
@@ -88,12 +88,12 @@
                                     <th style="width: 18%;">Nombre</th>
                                     <th style="width: 8%;" class="text-center">Precio</th>
                                     <th style="width: 8%;" class="text-center">Cantidad</th>
+                                    <th style="width: 8%;" class="text-center">Asignados</th>
                                     <th style="width: 8%;" class="text-center">Sin Asignar</th>
                                     <th style="width: 8%;" class="text-end">Subtotal</th>
                                     <th style="width: 8%;" class="text-end">ISV</th>
                                     <th style="width: 8%;" class="text-end">Total</th>
-                                    <th style="width: 10%;" class="text-center">F. Vencimiento</th>
-                                    <th style="width: 4%;" class="text-center">Acción</th>
+                                    <th style="width: 8%;" class="text-center">F. Vencimiento</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -115,6 +115,16 @@
                                             <span class="badge bg-primary">{{ $detalle['cantidad_comprada'] }}</span>
                                         </td>
                                         <td class="text-center">
+                                            @php
+                                                $asignados = $detalle['cantidad_comprada'] - $detalle['cantidad_sin_asignar'];
+                                            @endphp
+                                            @if($asignados > 0)
+                                                <span class="badge bg-success">{{ $asignados }}</span>
+                                            @else
+                                                <span class="badge bg-secondary">0</span>
+                                            @endif
+                                        </td>
+                                        <td class="text-center">
                                             @if($detalle['cantidad_sin_asignar'] > 0)
                                                 <span class="badge bg-warning">{{ $detalle['cantidad_sin_asignar'] }}</span>
                                             @else
@@ -129,18 +139,6 @@
                                                 {{ \Carbon\Carbon::parse($detalle['fecha_vencimiento'])->format('d/m/Y') }}
                                             @else
                                                 <span class="text-muted">N/A</span>
-                                            @endif
-                                        </td>
-                                        <td class="text-center" onclick="event.stopPropagation()">
-                                            @if($detalle['cantidad_sin_asignar'] > 0)
-                                                <button type="button" 
-                                                        class="btn btn-sm btn-outline-primary"
-                                                        wire:click="abrirModalDistribuir({{ $detalle['id'] }})"
-                                                        title="Distribuir producto">
-                                                    <i class="fas fa-warehouse"></i>
-                                                </button>
-                                            @else
-                                                <span class="text-muted small">Completo</span>
                                             @endif
                                         </td>
                                     </tr>
