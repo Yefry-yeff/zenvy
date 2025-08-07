@@ -254,47 +254,52 @@
                             <table class="table table-sm table-hover">
                                 <thead class="table-light">
                                     <tr>
-                                        <th>Fecha Distribución</th>
-                                        <th>Cantidad</th>
-                                        <th>Precio Unit.</th>
-                                        <th>Total</th>
-                                        <th>Usuario</th>
-                                        <th>Creado</th>
-                                        <th>Comentario</th>
+                                        <th class="text-center">ID</th>
+                                        <th class="text-center">Fecha Distribución</th>
+                                        <th class="text-center">Cantidad</th>
+                                        <th class="text-center">Precio Unit.</th>
+                                        <th class="text-center">Total</th>
+                                        <th class="text-center">Usuario</th>
+                                        <th class="text-center">Creado</th>
+                                        <th class="text-center">Comentario</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach($distribuciones as $distribucion)
+                                    @foreach($distribuciones as $index => $distribucion)
                                     <tr>
-                                        <td>{{ \Carbon\Carbon::parse($distribucion['fecha_distribucion'])->format('d/m/Y') }}</td>
+                                        <td class="text-center">
+                                            <span class="badge bg-secondary">{{ $loop->iteration }}</span>
+                                        </td>
+                                        <td class="text-center">{{ \Carbon\Carbon::parse($distribucion['fecha_distribucion'])->format('d/m/Y') }}</td>
                                         <td class="text-center">
                                             <span class="badge bg-primary">{{ $distribucion['cantidad_distribuida'] }}</span>
                                         </td>
-                                        <td class="text-end">L. {{ number_format((float)$distribucion['precio_unitario'], 2) }}</td>
-                                        <td class="text-end">
+                                        <td class="text-center">L. {{ number_format((float)$distribucion['precio_unitario'], 2) }}</td>
+                                        <td class="text-center">
                                             <strong>L. {{ number_format((float)$distribucion['cantidad_distribuida'] * (float)$distribucion['precio_unitario'], 2) }}</strong>
                                         </td>
-                                        <td>
+                                        <td class="text-center">
                                             <span class="badge bg-info">
                                                 <i class="fas fa-user me-1"></i>{{ $distribucion['usuario_nombre'] ?? 'N/A' }}
                                             </span>
                                         </td>
-                                        <td class="text-muted small">
+                                        <td class="text-center text-muted small">
                                             <i class="fas fa-clock me-1"></i>{{ $distribucion['created_at'] ?? 'Sin fecha' }}
                                         </td>
-                                        <td>{{ $distribucion['comentario'] ?? 'Sin comentario' }}</td>
+                                        <td class="text-center">{{ $distribucion['comentario'] ?? 'Sin comentario' }}</td>
                                     </tr>
                                     @endforeach
                                 </tbody>
                                 <tfoot class="table-info">
                                     <tr>
-                                        <th>TOTALES:</th>
+                                        <th class="text-center">-</th>
+                                        <th class="text-center">TOTALES:</th>
                                         <th class="text-center">{{ $totalDistribuido ?? 0 }}</th>
-                                        <th>-</th>
-                                        <th class="text-end">L. {{ number_format(array_sum(array_map(function($dist) { return (float)$dist['cantidad_distribuida'] * (float)$dist['precio_unitario']; }, $distribuciones ?? [])), 2) }}</th>
-                                        <th>-</th>
-                                        <th>-</th>
-                                        <th>-</th>
+                                        <th class="text-center">-</th>
+                                        <th class="text-center">L. {{ number_format(array_sum(array_map(function($dist) { return (float)$dist['cantidad_distribuida'] * (float)$dist['precio_unitario']; }, $distribuciones ?? [])), 2) }}</th>
+                                        <th class="text-center">-</th>
+                                        <th class="text-center">-</th>
+                                        <th class="text-center">-</th>
                                     </tr>
                                 </tfoot>
                             </table>
