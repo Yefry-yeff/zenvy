@@ -499,6 +499,11 @@ class CompraDeProducto extends Component
         $this->mensajeAlerta = '';
     }
 
+    public function volver()
+    {
+        $this->dispatch('cambiarVista', ruta: 'Inventario.compradeproductos');
+    }
+
     public function cerrarModalExito()
     {
         $this->mostrarModalExito = false;

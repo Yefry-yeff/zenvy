@@ -22,6 +22,13 @@
             <h5 class="mb-0 text-lg">
                 🛒 Nueva Compra de Productos
             </h5>
+            <div class="flex gap-2">
+                <button type="button" 
+                        wire:click="volver"
+                        class="inline-flex items-center gap-1 px-3 py-2 text-sm bg-white text-gray-800 rounded hover:bg-gray-100">
+                    <span>←</span> Volver
+                </button>
+            </div>
         </div>
 
         <!-- FORMULARIO -->
