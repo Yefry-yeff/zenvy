@@ -84,10 +84,11 @@
                 <div class="p-4">
                     <div class="p-4 bg-white border shadow rounded-xl">
                         <h2 class="mb-4 text-lg font-semibold text-gray-700">📊 Nueva Distribución de Stock</h2>
-                        
+
+                        <!-- Primera fila: Cantidad asignada en bodega, Stock Disponible para Distribuir, Stock en sección -->
                         <div class="row">
                             <!-- Cantidad Asignada en Bodega (No editable) -->
-                            <div class="col-md-6 mb-3">
+                            <div class="col-md-4 mb-3">
                                 <label for="cantidad_asignada_bodega" class="form-label">
                                     Cantidad Asignada en Bodega
                                     <small class="text-muted d-block">Cantidad total recibida en bodega</small>
@@ -103,7 +104,7 @@
                             </div>
 
                             <!-- Stock Disponible para Distribuir -->
-                            <div class="col-md-6 mb-3">
+                            <div class="col-md-4 mb-3">
                                 <label for="stock_disponible" class="form-label">
                                     Stock Disponible para Distribuir
                                     <small class="text-muted d-block">Sin asignar aún</small>
@@ -118,8 +119,27 @@
                                 </small>
                             </div>
 
+                            <!-- Stock en sección (nuevo campo) -->
+                            <div class="col-md-4 mb-3">
+                                <label for="stock_en_seccion" class="form-label">
+                                    Stock en Sección
+                                    <small class="text-muted d-block">Asignados menos facturados</small>
+                                </label>
+                                <input type="number"
+                                       id="stock_en_seccion"
+                                       class="form-control bg-light"
+                                       value="{{ $stockEnSeccion ?? 0 }}"
+                                       readonly>
+                                <small class="text-info">
+                                    <i class="fas fa-layer-group me-1"></i>Stock actual en la sección
+                                </small>
+                            </div>
+                        </div>
+
+                        <!-- Segunda fila: Cantidad a distribuir, Precio unitario, Medida de unidad, Precio total -->
+                        <div class="row">
                             <!-- Cantidad a Distribuir -->
-                            <div class="col-md-6 mb-3">
+                            <div class="col-md-3 mb-3">
                                 <label for="cantidad_distribuir" class="form-label">
                                     Cantidad a Distribuir <span class="text-red-600">*</span>
                                     <small class="text-muted d-block">Cantidad para esta distribución</small>
@@ -140,7 +160,7 @@
                             </div>
 
                             <!-- Precio Unitario -->
-                            <div class="col-md-6 mb-3">
+                            <div class="col-md-3 mb-3">
                                 <label for="precio_unitario" class="form-label">
                                     Precio Unitario (LPS)
                                     <small class="text-muted d-block">Precio base del producto (no editable)</small>
@@ -151,26 +171,22 @@
                                        value="L. {{ number_format($producto->precio_base ?? 0, 2) }}"
                                        readonly>
                             </div>
-                        </div>
 
-                        <div class="row">
-                            <!-- Fecha de Distribución -->
-                            <div class="col-md-6 mb-3">
-                                <label for="fecha_distribucion" class="form-label">
-                                    Fecha de Distribución <span class="text-red-600">*</span>
-                                    <small class="text-muted d-block">Fecha de esta distribución</small>
+                            <!-- Medida de unidad (readonly, del producto) -->
+                            <div class="col-md-3 mb-3">
+                                <label for="unidad_medida" class="form-label">
+                                    Medida de Unidad
+                                    <small class="text-muted d-block">Del producto (no editable)</small>
                                 </label>
-                                <input type="date" 
-                                       id="fecha_distribucion" 
-                                       class="form-control {{ $this->getClaseCampo('fecha_distribucion') }}" 
-                                       wire:model.live="form.fecha_distribucion">
-                                @error('form.fecha_distribucion')
-                                    <div class="text-danger mt-1 text-sm">❌ {{ $message }}</div>
-                                @enderror
+                                <input type="text"
+                                       id="unidad_medida"
+                                       class="form-control bg-light"
+                                       value="{{ $producto->unidadMedidaCompra->nombre ?? 'N/A' }}"
+                                       readonly>
                             </div>
 
                             <!-- Precio Total (Calculado) -->
-                            <div class="col-md-6 mb-3">
+                            <div class="col-md-3 mb-3">
                                 <label for="precio_total" class="form-label">
                                     Precio Total (LPS)
                                     <small class="text-muted d-block">Calculado automáticamente</small>
