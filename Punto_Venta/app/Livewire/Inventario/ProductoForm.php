@@ -29,10 +29,6 @@ class ProductoForm extends Component
         'precio_base' => 0,
         'ultimo_costo_compra' => 0,
         'costo_promedio' => 0,
-        'precio1' => 0,
-        'precio2' => 0,
-        'precio3' => 0,
-        'precio4' => 0,
         'unidad_medida_venta_id' => null,
         'users_id' => null,
     ];
@@ -65,14 +61,10 @@ class ProductoForm extends Component
         'form.estado_id' => 'required|integer',
         'form.subcategoria_id' => 'required|integer|exists:subcategoria,id',
         'form.marca_id' => 'required|integer|exists:marca,id',
-        'form.isv' => 'required|numeric|min:0|max:1',
+        'form.isv' => 'required|numeric|min:0|max:100',
         'form.precio_base' => 'required|numeric|min:0.01',
         'form.ultimo_costo_compra' => 'nullable|numeric|min:0',
         'form.costo_promedio' => 'nullable|numeric|min:0',
-        'form.precio1' => 'nullable|numeric|min:0',
-        'form.precio2' => 'nullable|numeric|min:0',
-        'form.precio3' => 'nullable|numeric|min:0',
-        'form.precio4' => 'nullable|numeric|min:0',
         'form.unidad_medida_venta_id' => 'required|integer|exists:unidad_medida,id',
     ];
 
@@ -121,10 +113,6 @@ class ProductoForm extends Component
                 'precio_base' => $producto->precio_base ?? 0,
                 'ultimo_costo_compra' => $producto->ultimo_costo_compra ?? 0,
                 'costo_promedio' => $producto->costo_promedio ?? 0,
-                'precio1' => $producto->precio1 ?? 0,
-                'precio2' => $producto->precio2 ?? 0,
-                'precio3' => $producto->precio3 ?? 0,
-                'precio4' => $producto->precio4 ?? 0,
                 'unidad_medida_venta_id' => $producto->unidad_medida_venta_id,
                 'users_id' => $producto->users_id,
             ];
@@ -200,6 +188,7 @@ class ProductoForm extends Component
             // Validar los datos del formulario
             $this->validate();
 
+
             $datos = $this->form;
             $datos['users_id'] = Auth::id();
 
@@ -230,7 +219,7 @@ class ProductoForm extends Component
                 'datos' => $this->form
             ]);
             $this->mostrarError('Error de validación: Revise los campos marcados en rojo');
-            
+
         } catch (\Exception $e) {
             // Error general - log completo y mensaje simple al usuario
             Log::error('Error al guardar producto', [
@@ -316,13 +305,13 @@ class ProductoForm extends Component
     {
         $ultimoCosto = floatval($this->form['ultimo_costo_compra'] ?? 0);
         $precioBase = floatval($this->form['precio_base'] ?? 0);
-        
+
         if ($ultimoCosto > 0 && $precioBase > 0) {
             $ganancia = $precioBase - $ultimoCosto;
             $margen = ($ganancia / $ultimoCosto) * 100;
             return round($margen, 2);
         }
-        
+
         return 0;
     }
 
@@ -361,7 +350,7 @@ class ProductoForm extends Component
     {
         $this->mostrarModalExito = false;
         $this->mensajeModalExito = '';
-        
+
         // Redirigir a la tabla de productos después de cerrar el modal
         $this->dispatch('cambiarVista', ruta: 'Inventario.producto');
     }

@@ -25,10 +25,6 @@ class Producto extends Model
         'subcategoria_id',
         'marca_id',
         'unidad_medida_venta_id',
-        'precio1',
-        'precio2',
-        'precio3',
-        'precio4',
         'users_id'
     ];
 
@@ -95,52 +91,50 @@ class Producto extends Model
     // Static methods for SP operations
     public static function crearProducto($datos)
     {
-        return DB::statement('CALL sp_crud_producto(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
-            1, // Acción: insertar
-            null, // ID (no necesario para insertar)
+        return DB::statement('CALL sp_crud_producto(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
+            1, // Acción: crear
+            null, // ID (se genera automáticamente)
             $datos['nombre'],
             $datos['descripcion'],
             $datos['isv'],
             $datos['precio_base'],
-            $datos['ultimo_costo_compra'],
-            $datos['costo_promedio'],
+            $datos['ultimo_costo_compra'] ?? 0,
+            $datos['costo_promedio'] ?? 0,
             $datos['codigo_barra'],
             $datos['codigo_estatal'],
             $datos['estado_id'],
             $datos['subcategoria_id'],
             $datos['marca_id'],
-            null, // p_unidad_compra (no existe en el formulario, enviar null)
             $datos['unidad_medida_venta_id'],
-            $datos['precio1'],
-            $datos['precio2'],
-            $datos['precio3'],
-            $datos['precio4'],
+            0, // precio1
+            0, // precio2
+            0, // precio3
+            0, // precio4
             $datos['users_id']
         ]);
     }
 
     public static function actualizarProducto($id, $datos)
     {
-        return DB::statement('CALL sp_crud_producto(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
+        return DB::statement('CALL sp_crud_producto(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
             2, // Acción: actualizar
             $id,
             $datos['nombre'],
             $datos['descripcion'],
             $datos['isv'],
             $datos['precio_base'],
-            $datos['ultimo_costo_compra'],
-            $datos['costo_promedio'],
+            $datos['ultimo_costo_compra'] ?? 0,
+            $datos['costo_promedio'] ?? 0,
             $datos['codigo_barra'],
             $datos['codigo_estatal'],
             $datos['estado_id'],
             $datos['subcategoria_id'],
             $datos['marca_id'],
-            null, // p_unidad_compra (no existe en el formulario, enviar null)
             $datos['unidad_medida_venta_id'],
-            $datos['precio1'],
-            $datos['precio2'],
-            $datos['precio3'],
-            $datos['precio4'],
+            0, // precio1
+            0, // precio2
+            0, // precio3
+            0, // precio4
             $datos['users_id']
         ]);
     }
