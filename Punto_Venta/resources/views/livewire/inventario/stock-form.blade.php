@@ -86,28 +86,49 @@
                         <h2 class="mb-4 text-lg font-semibold text-gray-700">📊 Gestión de Stock</h2>
                         
                         <div class="row">
-                            <!-- Cantidad de Compra del Lote -->
+                            <!-- Cantidad Asignada en Bodega (No editable) -->
                             <div class="col-md-6 mb-3">
-                                <label for="cantidad_compra_lote" class="form-label">
-                                    Cantidad Compra Lote <span class="text-red-600">*</span>
-                                    <small class="text-muted d-block">Total del lote comprado</small>
+                                <label for="cantidad_asignada_bodega" class="form-label">
+                                    Cantidad Asignada en Bodega
+                                    <small class="text-muted d-block">Cantidad asignada desde la bodega</small>
                                 </label>
                                 <input type="number" 
-                                       id="cantidad_compra_lote" 
-                                       class="form-control {{ $this->getClaseCampo('cantidad_compra_lote') }}" 
-                                       wire:model.live="form.cantidad_compra_lote" 
+                                       id="cantidad_asignada_bodega" 
+                                       class="form-control bg-light" 
+                                       wire:model.live="form.cantidad_asignada_bodega" 
                                        placeholder="Ej: 100"
-                                       min="1">
-                                @error('form.cantidad_compra_lote')
-                                    <div class="text-danger mt-1 text-sm">❌ {{ $message }}</div>
-                                @enderror
+                                       readonly>
+                                <small class="text-info">
+                                    <i class="fas fa-lock me-1"></i>Campo de solo lectura
+                                </small>
                             </div>
 
-                            <!-- Cantidad Inicial en Sección -->
+                            <!-- Stock Disponible -->
+                            <div class="col-md-6 mb-3">
+                                <label for="cantidad_disponible" class="form-label">
+                                    Stock Disponible <span class="text-red-600">*</span>
+                                    <small class="text-muted d-block">Disminuye al asignar a secciones</small>
+                                </label>
+                                <input type="number" 
+                                       id="cantidad_disponible" 
+                                       class="form-control {{ $this->getClaseCampo('cantidad_disponible') }}" 
+                                       wire:model.live="form.cantidad_disponible" 
+                                       placeholder="Ej: 80"
+                                       min="0"
+                                       max="{{ $form['cantidad_asignada_bodega'] ?? 999999 }}">
+                                @error('form.cantidad_disponible')
+                                    <div class="text-danger mt-1 text-sm">❌ {{ $message }}</div>
+                                @enderror
+                                @if(isset($form['cantidad_asignada_bodega']) && $form['cantidad_asignada_bodega'] > 0)
+                                    <small class="text-info">Máximo permitido: {{ $form['cantidad_asignada_bodega'] }}</small>
+                                @endif
+                            </div>
+
+                            <!-- Stock en Sección -->
                             <div class="col-md-6 mb-3">
                                 <label for="cantidad_inicial_seccion" class="form-label">
                                     Stock en Sección <span class="text-red-600">*</span>
-                                    <small class="text-muted d-block">Cantidad asignada a esta sección</small>
+                                    <small class="text-muted d-block">Disminuye al facturar productos</small>
                                 </label>
                                 <input type="number" 
                                        id="cantidad_inicial_seccion" 
@@ -115,80 +136,63 @@
                                        wire:model.live="form.cantidad_inicial_seccion" 
                                        placeholder="Ej: 50"
                                        min="0"
-                                       max="{{ $form['cantidad_compra_lote'] ?? 999999 }}">
+                                       max="{{ $form['cantidad_disponible'] ?? 999999 }}">
                                 @error('form.cantidad_inicial_seccion')
                                     <div class="text-danger mt-1 text-sm">❌ {{ $message }}</div>
                                 @enderror
-                                @if($form['cantidad_compra_lote'] > 0)
-                                    <small class="text-info">Máximo permitido: {{ $form['cantidad_compra_lote'] }}</small>
+                                @if(isset($form['cantidad_disponible']) && $form['cantidad_disponible'] > 0)
+                                    <small class="text-info">Máximo permitido: {{ $form['cantidad_disponible'] }}</small>
                                 @endif
                             </div>
 
-                            <!-- Cantidad Disponible -->
+                            <!-- Presentación en Sección -->
                             <div class="col-md-6 mb-3">
-                                <label for="cantidad_disponible" class="form-label">
-                                    Stock Disponible <span class="text-red-600">*</span>
-                                    <small class="text-muted d-block">Cantidad actualmente disponible</small>
-                                </label>
-                                <input type="number" 
-                                       id="cantidad_disponible" 
-                                       class="form-control {{ $this->getClaseCampo('cantidad_disponible') }}" 
-                                       wire:model.live="form.cantidad_disponible" 
-                                       placeholder="Ej: 45"
-                                       min="0"
-                                       max="{{ $form['cantidad_inicial_seccion'] ?? 999999 }}">
-                                @error('form.cantidad_disponible')
-                                    <div class="text-danger mt-1 text-sm">❌ {{ $message }}</div>
-                                @enderror
-                                @if($form['cantidad_inicial_seccion'] > 0)
-                                    <small class="text-info">Máximo permitido: {{ $form['cantidad_inicial_seccion'] }}</small>
-                                @endif
-                            </div>
-
-                            <!-- Unidades de Compra -->
-                            <div class="col-md-6 mb-3">
-                                <label for="unidades_compra" class="form-label">
-                                    Unidades de Compra
-                                    <small class="text-muted d-block">Ej: Caja, Paquete, etc.</small>
+                                <label for="presentacion_seccion" class="form-label">
+                                    Presentación en Sección
+                                    <small class="text-muted d-block">Ej: Unidad, Paquete, etc.</small>
                                 </label>
                                 <input type="text" 
-                                       id="unidades_compra" 
-                                       class="form-control {{ $this->getClaseCampo('unidades_compra') }}" 
-                                       wire:model.live="form.unidades_compra" 
-                                       placeholder="Ej: Caja, Paquete"
+                                       id="presentacion_seccion" 
+                                       class="form-control {{ $this->getClaseCampo('presentacion_seccion') }}" 
+                                       wire:model.live="form.presentacion_seccion" 
+                                       placeholder="Ej: Unidad, Paquete"
                                        maxlength="45">
-                                @error('form.unidades_compra')
+                                @error('form.presentacion_seccion')
                                     <div class="text-danger mt-1 text-sm">❌ {{ $message }}</div>
                                 @enderror
                             </div>
                         </div>
 
                         <div class="row">
-                            <!-- Fecha de Recibido -->
+                            <!-- Fecha de Distribución en Sección -->
                             <div class="col-md-6 mb-3">
-                                <label for="fecha_recibido" class="form-label">
-                                    Fecha de Recibido <span class="text-red-600">*</span>
+                                <label for="fecha_distribucion_seccion" class="form-label">
+                                    Fecha de Distribución en Sección <span class="text-red-600">*</span>
+                                    <small class="text-muted d-block">Cuando se asignó a esta sección</small>
                                 </label>
                                 <input type="date" 
-                                       id="fecha_recibido" 
-                                       class="form-control {{ $this->getClaseCampo('fecha_recibido') }}" 
-                                       wire:model.live="form.fecha_recibido">
-                                @error('form.fecha_recibido')
+                                       id="fecha_distribucion_seccion" 
+                                       class="form-control {{ $this->getClaseCampo('fecha_distribucion_seccion') }}" 
+                                       wire:model.live="form.fecha_distribucion_seccion">
+                                @error('form.fecha_distribucion_seccion')
                                     <div class="text-danger mt-1 text-sm">❌ {{ $message }}</div>
                                 @enderror
                             </div>
 
-                            <!-- Fecha de Expiración -->
+                            <!-- Fecha de Expiración (No editable) -->
                             <div class="col-md-6 mb-3">
                                 <label for="fecha_expiracion" class="form-label">
                                     Fecha de Expiración
-                                    <small class="text-muted d-block">Opcional</small>
+                                    <small class="text-muted d-block">Fecha de la compra original</small>
                                 </label>
                                 <input type="date" 
                                        id="fecha_expiracion" 
-                                       class="form-control {{ $this->getClaseCampo('fecha_expiracion') }}" 
+                                       class="form-control bg-light" 
                                        wire:model.live="form.fecha_expiracion"
-                                       min="{{ $form['fecha_recibido'] ?? '' }}">
+                                       readonly>
+                                <small class="text-info">
+                                    <i class="fas fa-lock me-1"></i>Campo de solo lectura (viene de la compra)
+                                </small>
                                 @error('form.fecha_expiracion')
                                     <div class="text-danger mt-1 text-sm">❌ {{ $message }}</div>
                                 @enderror
@@ -214,32 +218,38 @@
                         </div>
 
                         <!-- Indicadores visuales -->
-                        @if($form['cantidad_compra_lote'] > 0 && $form['cantidad_inicial_seccion'] > 0)
+                        @if(isset($form['cantidad_asignada_bodega']) && isset($form['cantidad_disponible']) && $form['cantidad_asignada_bodega'] > 0 && $form['cantidad_disponible'] > 0)
                         <div class="mt-4 p-3 bg-light rounded">
                             <h6 class="mb-2 text-success"><i class="fas fa-chart-bar me-2"></i>Resumen de Stock:</h6>
                             <div class="row text-center">
-                                <div class="col-md-4">
+                                <div class="col-md-3">
                                     <div class="p-2 bg-primary text-white rounded">
-                                        <strong>{{ $form['cantidad_compra_lote'] }}</strong><br>
-                                        <small>Total Lote</small>
+                                        <strong>{{ $form['cantidad_asignada_bodega'] ?? 0 }}</strong><br>
+                                        <small>Asignado Bodega</small>
                                     </div>
                                 </div>
-                                <div class="col-md-4">
+                                <div class="col-md-3">
                                     <div class="p-2 bg-info text-white rounded">
-                                        <strong>{{ $form['cantidad_inicial_seccion'] }}</strong><br>
+                                        <strong>{{ $form['cantidad_disponible'] ?? 0 }}</strong><br>
+                                        <small>Disponible</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="p-2 bg-success text-white rounded">
+                                        <strong>{{ $form['cantidad_inicial_seccion'] ?? 0 }}</strong><br>
                                         <small>En Sección</small>
                                     </div>
                                 </div>
-                                <div class="col-md-4">
-                                    <div class="p-2 bg-success text-white rounded">
-                                        <strong>{{ $form['cantidad_disponible'] }}</strong><br>
-                                        <small>Disponible</small>
+                                <div class="col-md-3">
+                                    <div class="p-2 bg-warning text-white rounded">
+                                        <strong>{{ (($form['cantidad_inicial_seccion'] ?? 0) - ($form['cantidad_disponible'] ?? 0)) }}</strong><br>
+                                        <small>Facturadas</small>
                                     </div>
                                 </div>
                             </div>
                             <div class="mt-2 text-center">
                                 <small class="text-muted">
-                                    Vendidas/Utilizadas: {{ ($form['cantidad_inicial_seccion'] - $form['cantidad_disponible']) }}
+                                    Stock en tránsito: {{ (($form['cantidad_asignada_bodega'] ?? 0) - ($form['cantidad_disponible'] ?? 0)) }}
                                 </small>
                             </div>
                         </div>
