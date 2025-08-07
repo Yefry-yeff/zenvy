@@ -2,7 +2,7 @@
 
     <!-- Mensajes de error -->
     @if (session()->has('error'))
-        <div class="mb-4 px-4 py-3 rounded relative bg-red-100 border border-red-400 text-red-700" role="alert">
+        <div class="relative px-4 py-3 mb-4 text-red-700 bg-red-100 border border-red-400 rounded" role="alert">
             <strong class="font-bold">Error:</strong>
             <span class="block sm:inline">{{ session('error') }}</span>
         </div>
@@ -10,7 +10,7 @@
 
     <!-- Mensajes de éxito -->
     @if (session()->has('success'))
-        <div class="mb-4 px-4 py-3 rounded relative bg-green-100 border border-green-400 text-green-700" role="alert">
+        <div class="relative px-4 py-3 mb-4 text-green-700 bg-green-100 border border-green-400 rounded" role="alert">
             <strong class="font-bold">¡Éxito!</strong>
             <span class="block sm:inline">{{ session('success') }}</span>
         </div>
@@ -32,7 +32,7 @@
             </h5>
             <div class="flex gap-2">
                 <button wire:click="agregarCompra"
-                        class="inline-flex items-center gap-1 px-3 py-2 text-sm bg-white text-gray-800 rounded hover:bg-gray-100">
+                        class="inline-flex items-center gap-1 px-3 py-2 text-sm text-gray-800 bg-white rounded hover:bg-gray-100">
                     <span>➕</span> Nueva Compra
                 </button>
             </div>
@@ -111,37 +111,41 @@
                                     <td>{{ \Carbon\Carbon::parse($compra->fecha_emision)->format('d/m/Y') }}</td>
                                     <td>{{ \Carbon\Carbon::parse($compra->fecha_recepcion)->format('d/m/Y') }}</td>
                                     <td>
-                                        @if($compra->estado->nombre === 'activo')
-                                            <span class="badge bg-success">Activo</span>
-                                        @elseif($compra->estado->nombre === 'distribuido')
-                                            <span class="badge bg-warning">Distribuido</span>
-                                        @elseif($compra->estado->nombre === 'anulado')
-                                            <span class="badge bg-danger">Anulado</span>
+                                        @if($compra->estado)
+                                            @if(strtolower($compra->estado->nombre) === 'activo')
+                                                <span class="badge bg-success">Activo</span>
+                                            @elseif(strtolower($compra->estado->nombre) === 'distribuido')
+                                                <span class="badge bg-warning">Distribuido</span>
+                                            @elseif(strtolower($compra->estado->nombre) === 'anulado')
+                                                <span class="badge bg-danger">Anulado</span>
+                                            @else
+                                                <span class="badge bg-secondary">{{ ucfirst($compra->estado->nombre) }}</span>
+                                            @endif
                                         @else
-                                            <span class="badge bg-secondary">{{ ucfirst($compra->estado->nombre ?? 'N/A') }}</span>
+                                            <span class="badge bg-secondary">Sin Estado</span>
                                         @endif
                                     </td>
                                     <td class="text-center">{{ $compra->detallesCompra->count() }}</td>
                                     <td class="text-end"><strong>L. {{ number_format($compra->detallesCompra->sum('precio_total'), 2) }}</strong></td>
                                     <td class="text-center">
-                                        @if($compra->estado->nombre === 'activo')
-                                            <button type="button" 
-                                                    class="btn btn-sm btn-outline-danger" 
+                                        @if($compra->estado && strtolower($compra->estado->nombre) === 'activo')
+                                            <button type="button"
+                                                    class="btn btn-sm btn-outline-danger"
                                                     wire:click="abrirModalAnular({{ $compra->id }})"
                                                     title="Anular compra">
                                                 ❌ Anular
                                             </button>
                                         @else
-                                            <span class="text-muted">-</span>
+                                            <span class="text-muted small">Sin acciones</span>
                                         @endif
                                     </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="9" class="text-center py-4 text-muted">
+                                    <td colspan="9" class="py-4 text-center text-muted">
                                         <div>
                                             <i style="font-size: 2rem;">📦</i>
-                                            <p class="mb-0 mt-2">No se encontraron compras</p>
+                                            <p class="mt-2 mb-0">No se encontraron compras</p>
                                         </div>
                                     </td>
                                 </tr>
@@ -189,7 +193,7 @@
                 <div class="p-6">
                     @if($compraSeleccionada)
                     <div class="mb-4">
-                        <div class="p-3 bg-gray-50 rounded border">
+                        <div class="p-3 border rounded bg-gray-50">
                             <p class="mb-1"><strong>Compra:</strong> {{ $compraSeleccionada['numero_factura'] }}</p>
                             <p class="mb-1"><strong>Proveedor:</strong> {{ $compraSeleccionada['proveedor_nombre'] ?? 'N/A' }}</p>
                             <p class="mb-0"><strong>Total:</strong> L. {{ number_format($compraSeleccionada['total'] ?? 0, 2) }}</p>
@@ -198,10 +202,10 @@
                     @endif
 
                     <div class="mb-4">
-                        <p class="text-gray-700 mb-3">
+                        <p class="mb-3 text-gray-700">
                             ⚠️ <strong>¿Está seguro que desea anular esta compra?</strong>
                         </p>
-                        <p class="text-sm text-gray-600 mb-4">
+                        <p class="mb-4 text-sm text-gray-600">
                             Esta acción no se puede deshacer. La compra será marcada como anulada y no podrá ser distribuida.
                         </p>
                     </div>
@@ -210,8 +214,8 @@
                         <label for="motivoAnulacion" class="form-label">
                             <strong>Motivo de anulación</strong> <span class="text-red-600">*</span>
                         </label>
-                        <textarea id="motivoAnulacion" 
-                                  class="form-control" 
+                        <textarea id="motivoAnulacion"
+                                  class="form-control"
                                   rows="3"
                                   wire:model.defer="motivoAnulacion"
                                   placeholder="Ingrese el motivo por el cual está anulando esta compra..."
@@ -325,7 +329,7 @@
             .table {
                 min-width: 800px;
             }
-            
+
             .table th,
             .table td {
                 padding: 0.5rem 0.25rem;

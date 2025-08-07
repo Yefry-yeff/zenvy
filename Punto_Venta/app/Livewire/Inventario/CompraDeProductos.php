@@ -6,6 +6,7 @@ use Livewire\Component;
 use Livewire\WithPagination;
 use App\Models\Compra;
 use App\Models\Estado;
+use Illuminate\Support\Facades\Log;
 
 class CompraDeProductos extends Component
 {
@@ -57,8 +58,8 @@ class CompraDeProductos extends Component
     // Método para abrir modal de anulación
     public function abrirModalAnular($compraId)
     {
-        $compra = Compra::with('proveedor')->find($compraId);
-        if ($compra) {
+        $compra = Compra::with(['proveedor', 'estado'])->find($compraId);
+        if ($compra && $compra->estado && strtolower($compra->estado->nombre) === 'activo') {
             $this->compraSeleccionada = [
                 'id' => $compra->id,
                 'numero_factura' => $compra->numero_factura,
@@ -67,6 +68,9 @@ class CompraDeProductos extends Component
             ];
             $this->motivoAnulacion = '';
             $this->mostrarModalAnular = true;
+        } else {
+            $this->mostrarAlerta = true;
+            $this->mensajeAlerta = 'Solo se pueden anular compras en estado "activo".';
         }
     }
 
@@ -90,10 +94,10 @@ class CompraDeProductos extends Component
         ]);
 
         try {
-            $compra = Compra::find($this->compraSeleccionada['id']);
-            if ($compra) {
+            $compra = Compra::with('estado')->find($this->compraSeleccionada['id']);
+            if ($compra && $compra->estado && strtolower($compra->estado->nombre) === 'activo') {
                 // Buscar el estado "anulado"
-                $estadoAnulado = Estado::where('nombre', 'anulado')->first();
+                $estadoAnulado = Estado::whereRaw('LOWER(nombre) = ?', ['anulado'])->first();
                 if ($estadoAnulado) {
                     $compra->estado_id = $estadoAnulado->id;
                     $compra->save();
@@ -104,6 +108,9 @@ class CompraDeProductos extends Component
                     $this->mostrarAlerta = true;
                     $this->mensajeAlerta = 'No se encontró el estado "anulado" en el sistema.';
                 }
+            } else {
+                $this->mostrarAlerta = true;
+                $this->mensajeAlerta = 'Solo se pueden anular compras en estado "activo".';
             }
         } catch (\Exception $e) {
             $this->mostrarAlerta = true;
@@ -127,7 +134,7 @@ class CompraDeProductos extends Component
 
         if ($this->filtroEstado) {
             $query->whereHas('estado', function($estadoQuery) {
-                $estadoQuery->where('nombre', $this->filtroEstado);
+                $estadoQuery->whereRaw('LOWER(nombre) = ?', [strtolower($this->filtroEstado)]);
             });
         }
 
