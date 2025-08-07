@@ -13,8 +13,8 @@ class Producto extends Component
     public function render()
     {
         // Obtener productos con sus relaciones para mostrar en la tabla
-        $productos = ProductoModel::with(['subcategoria.categoria', 'marca', 'unidadMedida'])
-            ->select('id', 'nombre', 'descripcion', 'precio_base', 'subcategoria_id', 'marca_id', 'unidad_medida_compra_id', 'created_at')
+        $productos = ProductoModel::with(['subcategoria.categoria', 'marca', 'unidadMedidaVenta'])
+            ->select('id', 'nombre', 'descripcion', 'precio_base', 'subcategoria_id', 'marca_id', 'unidad_medida_venta_id', 'created_at')
             ->get();
             
         return view('livewire.inventario.producto', compact('productos'));

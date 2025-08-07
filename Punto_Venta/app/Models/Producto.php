@@ -24,8 +24,7 @@ class Producto extends Model
         'estado_id',
         'subcategoria_id',
         'marca_id',
-        'unidad_compra',
-        'unidad_medida_compra_id',
+        'unidad_medida_venta_id',
         'precio1',
         'precio2',
         'precio3',
@@ -75,12 +74,12 @@ class Producto extends Model
 
     public function unidadMedida()
     {
-        return $this->belongsTo(UnidadMedida::class, 'unidad_medida_compra_id');
+        return $this->belongsTo(UnidadMedida::class, 'unidad_medida_venta_id');
     }
 
     public function unidadMedidaCompra()
     {
-        return $this->belongsTo(UnidadMedida::class, 'unidad_medida_compra_id');
+        return $this->belongsTo(UnidadMedida::class, 'unidad_medida_venta_id');
     }
 
     public function unidadMedidaVenta()
@@ -110,8 +109,8 @@ class Producto extends Model
             $datos['estado_id'],
             $datos['subcategoria_id'],
             $datos['marca_id'],
-            $datos['unidad_compra'],
-            $datos['unidad_medida_compra_id'],
+            null, // p_unidad_compra (no existe en el formulario, enviar null)
+            $datos['unidad_medida_venta_id'],
             $datos['precio1'],
             $datos['precio2'],
             $datos['precio3'],
@@ -136,8 +135,8 @@ class Producto extends Model
             $datos['estado_id'],
             $datos['subcategoria_id'],
             $datos['marca_id'],
-            $datos['unidad_compra'],
-            $datos['unidad_medida_compra_id'],
+            null, // p_unidad_compra (no existe en el formulario, enviar null)
+            $datos['unidad_medida_venta_id'],
             $datos['precio1'],
             $datos['precio2'],
             $datos['precio3'],

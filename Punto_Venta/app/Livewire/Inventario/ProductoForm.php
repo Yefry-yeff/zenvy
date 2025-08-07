@@ -9,6 +9,7 @@ use App\Models\Subcategoria;
 use App\Models\Marca;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 
 class ProductoForm extends Component
 {
@@ -24,12 +25,23 @@ class ProductoForm extends Component
         'estado_id' => 1,
         'subcategoria_id' => null,
         'marca_id' => null,
+        'isv' => 0.15,
+        'precio_base' => 0,
+        'ultimo_costo_compra' => 0,
+        'costo_promedio' => 0,
+        'precio1' => 0,
+        'precio2' => 0,
+        'precio3' => 0,
+        'precio4' => 0,
+        'unidad_medida_venta_id' => null,
+        'users_id' => null,
     ];
 
     // Datos para los selectores
     public $categorias = [];
     public $subcategorias = [];
     public $marcas = [];
+    public $unidadesMedida = [];
     public $categoriaSeleccionada = null;
 
     // Propiedades para validación backend
@@ -53,6 +65,15 @@ class ProductoForm extends Component
         'form.estado_id' => 'required|integer',
         'form.subcategoria_id' => 'required|integer|exists:subcategoria,id',
         'form.marca_id' => 'required|integer|exists:marca,id',
+        'form.isv' => 'required|numeric|min:0|max:1',
+        'form.precio_base' => 'required|numeric|min:0.01',
+        'form.ultimo_costo_compra' => 'nullable|numeric|min:0',
+        'form.costo_promedio' => 'nullable|numeric|min:0',
+        'form.precio1' => 'nullable|numeric|min:0',
+        'form.precio2' => 'nullable|numeric|min:0',
+        'form.precio3' => 'nullable|numeric|min:0',
+        'form.precio4' => 'nullable|numeric|min:0',
+        'form.unidad_medida_venta_id' => 'required|integer|exists:unidad_medida,id',
     ];
 
     protected $messages = [
@@ -80,6 +101,7 @@ class ProductoForm extends Component
     {
         $this->categorias = Categoria::orderBy('nombre')->get();
         $this->marcas = Marca::orderBy('nombre')->get();
+        $this->unidadesMedida = DB::table('unidad_medida')->orderBy('nombre')->get();
     }
 
     public function cargarProducto()
@@ -95,6 +117,16 @@ class ProductoForm extends Component
                 'estado_id' => $producto->estado_id,
                 'subcategoria_id' => $producto->subcategoria_id,
                 'marca_id' => $producto->marca_id,
+                'isv' => $producto->isv ?? 0.15,
+                'precio_base' => $producto->precio_base ?? 0,
+                'ultimo_costo_compra' => $producto->ultimo_costo_compra ?? 0,
+                'costo_promedio' => $producto->costo_promedio ?? 0,
+                'precio1' => $producto->precio1 ?? 0,
+                'precio2' => $producto->precio2 ?? 0,
+                'precio3' => $producto->precio3 ?? 0,
+                'precio4' => $producto->precio4 ?? 0,
+                'unidad_medida_venta_id' => $producto->unidad_medida_venta_id,
+                'users_id' => $producto->users_id,
             ];
 
             // Cargar categoría y subcategorías correspondientes
@@ -148,18 +180,10 @@ class ProductoForm extends Component
                 'categoria' => 'Debe seleccionar una categoría',
                 'subcategoria' => 'Debe seleccionar una subcategoría',
                 'precio_base' => 'El precio base es obligatorio',
-                'precio1' => 'El precio 1 es obligatorio',
-                'unidad_compra' => 'La unidad de compra es obligatoria',
                 'unidad_medida' => 'Debe seleccionar una unidad de medida'
             ];
 
             $this->mostrarErrorCampo($primerCampoVacio, $mensajes[$primerCampoVacio]);
-            return;
-        }
-
-        // Verificación específica para precio1 = 0
-        if ($this->form['precio1'] == 0) {
-            $this->mostrarErrorCampo('precio1', 'El precio 1 no puede ser 0, debe ser mayor a 0');
             return;
         }
 
@@ -288,6 +312,30 @@ class ProductoForm extends Component
         }
     }
 
+    public function calcularMargenGanancia()
+    {
+        $ultimoCosto = floatval($this->form['ultimo_costo_compra'] ?? 0);
+        $precioBase = floatval($this->form['precio_base'] ?? 0);
+        
+        if ($ultimoCosto > 0 && $precioBase > 0) {
+            $ganancia = $precioBase - $ultimoCosto;
+            $margen = ($ganancia / $ultimoCosto) * 100;
+            return round($margen, 2);
+        }
+        
+        return 0;
+    }
+
+    public function updatedFormUltimoCostoCompra()
+    {
+        $this->dispatch('actualizarMargen', $this->calcularMargenGanancia());
+    }
+
+    public function updatedFormPrecioBase()
+    {
+        $this->dispatch('actualizarMargen', $this->calcularMargenGanancia());
+    }
+
     public function cerrarAlerta()
     {
         $this->mostrarAlerta = false;
@@ -337,7 +385,7 @@ class ProductoForm extends Component
     // Método para verificar si todos los campos críticos están completos
     public function verificarCamposCriticos()
     {
-        $camposCriticos = ['nombre', 'marca', 'categoria', 'subcategoria', 'precio_base', 'precio1', 'unidad_compra', 'unidad_medida'];
+        $camposCriticos = ['nombre', 'marca', 'categoria', 'subcategoria', 'precio_base', 'unidad_medida'];
         $camposVacios = [];
 
         foreach ($camposCriticos as $campo) {
@@ -358,14 +406,8 @@ class ProductoForm extends Component
                 case 'precio_base':
                     $valor = $this->form['precio_base'];
                     break;
-                case 'precio1':
-                    $valor = $this->form['precio1'];
-                    break;
-                case 'unidad_compra':
-                    $valor = $this->form['unidad_compra'];
-                    break;
                 case 'unidad_medida':
-                    $valor = $this->form['unidad_medida_compra_id'];
+                    $valor = $this->form['unidad_medida_venta_id'];
                     break;
             }
 

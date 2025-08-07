@@ -121,6 +121,167 @@
                     </div>
                 </div>
 
+                <!-- Precios y Costos -->
+                <div class="p-4">
+                    <div class="p-4 bg-white border shadow rounded-xl">
+                        <h2 class="mb-4 text-lg font-semibold text-gray-700">💰 Precios y Costos</h2>
+                        
+                        <!-- Fila 1: ISV, Precio Base, Último Costo -->
+                        <div class="row">
+                            <div class="mb-3 col-md-4">
+                                <label for="isv" class="form-label">ISV (%) <span class="text-red-600">*</span></label>
+                                <div class="input-group">
+                                    <input type="number" id="isv" class="form-control {{ $this->getClaseCampo('isv') }}" 
+                                           wire:model.defer="form.isv" step="0.01" min="0" max="1" placeholder="0.15">
+                                    <span class="input-group-text">%</span>
+                                </div>
+                                @error('form.isv')
+                                    <div class="mt-1 text-sm text-danger">❌ El ISV es obligatorio</div>
+                                @enderror
+                            </div>
+                            <div class="mb-3 col-md-4">
+                                <label for="precio_base" class="form-label">Precio Base <span class="text-red-600">*</span></label>
+                                <div class="input-group">
+                                    <span class="input-group-text">L.</span>
+                                    <input type="number" id="precio_base" class="form-control {{ $this->getClaseCampo('precio_base') }}" 
+                                           wire:model.live="form.precio_base" step="0.01" min="0" placeholder="0.00">
+                                </div>
+                                @error('form.precio_base')
+                                    <div class="mt-1 text-sm text-danger">❌ El precio base es obligatorio</div>
+                                @enderror
+                            </div>
+                            <div class="mb-3 col-md-4">
+                                <label for="ultimo_costo_compra" class="form-label">Último Costo de Compra</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">L.</span>
+                                    <input type="number" id="ultimo_costo_compra" class="form-control" 
+                                           wire:model.live="form.ultimo_costo_compra" step="0.01" min="0" placeholder="0.00">
+                                </div>
+                                @error('form.ultimo_costo_compra')
+                                    <div class="mt-1 text-sm text-danger">{{ $message }}</div>
+                                @enderror
+                            </div>
+                        </div>
+
+                        <!-- Fila 2: Costo Promedio, Margen, Unidad de Medida -->
+                        <div class="row">
+                            <div class="mb-3 col-md-4">
+                                <label for="costo_promedio" class="form-label">Costo Promedio</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">L.</span>
+                                    <input type="number" id="costo_promedio" class="form-control" 
+                                           wire:model.defer="form.costo_promedio" step="0.01" min="0" placeholder="0.00">
+                                </div>
+                                @error('form.costo_promedio')
+                                    <div class="mt-1 text-sm text-danger">{{ $message }}</div>
+                                @enderror
+                            </div>
+                            <div class="mb-3 col-md-4">
+                                <label for="margen_ganancia" class="form-label">Margen de Ganancia</label>
+                                <div class="input-group">
+                                    <input type="text" id="margen_ganancia" class="form-control bg-light" readonly 
+                                           value="{{ $this->calcularMargenGanancia() }}%">
+                                    <span class="input-group-text">%</span>
+                                </div>
+                                <small class="text-muted">Calculado automáticamente</small>
+                            </div>
+                            <div class="mb-3 col-md-4">
+                                <label for="unidad_medida_venta" class="form-label">Unidad de Medida <span class="text-red-600">*</span></label>
+                                <select id="unidad_medida_venta" class="form-select {{ $this->getClaseCampo('unidad_medida') }}" wire:model.defer="form.unidad_medida_venta_id">
+                                    <option value="">Seleccionar unidad</option>
+                                    @foreach($unidadesMedida as $unidad)
+                                        <option value="{{ $unidad->id }}">{{ $unidad->nombre }} ({{ $unidad->simbolo }})</option>
+                                    @endforeach
+                                </select>
+                                @error('form.unidad_medida_venta_id')
+                                    <div class="mt-1 text-sm text-danger">❌ Debe seleccionar una unidad de medida</div>
+                                @enderror
+                            </div>
+                        </div>
+
+                        <!-- Fila 3: Precios adicionales -->
+                        <div class="row">
+                            <div class="mb-3 col-md-3">
+                                <label for="precio1" class="form-label">Precio 1</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">L.</span>
+                                    <input type="number" id="precio1" class="form-control" 
+                                           wire:model.defer="form.precio1" step="0.01" min="0" placeholder="0.00">
+                                </div>
+                                @error('form.precio1')
+                                    <div class="mt-1 text-sm text-danger">{{ $message }}</div>
+                                @enderror
+                            </div>
+                            <div class="mb-3 col-md-3">
+                                <label for="precio2" class="form-label">Precio 2</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">L.</span>
+                                    <input type="number" id="precio2" class="form-control" 
+                                           wire:model.defer="form.precio2" step="0.01" min="0" placeholder="0.00">
+                                </div>
+                                @error('form.precio2')
+                                    <div class="mt-1 text-sm text-danger">{{ $message }}</div>
+                                @enderror
+                            </div>
+                            <div class="mb-3 col-md-3">
+                                <label for="precio3" class="form-label">Precio 3</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">L.</span>
+                                    <input type="number" id="precio3" class="form-control" 
+                                           wire:model.defer="form.precio3" step="0.01" min="0" placeholder="0.00">
+                                </div>
+                                @error('form.precio3')
+                                    <div class="mt-1 text-sm text-danger">{{ $message }}</div>
+                                @enderror
+                            </div>
+                            <div class="mb-3 col-md-3">
+                                <label for="precio4" class="form-label">Precio 4</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">L.</span>
+                                    <input type="number" id="precio4" class="form-control" 
+                                           wire:model.defer="form.precio4" step="0.01" min="0" placeholder="0.00">
+                                </div>
+                                @error('form.precio4')
+                                    <div class="mt-1 text-sm text-danger">{{ $message }}</div>
+                                @enderror
+                            </div>
+                        </div>
+
+                        <!-- Resumen de Precios -->
+                        @if(isset($form['ultimo_costo_compra']) && $form['ultimo_costo_compra'] > 0 && isset($form['precio_base']) && $form['precio_base'] > 0)
+                        <div class="mt-3 p-3 bg-light rounded">
+                            <h6 class="mb-2 text-success"><i class="fas fa-chart-line me-2"></i>Resumen de Costos y Precios:</h6>
+                            <div class="row text-center">
+                                <div class="col-md-3">
+                                    <div class="p-2 bg-info text-white rounded">
+                                        <strong>L. {{ number_format($form['ultimo_costo_compra'], 2) }}</strong><br>
+                                        <small>Último Costo</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="p-2 bg-success text-white rounded">
+                                        <strong>L. {{ number_format($form['precio_base'], 2) }}</strong><br>
+                                        <small>Precio Base</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="p-2 bg-warning text-white rounded">
+                                        <strong>L. {{ number_format($form['precio_base'] - $form['ultimo_costo_compra'], 2) }}</strong><br>
+                                        <small>Ganancia</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="p-2 bg-primary text-white rounded">
+                                        <strong>{{ $this->calcularMargenGanancia() }}%</strong><br>
+                                        <small>Margen</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        @endif
+                    </div>
+                </div>
+
                 <!-- Botones -->
                 <div class="flex justify-end gap-3 mt-4">
                     <button type="button" wire:click="volverALista"

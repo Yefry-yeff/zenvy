@@ -401,7 +401,7 @@ class RecibirEnBodega extends Component
     public function mostrarTodosProductos()
     {
         try {
-            $this->productosSugeridos = Producto::with(['subcategoria.categoria', 'marca', 'unidadMedidaCompra'])
+            $this->productosSugeridos = Producto::with(['subcategoria.categoria', 'marca', 'unidadMedidaVenta'])
                 ->where('estado_id', 1)
                 ->orderBy('nombre')
                 ->limit(10)
@@ -417,7 +417,7 @@ class RecibirEnBodega extends Component
     public function buscarProductos()
     {
         try {
-            $this->productosSugeridos = Producto::with(['subcategoria.categoria', 'marca', 'unidadMedidaCompra'])
+            $this->productosSugeridos = Producto::with(['subcategoria.categoria', 'marca', 'unidadMedidaVenta'])
                 ->where(function($query) {
                     $query->where('nombre', 'like', '%' . $this->buscarProducto . '%')
                           ->orWhere('codigo_barra', 'like', '%' . $this->buscarProducto . '%')
@@ -438,7 +438,7 @@ class RecibirEnBodega extends Component
     public function seleccionarProducto($productoId)
     {
         try {
-            $producto = Producto::with(['subcategoria.categoria', 'marca', 'unidadMedidaCompra'])->findOrFail($productoId);
+            $producto = Producto::with(['subcategoria.categoria', 'marca', 'unidadMedidaVenta'])->findOrFail($productoId);
             
             // Debug temporal
             Log::info('Producto seleccionado:', [
@@ -446,8 +446,8 @@ class RecibirEnBodega extends Component
                 'nombre' => $producto->nombre,
                 'marca_id' => $producto->marca_id,
                 'marca' => $producto->marca ? $producto->marca->toArray() : null,
-                'unidad_medida_compra_id' => $producto->unidad_medida_compra_id,
-                'unidad_medida' => $producto->unidadMedidaCompra ? $producto->unidadMedidaCompra->toArray() : null
+                'unidad_medida_venta_id' => $producto->unidad_medida_venta_id,
+                'unidad_medida' => $producto->unidadMedidaVenta ? $producto->unidadMedidaVenta->toArray() : null
             ]);
             
             $this->productoSeleccionado = $producto;
@@ -456,8 +456,8 @@ class RecibirEnBodega extends Component
             $this->descripcionProducto = $producto->descripcion;
             $this->codigoBarraProducto = $producto->codigo_barra ?? 'N/A';
             $this->marcaProducto = $producto->marca ? $producto->marca->nombre : 'Sin marca';
-            $this->unidadMedidaProducto = $producto->unidadMedidaCompra ? $producto->unidadMedidaCompra->nombre : 'N/A';
-            $this->unidadCompraId = $producto->unidad_medida_compra_id;
+            $this->unidadMedidaProducto = $producto->unidadMedidaVenta ? $producto->unidadMedidaVenta->nombre : 'N/A';
+            $this->unidadCompraId = $producto->unidad_medida_venta_id;
             
             $this->mostrarSugerenciasProductos = false;
             $this->productosSugeridos = [];
