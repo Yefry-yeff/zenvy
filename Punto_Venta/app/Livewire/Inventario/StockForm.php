@@ -4,6 +4,7 @@ namespace App\Livewire\Inventario;
 
 use Livewire\Component;
 use App\Models\RecibidoBodega;
+use App\Models\DistribucionStock;
 use App\Models\Producto as ProductoModel;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -15,16 +16,17 @@ class StockForm extends Component
     public $recibido;
     public $producto;
     public $isEditing = false;
+    public $distribuciones = [];
+    public $totalDistribuido = 0;
+    public $stockDisponible = 0;
 
-    // Formulario de stock
+    // Formulario de distribución
     public $form = [
-        'cantidad_compra_lote' => 0,
-        'cantidad_inicial_seccion' => 0,
-        'cantidad_disponible' => 0,
-        'fecha_recibido' => '',
-        'fecha_expiracion' => '',
+        'cantidad_asignada_bodega' => 0,
+        'cantidad_distribuir' => 0,
+        'precio_unitario' => 0,
+        'fecha_distribucion' => '',
         'comentario' => '',
-        'unidades_compra' => '',
     ];
 
     // Propiedades para validación backend
@@ -41,26 +43,19 @@ class StockForm extends Component
     public $mensajeModalError = '';
 
     protected $rules = [
-        'form.cantidad_compra_lote' => 'required|integer|min:1',
-        'form.cantidad_inicial_seccion' => 'required|integer|min:0',
-        'form.cantidad_disponible' => 'required|integer|min:0',
-        'form.fecha_recibido' => 'required|date',
-        'form.fecha_expiracion' => 'nullable|date|after:fecha_recibido',
-        'form.comentario' => 'nullable|string|max:150',
-        'form.unidades_compra' => 'nullable|string|max:45',
+        'form.cantidad_distribuir' => 'required|integer|min:1',
+        'form.precio_unitario' => 'required|numeric|min:0.01',
+        'form.fecha_distribucion' => 'required|date',
+        'form.comentario' => 'nullable|string|max:400',
     ];
 
     protected $messages = [
-        'form.cantidad_compra_lote.required' => 'La cantidad de compra del lote es obligatoria',
-        'form.cantidad_compra_lote.min' => 'La cantidad de compra del lote debe ser mayor a 0',
-        'form.cantidad_inicial_seccion.required' => 'La cantidad inicial en sección es obligatoria',
-        'form.cantidad_inicial_seccion.min' => 'La cantidad inicial en sección no puede ser negativa',
-        'form.cantidad_disponible.required' => 'La cantidad disponible es obligatoria',
-        'form.cantidad_disponible.min' => 'La cantidad disponible no puede ser negativa',
-        'form.fecha_recibido.required' => 'La fecha de recibido es obligatoria',
-        'form.fecha_expiracion.after' => 'La fecha de expiración debe ser posterior a la fecha de recibido',
-        'form.comentario.max' => 'El comentario no puede exceder 150 caracteres',
-        'form.unidades_compra.max' => 'Las unidades de compra no pueden exceder 45 caracteres',
+        'form.cantidad_distribuir.required' => 'La cantidad a distribuir es obligatoria',
+        'form.cantidad_distribuir.min' => 'La cantidad a distribuir debe ser mayor a 0',
+        'form.precio_unitario.required' => 'El precio unitario es obligatorio',
+        'form.precio_unitario.min' => 'El precio unitario debe ser mayor a 0.01',
+        'form.fecha_distribucion.required' => 'La fecha de distribución es obligatoria',
+        'form.comentario.max' => 'El comentario no puede exceder 400 caracteres',
     ];
 
     public function mount($productoId, $seccionId = null)
@@ -84,6 +79,9 @@ class StockForm extends Component
             $this->producto = ProductoModel::with(['marca', 'subcategoria.categoria', 'unidadMedidaCompra'])
                 ->findOrFail($productoId);
 
+            // Inicializar fecha de distribución con la fecha actual
+            $this->form['fecha_distribucion'] = now()->format('Y-m-d');
+
         } catch (\Exception $e) {
             Log::error('Error al cargar datos para edición de stock', [
                 'producto_id' => $productoId,
@@ -98,63 +96,48 @@ class StockForm extends Component
     private function cargarDatosRecibido()
     {
         if ($this->recibido) {
+            // Cargar distribuciones existentes
+            $this->distribuciones = $this->recibido->distribucionesStock()->orderBy('fecha_distribucion', 'desc')->get()->toArray();
+            
+            // Calcular totales
+            $distribucionesCollection = $this->recibido->distribucionesStock;
+            $this->totalDistribuido = $distribucionesCollection->sum('cantidad_distribuida') ?? 0;
+            $this->stockDisponible = ($this->recibido->cantidad_inicial_seccion ?? 0) - $this->totalDistribuido;
+            
+            // Inicializar formulario
             $this->form = [
-                'cantidad_compra_lote' => $this->recibido->cantidad_compra_lote ?? 0,
-                'cantidad_inicial_seccion' => $this->recibido->cantidad_inicial_seccion ?? 0,
-                'cantidad_disponible' => $this->recibido->cantidad_disponible ?? 0,
-                'fecha_recibido' => $this->recibido->fecha_recibido ? $this->recibido->fecha_recibido->format('Y-m-d') : '',
-                'fecha_expiracion' => $this->recibido->fecha_expiracion ? $this->recibido->fecha_expiracion->format('Y-m-d') : '',
-                'comentario' => $this->recibido->comentario ?? '',
-                'unidades_compra' => $this->recibido->unidades_compra ?? '',
+                'cantidad_asignada_bodega' => $this->recibido->cantidad_inicial_seccion ?? 0,
+                'cantidad_distribuir' => 0,
+                'precio_unitario' => 0,
+                'fecha_distribucion' => now()->format('Y-m-d'),
+                'comentario' => '',
             ];
         }
     }
 
-    // ===== VALIDACIÓN PERSONALIZADA PARA STOCK =====
+    // ===== VALIDACIÓN PERSONALIZADA PARA DISTRIBUCIÓN =====
 
-    public function updatedFormCantidadInicialSeccion()
+    public function updatedFormCantidadDistribuir()
     {
-        $this->validarStockContraLote();
+        $this->validarCantidadDistribuir();
     }
 
-    public function updatedFormCantidadDisponible()
+    private function validarCantidadDistribuir()
     {
-        $this->validarStockDisponible();
-    }
-
-    private function validarStockContraLote()
-    {
-        if ($this->form['cantidad_inicial_seccion'] > $this->form['cantidad_compra_lote']) {
-            $this->mostrarErrorCampo('cantidad_inicial_seccion', 
-                'El stock en sección no puede ser mayor a la cantidad del lote de compra (' . $this->form['cantidad_compra_lote'] . ')');
+        if ($this->form['cantidad_distribuir'] > $this->stockDisponible) {
+            $this->mostrarErrorCampo('cantidad_distribuir', 
+                'La cantidad a distribuir no puede ser mayor al stock disponible (' . $this->stockDisponible . ')');
         } else {
-            $this->limpiarErrorCampo('cantidad_inicial_seccion');
-        }
-    }
-
-    private function validarStockDisponible()
-    {
-        if ($this->form['cantidad_disponible'] > $this->form['cantidad_inicial_seccion']) {
-            $this->mostrarErrorCampo('cantidad_disponible', 
-                'El stock disponible no puede ser mayor al stock inicial en sección (' . $this->form['cantidad_inicial_seccion'] . ')');
-        } else {
-            $this->limpiarErrorCampo('cantidad_disponible');
+            $this->limpiarErrorCampo('cantidad_distribuir');
         }
     }
 
     public function guardar()
     {
-        // Validar que el stock no exceda el lote de compra
-        if ($this->form['cantidad_inicial_seccion'] > $this->form['cantidad_compra_lote']) {
-            $this->mostrarErrorCampo('cantidad_inicial_seccion', 
-                'El stock en sección no puede ser mayor a la cantidad del lote de compra (' . $this->form['cantidad_compra_lote'] . ')');
-            return;
-        }
-
-        // Validar que el stock disponible no exceda el inicial
-        if ($this->form['cantidad_disponible'] > $this->form['cantidad_inicial_seccion']) {
-            $this->mostrarErrorCampo('cantidad_disponible', 
-                'El stock disponible no puede ser mayor al stock inicial en sección (' . $this->form['cantidad_inicial_seccion'] . ')');
+        // Validar que la cantidad no exceda el stock disponible
+        if ($this->form['cantidad_distribuir'] > $this->stockDisponible) {
+            $this->mostrarErrorCampo('cantidad_distribuir', 
+                'La cantidad a distribuir no puede ser mayor al stock disponible (' . $this->stockDisponible . ')');
             return;
         }
 
@@ -163,33 +146,47 @@ class StockForm extends Component
         try {
             $this->validate();
 
-            $datos = $this->form;
-            $datos['users_registro_id'] = Auth::id();
+            // Crear nueva distribución
+            $distribucion = DistribucionStock::create([
+                'cantidad_distribuida' => $this->form['cantidad_distribuir'],
+                'precio_unitario' => $this->form['precio_unitario'],
+                'fecha_distribucion' => $this->form['fecha_distribucion'],
+                'comentario' => $this->form['comentario'],
+                'recibido_bodega_id' => $this->recibidoId,
+            ]);
 
-            if ($this->isEditing) {
-                $this->recibido->update($datos);
-                Log::info('Stock actualizado exitosamente', [
-                    'recibido_id' => $this->recibidoId,
-                    'producto_id' => $this->producto->id,
-                    'datos' => $datos
-                ]);
-                $this->mostrarExito('Stock actualizado exitosamente.');
-            }
+            Log::info('Distribución de stock creada exitosamente', [
+                'distribucion_id' => $distribucion->id,
+                'recibido_id' => $this->recibidoId,
+                'cantidad' => $this->form['cantidad_distribuir'],
+                'precio_unitario' => $this->form['precio_unitario'],
+                'precio_total' => $distribucion->precio_total
+            ]);
+
+            $this->mostrarExito('Distribución registrada exitosamente.');
+            
+            // Recargar datos
+            $this->cargarDatosRecibido();
+            
+            // Limpiar formulario para nueva distribución
+            $this->form['cantidad_distribuir'] = 0;
+            $this->form['precio_unitario'] = 0;
+            $this->form['comentario'] = '';
 
         } catch (\Illuminate\Validation\ValidationException $e) {
             $this->erroresValidacion = $e->errors();
-            Log::warning('Errores de validación en stock', [
+            Log::warning('Errores de validación en distribución', [
                 'errores' => $this->erroresValidacion,
                 'datos' => $this->form
             ]);
         } catch (\Exception $e) {
-            Log::error('Error al guardar stock', [
+            Log::error('Error al crear distribución de stock', [
                 'recibido_id' => $this->recibidoId,
                 'producto_id' => $this->producto->id,
                 'mensaje' => $e->getMessage(),
                 'datos' => $this->form
             ]);
-            $this->mostrarError('Error al guardar el stock del producto');
+            $this->mostrarError('Error al registrar la distribución de stock');
         }
     }
 
@@ -265,15 +262,12 @@ class StockForm extends Component
 
     public function getFormularioCompletoProperty()
     {
-        return !empty($this->form['cantidad_compra_lote']) && 
-               $this->form['cantidad_compra_lote'] > 0 &&
-               isset($this->form['cantidad_inicial_seccion']) && 
-               $this->form['cantidad_inicial_seccion'] >= 0 &&
-               isset($this->form['cantidad_disponible']) && 
-               $this->form['cantidad_disponible'] >= 0 &&
-               !empty($this->form['fecha_recibido']) &&
-               $this->form['cantidad_inicial_seccion'] <= $this->form['cantidad_compra_lote'] &&
-               $this->form['cantidad_disponible'] <= $this->form['cantidad_inicial_seccion'];
+        return !empty($this->form['cantidad_distribuir']) && 
+               $this->form['cantidad_distribuir'] > 0 &&
+               !empty($this->form['precio_unitario']) && 
+               $this->form['precio_unitario'] > 0 &&
+               !empty($this->form['fecha_distribucion']) &&
+               $this->form['cantidad_distribuir'] <= $this->stockDisponible;
     }
 
     // ===== MÉTODOS DE GESTIÓN DE MODALES =====

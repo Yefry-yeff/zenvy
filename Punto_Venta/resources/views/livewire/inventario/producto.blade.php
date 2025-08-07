@@ -30,7 +30,6 @@
                             <th>Categoría</th>
                             <th>Subcategoría</th>
                             <th>Marca</th>
-                            <th>Precio Base (LPS)</th>
                             <th style="width: 150px;">Fecha Creación</th>
                             <th style="width: 60px;">Acciones</th>
                         </tr>
@@ -43,7 +42,6 @@
                                 <td class="cursor-pointer" wire:click="editar({{ $producto->id }})">{{ $producto->subcategoria->categoria->nombre ?? 'N/A' }}</td>
                                 <td class="cursor-pointer" wire:click="editar({{ $producto->id }})">{{ $producto->subcategoria->nombre ?? 'N/A' }}</td>
                                 <td class="cursor-pointer" wire:click="editar({{ $producto->id }})">{{ $producto->marca->nombre ?? 'N/A' }}</td>
-                                <td class="text-end cursor-pointer" wire:click="editar({{ $producto->id }})">L. {{ number_format($producto->precio_base, 2) }}</td>
                                 <td class="cursor-pointer" wire:click="editar({{ $producto->id }})">{{ $producto->created_at ? $producto->created_at->format('d/m/Y') : 'N/A' }}</td>
                                 <td>
                                     <button type="button" class="btn btn-link p-0" wire:click="confirmarEliminar({{ $producto->id }})" title="Eliminar" onclick="event.stopPropagation();">
@@ -57,7 +55,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="8" class="py-4 text-center text-muted">No hay productos disponibles.</td>
+                                <td colspan="7" class="py-4 text-center text-muted">No hay productos disponibles.</td>
                             </tr>
                         @endforelse
                     </tbody>

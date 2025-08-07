@@ -83,179 +83,213 @@
                 <!-- Gestión de Stock -->
                 <div class="p-4">
                     <div class="p-4 bg-white border shadow rounded-xl">
-                        <h2 class="mb-4 text-lg font-semibold text-gray-700">📊 Gestión de Stock</h2>
+                        <h2 class="mb-4 text-lg font-semibold text-gray-700">📊 Nueva Distribución de Stock</h2>
                         
                         <div class="row">
                             <!-- Cantidad Asignada en Bodega (No editable) -->
                             <div class="col-md-6 mb-3">
                                 <label for="cantidad_asignada_bodega" class="form-label">
                                     Cantidad Asignada en Bodega
-                                    <small class="text-muted d-block">Cantidad asignada desde la bodega</small>
+                                    <small class="text-muted d-block">Cantidad total recibida en bodega</small>
                                 </label>
                                 <input type="number" 
                                        id="cantidad_asignada_bodega" 
                                        class="form-control bg-light" 
                                        wire:model.live="form.cantidad_asignada_bodega" 
-                                       placeholder="Ej: 100"
                                        readonly>
                                 <small class="text-info">
                                     <i class="fas fa-lock me-1"></i>Campo de solo lectura
                                 </small>
                             </div>
 
-                            <!-- Stock Disponible -->
+                            <!-- Stock Disponible para Distribuir -->
                             <div class="col-md-6 mb-3">
-                                <label for="cantidad_disponible" class="form-label">
-                                    Stock Disponible <span class="text-red-600">*</span>
-                                    <small class="text-muted d-block">Disminuye al asignar a secciones</small>
+                                <label for="stock_disponible" class="form-label">
+                                    Stock Disponible para Distribuir
+                                    <small class="text-muted d-block">Sin asignar aún</small>
                                 </label>
                                 <input type="number" 
-                                       id="cantidad_disponible" 
-                                       class="form-control {{ $this->getClaseCampo('cantidad_disponible') }}" 
-                                       wire:model.live="form.cantidad_disponible" 
-                                       placeholder="Ej: 80"
-                                       min="0"
-                                       max="{{ $form['cantidad_asignada_bodega'] ?? 999999 }}">
-                                @error('form.cantidad_disponible')
+                                       id="stock_disponible" 
+                                       class="form-control bg-light" 
+                                       wire:model.live="stockDisponible" 
+                                       readonly>
+                                <small class="text-info">
+                                    <i class="fas fa-info-circle me-1"></i>Calculado automáticamente
+                                </small>
+                            </div>
+
+                            <!-- Cantidad a Distribuir -->
+                            <div class="col-md-6 mb-3">
+                                <label for="cantidad_distribuir" class="form-label">
+                                    Cantidad a Distribuir <span class="text-red-600">*</span>
+                                    <small class="text-muted d-block">Cantidad para esta distribución</small>
+                                </label>
+                                <input type="number" 
+                                       id="cantidad_distribuir" 
+                                       class="form-control {{ $this->getClaseCampo('cantidad_distribuir') }}" 
+                                       wire:model.live="form.cantidad_distribuir" 
+                                       placeholder="Ej: 25"
+                                       min="1"
+                                       max="{{ $stockDisponible ?? 999999 }}">
+                                @error('form.cantidad_distribuir')
                                     <div class="text-danger mt-1 text-sm">❌ {{ $message }}</div>
                                 @enderror
-                                @if(isset($form['cantidad_asignada_bodega']) && $form['cantidad_asignada_bodega'] > 0)
-                                    <small class="text-info">Máximo permitido: {{ $form['cantidad_asignada_bodega'] }}</small>
+                                @if($stockDisponible > 0)
+                                    <small class="text-info">Máximo disponible: {{ $stockDisponible }}</small>
                                 @endif
                             </div>
 
-                            <!-- Stock en Sección -->
+                            <!-- Precio Unitario -->
                             <div class="col-md-6 mb-3">
-                                <label for="cantidad_inicial_seccion" class="form-label">
-                                    Stock en Sección <span class="text-red-600">*</span>
-                                    <small class="text-muted d-block">Disminuye al facturar productos</small>
+                                <label for="precio_unitario" class="form-label">
+                                    Precio Unitario (LPS) <span class="text-red-600">*</span>
+                                    <small class="text-muted d-block">Precio por unidad</small>
                                 </label>
                                 <input type="number" 
-                                       id="cantidad_inicial_seccion" 
-                                       class="form-control {{ $this->getClaseCampo('cantidad_inicial_seccion') }}" 
-                                       wire:model.live="form.cantidad_inicial_seccion" 
-                                       placeholder="Ej: 50"
-                                       min="0"
-                                       max="{{ $form['cantidad_disponible'] ?? 999999 }}">
-                                @error('form.cantidad_inicial_seccion')
-                                    <div class="text-danger mt-1 text-sm">❌ {{ $message }}</div>
-                                @enderror
-                                @if(isset($form['cantidad_disponible']) && $form['cantidad_disponible'] > 0)
-                                    <small class="text-info">Máximo permitido: {{ $form['cantidad_disponible'] }}</small>
-                                @endif
-                            </div>
-
-                            <!-- Presentación en Sección -->
-                            <div class="col-md-6 mb-3">
-                                <label for="presentacion_seccion" class="form-label">
-                                    Presentación en Sección
-                                    <small class="text-muted d-block">Ej: Unidad, Paquete, etc.</small>
-                                </label>
-                                <input type="text" 
-                                       id="presentacion_seccion" 
-                                       class="form-control {{ $this->getClaseCampo('presentacion_seccion') }}" 
-                                       wire:model.live="form.presentacion_seccion" 
-                                       placeholder="Ej: Unidad, Paquete"
-                                       maxlength="45">
-                                @error('form.presentacion_seccion')
+                                       id="precio_unitario" 
+                                       class="form-control {{ $this->getClaseCampo('precio_unitario') }}" 
+                                       wire:model.live="form.precio_unitario" 
+                                       placeholder="Ej: 15.50"
+                                       min="0.01"
+                                       step="0.01">
+                                @error('form.precio_unitario')
                                     <div class="text-danger mt-1 text-sm">❌ {{ $message }}</div>
                                 @enderror
                             </div>
                         </div>
 
                         <div class="row">
-                            <!-- Fecha de Distribución en Sección -->
+                            <!-- Fecha de Distribución -->
                             <div class="col-md-6 mb-3">
-                                <label for="fecha_distribucion_seccion" class="form-label">
-                                    Fecha de Distribución en Sección <span class="text-red-600">*</span>
-                                    <small class="text-muted d-block">Cuando se asignó a esta sección</small>
+                                <label for="fecha_distribucion" class="form-label">
+                                    Fecha de Distribución <span class="text-red-600">*</span>
+                                    <small class="text-muted d-block">Fecha de esta distribución</small>
                                 </label>
                                 <input type="date" 
-                                       id="fecha_distribucion_seccion" 
-                                       class="form-control {{ $this->getClaseCampo('fecha_distribucion_seccion') }}" 
-                                       wire:model.live="form.fecha_distribucion_seccion">
-                                @error('form.fecha_distribucion_seccion')
+                                       id="fecha_distribucion" 
+                                       class="form-control {{ $this->getClaseCampo('fecha_distribucion') }}" 
+                                       wire:model.live="form.fecha_distribucion">
+                                @error('form.fecha_distribucion')
                                     <div class="text-danger mt-1 text-sm">❌ {{ $message }}</div>
                                 @enderror
                             </div>
 
-                            <!-- Fecha de Expiración (No editable) -->
+                            <!-- Precio Total (Calculado) -->
                             <div class="col-md-6 mb-3">
-                                <label for="fecha_expiracion" class="form-label">
-                                    Fecha de Expiración
-                                    <small class="text-muted d-block">Fecha de la compra original</small>
+                                <label for="precio_total" class="form-label">
+                                    Precio Total (LPS)
+                                    <small class="text-muted d-block">Calculado automáticamente</small>
                                 </label>
-                                <input type="date" 
-                                       id="fecha_expiracion" 
+                                <input type="text" 
+                                       id="precio_total" 
                                        class="form-control bg-light" 
-                                       wire:model.live="form.fecha_expiracion"
+                                       value="L. {{ number_format((float)($form['cantidad_distribuir'] ?? 0) * (float)($form['precio_unitario'] ?? 0), 2) }}"
                                        readonly>
                                 <small class="text-info">
-                                    <i class="fas fa-lock me-1"></i>Campo de solo lectura (viene de la compra)
+                                    <i class="fas fa-calculator me-1"></i>{{ $form['cantidad_distribuir'] ?? 0 }} × L. {{ number_format((float)($form['precio_unitario'] ?? 0), 2) }}
                                 </small>
-                                @error('form.fecha_expiracion')
-                                    <div class="text-danger mt-1 text-sm">❌ {{ $message }}</div>
-                                @enderror
                             </div>
                         </div>
 
                         <!-- Comentario -->
                         <div class="mb-3">
                             <label for="comentario" class="form-label">
-                                Comentario
+                                Comentario de la Distribución
                                 <small class="text-muted">(Opcional)</small>
                             </label>
                             <textarea id="comentario" 
                                       class="form-control {{ $this->getClaseCampo('comentario') }}" 
                                       wire:model.live="form.comentario" 
-                                      placeholder="Observaciones adicionales sobre el stock..."
+                                      placeholder="Observaciones sobre esta distribución de stock..."
                                       rows="3"
-                                      maxlength="150"></textarea>
+                                      maxlength="400"></textarea>
                             @error('form.comentario')
                                 <div class="text-danger mt-1 text-sm">❌ {{ $message }}</div>
                             @enderror
-                            <small class="text-muted">{{ strlen($form['comentario'] ?? '') }}/150 caracteres</small>
+                            <small class="text-muted">{{ strlen($form['comentario'] ?? '') }}/400 caracteres</small>
                         </div>
 
                         <!-- Indicadores visuales -->
-                        @if(isset($form['cantidad_asignada_bodega']) && isset($form['cantidad_disponible']) && $form['cantidad_asignada_bodega'] > 0 && $form['cantidad_disponible'] > 0)
+                        @if(isset($form['cantidad_asignada_bodega']) && $form['cantidad_asignada_bodega'] > 0)
                         <div class="mt-4 p-3 bg-light rounded">
                             <h6 class="mb-2 text-success"><i class="fas fa-chart-bar me-2"></i>Resumen de Stock:</h6>
                             <div class="row text-center">
                                 <div class="col-md-3">
                                     <div class="p-2 bg-primary text-white rounded">
                                         <strong>{{ $form['cantidad_asignada_bodega'] ?? 0 }}</strong><br>
-                                        <small>Asignado Bodega</small>
-                                    </div>
-                                </div>
-                                <div class="col-md-3">
-                                    <div class="p-2 bg-info text-white rounded">
-                                        <strong>{{ $form['cantidad_disponible'] ?? 0 }}</strong><br>
-                                        <small>Disponible</small>
+                                        <small>Total Recibido</small>
                                     </div>
                                 </div>
                                 <div class="col-md-3">
                                     <div class="p-2 bg-success text-white rounded">
-                                        <strong>{{ $form['cantidad_inicial_seccion'] ?? 0 }}</strong><br>
-                                        <small>En Sección</small>
+                                        <strong>{{ $totalDistribuido ?? 0 }}</strong><br>
+                                        <small>Total Distribuido</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="p-2 bg-info text-white rounded">
+                                        <strong>{{ $stockDisponible ?? 0 }}</strong><br>
+                                        <small>Disponible</small>
                                     </div>
                                 </div>
                                 <div class="col-md-3">
                                     <div class="p-2 bg-warning text-white rounded">
-                                        <strong>{{ (($form['cantidad_inicial_seccion'] ?? 0) - ($form['cantidad_disponible'] ?? 0)) }}</strong><br>
-                                        <small>Facturadas</small>
+                                        <strong>{{ count($distribuciones ?? []) }}</strong><br>
+                                        <small>Distribuciones</small>
                                     </div>
                                 </div>
-                            </div>
-                            <div class="mt-2 text-center">
-                                <small class="text-muted">
-                                    Stock en tránsito: {{ (($form['cantidad_asignada_bodega'] ?? 0) - ($form['cantidad_disponible'] ?? 0)) }}
-                                </small>
                             </div>
                         </div>
                         @endif
                     </div>
                 </div>
+
+                <!-- Historial de Distribuciones -->
+                @if(!empty($distribuciones) && count($distribuciones) > 0)
+                <div class="p-4">
+                    <div class="p-4 bg-white border shadow rounded-xl">
+                        <h2 class="mb-4 text-lg font-semibold text-gray-700">📋 Historial de Distribuciones</h2>
+                        
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Fecha</th>
+                                        <th>Cantidad</th>
+                                        <th>Precio Unit.</th>
+                                        <th>Total</th>
+                                        <th>Comentario</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($distribuciones as $distribucion)
+                                    <tr>
+                                        <td>{{ \Carbon\Carbon::parse($distribucion['fecha_distribucion'])->format('d/m/Y') }}</td>
+                                        <td class="text-center">
+                                            <span class="badge bg-primary">{{ $distribucion['cantidad_distribuida'] }}</span>
+                                        </td>
+                                        <td class="text-end">L. {{ number_format((float)$distribucion['precio_unitario'], 2) }}</td>
+                                        <td class="text-end">
+                                            <strong>L. {{ number_format((float)$distribucion['cantidad_distribuida'] * (float)$distribucion['precio_unitario'], 2) }}</strong>
+                                        </td>
+                                        <td>{{ $distribucion['comentario'] ?? 'Sin comentario' }}</td>
+                                    </tr>
+                                    @endforeach
+                                </tbody>
+                                <tfoot class="table-info">
+                                    <tr>
+                                        <th>TOTALES:</th>
+                                        <th class="text-center">{{ $totalDistribuido ?? 0 }}</th>
+                                        <th>-</th>
+                                        <th class="text-end">L. {{ number_format(array_sum(array_map(function($dist) { return (float)$dist['cantidad_distribuida'] * (float)$dist['precio_unitario']; }, $distribuciones ?? [])), 2) }}</th>
+                                        <th>-</th>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                @endif
 
                 <!-- Botones de Acción -->
                 <div class="flex justify-end gap-3 mt-4">
@@ -275,24 +309,16 @@
                                 'bg-slate-700 hover:bg-slate-800': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
                             }">
                             <i class="fas fa-save me-2"></i>
-                            @if($isEditing)
-                                Actualizar Stock
-                            @else
-                                Guardar Stock
-                            @endif
+                            Registrar Distribución
                         </button>
                     @else
                         <!-- Botón deshabilitado cuando faltan campos -->
                         <button type="button" 
                             disabled
                             class="px-4 py-2 text-white bg-gray-400 rounded cursor-not-allowed opacity-60 transition-all duration-200"
-                            title="Complete todos los campos obligatorios y asegúrese de que el stock no exceda el lote de compra">
+                            title="Complete todos los campos obligatorios">
                             <i class="fas fa-save me-2"></i>
-                            @if($isEditing)
-                                Actualizar Stock
-                            @else
-                                Guardar Stock
-                            @endif
+                            Registrar Distribución
                             <span class="ml-1">🔒</span>
                         </button>
                     @endif

@@ -51,4 +51,21 @@ class RecibidoBodega extends Model
     {
         return $this->belongsTo(User::class, 'users_registro_id');
     }
+
+    public function distribucionesStock()
+    {
+        return $this->hasMany(DistribucionStock::class, 'recibido_bodega_id');
+    }
+
+    // Método para obtener el total distribuido
+    public function getTotalDistribuidoAttribute()
+    {
+        return $this->distribucionesStock()->sum('cantidad_distribuida');
+    }
+
+    // Método para obtener el stock disponible actual
+    public function getStockDisponibleAttribute()
+    {
+        return $this->cantidad_inicial_seccion - $this->totalDistribuido;
+    }
 }
