@@ -60,6 +60,31 @@
                             </div>
 
                             <div class="mb-3 col-md-6">
+                                <label for="telefono" class="form-label">Teléfono</label>
+                                <input type="text" 
+                                    id="telefono" 
+                                    class="form-control {{ $this->getClaseCampo('form.telefono') }}" 
+                                    wire:model.blur="form.telefono" 
+                                    placeholder="####-####"
+                                    maxlength="9"
+                                    x-data="{ 
+                                        formatPhone(event) {
+                                            let value = event.target.value.replace(/\D/g, '');
+                                            if (value.length >= 4) {
+                                                value = value.substring(0, 4) + '-' + value.substring(4, 8);
+                                            }
+                                            event.target.value = value;
+                                            $wire.set('form.telefono', value);
+                                        }
+                                    }"
+                                    @input="formatPhone($event)"
+                                    @keypress="if (!/[0-9]/.test(String.fromCharCode($event.which)) && $event.which !== 8 && $event.which !== 46) $event.preventDefault()">
+                                @error('form.telefono')
+                                    <div class="mt-1 text-sm text-danger">{{ $message }}</div>
+                                @enderror
+                            </div>
+
+                            <div class="mb-3 col-md-6">
                                 <label for="identidad" class="form-label">Número de Identidad</label>
                                 <input type="text" id="identidad" class="form-control {{ $this->getClaseCampo('form.identidad') }}" wire:model.blur="form.identidad" placeholder="Ej: 0801-1990-12345">
                                 @error('form.identidad')

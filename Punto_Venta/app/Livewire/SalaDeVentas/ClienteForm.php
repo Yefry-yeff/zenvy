@@ -23,6 +23,7 @@ class ClienteForm extends Component
     public $form = [
         'nombre' => '',
         'correo' => '',
+        'telefono' => '',
         'identidad' => '',
         'rtn' => '',
         'tipo_persona_id' => null,
@@ -70,6 +71,7 @@ class ClienteForm extends Component
         return [
             'form.nombre' => 'required|min:2|max:150',
             'form.correo' => 'nullable|email|max:45',
+            'form.telefono' => 'nullable|max:9|regex:/^\d{4}-\d{4}$/',
             'form.identidad' => [
                 'nullable',
                 'max:45',
@@ -126,6 +128,8 @@ class ClienteForm extends Component
             'form.nombre.max' => 'El nombre no puede exceder 150 caracteres',
             'form.correo.email' => 'El formato del correo electrónico no es válido',
             'form.correo.max' => 'El correo no puede exceder 45 caracteres',
+            'form.telefono.max' => 'El teléfono no puede exceder 9 caracteres',
+            'form.telefono.regex' => 'El formato del teléfono debe ser ####-####',
             'form.identidad.max' => 'El número de identidad no puede exceder 45 caracteres',
             'form.rtn.max' => 'El RTN no puede exceder 45 caracteres',
             'form.tipo_persona_id.required' => 'Debe seleccionar un tipo de persona',
@@ -177,6 +181,7 @@ class ClienteForm extends Component
             $this->form = [
                 'nombre' => $cliente->nombre,
                 'correo' => $cliente->correo,
+                'telefono' => $cliente->telefono,
                 'identidad' => $cliente->identidad,
                 'rtn' => $cliente->rtn,
                 'tipo_persona_id' => $cliente->tipo_persona_id,

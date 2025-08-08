@@ -5,16 +5,63 @@
          x-show="open"
          x-cloak
          @cerrar-modal-busqueda.window="open = false"
+         @click.self="open = false"
+         @keydown.escape.window="open = false"
          class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-        <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
-            <h2 class="text-lg font-semibold mb-4">Buscar Cliente</h2>
-            <form @submit.prevent="$wire.buscarClientePorIdentidad(identidad)">
-                <label for="identidad" class="block mb-2">Número de Identidad:</label>
-                <input type="text" id="identidad" x-model="identidad" class="form-control mb-4" maxlength="20" placeholder="Ingrese número de identidad" required autofocus>
-                <div class="flex justify-end gap-2">
-                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Buscar</button>
-                </div>
-            </form>
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md overflow-hidden"
+             x-data x-init="$watch('theme', t => localStorage.setItem('theme', t))">
+            <!-- Header con tema -->
+            <div class="flex items-center justify-between px-6 py-4 text-white"
+                :class="{
+                    'bg-emerald-600': theme === 'verde',
+                    'bg-blue-600': theme === 'azul',
+                    'bg-gray-900': theme === 'oscuro',
+                    'bg-slate-700': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
+                }">
+                <h2 class="text-lg font-semibold">
+                    <i class="fas fa-search me-2"></i>
+                    Buscar Cliente
+                </h2>
+                <button @click="open = false" class="text-white hover:text-gray-200 transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <!-- Body -->
+            <div class="p-6">
+                <form @submit.prevent="$wire.buscarClientePorIdentidad(identidad)">
+                    <label for="identidad" class="block mb-2 text-sm font-medium text-gray-700">Número de Identidad:</label>
+                    <input type="text" 
+                        id="identidad" 
+                        x-model="identidad" 
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-200 mb-4" 
+                        maxlength="20" 
+                        placeholder="Ingrese número de identidad" 
+                        required 
+                        autofocus>
+                    
+                    <div class="flex justify-end gap-3">
+                        <button type="button" 
+                            @click="open = false"
+                            class="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors">
+                            Cancelar
+                        </button>
+                        <button type="submit" 
+                            class="px-4 py-2 text-white rounded-lg transition-colors"
+                            :class="{
+                                'bg-emerald-600 hover:bg-emerald-700': theme === 'verde',
+                                'bg-blue-600 hover:bg-blue-700': theme === 'azul',
+                                'bg-gray-900 hover:bg-gray-800': theme === 'oscuro',
+                                'bg-slate-700 hover:bg-slate-800': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
+                            }">
+                            <i class="fas fa-search me-1"></i>
+                            Buscar
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
     @endif
@@ -28,26 +75,42 @@
 
     <!-- Modal de selección de clientes -->
     @if($mostrarModalClientesFlag)
-    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-        <div class="bg-white rounded-lg shadow-lg w-full max-w-6xl max-h-[90vh] overflow-hidden">
-            <div class="flex justify-between items-center p-4 border-b">
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+         @click.self="$wire.cerrarModalClientes()"
+         @keydown.escape.window="$wire.cerrarModalClientes()">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-6xl max-h-[90vh] overflow-hidden"
+             x-data x-init="$watch('theme', t => localStorage.setItem('theme', t))">
+            <!-- Header con tema -->
+            <div class="flex justify-between items-center px-6 py-4 text-white"
+                :class="{
+                    'bg-emerald-600': theme === 'verde',
+                    'bg-blue-600': theme === 'azul',
+                    'bg-gray-900': theme === 'oscuro',
+                    'bg-slate-700': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
+                }">
                 <h2 class="text-lg font-semibold">
                     <i class="fas fa-users me-2"></i>
                     Seleccionar Cliente
                 </h2>
-                <button wire:click="cerrarModalClientes" class="text-gray-400 hover:text-gray-600">
+                <button wire:click="cerrarModalClientes" class="text-white hover:text-gray-200 transition-colors">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                     </svg>
                 </button>
             </div>
-            <div class="p-4 overflow-y-auto max-h-[calc(90vh-120px)]">
+            
+            <div class="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
                 <!-- Buscador -->
                 <div class="mb-4">
-                    <input type="text" 
-                        wire:model.live.debounce.300ms="busquedaCliente"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-200"
-                        placeholder="Buscar cliente por nombre, identidad o RTN...">
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-search text-gray-400"></i>
+                        </div>
+                        <input type="text" 
+                            wire:model.live.debounce.300ms="busquedaCliente"
+                            class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-200"
+                            placeholder="Buscar cliente por nombre, identidad, RTN o correo...">
+                    </div>
                 </div>
                 
                 <!-- Tabla de clientes -->
@@ -62,12 +125,13 @@
                                 <th>Teléfono</th>
                                 <th>Dirección</th>
                                 <th>Estado</th>
-                                <th>Acción</th>
                             </tr>
                         </thead>
                         <tbody>
                             @forelse($clientesModal as $cliente)
-                                <tr class="align-middle">
+                                <tr class="align-middle cursor-pointer hover:bg-blue-50 transition-colors" 
+                                    wire:click="seleccionarClienteModal({{ $cliente->id }})"
+                                    title="Clic para seleccionar este cliente">
                                     <td>{{ $cliente->id }}</td>
                                     
                                     <td class="text-start">
@@ -96,15 +160,7 @@
                                     <td>{{ $cliente->telefono ?? 'N/A' }}</td>
 
                                     <td class="text-start">
-                                        @php
-                                            $direccionPartes = [];
-                                            if(!empty($cliente->departamento)) $direccionPartes[] = $cliente->departamento;
-                                            if(!empty($cliente->municipio)) $direccionPartes[] = $cliente->municipio;
-                                            if(!empty($cliente->colonia)) $direccionPartes[] = $cliente->colonia;
-                                            if(!empty($cliente->calle)) $direccionPartes[] = $cliente->calle;
-                                            $direccionCompleta = count($direccionPartes) > 0 ? implode(', ', array_slice($direccionPartes, 0, 2)) : 'Sin dirección';
-                                        @endphp
-                                        <small>{{ $direccionCompleta }}</small>
+                                        <small>{{ $cliente->direccion_completa ?? 'Sin dirección' }}</small>
                                     </td>
 
                                     <td>
@@ -112,17 +168,10 @@
                                             {{ $cliente->estado_id == 1 ? 'Activo' : 'Inactivo' }}
                                         </span>
                                     </td>
-                                    
-                                    <td>
-                                        <button wire:click="seleccionarClienteModal({{ $cliente->id }})" 
-                                            class="btn btn-sm btn-primary">
-                                            <i class="fas fa-check"></i> Seleccionar
-                                        </button>
-                                    </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="8" class="py-4 text-center text-muted">
+                                    <td colspan="7" class="py-4 text-center text-muted">
                                         <i class="mb-3 fas fa-users fa-2x"></i><br>
                                         No se encontraron clientes
                                     </td>
@@ -131,6 +180,16 @@
                         </tbody>
                     </table>
                 </div>
+                
+                <!-- Información adicional -->
+                @if(count($clientesModal) > 0)
+                    <div class="mt-4 text-center">
+                        <small class="text-muted">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Mostrando {{ count($clientesModal) }} cliente(s). Haz clic en una fila para seleccionar.
+                        </small>
+                    </div>
+                @endif
             </div>
         </div>
     </div>

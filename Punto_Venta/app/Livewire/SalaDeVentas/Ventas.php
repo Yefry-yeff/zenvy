@@ -6,6 +6,7 @@ use Livewire\Component;
 use App\Models\Cliente;
 use App\Models\Producto;
 use Livewire\Attributes\On;
+use Illuminate\Support\Facades\DB;
 
 class Ventas extends Component
 {
@@ -60,19 +61,29 @@ class Ventas extends Component
 
     public function cargarClientesModal()
     {
-        $query = Cliente::where('estado_id', 1); // Solo clientes activos
+        $query = Cliente::select([
+                'cliente.*',
+                DB::raw("CONCAT_WS(', ', 
+                    NULLIF(direccion.colonia, ''), 
+                    NULLIF(direccion.calle_blv, ''), 
+                    NULLIF(direccion.sector_zona, ''), 
+                    NULLIF(direccion.bloque, '')
+                ) as direccion_completa")
+            ])
+            ->leftJoin('direccion', 'cliente.direccion_id', '=', 'direccion.id')
+            ->where('cliente.estado_id', 1); // Solo clientes activos
         
         if (!empty($this->busquedaCliente)) {
             $query->where(function($q) {
-                $q->where('nombre', 'LIKE', "%{$this->busquedaCliente}%")
-                  ->orWhere('identidad', 'LIKE', "%{$this->busquedaCliente}%")
-                  ->orWhere('rtn', 'LIKE', "%{$this->busquedaCliente}%")
-                  ->orWhere('correo', 'LIKE', "%{$this->busquedaCliente}%");
+                $q->where('cliente.nombre', 'LIKE', "%{$this->busquedaCliente}%")
+                  ->orWhere('cliente.identidad', 'LIKE', "%{$this->busquedaCliente}%")
+                  ->orWhere('cliente.rtn', 'LIKE', "%{$this->busquedaCliente}%")
+                  ->orWhere('cliente.correo', 'LIKE', "%{$this->busquedaCliente}%");
             });
         }
         
         // Usar get() en lugar de paginate() para evitar problemas de serialización
-        $this->clientesModal = $query->orderBy('nombre')->limit(50)->get();
+        $this->clientesModal = $query->orderBy('cliente.nombre')->limit(50)->get();
     }
 
     public function updatedBusquedaCliente()
