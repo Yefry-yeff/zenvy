@@ -225,8 +225,7 @@ class ProductosSeccion extends Component
                 'producto.unidadMedidaCompra',      // Producto → Unidad de Medida Compra
                 'producto.unidadMedidaVenta'        // Producto → Unidad de Medida Venta
             ])
-            ->where('seccion_id', $this->seccionId)           // Solo de esta sección
-            ->where('cantidad_disponible', '>', 0);      // Solo con stock disponible
+            ->where('seccion_id', $this->seccionId);           // Solo de esta secció     // Solo con stock disponible
 
             // ===== APLICACIÓN DE FILTROS =====
 

@@ -44,7 +44,6 @@ class StockForm extends Component
 
     protected $rules = [
         'form.cantidad_distribuir' => 'required|integer|min:1',
-        'form.precio_unitario' => 'required|numeric|min:0.01',
         'form.fecha_distribucion' => 'required|date',
         'form.comentario' => 'nullable|string|max:400',
     ];
@@ -52,8 +51,6 @@ class StockForm extends Component
     protected $messages = [
         'form.cantidad_distribuir.required' => 'La cantidad a distribuir es obligatoria',
         'form.cantidad_distribuir.min' => 'La cantidad a distribuir debe ser mayor a 0',
-        'form.precio_unitario.required' => 'El precio unitario es obligatorio',
-        'form.precio_unitario.min' => 'El precio unitario debe ser mayor a 0.01',
         'form.fecha_distribucion.required' => 'La fecha de distribución es obligatoria',
         'form.comentario.max' => 'El comentario no puede exceder 400 caracteres',
     ];
@@ -287,9 +284,6 @@ class StockForm extends Component
     {
         return !empty($this->form['cantidad_distribuir']) &&
                $this->form['cantidad_distribuir'] > 0 &&
-               !empty($this->form['precio_unitario']) &&
-               $this->form['precio_unitario'] > 0 &&
-               !empty($this->form['fecha_distribucion']) &&
                $this->form['cantidad_distribuir'] <= $this->stockDisponible;
     }
 
