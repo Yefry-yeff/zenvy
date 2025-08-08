@@ -410,7 +410,7 @@
                             $isv = $subtotal * ($item['isv']/100);
                             $total = $subtotal + $isv;
                             $tieneErrorStock = isset($alertasStock[$item['id']]);
-                            $stockDisponible = $obtenerStockDisponible($item['id']);
+                            $stockDisponible = $this->obtenerStockDisponible($item['id']);
                         @endphp
                         <tr class="{{ $tieneErrorStock ? 'bg-yellow-50 border-yellow-200' : '' }}">
                             <td>
