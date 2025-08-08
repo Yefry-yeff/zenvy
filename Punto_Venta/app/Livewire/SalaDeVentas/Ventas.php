@@ -54,6 +54,13 @@ class Ventas extends Component
     // Variables para validación de stock
     public $tiendaUsuario = null;
     public $bodegaPrincipal = null;
+    public $mostrarModalSinStock = false;
+
+    // Propiedades para la vista de impresión
+    public $mostrarVistaImpresion = false;
+    public $facturaParaImprimir = null;
+    public $productosFacturaImpresa = [];
+    public $pagosFacturaImpresa = [];
 
     public function mount()
     {
@@ -374,6 +381,13 @@ class Ventas extends Component
 
     public function procesarDistribucionPagos()
     {
+        // DEBUG: Log inicial
+        Log::info("DEBUG procesarDistribucionPagos INICIO", [
+            'productos_factura' => count($this->productosFactura),
+            'montos_por_metodo' => $this->montosPorMetodo,
+            'total' => $this->total
+        ]);
+
         if (empty($this->productosFactura)) {
             session()->flash('error', 'No hay productos en la factura.');
             return;
@@ -381,6 +395,12 @@ class Ventas extends Component
 
         // Validar que la distribución sea correcta
         $totalDistribuido = array_sum($this->montosPorMetodo);
+        
+        Log::info("DEBUG Validación distribución", [
+            'total_distribuido' => $totalDistribuido,
+            'total_factura' => $this->total,
+            'diferencia' => $totalDistribuido - $this->total
+        ]);
         
         if ($totalDistribuido < $this->total) {
             $faltante = $this->total - $totalDistribuido;
@@ -411,6 +431,11 @@ class Ventas extends Component
             }
         }
         
+        Log::info("DEBUG Métodos activos", [
+            'metodos_activos' => $this->metodosActivosParaPago,
+            'cambio_total' => $cambioTotal
+        ]);
+        
         // Mensaje informativo si hay cambio
         if ($cambioTotal > 0) {
             session()->flash('info', 'Se procesará el pago con cambio de L. ' . number_format($cambioTotal, 2));
@@ -418,21 +443,118 @@ class Ventas extends Component
         
         $this->cerrarModalPago();
         
-        // Determinar el flujo según los métodos activos
-        $tieneEfectivo = collect($this->metodosActivosParaPago)->contains('nombre', 'Efectivo');
-        $tieneOtros = collect($this->metodosActivosParaPago)->contains(function($metodo) {
-            return $metodo['nombre'] !== 'Efectivo';
-        });
+        Log::info("DEBUG Antes de finalizar venta");
         
-        if ($tieneEfectivo && $tieneOtros) {
-            // Pago mixto
-            $this->procesarPagoMixtoDistribucion();
-        } elseif ($tieneEfectivo) {
-            // Solo efectivo
-            $this->procesarSoloEfectivoDistribucion();
-        } else {
-            // Solo otros métodos (tarjeta/cheque)
-            $this->procesarSoloOtrosDistribucion();
+        // En lugar de los modales intermedios, procesar directamente la venta
+        $this->finalizarVentaConDistribucion();
+    }
+    
+    public function finalizarVentaConDistribucion()
+    {
+        Log::info("DEBUG finalizarVentaConDistribucion INICIO");
+        
+        try {
+            DB::beginTransaction();
+            
+            Log::info("DEBUG Transacción iniciada");
+            
+            // Crear la factura principal
+            $factura = new Factura();
+            $factura->cai_id = 1; // Valor por defecto para CAI
+            $factura->tipo_facturacion_id = 1; // Asumiendo que 1 es venta normal
+            $factura->numero_factura = $this->generarNumeroFactura();
+            $factura->nombre_cliente = $this->cliente ? $this->cliente->nombre_completo : 'Consumidor Final';
+            $factura->rtn = $this->cliente ? $this->cliente->rtn : null;
+            $factura->sub_total = $this->subtotal;
+            $factura->sub_total_grabado = $this->subtotal; // Por ahora todo gravado
+            $factura->sub_total_exento = 0; // Por ahora sin exentos
+            $factura->isv = $this->totalIsv;
+            $factura->total = $this->total;
+            $factura->credito = 0;
+            $factura->fecha_emision = now()->format('Y-m-d');
+            $factura->estado_factura_id = 1; // Asumiendo que 1 es "Activa"
+            $factura->users_id = Auth::id();
+            
+            Log::info("DEBUG Datos de factura preparados", [
+                'numero_factura' => $factura->numero_factura,
+                'nombre_cliente' => $factura->nombre_cliente,
+                'total' => $factura->total,
+                'user_id' => $factura->users_id
+            ]);
+            
+            $factura->save();
+            
+            Log::info("DEBUG Factura guardada con ID: " . $factura->id);
+            
+            // Guardar productos de la factura
+            foreach ($this->productosFactura as $producto) {
+                DB::table('factura_has_producto')->insert([
+                    'factura_id' => $factura->id,
+                    'producto_id' => $producto['id'],
+                    'seccion_id' => 1, // Valor por defecto
+                    'unidad_medida_id' => 1, // Valor por defecto
+                    'indice' => 1, // Valor por defecto
+                    'numero_unidades_resta_inventario' => $producto['cantidad'],
+                    'unidades_nota_credito_resta_inventario' => 0,
+                    'resta_inventario_total' => $producto['cantidad'],
+                    'precio_unidad' => $producto['precio'],
+                    'cantidad' => $producto['cantidad'],
+                    'subtotal' => $producto['cantidad'] * $producto['precio'],
+                    'isv' => $producto['isv'],
+                    'total' => ($producto['cantidad'] * $producto['precio']) + $producto['isv'],
+                    'idPrecioSeleccionado' => '1',
+                    'precio_seleccionado' => $producto['precio']
+                ]);
+                
+                Log::info("DEBUG Producto guardado", [
+                    'producto_id' => $producto['id'],
+                    'cantidad' => $producto['cantidad']
+                ]);
+                
+                // Actualizar stock en bodega principal
+                $this->actualizarStockVenta($producto['id'], $producto['cantidad'], $factura->id);
+            }
+            
+            // Guardar métodos de pago usando la distribución
+            $this->guardarMetodosPagoDistribucion($factura->id);
+            
+            DB::commit();
+            
+            Log::info("DEBUG Transacción confirmada");
+            
+            // Cargar datos para la vista de impresión
+            $this->cargarDatosParaImpresion($factura->id);
+            
+            Log::info("DEBUG Datos cargados para impresión");
+            
+            // Cambiar a vista de impresión
+            $this->mostrarVistaImpresion = true;
+            
+            Log::info("DEBUG Vista de impresión activada");
+            
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error("ERROR en finalizarVentaConDistribucion", [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            session()->flash('error', 'Error al procesar la venta: ' . $e->getMessage());
+        }
+    }
+    
+    private function guardarMetodosPagoDistribucion($facturaId)
+    {
+        foreach ($this->metodosActivosParaPago as $metodo) {
+            $tipoPago = TipoPago::find($metodo['id']);
+            if ($tipoPago && $metodo['monto'] > 0) {
+                DB::table('factura_has_pago')->insert([
+                    'factura_id' => $facturaId,
+                    'tipo_pago_id' => $tipoPago->id,
+                    'monto' => $metodo['monto'],
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ]);
+            }
         }
     }
 
@@ -524,7 +646,8 @@ class Ventas extends Component
             $this->cerrarModalEfectivo();
             $this->mostrarModalTarjetaFlag = true;
         } else {
-            // Solo efectivo, finalizar venta
+            // Solo efectivo, finalizar venta inmediatamente
+            $this->cerrarModalEfectivo();
             $this->finalizarVenta('efectivo');
         }
     }
@@ -543,6 +666,8 @@ class Ventas extends Component
             return;
         }
 
+        $this->cerrarModalTarjeta();
+        
         // Verificar si hubo efectivo también
         if ($this->montoEfectivo > 0) {
             // Pago mixto completado
@@ -556,35 +681,211 @@ class Ventas extends Component
     public function finalizarVenta($tipoPago)
     {
         try {
-            // Aquí implementaremos la lógica para guardar la venta completa
-            // con el detalle de pagos
+            DB::beginTransaction();
             
-            $mensaje = '';
-            switch ($tipoPago) {
-                case 'efectivo':
-                    $mensaje = 'Venta completada con pago en efectivo.';
-                    if ($this->cambio > 0) {
-                        $mensaje .= ' Cambio a entregar: L. ' . number_format($this->cambio, 2);
-                    }
-                    break;
-                case 'tarjeta':
-                    $mensaje = 'Venta completada con pago en tarjeta.';
-                    break;
-                case 'mixto':
-                    $mensaje = 'Venta completada con pago mixto (efectivo + tarjeta).';
-                    if ($this->cambio > 0) {
-                        $mensaje .= ' Cambio a entregar: L. ' . number_format($this->cambio, 2);
-                    }
-                    break;
+            // Crear la factura principal
+            $factura = new Factura();
+            $factura->tipo_facturacion_id = 1; // Asumiendo que 1 es venta normal
+            $factura->numero_factura = $this->generarNumeroFactura();
+            $factura->nombre_cliente = $this->cliente ? $this->cliente->nombre_completo : 'Consumidor Final';
+            $factura->rtn = $this->cliente ? $this->cliente->rtn : null;
+            $factura->sub_total = $this->subtotal;
+            $factura->sub_total_grabado = $this->subtotal; // Por ahora todo gravado
+            $factura->sub_total_exento = 0; // Por ahora sin exentos
+            $factura->isv = $this->totalIsv;
+            $factura->total = $this->total;
+            $factura->credito = 0;
+            $factura->fecha_emision = now()->format('Y-m-d');
+            $factura->estado_factura_id = 1; // Asumiendo que 1 es "Activa"
+            $factura->users_id = Auth::id();
+            $factura->save();
+            
+            // Guardar productos de la factura
+            foreach ($this->productosFactura as $producto) {
+                DB::table('factura_has_producto')->insert([
+                    'factura_id' => $factura->id,
+                    'producto_id' => $producto['id'],
+                    'seccion_id' => 1, // Valor por defecto
+                    'unidad_medida_id' => 1, // Valor por defecto
+                    'indice' => 1, // Valor por defecto
+                    'numero_unidades_resta_inventario' => $producto['cantidad'],
+                    'unidades_nota_credito_resta_inventario' => 0,
+                    'resta_inventario_total' => $producto['cantidad'],
+                    'precio_unidad' => $producto['precio'],
+                    'cantidad' => $producto['cantidad'],
+                    'subtotal' => $producto['cantidad'] * $producto['precio'],
+                    'isv' => $producto['isv'],
+                    'total' => ($producto['cantidad'] * $producto['precio']) + $producto['isv'],
+                    'idPrecioSeleccionado' => '1',
+                    'precio_seleccionado' => $producto['precio']
+                ]);
+                
+                // Actualizar stock en bodega principal
+                $this->actualizarStockVenta($producto['id'], $producto['cantidad'], $factura->id);
             }
-
-            session()->flash('success', $mensaje);
             
-            // Limpiar el estado
-            $this->limpiarEstadoVenta();
+            // Guardar métodos de pago
+            $this->guardarMetodosPago($factura->id, $tipoPago);
+            
+            DB::commit();
+            
+            // Cargar datos para la vista de impresión
+            $this->cargarDatosParaImpresion($factura->id);
+            
+            // Cambiar a vista de impresión
+            $this->mostrarVistaImpresion = true;
             
         } catch (\Exception $e) {
+            DB::rollBack();
             session()->flash('error', 'Error al procesar la venta: ' . $e->getMessage());
+        }
+    }
+    
+    private function cargarDatosParaImpresion($facturaId)
+    {
+        // Cargar la factura
+        $this->facturaParaImprimir = Factura::find($facturaId);
+        
+        // Cargar productos
+        $this->productosFacturaImpresa = DB::table('factura_has_producto as fp')
+            ->join('producto as p', 'fp.producto_id', '=', 'p.id')
+            ->where('fp.factura_id', $facturaId)
+            ->select(
+                'p.nombre',
+                'p.codigo_barra',
+                'fp.cantidad',
+                'fp.precio_unidad',
+                'fp.total',
+                'fp.isv'
+            )
+            ->get()->toArray();
+            
+        // Cargar métodos de pago
+        $this->pagosFacturaImpresa = DB::table('factura_has_pago as fp')
+            ->join('tipo_pago as tp', 'fp.tipo_pago_id', '=', 'tp.id')
+            ->where('fp.factura_id', $facturaId)
+            ->select('tp.nombre as metodo', 'fp.pago_recibido')
+            ->get()->toArray();
+    }
+    
+    public function volverAVentas()
+    {
+        $this->mostrarVistaImpresion = false;
+        $this->facturaParaImprimir = null;
+        $this->productosFacturaImpresa = [];
+        $this->pagosFacturaImpresa = [];
+        
+        // Limpiar estado de venta
+        $this->limpiarEstadoVenta();
+    }
+    
+    private function generarNumeroFactura()
+    {
+        $ultimo = Factura::orderBy('id', 'desc')->first();
+        $numero = $ultimo ? $ultimo->id + 1 : 1;
+        return str_pad($numero, 8, '0', STR_PAD_LEFT);
+    }
+    
+    private function actualizarStockVenta($productoId, $cantidad, $facturaId)
+    {
+        // Buscar la bodega principal
+        $bodegaPrincipal = Bodega::where('principal', 1)->first();
+        
+        if (!$bodegaPrincipal) {
+            throw new \Exception('No se encontró bodega principal');
+        }
+        
+        // Buscar el stock en la bodega principal para este producto
+        $stock = DB::table('recibido_bodega as rb')
+            ->join('seccion as s', 'rb.seccion_id', '=', 's.id')
+            ->join('segmento as seg', 's.segmento_id', '=', 'seg.id')
+            ->where('seg.bodega_id', $bodegaPrincipal->id)
+            ->where('rb.producto_id', $productoId)
+            ->where('rb.cantidad_disponible', '>', 0)
+            ->orderBy('rb.fecha_recibido', 'asc')
+            ->get();
+            
+        $cantidadRestante = $cantidad;
+        
+        foreach ($stock as $lote) {
+            if ($cantidadRestante <= 0) break;
+            
+            $cantidadADescontar = min($cantidadRestante, $lote->cantidad_disponible);
+            
+            DB::table('recibido_bodega')
+                ->where('id', $lote->id)
+                ->decrement('cantidad_disponible', $cantidadADescontar);
+                
+            $cantidadRestante -= $cantidadADescontar;
+            
+            // Registrar en detalle_factura_lote
+            DB::table('detalle_factura_lote')->insert([
+                'factura_id' => $facturaId,
+                'producto_id' => $productoId,
+                'recibido_bodega_id' => $lote->id,
+                'cantidad_usada' => $cantidadADescontar,
+                'precio_unitario' => 0, // Por el momento usar 0, luego se puede obtener del producto
+                'created_at' => now(),
+                'updated_at' => now()
+            ]);
+        }
+        
+        if ($cantidadRestante > 0) {
+            throw new \Exception("Stock insuficiente para el producto ID: $productoId");
+        }
+    }
+    
+    private function guardarMetodosPago($facturaId, $tipoPago)
+    {
+        switch ($tipoPago) {
+            case 'efectivo':
+                $tipoPagoId = TipoPago::where('nombre', 'Efectivo')->first()->id;
+                DB::table('factura_has_pago')->insert([
+                    'factura_id' => $facturaId,
+                    'tipo_pago_id' => $tipoPagoId,
+                    'monto' => $this->total,
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ]);
+                break;
+                
+            case 'tarjeta':
+                $tipoPagoId = TipoPago::where('nombre', 'Tarjeta')->first()->id;
+                DB::table('factura_has_pago')->insert([
+                    'factura_id' => $facturaId,
+                    'tipo_pago_id' => $tipoPagoId,
+                    'monto' => $this->total,
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ]);
+                break;
+                
+            case 'mixto':
+                // Efectivo
+                if ($this->montoEfectivo > 0) {
+                    $tipoPagoEfectivoId = TipoPago::where('nombre', 'Efectivo')->first()->id;
+                    DB::table('factura_has_pago')->insert([
+                        'factura_id' => $facturaId,
+                        'tipo_pago_id' => $tipoPagoEfectivoId,
+                        'monto' => $this->montoEfectivo,
+                        'created_at' => now(),
+                        'updated_at' => now()
+                    ]);
+                }
+                
+                // Tarjeta
+                $montoTarjeta = $this->total - $this->montoEfectivo;
+                if ($montoTarjeta > 0) {
+                    $tipoPagoTarjetaId = TipoPago::where('nombre', 'Tarjeta')->first()->id;
+                    DB::table('factura_has_pago')->insert([
+                        'factura_id' => $facturaId,
+                        'tipo_pago_id' => $tipoPagoTarjetaId,
+                        'monto' => $montoTarjeta,
+                        'created_at' => now(),
+                        'updated_at' => now()
+                    ]);
+                }
+                break;
         }
     }
 
@@ -724,9 +1025,44 @@ class Ventas extends Component
             return 0;
         }
     }
+    
+    public function limpiarEstadoVenta()
+    {
+        $this->productosFactura = [];
+        $this->cliente = null;
+        $this->busquedaCliente = '';
+        $this->calcularTotales();
+        
+        // Limpiar variables de pago
+        $this->mostrarModalPagoFlag = false;
+        $this->mostrarModalEfectivoFlag = false;
+        $this->mostrarModalTarjetaFlag = false;
+        $this->mostrarModalClientesFlag = false;
+        $this->mostrarModalSinStock = false;
+        
+        // Resetear montos de pago
+        $this->montosPorMetodo = [];
+        $this->metodosActivosParaPago = [];
+        $this->montoEfectivo = 0;
+        $this->montoTarjeta = 0;
+        $this->efectivoRecibido = 0;
+        $this->cambio = 0;
+        
+        // Limpiar campos de entrada
+        $this->codigoBarras = '';
+        $this->cantidad = 1;
+    }
 
     public function render()
     {
+        if ($this->mostrarVistaImpresion) {
+            return view('livewire.sala-de-ventas.factura-impresion', [
+                'factura' => $this->facturaParaImprimir,
+                'productos' => $this->productosFacturaImpresa,
+                'pagos' => $this->pagosFacturaImpresa
+            ]);
+        }
+        
         return view('livewire.sala-de-ventas.ventas', [
             'tiposPago' => $this->tiposPago
         ]);
