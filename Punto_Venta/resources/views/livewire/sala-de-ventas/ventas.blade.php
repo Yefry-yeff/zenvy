@@ -430,9 +430,9 @@
                     </div>
                 </div>
 
-                <!-- Guardar factura -->
+                <!-- Procesar Pago -->
                 <div class="flex justify-end">
-                    <button wire:click="guardarFactura" 
+                    <button wire:click="mostrarModalPago" 
                         class="px-6 py-2 text-white rounded-lg transition-colors"
                         :class="{
                             'bg-emerald-600 hover:bg-emerald-700': theme === 'verde',
@@ -441,11 +441,284 @@
                             'bg-slate-700 hover:bg-slate-800': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
                         }"
                         @if(count($productosFactura) == 0) disabled @endif>
-                        <i class="fas fa-save me-1"></i>
-                        Guardar Factura
+                        <i class="fas fa-credit-card me-1"></i>
+                        Procesar Pago
                     </button>
                 </div>
             </div>
         </div>
+    @endif
+
+    <!-- Modal de métodos de pago -->
+    @if($mostrarModalPagoFlag)
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+         @click.self="$wire.cerrarModalPago()"
+         @keydown.escape.window="$wire.cerrarModalPago()">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl overflow-hidden"
+             x-data x-init="$watch('theme', t => localStorage.setItem('theme', t))">
+            <!-- Header con tema -->
+            <div class="flex justify-between items-center px-6 py-4 text-white"
+                :class="{
+                    'bg-emerald-600': theme === 'verde',
+                    'bg-blue-600': theme === 'azul',
+                    'bg-gray-900': theme === 'oscuro',
+                    'bg-slate-700': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
+                }">
+                <h2 class="text-lg font-semibold">
+                    <i class="fas fa-credit-card me-2"></i>
+                    Seleccionar Método de Pago
+                </h2>
+                <button wire:click="cerrarModalPago" class="text-white hover:text-gray-200 transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <div class="p-6">
+                <!-- Total a pagar -->
+                <div class="mb-6 p-4 bg-gray-100 rounded-lg">
+                    <div class="text-center">
+                        <span class="text-lg font-semibold text-gray-700">Total a Pagar:</span>
+                        <div class="text-2xl font-bold text-green-600">L. {{ number_format($total, 2) }}</div>
+                    </div>
+                </div>
+
+                <!-- Métodos de pago -->
+                <div class="mb-6">
+                    <h3 class="text-lg font-medium text-gray-800 mb-4">Seleccione método(s) de pago:</h3>
+                    
+                    <div class="space-y-3">
+                        @forelse($tiposPago as $tipoPago)
+                            <div class="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                                <input type="checkbox" 
+                                    id="pago_{{ $tipoPago->id }}"
+                                    wire:model="metodosPagoSeleccionados"
+                                    value="{{ $tipoPago->id }}"
+                                    class="w-5 h-5 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2">
+                                <label for="pago_{{ $tipoPago->id }}" class="ml-3 text-lg font-medium text-gray-700 cursor-pointer flex-1">
+                                    {{ $tipoPago->nombre }}
+                                </label>
+                                @if(in_array($tipoPago->id, $metodosPagoSeleccionados ?? []))
+                                    <i class="fas fa-check-circle text-green-500"></i>
+                                @endif
+                            </div>
+                        @empty
+                            <div class="text-center text-gray-500 py-4">
+                                <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
+                                <p>No hay métodos de pago configurados</p>
+                            </div>
+                        @endforelse
+                    </div>
+                </div>
+
+                <!-- Botones de acción -->
+                <div class="flex justify-end gap-3">
+                    <button wire:click="cerrarModalPago" 
+                        class="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors">
+                        Cancelar
+                    </button>
+                    <button wire:click="procesarMetodosPago" 
+                        class="px-6 py-2 text-white rounded-lg transition-colors"
+                        :class="{
+                            'bg-emerald-600 hover:bg-emerald-700': theme === 'verde',
+                            'bg-blue-600 hover:bg-blue-700': theme === 'azul',
+                            'bg-gray-900 hover:bg-gray-800': theme === 'oscuro',
+                            'bg-slate-700 hover:bg-slate-800': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
+                        }"
+                        @if(empty($metodosPagoSeleccionados)) disabled @endif>
+                        <i class="fas fa-arrow-right me-1"></i>
+                        Continuar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    <!-- Modal de pago en efectivo -->
+    @if($mostrarModalEfectivoFlag)
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+         @click.self="$wire.cerrarModalEfectivo()"
+         @keydown.escape.window="$wire.cerrarModalEfectivo()">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md overflow-hidden"
+             x-data="{ efectivoRecibido: @entangle('efectivoRecibido') }"
+             x-init="$watch('theme', t => localStorage.setItem('theme', t))">
+            <!-- Header con tema -->
+            <div class="flex justify-between items-center px-6 py-4 text-white"
+                :class="{
+                    'bg-emerald-600': theme === 'verde',
+                    'bg-blue-600': theme === 'azul',
+                    'bg-gray-900': theme === 'oscuro',
+                    'bg-slate-700': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
+                }">
+                <h2 class="text-lg font-semibold">
+                    <i class="fas fa-money-bill-wave me-2"></i>
+                    Pago en Efectivo
+                </h2>
+            </div>
+            
+            <div class="p-6">
+                <!-- Información de pago mixto -->
+                @if(count($metodosPagoSeleccionados) > 1)
+                    <div class="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                        <div class="flex items-center">
+                            <i class="fas fa-info-circle text-yellow-600 me-2"></i>
+                            <div>
+                                <span class="text-sm font-medium text-yellow-800">Pago Mixto</span>
+                                <p class="text-xs text-yellow-700">Ingrese la cantidad que el cliente paga en efectivo. El resto se procesará con otro método.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Input para ajustar monto en efectivo -->
+                    <div class="mb-4">
+                        <label for="monto_efectivo" class="block text-sm font-medium text-gray-700 mb-2">
+                            Monto a pagar en efectivo:
+                        </label>
+                        <input type="number" 
+                            id="monto_efectivo"
+                            wire:model.live="montoEfectivo"
+                            step="0.01"
+                            min="0"
+                            max="{{ $total }}"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-200 text-lg text-center"
+                            placeholder="0.00">
+                    </div>
+                @endif
+
+                <!-- Total a pagar en efectivo -->
+                <div class="mb-4 p-3 bg-blue-50 rounded-lg text-center">
+                    <span class="text-sm font-medium text-gray-700">
+                        @if(count($metodosPagoSeleccionados) > 1)
+                            Cantidad en efectivo:
+                        @else
+                            Total a pagar:
+                        @endif
+                    </span>
+                    <div class="text-xl font-bold text-blue-600">L. {{ number_format($montoEfectivo ?? $total, 2) }}</div>
+                    
+                    @if(count($metodosPagoSeleccionados) > 1 && ($montoEfectivo ?? 0) > 0)
+                        <div class="text-sm text-gray-600 mt-1">
+                            Restante: L. {{ number_format($total - ($montoEfectivo ?? 0), 2) }}
+                        </div>
+                    @endif
+                </div>
+
+                <!-- Input de efectivo recibido -->
+                <div class="mb-4">
+                    <label for="efectivo_recibido" class="block text-sm font-medium text-gray-700 mb-2">
+                        Efectivo recibido del cliente:
+                    </label>
+                    <input type="number" 
+                        id="efectivo_recibido"
+                        wire:model.live="efectivoRecibido"
+                        step="0.01"
+                        min="0"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-200 text-lg text-center"
+                        placeholder="0.00"
+                        autofocus>
+                </div>
+
+                <!-- Cálculo de cambio -->
+                @if($efectivoRecibido > 0)
+                    @php
+                        $montoAPagar = $montoEfectivo ?? $total;
+                        $cambio = $efectivoRecibido - $montoAPagar;
+                    @endphp
+                    
+                    <div class="mb-4 p-3 rounded-lg {{ $cambio >= 0 ? 'bg-green-50' : 'bg-red-50' }}">
+                        @if($cambio >= 0)
+                            <div class="text-center">
+                                <span class="text-sm font-medium text-green-700">Cambio a entregar:</span>
+                                <div class="text-xl font-bold text-green-600">L. {{ number_format($cambio, 2) }}</div>
+                            </div>
+                        @else
+                            <div class="text-center">
+                                <span class="text-sm font-medium text-red-700">Falta por pagar:</span>
+                                <div class="text-xl font-bold text-red-600">L. {{ number_format(abs($cambio), 2) }}</div>
+                            </div>
+                        @endif
+                    </div>
+                @endif
+
+                <!-- Botones de acción -->
+                <div class="flex justify-end gap-3">
+                    <button wire:click="cerrarModalEfectivo" 
+                        class="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors">
+                        Cancelar
+                    </button>
+                    <button wire:click="confirmarPagoEfectivo" 
+                        class="px-6 py-2 text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors"
+                        @if($efectivoRecibido <= 0 || $efectivoRecibido < ($montoEfectivo ?? $total)) disabled @endif>
+                        <i class="fas fa-check me-1"></i>
+                        Confirmar Pago
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    <!-- Modal de confirmación de pago con tarjeta/cheque -->
+    @if($mostrarModalTarjetaFlag)
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+         @click.self="$wire.cerrarModalTarjeta()"
+         @keydown.escape.window="$wire.cerrarModalTarjeta()">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md overflow-hidden"
+             x-data x-init="$watch('theme', t => localStorage.setItem('theme', t))">
+            <!-- Header con tema -->
+            <div class="flex justify-between items-center px-6 py-4 text-white"
+                :class="{
+                    'bg-emerald-600': theme === 'verde',
+                    'bg-blue-600': theme === 'azul',
+                    'bg-gray-900': theme === 'oscuro',
+                    'bg-slate-700': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
+                }">
+                <h2 class="text-lg font-semibold">
+                    <i class="fas fa-credit-card me-2"></i>
+                    Confirmar Pago
+                </h2>
+            </div>
+            
+            <div class="p-6">
+                <!-- Monto a procesar -->
+                <div class="mb-6 p-4 bg-blue-50 rounded-lg text-center">
+                    <span class="text-sm font-medium text-gray-700">Monto a procesar:</span>
+                    <div class="text-2xl font-bold text-blue-600">L. {{ number_format($montoTarjeta ?? $total, 2) }}</div>
+                </div>
+
+                <!-- Mensaje de confirmación -->
+                <div class="mb-6 text-center">
+                    <div class="mb-4">
+                        <i class="fas fa-credit-card fa-3x text-blue-500 mb-3"></i>
+                        <p class="text-lg font-medium text-gray-800">¿Se procesó correctamente el pago?</p>
+                        <p class="text-sm text-gray-600 mt-2">
+                            Confirme que la transacción fue exitosa
+                            @if(in_array(2, $metodosPagoSeleccionados ?? []))
+                                en el terminal de pago
+                            @elseif(in_array(3, $metodosPagoSeleccionados ?? []))
+                                con el cheque
+                            @endif
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Botones de confirmación -->
+                <div class="flex justify-center gap-4">
+                    <button wire:click="confirmarPagoTarjeta(false)" 
+                        class="px-6 py-3 text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors">
+                        <i class="fas fa-times me-2"></i>
+                        No, falló el pago
+                    </button>
+                    <button wire:click="confirmarPagoTarjeta(true)" 
+                        class="px-6 py-3 text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors">
+                        <i class="fas fa-check me-2"></i>
+                        Sí, pago exitoso
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
     @endif
 </div>

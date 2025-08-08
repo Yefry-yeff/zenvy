@@ -5,6 +5,7 @@ namespace App\Livewire\SalaDeVentas;
 use Livewire\Component;
 use App\Models\Cliente;
 use App\Models\Producto;
+use App\Models\TipoPago;
 use Livewire\Attributes\On;
 use Illuminate\Support\Facades\DB;
 
@@ -30,9 +31,30 @@ class Ventas extends Component
     public $total = 0;
     public $isvPorTasa = []; // Nuevo: ISV agrupado por tasa
 
+    // Variables para procesamiento de pagos
+    public $mostrarModalPagoFlag = false;
+    public $mostrarModalEfectivoFlag = false;
+    public $mostrarModalTarjetaFlag = false;
+    public $tiposPago = [];
+    public $metodosPagoSeleccionados = [];
+    
+    // Variables para pago en efectivo
+    public $efectivoRecibido = 0;
+    public $montoEfectivo = 0;
+    public $cambio = 0;
+    
+    // Variables para pago con tarjeta
+    public $montoTarjeta = 0;
+
     public function mount()
     {
         $this->clientesModal = collect(); // Inicializar como colección vacía
+        $this->cargarTiposPago();
+    }
+
+    public function cargarTiposPago()
+    {
+        $this->tiposPago = TipoPago::all();
     }
 
     public function buscarClientePorIdentidad($identidad)
@@ -238,8 +260,188 @@ class Ventas extends Component
         }
     }
 
+    // Métodos para procesamiento de pagos
+    public function mostrarModalPago()
+    {
+        if (count($this->productosFactura) === 0) {
+            session()->flash('error', 'Debe agregar al menos un producto para procesar el pago');
+            return;
+        }
+        
+        $this->mostrarModalPagoFlag = true;
+        $this->metodosPagoSeleccionados = [];
+    }
+
+    public function cerrarModalPago()
+    {
+        $this->mostrarModalPagoFlag = false;
+        $this->metodosPagoSeleccionados = [];
+    }
+
+    public function procesarMetodosPago()
+    {
+        if (empty($this->metodosPagoSeleccionados)) {
+            session()->flash('error', 'Debe seleccionar al menos un método de pago');
+            return;
+        }
+
+        // Obtener los nombres de los métodos seleccionados
+        $metodosSeleccionados = TipoPago::whereIn('id', $this->metodosPagoSeleccionados)->pluck('nombre', 'id');
+        
+        // Determinar el flujo según los métodos seleccionados
+        $tieneEfectivo = $metodosSeleccionados->contains('Efectivo');
+        $tieneTarjeta = $metodosSeleccionados->contains('Tarjeta');
+        $tieneCheque = $metodosSeleccionados->contains('Cheque');
+
+        $this->cerrarModalPago();
+
+        if ($tieneEfectivo && ($tieneTarjeta || $tieneCheque)) {
+            // Pago mixto: Efectivo + otro método
+            $this->procesarPagoMixto();
+        } elseif ($tieneEfectivo) {
+            // Solo efectivo
+            $this->procesarSoloEfectivo();
+        } elseif ($tieneTarjeta) {
+            // Solo tarjeta
+            $this->procesarSoloTarjeta();
+        } elseif ($tieneCheque) {
+            // Solo cheque (tratar como tarjeta para confirmación)
+            $this->procesarSoloTarjeta();
+        }
+    }
+
+    public function procesarSoloEfectivo()
+    {
+        $this->montoEfectivo = $this->total;
+        $this->efectivoRecibido = 0;
+        $this->mostrarModalEfectivoFlag = true;
+    }
+
+    public function procesarSoloTarjeta()
+    {
+        $this->montoTarjeta = $this->total;
+        $this->mostrarModalTarjetaFlag = true;
+    }
+
+    public function procesarPagoMixto()
+    {
+        // Para pago mixto, primero preguntamos cuánto paga en efectivo
+        $this->montoEfectivo = $this->total; // Inicialmente el total, el usuario ajustará
+        $this->efectivoRecibido = 0;
+        $this->mostrarModalEfectivoFlag = true;
+    }
+
+    public function cerrarModalEfectivo()
+    {
+        $this->mostrarModalEfectivoFlag = false;
+        $this->efectivoRecibido = 0;
+        $this->montoEfectivo = 0;
+    }
+
+    public function confirmarPagoEfectivo()
+    {
+        if ($this->efectivoRecibido < $this->montoEfectivo) {
+            session()->flash('error', 'El efectivo recibido es insuficiente');
+            return;
+        }
+
+        $this->cambio = $this->efectivoRecibido - $this->montoEfectivo;
+        
+        // Verificar si es pago mixto
+        $metodosSeleccionados = TipoPago::whereIn('id', $this->metodosPagoSeleccionados)->pluck('nombre');
+        $tieneMetodoNoEfectivo = $metodosSeleccionados->contains('Tarjeta') || $metodosSeleccionados->contains('Cheque');
+        
+        if ($tieneMetodoNoEfectivo && $this->montoEfectivo < $this->total) {
+            // Es pago mixto, continuar con tarjeta
+            $this->montoTarjeta = $this->total - $this->montoEfectivo;
+            $this->cerrarModalEfectivo();
+            $this->mostrarModalTarjetaFlag = true;
+        } else {
+            // Solo efectivo, finalizar venta
+            $this->finalizarVenta('efectivo');
+        }
+    }
+
+    public function cerrarModalTarjeta()
+    {
+        $this->mostrarModalTarjetaFlag = false;
+        $this->montoTarjeta = 0;
+    }
+
+    public function confirmarPagoTarjeta($pagoExitoso)
+    {
+        if (!$pagoExitoso) {
+            $this->cerrarModalTarjeta();
+            session()->flash('error', 'El pago con tarjeta no fue procesado correctamente. Intente nuevamente.');
+            return;
+        }
+
+        // Verificar si hubo efectivo también
+        if ($this->montoEfectivo > 0) {
+            // Pago mixto completado
+            $this->finalizarVenta('mixto');
+        } else {
+            // Solo tarjeta
+            $this->finalizarVenta('tarjeta');
+        }
+    }
+
+    public function finalizarVenta($tipoPago)
+    {
+        try {
+            // Aquí implementaremos la lógica para guardar la venta completa
+            // con el detalle de pagos
+            
+            $mensaje = '';
+            switch ($tipoPago) {
+                case 'efectivo':
+                    $mensaje = 'Venta completada con pago en efectivo.';
+                    if ($this->cambio > 0) {
+                        $mensaje .= ' Cambio a entregar: L. ' . number_format($this->cambio, 2);
+                    }
+                    break;
+                case 'tarjeta':
+                    $mensaje = 'Venta completada con pago en tarjeta.';
+                    break;
+                case 'mixto':
+                    $mensaje = 'Venta completada con pago mixto (efectivo + tarjeta).';
+                    if ($this->cambio > 0) {
+                        $mensaje .= ' Cambio a entregar: L. ' . number_format($this->cambio, 2);
+                    }
+                    break;
+            }
+
+            session()->flash('success', $mensaje);
+            
+            // Limpiar el estado
+            $this->limpiarEstadoVenta();
+            
+        } catch (\Exception $e) {
+            session()->flash('error', 'Error al procesar la venta: ' . $e->getMessage());
+        }
+    }
+
+    public function limpiarEstadoVenta()
+    {
+        $this->cliente = null;
+        $this->productosFactura = [];
+        $this->calcularTotales();
+        
+        // Limpiar variables de pago
+        $this->mostrarModalPagoFlag = false;
+        $this->mostrarModalEfectivoFlag = false;
+        $this->mostrarModalTarjetaFlag = false;
+        $this->metodosPagoSeleccionados = [];
+        $this->efectivoRecibido = 0;
+        $this->montoEfectivo = 0;
+        $this->montoTarjeta = 0;
+        $this->cambio = 0;
+    }
+
     public function render()
     {
-        return view('livewire.sala-de-ventas.ventas');
+        return view('livewire.sala-de-ventas.ventas', [
+            'tiposPago' => $this->tiposPago
+        ]);
     }
 }
