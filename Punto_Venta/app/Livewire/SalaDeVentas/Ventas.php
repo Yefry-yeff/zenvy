@@ -610,16 +610,38 @@ class Ventas extends Component
             return false;
         }
 
-        $validacion = Factura::validarStockBodegaPrincipal(
-            $productoId, 
-            $cantidadSolicitada, 
-            $this->tiendaUsuario
-        );
+        // Obtener stock total disponible
+        $stockTotal = DB::table('recibido_bodega as rb')
+            ->join('seccion as s', 'rb.seccion_id', '=', 's.id')
+            ->join('segmento as seg', 's.segmento_id', '=', 'seg.id')
+            ->join('bodega as b', 'seg.bodega_id', '=', 'b.id')
+            ->where('b.tienda_id', $this->tiendaUsuario)
+            ->where('b.principal', 1)
+            ->where('b.estado_id', 1)
+            ->where('rb.producto_id', $productoId)
+            ->where('rb.estado_id', 1)
+            ->sum('rb.cantidad_disponible');
 
-        if (!$validacion['valido']) {
-            $this->alertasStock[$productoId] = $validacion['mensaje'];
+        // Calcular cantidad ya en el carrito
+        $cantidadEnCarrito = 0;
+        foreach ($this->productosFactura as $item) {
+            if ($item['id'] == $productoId) {
+                $cantidadEnCarrito += $item['cantidad'];
+            }
+        }
+
+        // Calcular stock disponible real
+        $stockDisponible = ($stockTotal ?? 0) - $cantidadEnCarrito;
+
+        if ($stockDisponible < $cantidadSolicitada) {
+            $mensaje = "Stock insuficiente. Disponible: {$stockDisponible}, Solicitado: {$cantidadSolicitada}";
+            if ($cantidadEnCarrito > 0) {
+                $mensaje .= " (Ya tienes {$cantidadEnCarrito} en el carrito)";
+            }
+            
+            $this->alertasStock[$productoId] = $mensaje;
             $this->actualizarEstadoErroresStock();
-            $this->dispatch('mostrar-error', ['mensaje' => $validacion['mensaje']]);
+            $this->dispatch('mostrar-error', ['mensaje' => $mensaje]);
             return false;
         } else {
             unset($this->alertasStock[$productoId]);
@@ -645,17 +667,28 @@ class Ventas extends Component
         }
 
         try {
-            $stock = DB::table('recibido_bodega as rb')
-                ->join('bodega as b', 'rb.bodega_id', '=', 'b.id')
-                ->join('segmento as seg', 'rb.segmento_id', '=', 'seg.id')
-                ->join('seccion as sec', 'rb.seccion_id', '=', 'sec.id')
+            // Obtener stock total menos lo que ya está en el carrito
+            $stockTotal = DB::table('recibido_bodega as rb')
+                ->join('seccion as s', 'rb.seccion_id', '=', 's.id')
+                ->join('segmento as seg', 's.segmento_id', '=', 'seg.id')
+                ->join('bodega as b', 'seg.bodega_id', '=', 'b.id')
                 ->where('b.tienda_id', $this->tiendaUsuario)
                 ->where('b.principal', 1)
                 ->where('b.estado_id', 1)
-                ->where('sec.producto_id', $productoId)
-                ->sum('rb.cantidad');
+                ->where('rb.producto_id', $productoId)
+                ->where('rb.estado_id', 1)
+                ->sum('rb.cantidad_disponible');
 
-            return $stock ?? 0;
+            // Restar lo que ya está en el carrito
+            $cantidadEnCarrito = 0;
+            foreach ($this->productosFactura as $item) {
+                if ($item['id'] == $productoId) {
+                    $cantidadEnCarrito += $item['cantidad'];
+                }
+            }
+
+            $stockDisponible = ($stockTotal ?? 0) - $cantidadEnCarrito;
+            return max(0, $stockDisponible); // No permitir valores negativos
         } catch (\Exception $e) {
             return 0;
         }
