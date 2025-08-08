@@ -594,12 +594,18 @@
     <!-- Modal para mostrar distribución por secciones -->
     <!-- Debug: modalSeccionesAbierto = {{ $modalSeccionesAbierto ? 'true' : 'false' }} -->
     @if($modalSeccionesAbierto)
-        <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
-            <div class="modal-dialog modal-lg">
+        <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);" wire:click="cerrarModalSecciones">
+            <div class="modal-dialog modal-lg modal-dialog-centered" wire:click.stop>
                 <div class="modal-content">
-                    <div class="modal-header bg-primary text-white">
+                    <div class="modal-header text-white"
+                         :class="{
+                             'bg-emerald-600': theme === 'verde',
+                             'bg-blue-600': theme === 'azul',
+                             'bg-gray-900': theme === 'oscuro',
+                             'bg-slate-700': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
+                         }">
                         <h5 class="modal-title">
-                            <i class="fas fa-warehouse me-2"></i>Distribución por Secciones
+                            🔍 <i class="fas fa-warehouse me-2"></i>Distribución por Secciones
                         </h5>
                         <button type="button" class="btn-close btn-close-white" wire:click="cerrarModalSecciones"></button>
                     </div>
@@ -617,7 +623,7 @@
                         @if(!empty($seccionesProducto))
                             <div class="table-responsive">
                                 <table class="table table-striped table-hover">
-                                    <thead class="table-dark">
+                                    <thead class="table-light">
                                         <tr>
                                             <th><i class="fas fa-layer-group me-1"></i>Sección</th>
                                             <th><i class="fas fa-cubes me-1"></i>Cantidad Inicial</th>
@@ -654,7 +660,7 @@
                                             </tr>
                                         @endforeach
                                     </tbody>
-                                    <tfoot class="table-dark">
+                                    <tfoot class="table-light">
                                         <tr>
                                             <th>TOTAL</th>
                                             <th>
