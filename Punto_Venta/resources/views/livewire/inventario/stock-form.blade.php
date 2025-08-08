@@ -349,11 +349,13 @@
                                 <thead class="table-light">
                                     <tr>
                                         <th class="text-center">ID</th>
+                                        <th class="text-center">Estado</th>
                                         <th class="text-center">Fecha Distribución</th>
                                         <th class="text-center">Cantidad</th>
                                         <th class="text-center">Precio Unit.</th>
                                         <th class="text-center">Unidad de Venta</th>
                                         <th class="text-center">Total</th>
+                                        <th class="text-center">Origen/Destino (Bodega → Segmento → Sección)</th>
                                         <th class="text-center">Usuario</th>
                                         <th class="text-center">Creado</th>
                                         <th class="text-center">Comentario</th>
@@ -365,6 +367,27 @@
                                         <td class="text-center">
                                             <span class="badge bg-secondary">{{ $loop->iteration }}</span>
                                         </td>
+                                        <td class="text-center">
+                                            @if(isset($distribucion['estado']))
+                                                @if($distribucion['estado'] === 'enviado')
+                                                    <span class="badge bg-warning text-dark">
+                                                        <i class="fas fa-paper-plane me-1"></i>Enviado
+                                                    </span>
+                                                @elseif($distribucion['estado'] === 'recibido')
+                                                    <span class="badge bg-success">
+                                                        <i class="fas fa-inbox me-1"></i>Recibido
+                                                    </span>
+                                                @else
+                                                    <span class="badge bg-secondary">
+                                                        <i class="fas fa-question me-1"></i>{{ $distribucion['estado'] }}
+                                                    </span>
+                                                @endif
+                                            @else
+                                                <span class="badge bg-info">
+                                                    <i class="fas fa-history me-1"></i>Histórico
+                                                </span>
+                                            @endif
+                                        </td>
                                         <td class="text-center">{{ \Carbon\Carbon::parse($distribucion['fecha_distribucion'])->format('d/m/Y') }}</td>
                                         <td class="text-center">
                                             <span class="badge bg-primary">{{ $distribucion['cantidad_distribuida'] }}</span>
@@ -373,6 +396,11 @@
                                         <td class="text-center">{{ $distribucion['unidad_medida'] ?? 'N/A' }}</td>
                                         <td class="text-center">
                                             <strong>L. {{ number_format((float)$distribucion['cantidad_distribuida'] * (float)$distribucion['precio_unitario'], 2) }}</strong>
+                                        </td>
+                                        <td class="text-center">
+                                            <small class="text-muted">
+                                                <i class="fas fa-route me-1"></i>{{ $distribucion['traslado_a'] ?? 'N/A' }}
+                                            </small>
                                         </td>
                                         <td class="text-center">
                                             <span class="badge bg-info">
@@ -389,11 +417,28 @@
                                 <tfoot class="table-info">
                                     <tr>
                                         <th class="text-center">-</th>
+                                        <th class="text-center">-</th>
                                         <th class="text-center">TOTALES:</th>
                                         <th class="text-center">{{ $totalDistribuido ?? 0 }}</th>
                                         <th class="text-center">-</th>
                                         <th class="text-center">-</th>
-                                        <th class="text-center">L. {{ number_format(array_sum(array_map(function($dist) { return (float)$dist['cantidad_distribuida'] * (float)$dist['precio_unitario']; }, $distribuciones ?? [])), 2) }}</th>
+                                        <th class="text-center">L. {{ 
+                                            number_format(
+                                                array_sum(
+                                                    array_map(
+                                                        function($dist) { 
+                                                            // Solo sumar los enviados para evitar duplicar, o históricos sin estado
+                                                            $estado = $dist['estado'] ?? 'historico';
+                                                            return ($estado === 'enviado' || $estado === 'N/A' || $estado === 'historico') ? 
+                                                                (float)$dist['cantidad_distribuida'] * (float)$dist['precio_unitario'] : 0; 
+                                                        }, 
+                                                        $distribuciones ?? []
+                                                    )
+                                                ), 
+                                                2
+                                            ) 
+                                        }}</th>
+                                        <th class="text-center">-</th>
                                         <th class="text-center">-</th>
                                         <th class="text-center">-</th>
                                         <th class="text-center">-</th>

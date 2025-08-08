@@ -149,12 +149,19 @@ class StockForm extends Component
                         'comentario' => $distribucion->comentario,
                         'usuario_nombre' => $distribucion->usuario ? $distribucion->usuario->name : 'Usuario no encontrado',
                         'created_at' => $distribucion->created_at ? $distribucion->created_at->format('d/m/Y H:i') : 'Sin fecha',
+                        'traslado_a' => $distribucion->traslado_a ?? 'N/A',
+                        'unidad_medida' => $distribucion->Unidad_medida ?? 'N/A',
+                        'estado' => $distribucion->estado ?? 'N/A',
                     ];
                 })
                 ->toArray();
 
-            // Calcular totales
-            $distribucionesCollection = $this->recibido->distribucionesStock;
+            // Calcular totales - solo contar envíos para evitar duplicar, incluir registros históricos sin estado
+            $distribucionesCollection = $this->recibido->distribucionesStock()->where(function($query) {
+                $query->where('estado', 'enviado')
+                      ->orWhereNull('estado')
+                      ->orWhere('estado', '');
+            })->get();
             $this->totalDistribuido = $distribucionesCollection->sum('cantidad_distribuida') ?? 0;
             $this->stockDisponible = $this->recibido->cantidad_disponible ?? 0;
 
@@ -240,19 +247,49 @@ class StockForm extends Component
                     'cantidad_disponible' => 0,
                     'fecha_recibido' => now(),
                     'users_registro_id' => Auth::id(),
-                    'estado_id' => 1
+                    'estado_id' => 1,
+                    'unidad_compra_id' => $this->producto->unidad_compra_id ?? $this->recibido->unidad_compra_id ?? 1
                 ]);
             }
 
-            // Crear nueva distribución vinculada al destino
-            $distribucion = DistribucionStock::create([
+            // Obtener información de origen y destino para traslado_a
+            $seccionOrigen = $this->recibido->seccion;
+            $seccionDestino = \App\Models\Seccion::with(['segmento.bodega'])->find($this->form['seccion_destino']);
+            
+            $trasladoDesdeOrigen = $seccionDestino ? 
+                $seccionDestino->segmento->bodega->nombre . ' > ' . 
+                $seccionDestino->segmento->descripcion . ' > ' . 
+                $seccionDestino->descripcion : 'N/A';
+                
+            $trasladoDesdeDestino = $seccionOrigen ? 
+                $seccionOrigen->segmento->bodega->nombre . ' > ' . 
+                $seccionOrigen->segmento->descripcion . ' > ' . 
+                $seccionOrigen->descripcion : 'N/A';
+
+            // 1. Crear registro de ENVÍO en la sección origen (estado = enviado)
+            $distribucionEnviado = DistribucionStock::create([
                 'cantidad_distribuida' => $this->form['cantidad_distribuir'],
                 'precio_unitario' => $this->producto->precio_base ?? 0,
-                'unidad_medida' => $this->producto->unidadMedidaVenta->nombre ?? 'N/A',
+                'Unidad_medida' => $this->producto->unidadMedidaVenta->nombre ?? 'N/A',
                 'fecha_distribucion' => $this->form['fecha_distribucion'],
                 'comentario' => $this->form['comentario'],
-                'recibido_bodega_id' => $recibidoDestino->id,
+                'recibido_bodega_id' => $this->recibido->id, // Sección origen
                 'users_id' => Auth::id(),
+                'traslado_a' => $trasladoDesdeOrigen,
+                'estado' => 'enviado',
+            ]);
+
+            // 2. Crear registro de RECEPCIÓN en la sección destino (estado = recibido)
+            $distribucionRecibido = DistribucionStock::create([
+                'cantidad_distribuida' => $this->form['cantidad_distribuir'],
+                'precio_unitario' => $this->producto->precio_base ?? 0,
+                'Unidad_medida' => $this->producto->unidadMedidaVenta->nombre ?? 'N/A',
+                'fecha_distribucion' => $this->form['fecha_distribucion'],
+                'comentario' => $this->form['comentario'],
+                'recibido_bodega_id' => $recibidoDestino->id, // Sección destino
+                'users_id' => Auth::id(),
+                'traslado_a' => $trasladoDesdeDestino,
+                'estado' => 'recibido',
             ]);
 
             // Actualizar cantidades en el RecibidoBodega origen (restar)
@@ -267,13 +304,14 @@ class StockForm extends Component
             $recibidoDestino->save();
 
             Log::info('Distribución de stock creada exitosamente', [
-                'distribucion_id' => $distribucion->id,
+                'distribucion_enviado_id' => $distribucionEnviado->id,
+                'distribucion_recibido_id' => $distribucionRecibido->id,
                 'recibido_origen_id' => $this->recibidoId,
                 'recibido_destino_id' => $recibidoDestino->id,
                 'seccion_destino_id' => $this->form['seccion_destino'],
                 'cantidad' => $this->form['cantidad_distribuir'],
-                'precio_unitario' => $this->form['precio_unitario'],
-                'precio_total' => $distribucion->precio_total
+                'precio_unitario' => $this->producto->precio_base ?? 0,
+                'precio_total' => ($this->form['cantidad_distribuir'] * ($this->producto->precio_base ?? 0))
             ]);
 
             $this->mostrarExito('Distribución registrada exitosamente a la sección destino.');

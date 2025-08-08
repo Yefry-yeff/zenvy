@@ -24,7 +24,9 @@ class DistribucionStock extends Model
         'comentario',
         'recibido_bodega_id',
         'users_id',
-        'unidad_medida'
+        'Unidad_medida',
+        'traslado_a',
+        'estado'
     ];
 
     protected $casts = [
