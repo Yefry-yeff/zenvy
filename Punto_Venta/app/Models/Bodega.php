@@ -31,6 +31,11 @@ class Bodega extends Model
         return $this->belongsTo(Tiendas::class, 'tienda_id');
     }
 
+    public function direccion()
+    {
+        return $this->belongsTo(Direccion::class, 'direccion_id');
+    }
+
     // Static methods for SP operations (cuando necesites stored procedures)
     public static function obtenerTodas()
     {
@@ -43,7 +48,7 @@ class Bodega extends Model
     public static function crearBodega($datos)
     {
         // Verificar si la tienda ya tiene una bodega principal
-        $tienePrincipal = self::where('tienda_id', $datos['tienda'])
+        $tienePrincipal = self::where('tienda_id', $datos['tienda_id'])
                             ->where('principal', 1)
                             ->where('estado_id', 1)
                             ->exists();
@@ -54,8 +59,8 @@ class Bodega extends Model
         // Mapear los nombres de campos del formulario a los de la base de datos
         $datosMapeados = [
             'nombre' => $datos['nombre'],
-            'tienda_id' => $datos['tienda'],
-            'direccion_id' => $datos['direccion'],
+            'tienda_id' => $datos['tienda_id'],
+            'direccion_id' => $datos['direccion_id'],
             'estado_id' => 1, // Siempre crear como activa
             'principal' => $datos['principal']
         ];

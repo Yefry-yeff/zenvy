@@ -34,6 +34,13 @@ Route::get('/register', function () {
 
 Route::get('/menus/data', [MenuController::class, 'data'])->name('menus.data');
 
+// Rutas de Sala de Ventas
+Route::middleware('auth')->group(function () {
+    Route::get('/facturacion', function () {
+        return view('layouts.app');
+    })->name('facturacion');
+});
+
 require __DIR__.'/auth.php';
 
 Route::post('/debug-log', function (Request $request) {

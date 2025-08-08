@@ -105,12 +105,6 @@
                         </div>
                         <div class="card-body">
                             <p class="card-text">
-                                <strong>Tipo:</strong> 
-                                @if($bodega->principal == 1)
-                                    <span class="text-primary">🏢 Bodega Principal</span>
-                                @else
-                                    <span class="text-secondary">🏪 Bodega Secundaria</span>
-                                @endif<br>
                                 <strong>Dirección:</strong> {{ $bodega->direccion->domicilio_tributario ?? 'N/A' }}<br>
                                 <strong>Tienda asignada:</strong> 
                                 @if($bodega->tienda)

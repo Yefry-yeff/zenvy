@@ -259,7 +259,7 @@ class Bodegas extends Component
 
     public function render()
     {
-        $query = Bodega::with(['tienda', 'segmentos.secciones']);
+        $query = Bodega::with(['tienda', 'direccion', 'segmentos.secciones']);
 
         // Aplicar filtros
         if ($this->busqueda) {

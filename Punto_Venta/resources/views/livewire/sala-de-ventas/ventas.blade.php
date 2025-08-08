@@ -197,6 +197,39 @@
 
     <!-- Vista de datos del cliente y facturación -->
     @if(isset($cliente))
+        <!-- Información de bodega y alertas de stock -->
+        @if($bodegaPrincipal)
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                <div class="flex items-center">
+                    <i class="fas fa-warehouse text-blue-600 mr-2"></i>
+                    <span class="text-blue-800 font-medium">
+                        Bodega Principal: <strong>{{ $bodegaPrincipal->nombre }}</strong>
+                    </span>
+                </div>
+            </div>
+        @else
+            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+                <div class="flex items-center">
+                    <i class="fas fa-exclamation-triangle text-yellow-600 mr-2"></i>
+                    <span class="text-yellow-800 font-medium">
+                        No se encontró bodega principal para su tienda
+                    </span>
+                </div>
+            </div>
+        @endif
+
+        <!-- Alerta de errores de stock -->
+        @if($hayErroresStock)
+            <div class="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
+                <div class="flex items-center">
+                    <i class="fas fa-exclamation-circle text-red-600 mr-2"></i>
+                    <span class="text-red-800 font-medium">
+                        Hay productos con stock insuficiente. Revise las cantidades antes de procesar.
+                    </span>
+                </div>
+            </div>
+        @endif
+
         <div class="bg-white rounded-lg shadow-lg mb-6 border border-gray-300" x-data x-init="$watch('theme', t => localStorage.setItem('theme', t))">
             <!-- Header -->
             <div class="flex items-center justify-between px-5 py-3 font-semibold text-white rounded-t"
@@ -215,6 +248,26 @@
             
             <!-- Content -->
             <div class="p-4">
+                <!-- Información de bodega y alertas de stock -->
+                @if($bodegaPrincipal)
+                    <div class="alert alert-info mb-3 p-3 rounded bg-blue-50 border border-blue-200">
+                        <i class="fas fa-warehouse text-blue-600"></i> 
+                        <span class="text-blue-800">Bodega Principal: <strong>{{ $bodegaPrincipal->nombre }}</strong></span>
+                    </div>
+                @else
+                    <div class="alert alert-warning mb-3 p-3 rounded bg-yellow-50 border border-yellow-200">
+                        <i class="fas fa-exclamation-triangle text-yellow-600"></i> 
+                        <span class="text-yellow-800">No se encontró bodega principal para su tienda</span>
+                    </div>
+                @endif
+
+                @if(!empty($alertasStock))
+                    <div class="alert alert-warning mb-3 p-3 rounded bg-red-50 border border-red-200">
+                        <i class="fas fa-exclamation-triangle text-red-600"></i> 
+                        <span class="text-red-800"><strong>Hay productos con problemas de stock.</strong> Verifique los productos marcados en la tabla.</span>
+                    </div>
+                @endif
+
                 <div class="grid grid-cols-1 gap-4">
                     <!-- Primera fila: Identidad (bloqueado) y Nombre (bloqueado) -->
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -356,9 +409,24 @@
                             $subtotal = $item['precio'] * $item['cantidad'];
                             $isv = $subtotal * ($item['isv']/100);
                             $total = $subtotal + $isv;
+                            $tieneErrorStock = isset($alertasStock[$item['id']]);
+                            $stockDisponible = $obtenerStockDisponible($item['id']);
                         @endphp
-                        <tr>
-                            <td>{{ $item['nombre'] }}</td>
+                        <tr class="{{ $tieneErrorStock ? 'bg-yellow-50 border-yellow-200' : '' }}">
+                            <td>
+                                {{ $item['nombre'] }}
+                                @if($tieneErrorStock)
+                                    <br>
+                                    <small class="text-red-600">
+                                        <i class="fas fa-exclamation-triangle"></i>
+                                        {{ $alertasStock[$item['id']] }}
+                                    </small>
+                                @endif
+                                <br>
+                                <small class="text-gray-500">
+                                    Stock disponible: {{ $stockDisponible }}
+                                </small>
+                            </td>
                             <td>{{ $item['codigo'] }}</td>
                             <td>L. {{ number_format($item['precio'], 2) }}</td>
                             <td>
@@ -366,8 +434,10 @@
                                     wire:change="modificarCantidad({{ $loop->index }}, $event.target.value)"
                                     value="{{ $item['cantidad'] }}"
                                     min="1"
-                                    class="form-control w-20 text-center"
-                                    style="min-width: 60px;">
+                                    max="{{ $stockDisponible }}"
+                                    class="form-control w-20 text-center {{ $tieneErrorStock ? 'border-red-300' : '' }}"
+                                    style="min-width: 60px;"
+                                    title="Stock disponible: {{ $stockDisponible }}">
                             </td>
                             <td>L. {{ number_format($subtotal, 2) }}</td>
                             <td>L. {{ number_format($isv, 2) }}
@@ -432,17 +502,27 @@
 
                 <!-- Procesar Pago -->
                 <div class="flex justify-end">
+                    @php 
+                        $tieneErrores = $hayErroresStock || count($productosFactura) == 0;
+                    @endphp
                     <button wire:click="mostrarModalPago" 
-                        class="px-6 py-2 text-white rounded-lg transition-colors"
+                        class="px-6 py-2 text-white rounded-lg transition-colors {{ $tieneErrores ? 'opacity-50 cursor-not-allowed bg-gray-400' : '' }}"
+                        @if(!$tieneErrores)
                         :class="{
                             'bg-emerald-600 hover:bg-emerald-700': theme === 'verde',
                             'bg-blue-600 hover:bg-blue-700': theme === 'azul',
                             'bg-gray-900 hover:bg-gray-800': theme === 'oscuro',
                             'bg-slate-700 hover:bg-slate-800': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
                         }"
-                        @if(count($productosFactura) == 0) disabled @endif>
+                        @endif
+                        @if($tieneErrores) disabled @endif
+                        title="{{ $hayErroresStock ? 'Corrija los errores de stock antes de procesar' : (count($productosFactura) == 0 ? 'Agregue productos para procesar' : 'Procesar pago') }}">
                         <i class="fas fa-credit-card me-1"></i>
-                        Procesar Pago
+                        @if($hayErroresStock)
+                            Corregir Stock
+                        @else
+                            Procesar Pago
+                        @endif
                     </button>
                 </div>
             </div>
