@@ -19,6 +19,11 @@ class StockForm extends Component
     public $distribuciones = [];
     public $totalDistribuido = 0;
     public $stockDisponible = 0;
+    public $cantidadTotalBodega = 0;
+    
+    // Propiedades para el modal de secciones
+    public $mostrarModalSecciones = false;
+    public $seccionesProducto = [];
 
     // Formulario de distribución
     public $form = [
@@ -58,6 +63,10 @@ class StockForm extends Component
     public function mount($productoId, $seccionId = null)
     {
         try {
+            // Cargar datos del producto
+            $this->producto = ProductoModel::with(['marca', 'subcategoria.categoria', 'unidadMedidaCompra'])
+                ->findOrFail($productoId);
+
             // Si se pasa seccionId, estamos editando desde ProductosSeccion
             if ($seccionId) {
                 $this->seccionId = $seccionId;
@@ -70,11 +79,12 @@ class StockForm extends Component
                 $this->recibidoId = $this->recibido->id;
                 $this->isEditing = true;
                 $this->cargarDatosRecibido();
+            } else {
+                // Si no hay sección, necesitamos calcular para una bodega por defecto
+                // Por ahora inicializamos en 0 hasta que se seleccione una sección
+                $this->cantidadTotalBodega = 0;
+                $this->form['cantidad_asignada_bodega'] = 0;
             }
-
-            // Cargar datos del producto
-            $this->producto = ProductoModel::with(['marca', 'subcategoria.categoria', 'unidadMedidaCompra'])
-                ->findOrFail($productoId);
 
             // Inicializar fecha de distribución con la fecha actual
             $this->form['fecha_distribucion'] = now()->format('Y-m-d');
@@ -115,14 +125,36 @@ class StockForm extends Component
             $this->totalDistribuido = $distribucionesCollection->sum('cantidad_distribuida') ?? 0;
             $this->stockDisponible = $this->recibido->cantidad_disponible ?? 0;
 
+            // Calcular cantidad total en toda la bodega para este producto
+            $this->calcularCantidadTotalBodega();
+
             // Inicializar formulario
             $this->form = [
-                'cantidad_asignada_bodega' => $this->recibido->cantidad_compra_lote ?? 0,
+                'cantidad_asignada_bodega' => $this->cantidadTotalBodega,
                 'cantidad_distribuir' => 0,
                 'precio_unitario' => 0,
                 'fecha_distribucion' => now()->format('Y-m-d'),
                 'comentario' => '',
             ];
+        }
+    }
+
+    private function calcularCantidadTotalBodega()
+    {
+        if ($this->recibido && $this->producto) {
+            // Obtener el ID de la bodega a través de la sección
+            $bodegaId = $this->recibido->seccion->segmento->bodega_id ?? null;
+            
+            if ($bodegaId) {
+                // Sumar todas las cantidades del producto en todas las secciones de esta bodega
+                $this->cantidadTotalBodega = RecibidoBodega::whereHas('seccion.segmento', function($query) use ($bodegaId) {
+                    $query->where('bodega_id', $bodegaId);
+                })
+                ->where('producto_id', $this->producto->id)
+                ->sum('cantidad_inicial_seccion');
+            } else {
+                $this->cantidadTotalBodega = 0;
+            }
         }
     }
 
@@ -185,7 +217,7 @@ class StockForm extends Component
 
             $this->mostrarExito('Distribución registrada exitosamente.');
 
-            // Recargar datos
+            // Recargar datos (incluye recalcular cantidadTotalBodega)
             $this->cargarDatosRecibido();
 
             // Limpiar formulario para nueva distribución
@@ -311,6 +343,51 @@ class StockForm extends Component
     {
         $this->mostrarModalError = false;
         $this->mensajeModalError = '';
+    }
+
+    // ===== MÉTODOS PARA MODAL DE SECCIONES =====
+
+    public function mostrarModalSecciones()
+    {
+        $this->cargarSeccionesProducto();
+        $this->mostrarModalSecciones = true;
+    }
+
+    public function cerrarModalSecciones()
+    {
+        $this->mostrarModalSecciones = false;
+        $this->seccionesProducto = [];
+    }
+
+    private function cargarSeccionesProducto()
+    {
+        if ($this->recibido && $this->producto) {
+            // Obtener el ID de la bodega a través de la sección
+            $bodegaId = $this->recibido->seccion->segmento->bodega_id ?? null;
+            
+            if ($bodegaId) {
+                // Obtener todas las secciones donde está el producto en esta bodega
+                $registros = RecibidoBodega::whereHas('seccion.segmento', function($query) use ($bodegaId) {
+                    $query->where('bodega_id', $bodegaId);
+                })
+                ->where('producto_id', $this->producto->id)
+                ->with(['seccion.segmento.bodega'])
+                ->get();
+
+                $this->seccionesProducto = $registros->map(function($registro) {
+                    return [
+                        'id' => $registro->id,
+                        'nombre_seccion' => $registro->seccion->nombre ?? 'Sin nombre',
+                        'cantidad_inicial' => $registro->cantidad_inicial_seccion ?? 0,
+                        'cantidad_disponible' => $registro->cantidad_disponible ?? 0,
+                        'fecha_recibido' => $registro->fecha_recibido ?? 'Sin fecha',
+                        'seccion_actual' => $registro->id == $this->recibidoId
+                    ];
+                })->toArray();
+            } else {
+                $this->seccionesProducto = [];
+            }
+        }
     }
 
     public function render()

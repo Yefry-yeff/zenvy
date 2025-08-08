@@ -85,58 +85,63 @@
                     <div class="p-4 bg-white border shadow rounded-xl">
                         <h2 class="mb-4 text-lg font-semibold text-gray-700">📊 Nueva Distribución de Stock</h2>
 
-                        <!-- Primera fila: Cantidad asignada en bodega, Stock Disponible para Distribuir, Stock en sección -->
+                        <!-- Primera fila: Cantidad asignada en bodega -->
                         <div class="row">
-                            <!-- Cantidad Asignada en Bodega (No editable) -->
-                            <div class="mb-3 col-md-4">
+                            <!-- Cantidad Asignada en Bodega (Clickeable para ver detalle) -->
+                            <div class="mb-3 col-md-12">
                                 <label for="cantidad_asignada_bodega" class="form-label">
                                     Cantidad Asignada en Bodega
-                                    <small class="text-muted d-block">Cantidad total recibida en bodega</small>
+                                    <small class="text-muted d-block">Suma de todas las secciones de esta bodega - Clic para ver detalle</small>
                                 </label>
                                 <input type="number"
                                        id="cantidad_asignada_bodega"
-                                       class="form-control bg-light"
-                                       wire:model.live="form.cantidad_asignada_bodega"
-                                       readonly>
+                                       class="form-control bg-light cursor-pointer"
+                                       wire:model.live="cantidadTotalBodega"
+                                       wire:click="mostrarModalSecciones"
+                                       readonly
+                                       style="cursor: pointer;">
                                 <small class="text-info">
-                                    <i class="fas fa-lock me-1"></i>Campo de solo lectura
-                                </small>
-                            </div>
-
-                            <!-- Stock Disponible para Distribuir -->
-                            <div class="mb-3 col-md-4">
-                                <label for="stock_disponible" class="form-label">
-                                    Stock Disponible para Distribuir
-                                    <small class="text-muted d-block">Sin asignar aún</small>
-                                </label>
-                                <input type="number"
-                                       id="stock_disponible"
-                                       class="form-control bg-light"
-                                       wire:model.live="stockDisponible"
-                                       readonly>
-                                <small class="text-info">
-                                    <i class="fas fa-info-circle me-1"></i>Calculado automáticamente
-                                </small>
-                            </div>
-
-                            <!-- Stock en sección (nuevo campo) -->
-                            <div class="mb-3 col-md-4">
-                                <label for="stock_en_seccion" class="form-label">
-                                    Stock en Sección
-                                    <small class="text-muted d-block">Asignados menos facturados</small>
-                                </label>
-                                <input type="number"
-                                       id="stock_en_seccion"
-                                       class="form-control bg-light"
-                                       value="{{ $recibido->cantidad_inicial_seccion ?? 0 }}"
-                                       readonly>
-                                <small class="text-info">
-                                    <i class="fas fa-layer-group me-1"></i>Stock actual en la sección
+                                    <i class="fas fa-warehouse me-1"></i>Total en toda la bodega - <i class="fas fa-mouse-pointer me-1"></i>Clic para ver distribución por secciones
                                 </small>
                             </div>
                         </div>
 
-                        <!-- Segunda fila: Cantidad a distribuir, Precio unitario, Medida de unidad, Precio total -->
+                        <!-- Segunda fila: Asignación Inicial en Sección, Stock Disponible en sección -->
+                        <div class="row">
+                            <!-- Asignación Inicial en Sección -->
+                            <div class="mb-3 col-md-6">
+                                <label for="asignacion_inicial_seccion" class="form-label">
+                                    Asignación Inicial en Sección
+                                    <small class="text-muted d-block">Cantidad inicialmente asignada</small>
+                                </label>
+                                <input type="number"
+                                       id="asignacion_inicial_seccion"
+                                       class="form-control bg-light"
+                                       value="{{ $recibido->cantidad_inicial_seccion ?? 0 }}"
+                                       readonly>
+                                <small class="text-info">
+                                    <i class="fas fa-layer-group me-1"></i>Asignación inicial en esta sección
+                                </small>
+                            </div>
+
+                            <!-- Stock Disponible en sección -->
+                            <div class="mb-3 col-md-6">
+                                <label for="stock_disponible_seccion" class="form-label">
+                                    Stock Disponible en Sección
+                                    <small class="text-muted d-block">Cantidad disponible actual</small>
+                                </label>
+                                <input type="number"
+                                       id="stock_disponible_seccion"
+                                       class="form-control bg-light"
+                                       value="{{ $recibido->cantidad_disponible ?? 0 }}"
+                                       readonly>
+                                <small class="text-info">
+                                    <i class="fas fa-box me-1"></i>Stock actual disponible en sección
+                                </small>
+                            </div>
+                        </div>
+
+                        <!-- Tercera fila: Cantidad a distribuir, Precio unitario, Medida de unidad, Precio total -->
                         <div class="row">
                             <!-- Cantidad a Distribuir -->
                             <div class="mb-3 col-md-3">
@@ -507,5 +512,101 @@
             to { transform: translateX(0); opacity: 1; }
         }
     </style>
+
+    <!-- Modal para mostrar distribución por secciones -->
+    @if($mostrarModalSecciones)
+        <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header bg-primary text-white">
+                        <h5 class="modal-title">
+                            <i class="fas fa-warehouse me-2"></i>Distribución por Secciones
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" wire:click="cerrarModalSecciones"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <h6 class="text-muted">
+                                <i class="fas fa-box me-2"></i>Producto: {{ $producto->nombre ?? 'N/A' }}
+                            </h6>
+                            <h6 class="text-muted">
+                                <i class="fas fa-warehouse me-2"></i>Bodega: {{ $recibido->seccion->segmento->bodega->nombre ?? 'N/A' }}
+                            </h6>
+                        </div>
+
+                        @if(!empty($seccionesProducto))
+                            <div class="table-responsive">
+                                <table class="table table-striped table-hover">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th><i class="fas fa-layer-group me-1"></i>Sección</th>
+                                            <th><i class="fas fa-cubes me-1"></i>Cantidad Inicial</th>
+                                            <th><i class="fas fa-box me-1"></i>Cantidad Disponible</th>
+                                            <th><i class="fas fa-calendar me-1"></i>Fecha Recibido</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach($seccionesProducto as $seccion)
+                                            <tr class="{{ $seccion['seccion_actual'] ? 'table-warning' : '' }}">
+                                                <td>
+                                                    {{ $seccion['nombre_seccion'] }}
+                                                    @if($seccion['seccion_actual'])
+                                                        <span class="badge bg-warning text-dark ms-2">
+                                                            <i class="fas fa-star me-1"></i>Sección Actual
+                                                        </span>
+                                                    @endif
+                                                </td>
+                                                <td>
+                                                    <span class="badge bg-primary">
+                                                        {{ number_format($seccion['cantidad_inicial']) }}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <span class="badge bg-{{ $seccion['cantidad_disponible'] > 0 ? 'success' : 'secondary' }}">
+                                                        {{ number_format($seccion['cantidad_disponible']) }}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <small class="text-muted">
+                                                        {{ $seccion['fecha_recibido'] }}
+                                                    </small>
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                    <tfoot class="table-dark">
+                                        <tr>
+                                            <th>TOTAL</th>
+                                            <th>
+                                                <span class="badge bg-info">
+                                                    {{ number_format(collect($seccionesProducto)->sum('cantidad_inicial')) }}
+                                                </span>
+                                            </th>
+                                            <th>
+                                                <span class="badge bg-success">
+                                                    {{ number_format(collect($seccionesProducto)->sum('cantidad_disponible')) }}
+                                                </span>
+                                            </th>
+                                            <th>-</th>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        @else
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                No se encontraron registros de este producto en otras secciones de la bodega.
+                            </div>
+                        @endif
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" wire:click="cerrarModalSecciones">
+                            <i class="fas fa-times me-1"></i>Cerrar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
 
 </div>
