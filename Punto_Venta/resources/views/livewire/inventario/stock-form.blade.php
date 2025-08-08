@@ -85,31 +85,34 @@
                     <div class="p-4 bg-white border shadow rounded-xl">
                         <h2 class="mb-4 text-lg font-semibold text-gray-700">📊 Nueva Distribución de Stock</h2>
 
-                        <!-- Primera fila: Cantidad asignada en bodega -->
+                        <!-- Primera fila: Cantidad asignada en bodega, Asignación Inicial en Sección, Stock Disponible en sección -->
                         <div class="row">
                             <!-- Cantidad Asignada en Bodega (Clickeable para ver detalle) -->
-                            <div class="mb-3 col-md-12">
+                            <div class="mb-3 col-md-4">
                                 <label for="cantidad_asignada_bodega" class="form-label">
                                     Cantidad Asignada en Bodega
-                                    <small class="text-muted d-block">Suma de todas las secciones de esta bodega - Clic para ver detalle</small>
+                                    <small class="text-muted d-block">Suma de todas las secciones</small>
                                 </label>
-                                <input type="number"
-                                       id="cantidad_asignada_bodega"
-                                       class="form-control bg-light cursor-pointer"
-                                       wire:model.live="cantidadTotalBodega"
-                                       wire:click="mostrarModalSecciones"
-                                       readonly
-                                       style="cursor: pointer;">
+                                <div class="input-group">
+                                    <input type="number"
+                                           id="cantidad_asignada_bodega"
+                                           class="form-control bg-light"
+                                           value="{{ $cantidadTotalBodega }}"
+                                           readonly>
+                                    <button class="btn btn-outline-primary" 
+                                            type="button" 
+                                            wire:click="mostrarModalSecciones"
+                                            title="Ver distribución por secciones">
+                                        <i class="fas fa-search"></i>
+                                    </button>
+                                </div>
                                 <small class="text-info">
-                                    <i class="fas fa-warehouse me-1"></i>Total en toda la bodega - <i class="fas fa-mouse-pointer me-1"></i>Clic para ver distribución por secciones
+                                    <i class="fas fa-warehouse me-1"></i>Total en bodega - <i class="fas fa-mouse-pointer me-1"></i>Clic en 🔍 para ver distribución
                                 </small>
                             </div>
-                        </div>
 
-                        <!-- Segunda fila: Asignación Inicial en Sección, Stock Disponible en sección -->
-                        <div class="row">
                             <!-- Asignación Inicial en Sección -->
-                            <div class="mb-3 col-md-6">
+                            <div class="mb-3 col-md-4">
                                 <label for="asignacion_inicial_seccion" class="form-label">
                                     Asignación Inicial en Sección
                                     <small class="text-muted d-block">Cantidad inicialmente asignada</small>
@@ -125,7 +128,7 @@
                             </div>
 
                             <!-- Stock Disponible en sección -->
-                            <div class="mb-3 col-md-6">
+                            <div class="mb-3 col-md-4">
                                 <label for="stock_disponible_seccion" class="form-label">
                                     Stock Disponible en Sección
                                     <small class="text-muted d-block">Cantidad disponible actual</small>
@@ -140,8 +143,7 @@
                                 </small>
                             </div>
                         </div>
-
-                        <!-- Tercera fila: Cantidad a distribuir, Precio unitario, Medida de unidad, Precio total -->
+                        <!-- Segunda fila: Cantidad a distribuir, Precio unitario, Medida de unidad, Precio total -->
                         <div class="row">
                             <!-- Cantidad a Distribuir -->
                             <div class="mb-3 col-md-3">
@@ -204,6 +206,82 @@
                                 <small class="text-info">
                                     <i class="fas fa-calculator me-1"></i>{{ $form['cantidad_distribuir'] ?? 0 }} × L. {{ number_format((float)($producto->precio_base ?? 0), 2) }}
                                 </small>
+                            </div>
+                        </div>
+
+                        <!-- Tercera fila: Selección de destino (Bodega, Segmento, Sección) -->
+                        <div class="row">
+                            <div class="col-12">
+                                <h6 class="text-primary mb-3">
+                                    <i class="fas fa-map-marker-alt me-2"></i>Destino de la Distribución
+                                </h6>
+                            </div>
+
+                            <!-- Bodega -->
+                            <div class="mb-3 col-md-4">
+                                <label for="bodega_destino" class="form-label">
+                                    Bodega Destino <span class="text-red-600">*</span>
+                                    <small class="text-muted d-block">Selecciona la bodega destino</small>
+                                </label>
+                                <select id="bodega_destino"
+                                        class="form-select {{ $this->getClaseCampo('bodega_destino') }}"
+                                        wire:model.live="form.bodega_destino"
+                                        wire:change="cargarSegmentosPorBodega">
+                                    <option value="">Seleccionar bodega...</option>
+                                    @foreach($bodegas as $bodega)
+                                        <option value="{{ $bodega->id }}">{{ $bodega->nombre }}</option>
+                                    @endforeach
+                                </select>
+                                @error('form.bodega_destino')
+                                    <div class="mt-1 text-sm text-danger">❌ {{ $message }}</div>
+                                @enderror
+                            </div>
+
+                            <!-- Segmento -->
+                            <div class="mb-3 col-md-4">
+                                <label for="segmento_destino" class="form-label">
+                                    Segmento Destino <span class="text-red-600">*</span>
+                                    <small class="text-muted d-block">Selecciona el segmento destino</small>
+                                </label>
+                                <select id="segmento_destino"
+                                        class="form-select {{ $this->getClaseCampo('segmento_destino') }}"
+                                        wire:model.live="form.segmento_destino"
+                                        wire:change="cargarSeccionesPorSegmento"
+                                        {{ empty($segmentosDestino) ? 'disabled' : '' }}>
+                                    <option value="">Seleccionar segmento...</option>
+                                    @foreach($segmentosDestino as $segmento)
+                                        <option value="{{ $segmento->id }}">{{ $segmento->descripcion }}</option>
+                                    @endforeach
+                                </select>
+                                @error('form.segmento_destino')
+                                    <div class="mt-1 text-sm text-danger">❌ {{ $message }}</div>
+                                @enderror
+                                @if(empty($segmentosDestino))
+                                    <small class="text-muted">Selecciona una bodega primero</small>
+                                @endif
+                            </div>
+
+                            <!-- Sección -->
+                            <div class="mb-3 col-md-4">
+                                <label for="seccion_destino" class="form-label">
+                                    Sección Destino <span class="text-red-600">*</span>
+                                    <small class="text-muted d-block">Selecciona la sección destino</small>
+                                </label>
+                                <select id="seccion_destino"
+                                        class="form-select {{ $this->getClaseCampo('seccion_destino') }}"
+                                        wire:model.live="form.seccion_destino"
+                                        {{ empty($seccionesDestino) ? 'disabled' : '' }}>
+                                    <option value="">Seleccionar sección...</option>
+                                    @foreach($seccionesDestino as $seccion)
+                                        <option value="{{ $seccion->id }}">{{ $seccion->descripcion }}</option>
+                                    @endforeach
+                                </select>
+                                @error('form.seccion_destino')
+                                    <div class="mt-1 text-sm text-danger">❌ {{ $message }}</div>
+                                @enderror
+                                @if(empty($seccionesDestino))
+                                    <small class="text-muted">Selecciona un segmento primero</small>
+                                @endif
                             </div>
                         </div>
 
@@ -514,7 +592,8 @@
     </style>
 
     <!-- Modal para mostrar distribución por secciones -->
-    @if($mostrarModalSecciones)
+    <!-- Debug: modalSeccionesAbierto = {{ $modalSeccionesAbierto ? 'true' : 'false' }} -->
+    @if($modalSeccionesAbierto)
         <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
             <div class="modal-dialog modal-lg">
                 <div class="modal-content">
@@ -534,6 +613,7 @@
                             </h6>
                         </div>
 
+                        <!-- Debug: Cantidad de secciones = {{ count($seccionesProducto) }} -->
                         @if(!empty($seccionesProducto))
                             <div class="table-responsive">
                                 <table class="table table-striped table-hover">

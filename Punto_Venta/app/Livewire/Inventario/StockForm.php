@@ -6,6 +6,9 @@ use Livewire\Component;
 use App\Models\RecibidoBodega;
 use App\Models\DistribucionStock;
 use App\Models\Producto as ProductoModel;
+use App\Models\Bodega;
+use App\Models\Segmento;
+use App\Models\Seccion;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
@@ -22,8 +25,13 @@ class StockForm extends Component
     public $cantidadTotalBodega = 0;
     
     // Propiedades para el modal de secciones
-    public $mostrarModalSecciones = false;
+    public $modalSeccionesAbierto = false;
     public $seccionesProducto = [];
+    
+    // Propiedades para selección de destino
+    public $bodegas = [];
+    public $segmentosDestino = [];
+    public $seccionesDestino = [];
 
     // Formulario de distribución
     public $form = [
@@ -32,6 +40,9 @@ class StockForm extends Component
         'precio_unitario' => 0,
         'fecha_distribucion' => '',
         'comentario' => '',
+        'bodega_destino' => '',
+        'segmento_destino' => '',
+        'seccion_destino' => '',
     ];
 
     // Propiedades para validación backend
@@ -51,6 +62,9 @@ class StockForm extends Component
         'form.cantidad_distribuir' => 'required|integer|min:1',
         'form.fecha_distribucion' => 'required|date',
         'form.comentario' => 'nullable|string|max:400',
+        'form.bodega_destino' => 'required|exists:bodega,id',
+        'form.segmento_destino' => 'required|exists:segmento,id',
+        'form.seccion_destino' => 'required|exists:seccion,id',
     ];
 
     protected $messages = [
@@ -58,6 +72,12 @@ class StockForm extends Component
         'form.cantidad_distribuir.min' => 'La cantidad a distribuir debe ser mayor a 0',
         'form.fecha_distribucion.required' => 'La fecha de distribución es obligatoria',
         'form.comentario.max' => 'El comentario no puede exceder 400 caracteres',
+        'form.bodega_destino.required' => 'Debe seleccionar una bodega destino',
+        'form.bodega_destino.exists' => 'La bodega seleccionada no es válida',
+        'form.segmento_destino.required' => 'Debe seleccionar un segmento destino',
+        'form.segmento_destino.exists' => 'El segmento seleccionado no es válido',
+        'form.seccion_destino.required' => 'Debe seleccionar una sección destino',
+        'form.seccion_destino.exists' => 'La sección seleccionada no es válida',
     ];
 
     public function mount($productoId, $seccionId = null)
@@ -66,6 +86,9 @@ class StockForm extends Component
             // Cargar datos del producto
             $this->producto = ProductoModel::with(['marca', 'subcategoria.categoria', 'unidadMedidaCompra'])
                 ->findOrFail($productoId);
+
+            // Cargar bodegas disponibles
+            $this->cargarBodegas();
 
             // Si se pasa seccionId, estamos editando desde ProductosSeccion
             if ($seccionId) {
@@ -79,6 +102,16 @@ class StockForm extends Component
                 $this->recibidoId = $this->recibido->id;
                 $this->isEditing = true;
                 $this->cargarDatosRecibido();
+                
+                // Pre-seleccionar la bodega actual
+                $this->form['bodega_destino'] = $this->recibido->seccion->segmento->bodega_id ?? '';
+                if ($this->form['bodega_destino']) {
+                    $this->cargarSegmentosPorBodega();
+                    $this->form['segmento_destino'] = $this->recibido->seccion->segmento_id ?? '';
+                    if ($this->form['segmento_destino']) {
+                        $this->cargarSeccionesPorSegmento();
+                    }
+                }
             } else {
                 // Si no hay sección, necesitamos calcular para una bodega por defecto
                 // Por ahora inicializamos en 0 hasta que se seleccione una sección
@@ -135,6 +168,9 @@ class StockForm extends Component
                 'precio_unitario' => 0,
                 'fecha_distribucion' => now()->format('Y-m-d'),
                 'comentario' => '',
+                'bodega_destino' => '',
+                'segmento_destino' => '',
+                'seccion_destino' => '',
             ];
         }
     }
@@ -189,33 +225,58 @@ class StockForm extends Component
         try {
             $this->validate();
 
-            // Crear nueva distribución
+            // Verificar si ya existe un registro para este producto en la sección destino
+            $recibidoDestino = RecibidoBodega::where('producto_id', $this->producto->id)
+                ->where('seccion_id', $this->form['seccion_destino'])
+                ->first();
+
+            if (!$recibidoDestino) {
+                // Crear nuevo registro en la sección destino
+                $recibidoDestino = RecibidoBodega::create([
+                    'producto_id' => $this->producto->id,
+                    'seccion_id' => $this->form['seccion_destino'],
+                    'cantidad_compra_lote' => 0,
+                    'cantidad_inicial_seccion' => 0,
+                    'cantidad_disponible' => 0,
+                    'fecha_recibido' => now(),
+                    'users_registro_id' => Auth::id(),
+                    'estado_id' => 1
+                ]);
+            }
+
+            // Crear nueva distribución vinculada al destino
             $distribucion = DistribucionStock::create([
                 'cantidad_distribuida' => $this->form['cantidad_distribuir'],
                 'precio_unitario' => $this->producto->precio_base ?? 0,
                 'unidad_medida' => $this->producto->unidadMedidaVenta->nombre ?? 'N/A',
                 'fecha_distribucion' => $this->form['fecha_distribucion'],
                 'comentario' => $this->form['comentario'],
-                'recibido_bodega_id' => $this->recibidoId,
+                'recibido_bodega_id' => $recibidoDestino->id,
                 'users_id' => Auth::id(),
             ]);
 
-            // Actualizar cantidades en RecibidoBodega
+            // Actualizar cantidades en el RecibidoBodega origen (restar)
             if ($this->recibido) {
-                $this->recibido->cantidad_inicial_seccion = $this->recibido->cantidad_inicial_seccion + $this->form['cantidad_distribuir'];
                 $this->recibido->cantidad_disponible = $this->recibido->cantidad_disponible - $this->form['cantidad_distribuir'];
                 $this->recibido->save();
             }
 
+            // Actualizar cantidades en el RecibidoBodega destino (sumar)
+            $recibidoDestino->cantidad_inicial_seccion += $this->form['cantidad_distribuir'];
+            $recibidoDestino->cantidad_disponible += $this->form['cantidad_distribuir'];
+            $recibidoDestino->save();
+
             Log::info('Distribución de stock creada exitosamente', [
                 'distribucion_id' => $distribucion->id,
-                'recibido_id' => $this->recibidoId,
+                'recibido_origen_id' => $this->recibidoId,
+                'recibido_destino_id' => $recibidoDestino->id,
+                'seccion_destino_id' => $this->form['seccion_destino'],
                 'cantidad' => $this->form['cantidad_distribuir'],
                 'precio_unitario' => $this->form['precio_unitario'],
                 'precio_total' => $distribucion->precio_total
             ]);
 
-            $this->mostrarExito('Distribución registrada exitosamente.');
+            $this->mostrarExito('Distribución registrada exitosamente a la sección destino.');
 
             // Recargar datos (incluye recalcular cantidadTotalBodega)
             $this->cargarDatosRecibido();
@@ -224,6 +285,11 @@ class StockForm extends Component
             $this->form['cantidad_distribuir'] = 0;
             $this->form['precio_unitario'] = 0;
             $this->form['comentario'] = '';
+            $this->form['bodega_destino'] = '';
+            $this->form['segmento_destino'] = '';
+            $this->form['seccion_destino'] = '';
+            $this->segmentosDestino = [];
+            $this->seccionesDestino = [];
 
         } catch (\Illuminate\Validation\ValidationException $e) {
             $this->erroresValidacion = $e->errors();
@@ -349,13 +415,24 @@ class StockForm extends Component
 
     public function mostrarModalSecciones()
     {
+        Log::info('Método mostrarModalSecciones llamado', [
+            'recibido_existe' => !is_null($this->recibido),
+            'producto_existe' => !is_null($this->producto),
+            'recibido_id' => $this->recibidoId
+        ]);
+        
         $this->cargarSeccionesProducto();
-        $this->mostrarModalSecciones = true;
+        $this->modalSeccionesAbierto = true;
+        
+        Log::info('Modal configurado para mostrar', [
+            'mostrar_modal' => $this->modalSeccionesAbierto,
+            'cantidad_secciones' => count($this->seccionesProducto)
+        ]);
     }
 
     public function cerrarModalSecciones()
     {
-        $this->mostrarModalSecciones = false;
+        $this->modalSeccionesAbierto = false;
         $this->seccionesProducto = [];
     }
 
@@ -364,6 +441,11 @@ class StockForm extends Component
         if ($this->recibido && $this->producto) {
             // Obtener el ID de la bodega a través de la sección
             $bodegaId = $this->recibido->seccion->segmento->bodega_id ?? null;
+            
+            Log::info('Cargando secciones del producto', [
+                'bodega_id' => $bodegaId,
+                'producto_id' => $this->producto->id
+            ]);
             
             if ($bodegaId) {
                 // Obtener todas las secciones donde está el producto en esta bodega
@@ -374,10 +456,14 @@ class StockForm extends Component
                 ->with(['seccion.segmento.bodega'])
                 ->get();
 
+                Log::info('Registros encontrados', [
+                    'cantidad_registros' => $registros->count()
+                ]);
+
                 $this->seccionesProducto = $registros->map(function($registro) {
                     return [
                         'id' => $registro->id,
-                        'nombre_seccion' => $registro->seccion->nombre ?? 'Sin nombre',
+                        'nombre_seccion' => $registro->seccion->descripcion ?? 'Sin nombre',
                         'cantidad_inicial' => $registro->cantidad_inicial_seccion ?? 0,
                         'cantidad_disponible' => $registro->cantidad_disponible ?? 0,
                         'fecha_recibido' => $registro->fecha_recibido ?? 'Sin fecha',
@@ -387,7 +473,53 @@ class StockForm extends Component
             } else {
                 $this->seccionesProducto = [];
             }
+        } else {
+            Log::warning('No se pueden cargar secciones', [
+                'recibido_existe' => !is_null($this->recibido),
+                'producto_existe' => !is_null($this->producto)
+            ]);
+            $this->seccionesProducto = [];
         }
+    }
+
+    // ===== MÉTODOS PARA CARGA DE UBICACIONES =====
+
+    private function cargarBodegas()
+    {
+        $this->bodegas = Bodega::where('estado_id', 1) // Solo bodegas activas
+            ->orderBy('nombre')
+            ->get();
+    }
+
+    public function cargarSegmentosPorBodega()
+    {
+        if ($this->form['bodega_destino']) {
+            $this->segmentosDestino = Segmento::where('bodega_id', $this->form['bodega_destino'])
+                ->orderBy('descripcion')
+                ->get();
+        } else {
+            $this->segmentosDestino = [];
+        }
+        
+        // Limpiar selecciones dependientes
+        $this->form['segmento_destino'] = '';
+        $this->form['seccion_destino'] = '';
+        $this->seccionesDestino = [];
+    }
+
+    public function cargarSeccionesPorSegmento()
+    {
+        if ($this->form['segmento_destino']) {
+            $this->seccionesDestino = Seccion::where('segmento_id', $this->form['segmento_destino'])
+                ->where('estado_id', 1) // Solo secciones activas
+                ->orderBy('numeracion')
+                ->get();
+        } else {
+            $this->seccionesDestino = [];
+        }
+        
+        // Limpiar selección dependiente
+        $this->form['seccion_destino'] = '';
     }
 
     public function render()
