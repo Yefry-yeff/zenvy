@@ -218,19 +218,7 @@
             </div>
         @endif
 
-        <!-- Alerta de errores de stock -->
-        @if($hayErroresStock)
-            <div class="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
-                <div class="flex items-center">
-                    <i class="fas fa-exclamation-circle text-red-600 mr-2"></i>
-                    <span class="text-red-800 font-medium">
-                        Hay productos con stock insuficiente. Revise las cantidades antes de procesar.
-                    </span>
-                </div>
-            </div>
-        @endif
-
-        <div class="bg-white rounded-lg shadow-lg mb-6 border border-gray-300" x-data x-init="$watch('theme', t => localStorage.setItem('theme', t))">
+        <div class="bg-white rounded-lg shadow-lg mb-6 border border-gray-300" x-data x-init="$watch('theme', t => localStorage.setItem('theme', t))">>
             <!-- Header -->
             <div class="flex items-center justify-between px-5 py-3 font-semibold text-white rounded-t"
                 :class="{
@@ -258,13 +246,6 @@
                     <div class="alert alert-warning mb-3 p-3 rounded bg-yellow-50 border border-yellow-200">
                         <i class="fas fa-exclamation-triangle text-yellow-600"></i> 
                         <span class="text-yellow-800">No se encontró bodega principal para su tienda</span>
-                    </div>
-                @endif
-
-                @if(!empty($alertasStock))
-                    <div class="alert alert-warning mb-3 p-3 rounded bg-red-50 border border-red-200">
-                        <i class="fas fa-exclamation-triangle text-red-600"></i> 
-                        <span class="text-red-800"><strong>Hay productos con problemas de stock.</strong> Verifique los productos marcados en la tabla.</span>
                     </div>
                 @endif
 
@@ -373,6 +354,7 @@
                                     placeholder="Escanee el código de barras"
                                     autocomplete="off"
                                     @keydown.enter="$event.target.value = ''; $event.target.focus()"
+                                    @enfocar-input-codigo.window="$event.target.focus()"
                                     autofocus>
                             </div>
                             <div class="w-32">
@@ -409,19 +391,11 @@
                             $subtotal = $item['precio'] * $item['cantidad'];
                             $isv = $subtotal * ($item['isv']/100);
                             $total = $subtotal + $isv;
-                            $tieneErrorStock = isset($alertasStock[$item['id']]);
                             $stockDisponible = $this->obtenerStockDisponible($item['id']);
                         @endphp
-                        <tr class="{{ $tieneErrorStock ? 'bg-yellow-50 border-yellow-200' : '' }}">
+                        <tr>
                             <td>
                                 {{ $item['nombre'] }}
-                                @if($tieneErrorStock)
-                                    <br>
-                                    <small class="text-red-600">
-                                        <i class="fas fa-exclamation-triangle"></i>
-                                        {{ $alertasStock[$item['id']] }}
-                                    </small>
-                                @endif
                                 <br>
                                 <small class="text-gray-500">
                                     Stock disponible: {{ $stockDisponible }}
@@ -435,7 +409,7 @@
                                     value="{{ $item['cantidad'] }}"
                                     min="1"
                                     max="{{ $stockDisponible }}"
-                                    class="form-control w-20 text-center {{ $tieneErrorStock ? 'border-red-300' : '' }}"
+                                    class="form-control w-20 text-center"
                                     style="min-width: 60px;"
                                     title="Stock disponible: {{ $stockDisponible }}">
                             </td>
@@ -503,7 +477,7 @@
                 <!-- Procesar Pago -->
                 <div class="flex justify-end">
                     @php 
-                        $tieneErrores = $hayErroresStock || count($productosFactura) == 0;
+                        $tieneErrores = count($productosFactura) == 0;
                     @endphp
                     <button wire:click="mostrarModalPago" 
                         class="px-6 py-2 text-white rounded-lg transition-colors {{ $tieneErrores ? 'opacity-50 cursor-not-allowed bg-gray-400' : '' }}"
@@ -516,13 +490,9 @@
                         }"
                         @endif
                         @if($tieneErrores) disabled @endif
-                        title="{{ $hayErroresStock ? 'Corrija los errores de stock antes de procesar' : (count($productosFactura) == 0 ? 'Agregue productos para procesar' : 'Procesar pago') }}">
+                        title="{{ count($productosFactura) == 0 ? 'Agregue productos para procesar' : 'Procesar pago' }}">
                         <i class="fas fa-credit-card me-1"></i>
-                        @if($hayErroresStock)
-                            Corregir Stock
-                        @else
-                            Procesar Pago
-                        @endif
+                        Procesar Pago
                     </button>
                 </div>
             </div>
@@ -931,4 +901,45 @@
         </div>
     </div>
     @endif
+
+    <!-- Modal de sin stock -->
+    <div x-data="{ open: false }"
+         x-show="open"
+         x-cloak
+         @mostrar-sin-stock.window="open = true"
+         @click.self="open = false"
+         @keydown.escape.window="open = false"
+         class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md overflow-hidden"
+             x-data x-init="$watch('theme', t => localStorage.setItem('theme', t))">
+            <!-- Header con tema -->
+            <div class="flex items-center justify-between px-6 py-4 text-white"
+                :class="{
+                    'bg-red-600': theme === 'verde',
+                    'bg-red-600': theme === 'azul',
+                    'bg-red-600': theme === 'oscuro',
+                    'bg-red-600': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
+                }">
+                <h2 class="text-lg font-semibold">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Sin Stock Disponible
+                </h2>
+            </div>
+            
+            <!-- Body -->
+            <div class="p-6 text-center">
+                <div class="mb-4">
+                    <i class="fas fa-box-open text-red-500 text-4xl mb-3"></i>
+                    <p class="text-gray-700 text-lg">No hay más producto asignado en stock.</p>
+                    <p class="text-gray-500 text-sm mt-2">El producto que intentas agregar no tiene stock disponible en la bodega principal.</p>
+                </div>
+                
+                <button @click="open = false; $wire.dispatch('enfocar-codigo-barras')"
+                    class="w-full px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium">
+                    <i class="fas fa-check me-2"></i>
+                    Aceptar
+                </button>
+            </div>
+        </div>
+    </div>
 </div>

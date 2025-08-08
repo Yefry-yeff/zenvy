@@ -53,8 +53,6 @@ class Ventas extends Component
     // Variables para validación de stock
     public $tiendaUsuario = null;
     public $bodegaPrincipal = null;
-    public $alertasStock = [];
-    public $hayErroresStock = false;
 
     public function mount()
     {
@@ -72,15 +70,18 @@ class Ventas extends Component
                                           ->first();
         }
         
-        // Inicializar estado de errores de stock
-        $this->hayErroresStock = false;
-        
         $this->cargarTiposPago();
     }
 
     public function cargarTiposPago()
     {
         $this->tiposPago = TipoPago::all();
+    }
+
+    #[On('enfocar-codigo-barras')]
+    public function enfocarCodigoBarras()
+    {
+        $this->dispatch('enfocar-input-codigo');
     }
 
     public function buscarClientePorIdentidad($identidad)
@@ -226,10 +227,6 @@ class Ventas extends Component
             ];
         }
 
-        // Limpiar alertas de stock para este producto si existe
-        unset($this->alertasStock[$producto->id]);
-        $this->actualizarEstadoErroresStock();
-
         // Limpiar campos y mantener el foco en el input
         $this->codigoBarras = '';
         $this->cantidad = 1;
@@ -241,13 +238,8 @@ class Ventas extends Component
     public function eliminarProducto($index)
     {
         // Limpiar alerta de stock para este producto
-        if (isset($this->productosFactura[$index]['id'])) {
-            unset($this->alertasStock[$this->productosFactura[$index]['id']]);
-        }
-        
         unset($this->productosFactura[$index]);
         $this->productosFactura = array_values($this->productosFactura);
-        $this->actualizarEstadoErroresStock();
         $this->calcularTotales();
     }
 
@@ -362,12 +354,6 @@ class Ventas extends Component
 
     public function procesarDistribucionPagos()
     {
-        // Validar que no haya errores de stock antes de procesar
-        if ($this->hayErroresStock()) {
-            session()->flash('error', 'No se puede procesar la factura. Hay productos sin stock suficiente.');
-            return;
-        }
-
         if (empty($this->productosFactura)) {
             session()->flash('error', 'No hay productos en la factura.');
             return;
@@ -599,14 +585,12 @@ class Ventas extends Component
         $this->montoEfectivo = 0;
         $this->montoTarjeta = 0;
         $this->cambio = 0;
-        $this->alertasStock = [];
-        $this->hayErroresStock = false;
     }
 
     public function validarStockProducto($productoId, $cantidadSolicitada)
     {
         if (!$this->tiendaUsuario) {
-            $this->dispatch('mostrar-error', ['mensaje' => 'Usuario sin tienda asignada']);
+            $this->dispatch('mostrar-sin-stock');
             return false;
         }
 
@@ -622,42 +606,30 @@ class Ventas extends Component
             ->where('rb.estado_id', 1)
             ->sum('rb.cantidad_disponible');
 
-        // Calcular cantidad ya en el carrito
+        $stockTotal = $stockTotal ?? 0;
+
+        // Calcular cuánto ya tenemos en el carrito de este producto
         $cantidadEnCarrito = 0;
         foreach ($this->productosFactura as $item) {
             if ($item['id'] == $productoId) {
                 $cantidadEnCarrito += $item['cantidad'];
             }
         }
-
-        // Calcular stock disponible real
-        $stockDisponible = ($stockTotal ?? 0) - $cantidadEnCarrito;
-
-        if ($stockDisponible < $cantidadSolicitada) {
-            $mensaje = "Stock insuficiente. Disponible: {$stockDisponible}, Solicitado: {$cantidadSolicitada}";
-            if ($cantidadEnCarrito > 0) {
-                $mensaje .= " (Ya tienes {$cantidadEnCarrito} en el carrito)";
-            }
-            
-            $this->alertasStock[$productoId] = $mensaje;
-            $this->actualizarEstadoErroresStock();
-            $this->dispatch('mostrar-error', ['mensaje' => $mensaje]);
+        
+        // Calcular stock disponible después de considerar lo que ya está en el carrito
+        $stockDisponible = $stockTotal - $cantidadEnCarrito;
+        
+        if ($stockDisponible <= 0) {
+            $this->dispatch('mostrar-sin-stock');
             return false;
-        } else {
-            unset($this->alertasStock[$productoId]);
-            $this->actualizarEstadoErroresStock();
-            return true;
         }
-    }
-
-    public function hayErroresStock()
-    {
-        return !empty($this->alertasStock);
-    }
-
-    private function actualizarEstadoErroresStock()
-    {
-        $this->hayErroresStock = !empty($this->alertasStock);
+        
+        if ($cantidadSolicitada > $stockDisponible) {
+            $this->dispatch('mostrar-sin-stock');
+            return false;
+        }
+        
+        return true;
     }
 
     public function obtenerStockDisponible($productoId)
@@ -667,7 +639,7 @@ class Ventas extends Component
         }
 
         try {
-            // Obtener stock total menos lo que ya está en el carrito
+            // Obtener stock total disponible
             $stockTotal = DB::table('recibido_bodega as rb')
                 ->join('seccion as s', 'rb.seccion_id', '=', 's.id')
                 ->join('segmento as seg', 's.segmento_id', '=', 'seg.id')
@@ -679,16 +651,7 @@ class Ventas extends Component
                 ->where('rb.estado_id', 1)
                 ->sum('rb.cantidad_disponible');
 
-            // Restar lo que ya está en el carrito
-            $cantidadEnCarrito = 0;
-            foreach ($this->productosFactura as $item) {
-                if ($item['id'] == $productoId) {
-                    $cantidadEnCarrito += $item['cantidad'];
-                }
-            }
-
-            $stockDisponible = ($stockTotal ?? 0) - $cantidadEnCarrito;
-            return max(0, $stockDisponible); // No permitir valores negativos
+            return $stockTotal ?? 0;
         } catch (\Exception $e) {
             return 0;
         }
