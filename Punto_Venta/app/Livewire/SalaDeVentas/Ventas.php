@@ -36,7 +36,8 @@ class Ventas extends Component
     public $mostrarModalEfectivoFlag = false;
     public $mostrarModalTarjetaFlag = false;
     public $tiposPago = [];
-    public $metodosPagoSeleccionados = [];
+    public $montosPorMetodo = []; // Nueva: array con montos por cada método
+    public $metodosActivosParaPago = []; // Métodos que tendrán monto > 0
     
     // Variables para pago en efectivo
     public $efectivoRecibido = 0;
@@ -268,45 +269,129 @@ class Ventas extends Component
             return;
         }
         
+        // Inicializar montos en 0 para todos los métodos
+        $this->montosPorMetodo = [];
+        foreach ($this->tiposPago as $tipoPago) {
+            $this->montosPorMetodo[$tipoPago->id] = 0;
+        }
+        
         $this->mostrarModalPagoFlag = true;
-        $this->metodosPagoSeleccionados = [];
     }
 
     public function cerrarModalPago()
     {
         $this->mostrarModalPagoFlag = false;
-        $this->metodosPagoSeleccionados = [];
+        $this->montosPorMetodo = [];
+        $this->metodosActivosParaPago = [];
     }
 
-    public function procesarMetodosPago()
+    public function distribuirTotalEnEfectivo()
     {
-        if (empty($this->metodosPagoSeleccionados)) {
-            session()->flash('error', 'Debe seleccionar al menos un método de pago');
+        // Buscar el ID del método "Efectivo"
+        $efectivoId = null;
+        foreach ($this->tiposPago as $tipoPago) {
+            if ($tipoPago->nombre === 'Efectivo') {
+                $efectivoId = $tipoPago->id;
+                break;
+            }
+        }
+        
+        if ($efectivoId) {
+            // Resetear todos los montos
+            foreach ($this->montosPorMetodo as $key => $value) {
+                $this->montosPorMetodo[$key] = 0;
+            }
+            // Asignar todo el total al efectivo
+            $this->montosPorMetodo[$efectivoId] = $this->total;
+        }
+    }
+
+    public function procesarDistribucionPagos()
+    {
+        // Validar que la distribución sea correcta
+        $totalDistribuido = array_sum($this->montosPorMetodo);
+        
+        if ($totalDistribuido < $this->total) {
+            $faltante = $this->total - $totalDistribuido;
+            session()->flash('error', 'El total distribuido es menor al total a pagar. Faltan: L. ' . number_format($faltante, 2));
             return;
         }
-
-        // Obtener los nombres de los métodos seleccionados
-        $metodosSeleccionados = TipoPago::whereIn('id', $this->metodosPagoSeleccionados)->pluck('nombre', 'id');
         
-        // Determinar el flujo según los métodos seleccionados
-        $tieneEfectivo = $metodosSeleccionados->contains('Efectivo');
-        $tieneTarjeta = $metodosSeleccionados->contains('Tarjeta');
-        $tieneCheque = $metodosSeleccionados->contains('Cheque');
-
+        if ($totalDistribuido <= 0) {
+            session()->flash('error', 'Debe distribuir al menos un monto en los métodos de pago');
+            return;
+        }
+        
+        // Calcular cambio si hay exceso
+        $cambioTotal = $totalDistribuido - $this->total;
+        
+        // Obtener métodos activos (con monto > 0)
+        $this->metodosActivosParaPago = [];
+        foreach ($this->montosPorMetodo as $tipoId => $monto) {
+            if ($monto > 0) {
+                $tipoPago = collect($this->tiposPago)->firstWhere('id', $tipoId);
+                if ($tipoPago) {
+                    $this->metodosActivosParaPago[] = [
+                        'id' => $tipoId,
+                        'nombre' => $tipoPago['nombre'],
+                        'monto' => $monto
+                    ];
+                }
+            }
+        }
+        
+        // Mensaje informativo si hay cambio
+        if ($cambioTotal > 0) {
+            session()->flash('info', 'Se procesará el pago con cambio de L. ' . number_format($cambioTotal, 2));
+        }
+        
         $this->cerrarModalPago();
-
-        if ($tieneEfectivo && ($tieneTarjeta || $tieneCheque)) {
-            // Pago mixto: Efectivo + otro método
-            $this->procesarPagoMixto();
+        
+        // Determinar el flujo según los métodos activos
+        $tieneEfectivo = collect($this->metodosActivosParaPago)->contains('nombre', 'Efectivo');
+        $tieneOtros = collect($this->metodosActivosParaPago)->contains(function($metodo) {
+            return $metodo['nombre'] !== 'Efectivo';
+        });
+        
+        if ($tieneEfectivo && $tieneOtros) {
+            // Pago mixto
+            $this->procesarPagoMixtoDistribucion();
         } elseif ($tieneEfectivo) {
             // Solo efectivo
-            $this->procesarSoloEfectivo();
-        } elseif ($tieneTarjeta) {
-            // Solo tarjeta
-            $this->procesarSoloTarjeta();
-        } elseif ($tieneCheque) {
-            // Solo cheque (tratar como tarjeta para confirmación)
-            $this->procesarSoloTarjeta();
+            $this->procesarSoloEfectivoDistribucion();
+        } else {
+            // Solo otros métodos (tarjeta/cheque)
+            $this->procesarSoloOtrosDistribucion();
+        }
+    }
+
+    public function procesarSoloEfectivoDistribucion()
+    {
+        $efectivo = collect($this->metodosActivosParaPago)->firstWhere('nombre', 'Efectivo');
+        $this->montoEfectivo = $efectivo['monto'];
+        $this->efectivoRecibido = 0;
+        $this->mostrarModalEfectivoFlag = true;
+    }
+
+    public function procesarSoloOtrosDistribucion()
+    {
+        // Para métodos como tarjeta/cheque, usar el primer método activo
+        $primerMetodo = collect($this->metodosActivosParaPago)->first();
+        $this->montoTarjeta = $primerMetodo['monto'];
+        $this->mostrarModalTarjetaFlag = true;
+    }
+
+    public function procesarPagoMixtoDistribucion()
+    {
+        // En pago mixto, empezar con efectivo si existe
+        $efectivo = collect($this->metodosActivosParaPago)->firstWhere('nombre', 'Efectivo');
+        if ($efectivo) {
+            $this->montoEfectivo = $efectivo['monto'];
+            $this->efectivoRecibido = 0;
+            $this->mostrarModalEfectivoFlag = true;
+        } else {
+            // Si no hay efectivo, procesar el primer método
+            $this->procesarSoloOtrosDistribucion();
         }
     }
 
@@ -338,7 +423,7 @@ class Ventas extends Component
         $this->montoEfectivo = 0;
     }
 
-    public function confirmarPagoEfectivo()
+    public function confirmarEfectivo()
     {
         if ($this->efectivoRecibido < $this->montoEfectivo) {
             session()->flash('error', 'El efectivo recibido es insuficiente');
@@ -348,12 +433,17 @@ class Ventas extends Component
         $this->cambio = $this->efectivoRecibido - $this->montoEfectivo;
         
         // Verificar si es pago mixto
-        $metodosSeleccionados = TipoPago::whereIn('id', $this->metodosPagoSeleccionados)->pluck('nombre');
-        $tieneMetodoNoEfectivo = $metodosSeleccionados->contains('Tarjeta') || $metodosSeleccionados->contains('Cheque');
+        $tieneMetodoNoEfectivo = collect($this->metodosActivosParaPago)->contains(function($metodo) {
+            return $metodo['nombre'] !== 'Efectivo';
+        });
         
         if ($tieneMetodoNoEfectivo && $this->montoEfectivo < $this->total) {
-            // Es pago mixto, continuar con tarjeta
-            $this->montoTarjeta = $this->total - $this->montoEfectivo;
+            // Es pago mixto, continuar con el siguiente método
+            $siguienteMetodo = collect($this->metodosActivosParaPago)->firstWhere(function($metodo) {
+                return $metodo['nombre'] !== 'Efectivo';
+            });
+            
+            $this->montoTarjeta = $siguienteMetodo['monto'];
             $this->cerrarModalEfectivo();
             $this->mostrarModalTarjetaFlag = true;
         } else {
@@ -421,17 +511,19 @@ class Ventas extends Component
         }
     }
 
-    public function limpiarEstadoVenta()
+    public function limpiarCarrito()
     {
-        $this->cliente = null;
         $this->productosFactura = [];
+        $this->cliente = null;
+        $this->busquedaCliente = '';
         $this->calcularTotales();
         
         // Limpiar variables de pago
         $this->mostrarModalPagoFlag = false;
         $this->mostrarModalEfectivoFlag = false;
         $this->mostrarModalTarjetaFlag = false;
-        $this->metodosPagoSeleccionados = [];
+        $this->montosPorMetodo = [];
+        $this->metodosActivosParaPago = [];
         $this->efectivoRecibido = 0;
         $this->montoEfectivo = 0;
         $this->montoTarjeta = 0;

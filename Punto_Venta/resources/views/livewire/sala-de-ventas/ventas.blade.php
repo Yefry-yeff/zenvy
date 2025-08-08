@@ -486,50 +486,225 @@
 
                 <!-- Métodos de pago -->
                 <div class="mb-6">
-                    <h3 class="text-lg font-medium text-gray-800 mb-4">Seleccione método(s) de pago:</h3>
+                    <h3 class="text-lg font-medium text-gray-800 mb-4">Distribución de pagos:</h3>
+                    <p class="text-sm text-gray-600 mb-6">Ingrese el monto para cada método de pago. La suma debe ser igual o mayor al total.</p>
                     
-                    <div class="space-y-3">
+                    <div class="space-y-6">
                         @forelse($tiposPago as $tipoPago)
-                            <div class="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-                                <input type="checkbox" 
-                                    id="pago_{{ $tipoPago->id }}"
-                                    wire:model="metodosPagoSeleccionados"
-                                    value="{{ $tipoPago->id }}"
-                                    class="w-5 h-5 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2">
-                                <label for="pago_{{ $tipoPago->id }}" class="ml-3 text-lg font-medium text-gray-700 cursor-pointer flex-1">
-                                    {{ $tipoPago->nombre }}
-                                </label>
-                                @if(in_array($tipoPago->id, $metodosPagoSeleccionados ?? []))
-                                    <i class="fas fa-check-circle text-green-500"></i>
+                            <div class="p-5 border-2 border-gray-200 rounded-xl hover:border-gray-300 transition-colors {{ ($montosPorMetodo[$tipoPago->id] ?? 0) > 0 ? 'bg-blue-50 border-blue-300' : 'bg-white' }}">
+                                <!-- Header del método de pago -->
+                                <div class="flex items-center justify-between mb-4">
+                                    <div class="flex items-center">
+                                        <div class="w-10 h-10 rounded-full flex items-center justify-center mr-3
+                                            @if($tipoPago->nombre == 'Efectivo') bg-green-100 text-green-600
+                                            @elseif($tipoPago->nombre == 'Tarjeta') bg-blue-100 text-blue-600
+                                            @elseif($tipoPago->nombre == 'Cheque') bg-purple-100 text-purple-600
+                                            @else bg-gray-100 text-gray-600 @endif">
+                                            @if($tipoPago->nombre == 'Efectivo')
+                                                <i class="fas fa-money-bill-wave"></i>
+                                            @elseif($tipoPago->nombre == 'Tarjeta')
+                                                <i class="fas fa-credit-card"></i>
+                                            @elseif($tipoPago->nombre == 'Cheque')
+                                                <i class="fas fa-file-invoice-dollar"></i>
+                                            @else
+                                                <i class="fas fa-coins"></i>
+                                            @endif
+                                        </div>
+                                        <h4 class="text-xl font-semibold text-gray-800">{{ $tipoPago->nombre }}</h4>
+                                    </div>
+                                    
+                                    @if(($montosPorMetodo[$tipoPago->id] ?? 0) > 0)
+                                        <div class="flex items-center text-green-600">
+                                            <i class="fas fa-check-circle text-lg mr-2"></i>
+                                            <span class="font-medium">Activo</span>
+                                        </div>
+                                    @endif
+                                </div>
+                                
+                                <!-- Input de monto en layout horizontal -->
+                                <div class="flex items-center space-x-4">
+                                    <label for="monto_{{ $tipoPago->id }}" class="text-lg font-medium text-gray-700 min-w-0 flex-shrink-0">
+                                        Monto:
+                                    </label>
+                                    <div class="flex-1 relative">
+                                        <span class="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 font-bold text-lg">L.</span>
+                                        <input type="number" 
+                                            id="monto_{{ $tipoPago->id }}"
+                                            wire:model.live="montosPorMetodo.{{ $tipoPago->id }}"
+                                            step="0.01"
+                                            min="0"
+                                            max="{{ $total }}"
+                                            class="w-full pl-12 pr-6 py-4 border-2 border-gray-300 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 text-xl font-medium text-center transition-all"
+                                            placeholder="0.00">
+                                    </div>
+                                </div>
+                                
+                                <!-- Información adicional para efectivo -->
+                                @if($tipoPago->nombre == 'Efectivo' && ($montosPorMetodo[$tipoPago->id] ?? 0) > 0)
+                                    @php
+                                        $montoEfectivo = $montosPorMetodo[$tipoPago->id] ?? 0;
+                                        $cambio = $montoEfectivo > 0 ? max(0, $montoEfectivo - $montoEfectivo) : 0; // Se calculará cuando el cliente pague
+                                    @endphp
+                                    <div class="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                                        <div class="text-sm text-green-700">
+                                            <i class="fas fa-info-circle mr-2"></i>
+                                            <strong>Información del efectivo:</strong>
+                                        </div>
+                                        <div class="mt-2 text-sm text-gray-700">
+                                            • Monto a recibir: <strong>L. {{ number_format($montoEfectivo, 2) }}</strong><br>
+                                            • El cambio se calculará cuando el cliente entregue el dinero
+                                        </div>
+                                    </div>
                                 @endif
                             </div>
                         @empty
-                            <div class="text-center text-gray-500 py-4">
-                                <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
-                                <p>No hay métodos de pago configurados</p>
+                            <div class="text-center text-gray-500 py-8">
+                                <i class="fas fa-exclamation-triangle fa-3x mb-4"></i>
+                                <p class="text-lg">No hay métodos de pago configurados</p>
+                                <p class="text-sm mt-2">Contacte al administrador del sistema</p>
                             </div>
                         @endforelse
                     </div>
+                    <!-- Resumen de distribución -->
+                    @php
+                        $totalDistribuido = array_sum($montosPorMetodo ?? []);
+                        $diferencia = $total - $totalDistribuido;
+                        $metodosConMonto = array_filter($montosPorMetodo ?? [], function($monto) { return $monto > 0; });
+                        $puedeProceesar = $totalDistribuido >= $total; // Cambio: ahora puede ser igual o mayor
+                    @endphp
+                    
+                    @if($totalDistribuido > 0)
+                        <div class="mt-6 p-6 rounded-xl {{ $puedeProceesar ? 'bg-green-50 border-2 border-green-300' : 'bg-orange-50 border-2 border-orange-300' }}">
+                            <!-- Título del resumen -->
+                            <h4 class="text-lg font-bold {{ $puedeProceesar ? 'text-green-800' : 'text-orange-800' }} mb-4">
+                                <i class="fas {{ $puedeProceesar ? 'fa-check-circle' : 'fa-exclamation-triangle' }} mr-2"></i>
+                                Resumen de Distribución
+                            </h4>
+                            
+                            <!-- Detalles -->
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                                <div class="text-center p-3 bg-white rounded-lg border">
+                                    <div class="text-sm text-gray-600">Total a Pagar</div>
+                                    <div class="text-xl font-bold text-gray-800">L. {{ number_format($total, 2) }}</div>
+                                </div>
+                                
+                                <div class="text-center p-3 bg-white rounded-lg border">
+                                    <div class="text-sm text-gray-600">Total Distribuido</div>
+                                    <div class="text-xl font-bold {{ $puedeProceesar ? 'text-green-600' : 'text-orange-600' }}">
+                                        L. {{ number_format($totalDistribuido, 2) }}
+                                    </div>
+                                </div>
+                                
+                                <div class="text-center p-3 bg-white rounded-lg border">
+                                    <div class="text-sm text-gray-600">
+                                        {{ $diferencia > 0 ? 'Falta Distribuir' : ($diferencia < 0 ? 'Cambio/Exceso' : 'Perfecto') }}
+                                    </div>
+                                    <div class="text-xl font-bold {{ $diferencia > 0 ? 'text-red-600' : ($diferencia < 0 ? 'text-blue-600' : 'text-green-600') }}">
+                                        @if($diferencia == 0)
+                                            <i class="fas fa-check"></i> Exacto
+                                        @else
+                                            L. {{ number_format(abs($diferencia), 2) }}
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Estado y mensaje -->
+                            @if($puedeProceesar)
+                                <div class="flex items-center justify-center p-3 bg-green-100 rounded-lg">
+                                    <i class="fas fa-thumbs-up text-green-600 text-lg mr-3"></i>
+                                    <div>
+                                        <div class="font-bold text-green-800">¡Distribución válida!</div>
+                                        <div class="text-sm text-green-700">
+                                            @if($diferencia < 0)
+                                                Se procesará el pago y se dará cambio de L. {{ number_format(abs($diferencia), 2) }}
+                                            @else
+                                                Puede procesar la factura
+                                            @endif
+                                        </div>
+                                    </div>
+                                </div>
+                            @else
+                                <div class="flex items-center justify-center p-3 bg-orange-100 rounded-lg">
+                                    <i class="fas fa-exclamation-triangle text-orange-600 text-lg mr-3"></i>
+                                    <div>
+                                        <div class="font-bold text-orange-800">Distribución incompleta</div>
+                                        <div class="text-sm text-orange-700">
+                                            Faltan L. {{ number_format($diferencia, 2) }} por distribuir en los métodos de pago
+                                        </div>
+                                    </div>
+                                </div>
+                            @endif
+                            
+                            <!-- Lista de métodos activos -->
+                            @if(count($metodosConMonto) > 0)
+                                <div class="mt-4">
+                                    <div class="text-sm font-medium text-gray-700 mb-2">Métodos de pago activos:</div>
+                                    <div class="flex flex-wrap gap-2">
+                                        @foreach($metodosConMonto as $tipoId => $monto)
+                                            @php
+                                                $tipoPago = collect($tiposPago)->firstWhere('id', $tipoId);
+                                            @endphp
+                                            @if($tipoPago)
+                                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium
+                                                    @if($tipoPago->nombre == 'Efectivo') bg-green-100 text-green-800
+                                                    @elseif($tipoPago->nombre == 'Tarjeta') bg-blue-100 text-blue-800
+                                                    @elseif($tipoPago->nombre == 'Cheque') bg-purple-100 text-purple-800
+                                                    @else bg-gray-100 text-gray-800 @endif">
+                                                    {{ $tipoPago->nombre }}: L. {{ number_format($monto, 2) }}
+                                                </span>
+                                            @endif
+                                        @endforeach
+                                    </div>
+                                </div>
+                            @endif
+                        </div>
+                    @endif
                 </div>
 
                 <!-- Botones de acción -->
-                <div class="flex justify-end gap-3">
+                <div class="flex justify-between items-center gap-4 pt-4 border-t border-gray-200">
                     <button wire:click="cerrarModalPago" 
-                        class="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors">
+                        class="px-6 py-3 text-gray-700 bg-gray-200 rounded-xl hover:bg-gray-300 transition-colors font-medium">
+                        <i class="fas fa-times mr-2"></i>
                         Cancelar
                     </button>
-                    <button wire:click="procesarMetodosPago" 
-                        class="px-6 py-2 text-white rounded-lg transition-colors"
-                        :class="{
-                            'bg-emerald-600 hover:bg-emerald-700': theme === 'verde',
-                            'bg-blue-600 hover:bg-blue-700': theme === 'azul',
-                            'bg-gray-900 hover:bg-gray-800': theme === 'oscuro',
-                            'bg-slate-700 hover:bg-slate-800': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
-                        }"
-                        @if(empty($metodosPagoSeleccionados)) disabled @endif>
-                        <i class="fas fa-arrow-right me-1"></i>
-                        Continuar
-                    </button>
+                    
+                    <div class="flex gap-3">
+                        <!-- Botón de distribución rápida -->
+                        @if(count($tiposPago) > 0)
+                            <button wire:click="distribuirTotalEnEfectivo" 
+                                class="px-5 py-3 text-green-700 bg-green-100 rounded-xl hover:bg-green-200 transition-colors font-medium">
+                                <i class="fas fa-money-bill-wave mr-2"></i>
+                                Todo en Efectivo
+                            </button>
+                        @endif
+                        
+                        @php
+                            $totalDistribuido = array_sum($montosPorMetodo ?? []);
+                            $puedeProceesar = $totalDistribuido >= $total && $totalDistribuido > 0;
+                        @endphp
+                        
+                        <button wire:click="procesarDistribucionPagos" 
+                            wire:loading.attr="disabled"
+                            wire:loading.class="opacity-50"
+                            class="px-8 py-3 text-white rounded-xl transition-colors font-medium text-lg {{ $puedeProceesar ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-400 cursor-not-allowed' }}"
+                            @if(!$puedeProceesar) disabled @endif>
+                            <span wire:loading.remove>
+                                @if($puedeProceesar)
+                                    <i class="fas fa-check mr-2"></i>
+                                    Procesar Pago
+                                @else
+                                    <i class="fas fa-exclamation-triangle mr-2"></i>
+                                    Completar Distribución
+                                @endif
+                            </span>
+                            <span wire:loading>
+                                <i class="fas fa-spinner fa-spin mr-2"></i>
+                                Procesando...
+                            </span>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -541,118 +716,140 @@
     <div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
          @click.self="$wire.cerrarModalEfectivo()"
          @keydown.escape.window="$wire.cerrarModalEfectivo()">
-        <div class="bg-white rounded-lg shadow-xl w-full max-w-md overflow-hidden"
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden"
              x-data="{ efectivoRecibido: @entangle('efectivoRecibido') }"
              x-init="$watch('theme', t => localStorage.setItem('theme', t))">
             <!-- Header con tema -->
-            <div class="flex justify-between items-center px-6 py-4 text-white"
-                :class="{
-                    'bg-emerald-600': theme === 'verde',
-                    'bg-blue-600': theme === 'azul',
-                    'bg-gray-900': theme === 'oscuro',
-                    'bg-slate-700': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
-                }">
-                <h2 class="text-lg font-semibold">
+            <div class="flex justify-between items-center px-6 py-4 text-white bg-green-600">
+                <h2 class="text-xl font-semibold">
                     <i class="fas fa-money-bill-wave me-2"></i>
                     Pago en Efectivo
                 </h2>
+                <button wire:click="cerrarModalEfectivo" class="text-white hover:text-gray-200 transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
             </div>
             
             <div class="p-6">
-                <!-- Información de pago mixto -->
-                @if(count($metodosPagoSeleccionados) > 1)
-                    <div class="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                        <div class="flex items-center">
-                            <i class="fas fa-info-circle text-yellow-600 me-2"></i>
-                            <div>
-                                <span class="text-sm font-medium text-yellow-800">Pago Mixto</span>
-                                <p class="text-xs text-yellow-700">Ingrese la cantidad que el cliente paga en efectivo. El resto se procesará con otro método.</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Input para ajustar monto en efectivo -->
-                    <div class="mb-4">
-                        <label for="monto_efectivo" class="block text-sm font-medium text-gray-700 mb-2">
-                            Monto a pagar en efectivo:
-                        </label>
-                        <input type="number" 
-                            id="monto_efectivo"
-                            wire:model.live="montoEfectivo"
-                            step="0.01"
-                            min="0"
-                            max="{{ $total }}"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-200 text-lg text-center"
-                            placeholder="0.00">
-                    </div>
-                @endif
-
-                <!-- Total a pagar en efectivo -->
-                <div class="mb-4 p-3 bg-blue-50 rounded-lg text-center">
-                    <span class="text-sm font-medium text-gray-700">
-                        @if(count($metodosPagoSeleccionados) > 1)
-                            Cantidad en efectivo:
-                        @else
-                            Total a pagar:
-                        @endif
-                    </span>
-                    <div class="text-xl font-bold text-blue-600">L. {{ number_format($montoEfectivo ?? $total, 2) }}</div>
-                    
-                    @if(count($metodosPagoSeleccionados) > 1 && ($montoEfectivo ?? 0) > 0)
-                        <div class="text-sm text-gray-600 mt-1">
-                            Restante: L. {{ number_format($total - ($montoEfectivo ?? 0), 2) }}
+                <!-- Información del pago -->
+                <div class="mb-6">
+                    @if(count($metodosActivosParaPago) > 1)
+                        <div class="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                            <h3 class="font-semibold text-blue-800 mb-2">
+                                <i class="fas fa-info-circle mr-2"></i>
+                                Pago Mixto Detectado
+                            </h3>
+                            <p class="text-sm text-blue-700">
+                                Se procesará el efectivo primero, luego continuará con los otros métodos de pago.
+                            </p>
                         </div>
                     @endif
+                    
+                    <!-- Monto que debe recibir en efectivo -->
+                    <div class="text-center p-6 bg-green-50 rounded-xl border-2 border-green-200 mb-6">
+                        <div class="text-sm font-medium text-green-700 mb-1">Monto a recibir en efectivo</div>
+                        <div class="text-3xl font-bold text-green-800">L. {{ number_format($montoEfectivo ?? 0, 2) }}</div>
+                        @if(count($metodosActivosParaPago) > 1)
+                            <div class="text-sm text-green-600 mt-2">
+                                Restante para otros métodos: L. {{ number_format($total - ($montoEfectivo ?? 0), 2) }}
+                            </div>
+                        @endif
+                    </div>
                 </div>
 
-                <!-- Input de efectivo recibido -->
-                <div class="mb-4">
-                    <label for="efectivo_recibido" class="block text-sm font-medium text-gray-700 mb-2">
-                        Efectivo recibido del cliente:
+                <!-- Input de efectivo recibido del cliente -->
+                <div class="mb-6">
+                    <label for="efectivo_recibido" class="block text-lg font-semibold text-gray-800 mb-3">
+                        💵 ¿Cuánto efectivo entregó el cliente?
                     </label>
-                    <input type="number" 
-                        id="efectivo_recibido"
-                        wire:model.live="efectivoRecibido"
-                        step="0.01"
-                        min="0"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-200 text-lg text-center"
-                        placeholder="0.00"
-                        autofocus>
+                    <div class="relative">
+                        <span class="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 font-bold text-xl">L.</span>
+                        <input type="number" 
+                            id="efectivo_recibido"
+                            wire:model.live="efectivoRecibido"
+                            step="0.01"
+                            min="0"
+                            class="w-full pl-12 pr-6 py-4 border-2 border-gray-300 rounded-xl focus:border-green-500 focus:ring-2 focus:ring-green-200 text-2xl font-bold text-center transition-all"
+                            placeholder="0.00"
+                            autofocus>
+                    </div>
+                    <div class="text-sm text-gray-600 mt-2 text-center">
+                        Ejemplo: Si el cliente le entrega un billete de L. 100, escriba 100.00
+                    </div>
                 </div>
 
                 <!-- Cálculo de cambio -->
                 @if($efectivoRecibido > 0)
                     @php
-                        $montoAPagar = $montoEfectivo ?? $total;
+                        $montoAPagar = $montoEfectivo ?? 0;
                         $cambio = $efectivoRecibido - $montoAPagar;
+                        $esSuficiente = $efectivoRecibido >= $montoAPagar;
                     @endphp
                     
-                    <div class="mb-4 p-3 rounded-lg {{ $cambio >= 0 ? 'bg-green-50' : 'bg-red-50' }}">
-                        @if($cambio >= 0)
-                            <div class="text-center">
-                                <span class="text-sm font-medium text-green-700">Cambio a entregar:</span>
-                                <div class="text-xl font-bold text-green-600">L. {{ number_format($cambio, 2) }}</div>
+                    <div class="mb-6 p-6 rounded-xl border-2 {{ $esSuficiente ? 'bg-green-50 border-green-300' : 'bg-red-50 border-red-300' }}">
+                        <h3 class="font-bold text-lg {{ $esSuficiente ? 'text-green-800' : 'text-red-800' }} mb-4">
+                            📊 Resumen del Pago
+                        </h3>
+                        
+                        <div class="space-y-3">
+                            <div class="flex justify-between items-center">
+                                <span class="font-medium text-gray-700">Monto a cobrar:</span>
+                                <span class="font-bold text-gray-800">L. {{ number_format($montoAPagar, 2) }}</span>
                             </div>
-                        @else
-                            <div class="text-center">
-                                <span class="text-sm font-medium text-red-700">Falta por pagar:</span>
-                                <div class="text-xl font-bold text-red-600">L. {{ number_format(abs($cambio), 2) }}</div>
+                            
+                            <div class="flex justify-between items-center">
+                                <span class="font-medium text-gray-700">Efectivo recibido:</span>
+                                <span class="font-bold text-blue-600">L. {{ number_format($efectivoRecibido, 2) }}</span>
                             </div>
-                        @endif
+                            
+                            <hr class="border-gray-300">
+                            
+                            @if($esSuficiente)
+                                @if($cambio > 0)
+                                    <div class="flex justify-between items-center">
+                                        <span class="font-bold text-green-700">💰 Cambio a entregar:</span>
+                                        <span class="font-bold text-2xl text-green-600">L. {{ number_format($cambio, 2) }}</span>
+                                    </div>
+                                    <div class="text-sm text-green-600 text-center mt-2">
+                                        ✅ Devuelva L. {{ number_format($cambio, 2) }} al cliente
+                                    </div>
+                                @else
+                                    <div class="text-center">
+                                        <span class="font-bold text-green-700 text-lg">✅ Pago exacto</span>
+                                        <div class="text-sm text-green-600 mt-1">No hay cambio que entregar</div>
+                                    </div>
+                                @endif
+                            @else
+                                <div class="flex justify-between items-center">
+                                    <span class="font-bold text-red-700">❌ Falta por pagar:</span>
+                                    <span class="font-bold text-2xl text-red-600">L. {{ number_format(abs($cambio), 2) }}</span>
+                                </div>
+                                <div class="text-sm text-red-600 text-center mt-2">
+                                    El efectivo recibido es insuficiente
+                                </div>
+                            @endif
+                        </div>
                     </div>
                 @endif
 
                 <!-- Botones de acción -->
-                <div class="flex justify-end gap-3">
+                <div class="flex justify-end gap-4">
                     <button wire:click="cerrarModalEfectivo" 
-                        class="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors">
+                        class="px-6 py-3 text-gray-700 bg-gray-200 rounded-xl hover:bg-gray-300 transition-colors font-medium">
+                        <i class="fas fa-times mr-2"></i>
                         Cancelar
                     </button>
-                    <button wire:click="confirmarPagoEfectivo" 
-                        class="px-6 py-2 text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors"
-                        @if($efectivoRecibido <= 0 || $efectivoRecibido < ($montoEfectivo ?? $total)) disabled @endif>
-                        <i class="fas fa-check me-1"></i>
-                        Confirmar Pago
+                    <button wire:click="confirmarEfectivo" 
+                        class="px-8 py-3 text-white rounded-xl transition-colors font-medium text-lg {{ ($efectivoRecibido > 0 && $efectivoRecibido >= ($montoEfectivo ?? 0)) ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-400 cursor-not-allowed' }}"
+                        @if($efectivoRecibido <= 0 || $efectivoRecibido < ($montoEfectivo ?? 0)) disabled @endif>
+                        <i class="fas fa-check mr-2"></i>
+                        @if(count($metodosActivosParaPago) > 1)
+                            Continuar con otros pagos
+                        @else
+                            Finalizar Venta
+                        @endif
                     </button>
                 </div>
             </div>
