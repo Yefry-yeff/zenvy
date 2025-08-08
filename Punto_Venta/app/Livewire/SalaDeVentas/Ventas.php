@@ -250,10 +250,23 @@ class Ventas extends Component
             return;
         }
         
-        // Validar stock con la nueva cantidad
+        // Validar stock con la nueva cantidad total
         $productoId = $this->productosFactura[$index]['id'];
-        if (!$this->validarStockProducto($productoId, $nuevaCantidad)) {
-            // Revertir a la cantidad anterior si no hay stock suficiente
+        $stockTotal = $this->obtenerStockTotal($productoId);
+        
+        // Calcular cuánto hay en el carrito SIN incluir este item que estamos modificando
+        $cantidadEnCarritoSinEsteItem = 0;
+        foreach ($this->productosFactura as $i => $item) {
+            if ($item['id'] == $productoId && $i != $index) {
+                $cantidadEnCarritoSinEsteItem += $item['cantidad'];
+            }
+        }
+        
+        // La nueva cantidad total sería: cantidad en carrito (sin este item) + nueva cantidad de este item
+        $nuevaCantidadTotal = $cantidadEnCarritoSinEsteItem + $nuevaCantidad;
+        
+        if ($nuevaCantidadTotal > $stockTotal) {
+            $this->dispatch('mostrar-sin-stock');
             return;
         }
         
@@ -608,6 +621,12 @@ class Ventas extends Component
 
         $stockTotal = $stockTotal ?? 0;
 
+        // Si no hay stock total disponible
+        if ($stockTotal <= 0) {
+            $this->dispatch('mostrar-sin-stock');
+            return false;
+        }
+
         // Calcular cuánto ya tenemos en el carrito de este producto
         $cantidadEnCarrito = 0;
         foreach ($this->productosFactura as $item) {
@@ -616,15 +635,11 @@ class Ventas extends Component
             }
         }
         
-        // Calcular stock disponible después de considerar lo que ya está en el carrito
-        $stockDisponible = $stockTotal - $cantidadEnCarrito;
+        // La nueva cantidad total que tendríamos sería: cantidad en carrito + cantidad solicitada
+        $nuevaCantidadTotal = $cantidadEnCarrito + $cantidadSolicitada;
         
-        if ($stockDisponible <= 0) {
-            $this->dispatch('mostrar-sin-stock');
-            return false;
-        }
-        
-        if ($cantidadSolicitada > $stockDisponible) {
+        // Validar que la nueva cantidad total no exceda el stock total disponible
+        if ($nuevaCantidadTotal > $stockTotal) {
             $this->dispatch('mostrar-sin-stock');
             return false;
         }
@@ -640,6 +655,41 @@ class Ventas extends Component
 
         try {
             // Obtener stock total disponible
+            $stockTotal = DB::table('recibido_bodega as rb')
+                ->join('seccion as s', 'rb.seccion_id', '=', 's.id')
+                ->join('segmento as seg', 's.segmento_id', '=', 'seg.id')
+                ->join('bodega as b', 'seg.bodega_id', '=', 'b.id')
+                ->where('b.tienda_id', $this->tiendaUsuario)
+                ->where('b.principal', 1)
+                ->where('b.estado_id', 1)
+                ->where('rb.producto_id', $productoId)
+                ->where('rb.estado_id', 1)
+                ->sum('rb.cantidad_disponible');
+
+            $stockTotal = $stockTotal ?? 0;
+
+            // Calcular cuánto ya tenemos en el carrito de este producto
+            $cantidadEnCarrito = 0;
+            foreach ($this->productosFactura as $item) {
+                if ($item['id'] == $productoId) {
+                    $cantidadEnCarrito += $item['cantidad'];
+                }
+            }
+            
+            // Retornar stock disponible considerando lo que ya está en el carrito
+            return max(0, $stockTotal - $cantidadEnCarrito);
+        } catch (\Exception $e) {
+            return 0;
+        }
+    }
+
+    public function obtenerStockTotal($productoId)
+    {
+        if (!$this->tiendaUsuario) {
+            return 0;
+        }
+
+        try {
             $stockTotal = DB::table('recibido_bodega as rb')
                 ->join('seccion as s', 'rb.seccion_id', '=', 's.id')
                 ->join('segmento as seg', 's.segmento_id', '=', 'seg.id')
