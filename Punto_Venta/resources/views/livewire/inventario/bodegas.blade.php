@@ -45,7 +45,7 @@
         <div class="px-4 py-3 pt-0 card-body">
             <!-- Barra de búsqueda y filtros -->
             <div class="mb-4 row">
-                <div class="col-md-6">
+                <div class="col-md-4">
                     <div class="input-group">
                         <span class="input-group-text">
                             <i class="fas fa-search"></i>
@@ -56,22 +56,34 @@
                                wire:model.live="busqueda">
                     </div>
                 </div>
-            <div class="col-md-3">
-                <select class="form-select" wire:model.live="filtroTienda">
-                    <option value="">Todas las tiendas</option>
-                    @foreach($tiendas as $tienda)
-                        <option value="{{ $tienda->id }}">{{ $tienda->denominacion_social }}</option>
-                    @endforeach
-                </select>
+                <div class="col-md-2">
+                    <select class="form-select" wire:model.live="filtroTienda">
+                        <option value="">Todas las tiendas</option>
+                        @foreach($tiendas as $tienda)
+                            <option value="{{ $tienda->id }}">{{ $tienda->denominacion_social }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select class="form-select" wire:model.live="filtroTipo">
+                        <option value="">Todos los tipos</option>
+                        <option value="1">Principal</option>
+                        <option value="0">Secundaria</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select class="form-select" wire:model.live="filtroEstado">
+                        <option value="">Todos los estados</option>
+                        <option value="1">Activas</option>
+                        <option value="2">Inactivas</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button wire:click="limpiarFiltros" class="btn btn-outline-secondary w-100">
+                        <i class="fas fa-broom me-1"></i>Limpiar
+                    </button>
+                </div>
             </div>
-            <div class="col-md-3">
-                <select class="form-select" wire:model.live="filtroEstado">
-                    <option value="">Todos los estados</option>
-                    <option value="1">Activas</option>
-                    <option value="2">Inactivas</option>
-                </select>
-            </div>
-        </div>
 
         <!-- Tarjetas de bodegas -->
         <div class="row">
@@ -81,6 +93,11 @@
                         <div class="card-header d-flex justify-content-between align-items-center">
                             <h5 class="mb-0 card-title">
                                 <i class="fas fa-warehouse me-2"></i>{{ $bodega->nombre }}
+                                @if($bodega->principal == 1)
+                                    <span class="badge bg-primary ms-2">
+                                        <i class="fas fa-star me-1"></i>Principal
+                                    </span>
+                                @endif
                             </h5>
                             <span class="badge {{ $bodega->estado_id == 1 ? 'bg-success' : 'bg-secondary' }}">
                                 {{ $bodega->estado_id == 1 ? 'Activa' : 'Inactiva' }}
@@ -88,6 +105,12 @@
                         </div>
                         <div class="card-body">
                             <p class="card-text">
+                                <strong>Tipo:</strong> 
+                                @if($bodega->principal == 1)
+                                    <span class="text-primary">🏢 Bodega Principal</span>
+                                @else
+                                    <span class="text-secondary">🏪 Bodega Secundaria</span>
+                                @endif<br>
                                 <strong>Dirección:</strong> {{ $bodega->direccion->domicilio_tributario ?? 'N/A' }}<br>
                                 <strong>Tienda asignada:</strong> 
                                 @if($bodega->tienda)

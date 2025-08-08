@@ -19,6 +19,7 @@ class Bodegas extends Component
     public $busqueda = '';
     public $filtroTienda = '';
     public $filtroEstado = '';
+    public $filtroTipo = '';
 
     // Propiedades para modal de inactivación
     public $mostrarModalInactivar = false;
@@ -47,6 +48,20 @@ class Bodegas extends Component
 
     public function updatingFiltroEstado()
     {
+        $this->resetPage();
+    }
+
+    public function updatingFiltroTipo()
+    {
+        $this->resetPage();
+    }
+
+    public function limpiarFiltros()
+    {
+        $this->busqueda = '';
+        $this->filtroTienda = '';
+        $this->filtroEstado = '';
+        $this->filtroTipo = '';
         $this->resetPage();
     }
 
@@ -257,6 +272,10 @@ class Bodegas extends Component
 
         if ($this->filtroEstado !== '') {
             $query->where('estado_id', $this->filtroEstado);
+        }
+
+        if ($this->filtroTipo !== '') {
+            $query->where('principal', $this->filtroTipo);
         }
 
         $bodegas = $query->orderBy('nombre')->paginate(9);

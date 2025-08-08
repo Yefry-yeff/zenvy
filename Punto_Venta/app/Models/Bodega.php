@@ -16,7 +16,8 @@ class Bodega extends Model
         'nombre',
         'tienda_id',
         'direccion_id',
-        'estado_id'
+        'estado_id',
+        'principal'
     ];
 
     // Relationships
@@ -41,7 +42,25 @@ class Bodega extends Model
 
     public static function crearBodega($datos)
     {
-        return self::create($datos);
+        // Verificar si la tienda ya tiene una bodega principal
+        $tienePrincipal = self::where('tienda_id', $datos['tienda'])
+                            ->where('principal', 1)
+                            ->where('estado_id', 1)
+                            ->exists();
+        
+        // Si no tiene bodega principal, esta será la principal (1), sino será secundaria (0)
+        $datos['principal'] = $tienePrincipal ? 0 : 1;
+        
+        // Mapear los nombres de campos del formulario a los de la base de datos
+        $datosMapeados = [
+            'nombre' => $datos['nombre'],
+            'tienda_id' => $datos['tienda'],
+            'direccion_id' => $datos['direccion'],
+            'estado_id' => 1, // Siempre crear como activa
+            'principal' => $datos['principal']
+        ];
+        
+        return self::create($datosMapeados);
     }
 
     public static function actualizarBodega($id, $datos)
