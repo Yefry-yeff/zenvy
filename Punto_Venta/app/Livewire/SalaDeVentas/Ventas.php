@@ -28,6 +28,7 @@ class Ventas extends Component
     public $isv = 15; // Porcentaje de ISV
     public $totalIsv = 0;
     public $total = 0;
+    public $isvPorTasa = []; // Nuevo: ISV agrupado por tasa
 
     public function mount()
     {
@@ -36,7 +37,19 @@ class Ventas extends Component
 
     public function buscarClientePorIdentidad($identidad)
     {
-        $cliente = Cliente::where('identidad', $identidad)->first();
+        $cliente = Cliente::select([
+                'cliente.*',
+                DB::raw("CONCAT_WS(', ', 
+                    NULLIF(direccion.colonia, ''), 
+                    NULLIF(direccion.calle_blv, ''), 
+                    NULLIF(direccion.sector_zona, ''), 
+                    NULLIF(direccion.bloque, '')
+                ) as direccion_completa")
+            ])
+            ->leftJoin('direccion', 'cliente.direccion_id', '=', 'direccion.id')
+            ->where('cliente.identidad', $identidad)
+            ->first();
+            
         if ($cliente) {
             $this->cliente = $cliente;
             session()->forget('cliente_no_encontrado');
@@ -93,7 +106,19 @@ class Ventas extends Component
 
     public function seleccionarClienteModal($clienteId)
     {
-        $cliente = Cliente::find($clienteId);
+        $cliente = Cliente::select([
+                'cliente.*',
+                DB::raw("CONCAT_WS(', ', 
+                    NULLIF(direccion.colonia, ''), 
+                    NULLIF(direccion.calle_blv, ''), 
+                    NULLIF(direccion.sector_zona, ''), 
+                    NULLIF(direccion.bloque, '')
+                ) as direccion_completa")
+            ])
+            ->leftJoin('direccion', 'cliente.direccion_id', '=', 'direccion.id')
+            ->where('cliente.id', $clienteId)
+            ->first();
+            
         if ($cliente) {
             $this->cliente = $cliente;
             $this->cerrarModalClientes();
@@ -156,17 +181,39 @@ class Ventas extends Component
         $this->calcularTotales();
     }
 
+    public function modificarCantidad($index, $nuevaCantidad)
+    {
+        if ($nuevaCantidad <= 0) {
+            $this->eliminarProducto($index);
+            return;
+        }
+        
+        $this->productosFactura[$index]['cantidad'] = $nuevaCantidad;
+        $this->calcularTotales();
+    }
+
     public function calcularTotales()
     {
         $this->subtotal = 0;
         $this->totalIsv = 0;
+        $isvPorTasa = []; // Agrupamos ISV por tasa
         
         foreach ($this->productosFactura as $producto) {
             $subtotalProducto = $producto['precio'] * $producto['cantidad'];
             $this->subtotal += $subtotalProducto;
-            $this->totalIsv += $subtotalProducto * ($producto['isv'] / 100);
+            
+            $tasaIsv = $producto['isv'];
+            $isvProducto = $subtotalProducto * ($tasaIsv / 100);
+            $this->totalIsv += $isvProducto;
+            
+            // Agrupar ISV por tasa
+            if (!isset($isvPorTasa[$tasaIsv])) {
+                $isvPorTasa[$tasaIsv] = 0;
+            }
+            $isvPorTasa[$tasaIsv] += $isvProducto;
         }
         
+        $this->isvPorTasa = $isvPorTasa;
         $this->total = $this->subtotal + $this->totalIsv;
     }
 

@@ -279,46 +279,61 @@
                         <textarea 
                             class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded text-gray-700 cursor-not-allowed resize-none"
                             rows="2"
-                            readonly>{{ !empty($cliente->departamento) || !empty($cliente->municipio) || !empty($cliente->colonia) || !empty($cliente->calle) || !empty($cliente->sector) || !empty($cliente->bloque) ? collect([$cliente->departamento, $cliente->municipio, $cliente->colonia, $cliente->calle, $cliente->sector, $cliente->bloque])->filter()->implode(', ') : 'No especificado' }}</textarea>
+                            readonly>{{ !empty($cliente->direccion_completa) ? $cliente->direccion_completa : 'No especificado' }}</textarea>
                     </div>
                 </div>
             </div>
         </div>
         <!-- Formulario de facturación -->
-        <div class="p-4 bg-white rounded shadow">
-            <h3 class="text-lg font-semibold mb-4">Facturación</h3>
-            <!-- Escanear producto -->
-            <div x-data="{ 
-                init() {
-                    this.$el.querySelector('#codigo_barras').focus();
-                }
-            }" class="mb-4">
-                <form wire:submit.prevent="agregarProductoPorCodigo">
-                    <div class="flex flex-wrap gap-2 mb-4">
-                        <div class="flex-1">
-                            <label for="codigo_barras" class="block text-sm font-medium text-gray-700 mb-1">Escanear código de barras</label>
-                            <input type="text" 
-                                id="codigo_barras" 
-                                wire:model.defer="codigoBarras" 
-                                wire:keydown.enter="agregarProductoPorCodigo"
-                                class="form-control w-full" 
-                                placeholder="Escanee el código de barras"
-                                autocomplete="off"
-                                @keydown.enter="$event.target.value = ''; $event.target.focus()"
-                                autofocus>
-                        </div>
-                        <div class="w-32">
-                            <label for="cantidad" class="block text-sm font-medium text-gray-700 mb-1">Cantidad</label>
-                            <input type="number" 
-                                id="cantidad" 
-                                wire:model.defer="cantidad" 
-                                class="form-control w-full" 
-                                min="1" 
-                                value="1">
-                        </div>
-                    </div>
-                </form>
+        <div class="bg-white rounded-lg shadow-lg border border-gray-300" x-data x-init="$watch('theme', t => localStorage.setItem('theme', t))">
+            <!-- Header con tema -->
+            <div class="flex items-center justify-between px-5 py-3 font-semibold text-white rounded-t"
+                :class="{
+                    'bg-emerald-600': theme === 'verde',
+                    'bg-blue-600': theme === 'azul',
+                    'bg-gray-900': theme === 'oscuro',
+                    'bg-slate-700': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
+                }"
+            >
+                <h3 class="mb-0 text-lg">
+                    🧾 Facturación
+                </h3>
             </div>
+            
+            <!-- Content -->
+            <div class="p-4">
+                <!-- Escanear producto -->
+                <div x-data="{ 
+                    init() {
+                        this.$el.querySelector('#codigo_barras').focus();
+                    }
+                }" class="mb-4">
+                    <form wire:submit.prevent="agregarProductoPorCodigo">
+                        <div class="flex flex-wrap gap-2 mb-4">
+                            <div class="flex-1">
+                                <label for="codigo_barras" class="block text-sm font-medium text-gray-700 mb-1">Escanear código de barras</label>
+                                <input type="text" 
+                                    id="codigo_barras" 
+                                    wire:model.defer="codigoBarras" 
+                                    wire:keydown.enter="agregarProductoPorCodigo"
+                                    class="form-control w-full" 
+                                    placeholder="Escanee el código de barras"
+                                    autocomplete="off"
+                                    @keydown.enter="$event.target.value = ''; $event.target.focus()"
+                                    autofocus>
+                            </div>
+                            <div class="w-32">
+                                <label for="cantidad" class="block text-sm font-medium text-gray-700 mb-1">Cantidad</label>
+                                <input type="number" 
+                                    id="cantidad" 
+                                    wire:model.defer="cantidad" 
+                                    class="form-control w-full" 
+                                    min="1" 
+                                    value="1">
+                            </div>
+                        </div>
+                    </form>
+                </div>
 
             <!-- Tabla de productos agregados -->
             <div class="table-responsive mb-4">
@@ -346,14 +361,24 @@
                             <td>{{ $item['nombre'] }}</td>
                             <td>{{ $item['codigo'] }}</td>
                             <td>L. {{ number_format($item['precio'], 2) }}</td>
-                            <td>{{ $item['cantidad'] }}</td>
+                            <td>
+                                <input type="number" 
+                                    wire:change="modificarCantidad({{ $loop->index }}, $event.target.value)"
+                                    value="{{ $item['cantidad'] }}"
+                                    min="1"
+                                    class="form-control w-20 text-center"
+                                    style="min-width: 60px;">
+                            </td>
                             <td>L. {{ number_format($subtotal, 2) }}</td>
                             <td>L. {{ number_format($isv, 2) }}
                                 <span class="text-xs text-gray-500">({{ $item['isv'] }}%)</span>
                             </td>
                             <td>L. {{ number_format($total, 2) }}</td>
                             <td>
-                                <button wire:click="eliminarProducto({{ $loop->index }})" class="text-red-600 hover:underline">Eliminar</button>
+                                <button wire:click="eliminarProducto({{ $loop->index }})" 
+                                    class="text-red-600 hover:text-red-800 transition-colors">
+                                    <i class="fas fa-trash"></i>
+                                </button>
                             </td>
                         </tr>
                         @empty
@@ -365,29 +390,57 @@
                 </table>
             </div>
 
-            <!-- Totales -->
-            <div class="flex justify-end mb-4">
-                <div class="bg-gray-100 rounded p-4 w-full max-w-xs">
-                    <div class="flex justify-between mb-2">
-                        <span class="font-semibold">Subtotal:</span>
-                        <span>L. {{ number_format($subtotal, 2) }}</span>
-                    </div>
-                    <div class="flex justify-between mb-2">
-                        <span class="font-semibold">ISV ({{ $isv }}%):</span>
-                        <span>L. {{ number_format($totalIsv, 2) }}</span>
-                    </div>
-                    <div class="flex justify-between text-lg font-bold">
-                        <span>Total:</span>
-                        <span>L. {{ number_format($total, 2) }}</span>
+                <!-- Totales -->
+                <div class="flex justify-end mb-4">
+                    <div class="bg-gray-100 rounded-lg p-4 w-full max-w-xs">
+                        <div class="flex justify-between mb-2">
+                            <span class="font-semibold">Subtotal:</span>
+                            <span>L. {{ number_format($subtotal, 2) }}</span>
+                        </div>
+                        
+                        <!-- ISV agrupado por tasa -->
+                        @if(!empty($isvPorTasa))
+                            @foreach($isvPorTasa as $tasa => $montoIsv)
+                                <div class="flex justify-between mb-1">
+                                    <span class="font-medium text-sm">ISV ({{ $tasa }}%):</span>
+                                    <span class="text-sm">L. {{ number_format($montoIsv, 2) }}</span>
+                                </div>
+                            @endforeach
+                            <hr class="my-2 border-gray-300">
+                            <div class="flex justify-between mb-2">
+                                <span class="font-semibold">Total ISV:</span>
+                                <span>L. {{ number_format($totalIsv, 2) }}</span>
+                            </div>
+                        @else
+                            <div class="flex justify-between mb-2">
+                                <span class="font-semibold">ISV (0%):</span>
+                                <span>L. 0.00</span>
+                            </div>
+                        @endif
+                        
+                        <hr class="my-2 border-gray-400">
+                        <div class="flex justify-between text-lg font-bold">
+                            <span>Total:</span>
+                            <span>L. {{ number_format($total, 2) }}</span>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Guardar factura -->
-            <div class="flex justify-end">
-                <button wire:click="guardarFactura" class="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700" @if(count($productosFactura) == 0) disabled @endif>
-                    Guardar Factura
-                </button>
+                <!-- Guardar factura -->
+                <div class="flex justify-end">
+                    <button wire:click="guardarFactura" 
+                        class="px-6 py-2 text-white rounded-lg transition-colors"
+                        :class="{
+                            'bg-emerald-600 hover:bg-emerald-700': theme === 'verde',
+                            'bg-blue-600 hover:bg-blue-700': theme === 'azul',
+                            'bg-gray-900 hover:bg-gray-800': theme === 'oscuro',
+                            'bg-slate-700 hover:bg-slate-800': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
+                        }"
+                        @if(count($productosFactura) == 0) disabled @endif>
+                        <i class="fas fa-save me-1"></i>
+                        Guardar Factura
+                    </button>
+                </div>
             </div>
         </div>
     @endif
