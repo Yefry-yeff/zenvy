@@ -11,6 +11,7 @@ use App\Models\Bodega;
 use Livewire\Attributes\On;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class Ventas extends Component
 {
@@ -187,6 +188,13 @@ class Ventas extends Component
             return;
         }
 
+        // DEBUG: Log del valor de cantidad antes de validar
+        Log::info("DEBUG agregarProductoPorCodigo", [
+            'codigo_barras' => $this->codigoBarras,
+            'cantidad_campo' => $this->cantidad,
+            'productos_en_carrito' => count($this->productosFactura)
+        ]);
+
         $producto = Producto::where('codigo_barra', $this->codigoBarras)->first();
 
         if (!$producto) {
@@ -204,12 +212,6 @@ class Ventas extends Component
         foreach ($this->productosFactura as $index => $item) {
             if ($item['id'] == $producto->id) {
                 $cantidadTotal = $item['cantidad'] + $this->cantidad;
-                
-                // Validar stock con la nueva cantidad total
-                if (!$this->validarStockProducto($producto->id, $cantidadTotal)) {
-                    return;
-                }
-                
                 $this->productosFactura[$index]['cantidad'] = $cantidadTotal;
                 $productoExistente = true;
                 break;
@@ -230,7 +232,12 @@ class Ventas extends Component
         // Limpiar campos y mantener el foco en el input
         $this->codigoBarras = '';
         $this->cantidad = 1;
-        $this->dispatch('producto-agregado');
+        
+        // DEBUG: Log después de resetear
+        Log::info("DEBUG después de reseteo", [
+            'cantidad_despues_reset' => $this->cantidad,
+            'codigo_barras_despues_reset' => $this->codigoBarras
+        ]);
         
         $this->calcularTotales();
     }
@@ -637,6 +644,17 @@ class Ventas extends Component
         
         // La nueva cantidad total que tendríamos sería: cantidad en carrito + cantidad solicitada
         $nuevaCantidadTotal = $cantidadEnCarrito + $cantidadSolicitada;
+        
+        // DEBUG: Log para entender qué está pasando
+        Log::info("DEBUG Stock Validation", [
+            'producto_id' => $productoId,
+            'tienda_usuario' => $this->tiendaUsuario,
+            'stock_total' => $stockTotal,
+            'cantidad_en_carrito' => $cantidadEnCarrito,
+            'cantidad_solicitada' => $cantidadSolicitada,
+            'nueva_cantidad_total' => $nuevaCantidadTotal,
+            'validacion' => $nuevaCantidadTotal <= $stockTotal ? 'VALIDO' : 'INVALIDO'
+        ]);
         
         // Validar que la nueva cantidad total no exceda el stock total disponible
         if ($nuevaCantidadTotal > $stockTotal) {

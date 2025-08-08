@@ -361,10 +361,9 @@
                                 <label for="cantidad" class="block text-sm font-medium text-gray-700 mb-1">Cantidad</label>
                                 <input type="number" 
                                     id="cantidad" 
-                                    wire:model.defer="cantidad" 
+                                    wire:model.live="cantidad" 
                                     class="form-control w-full" 
-                                    min="1" 
-                                    value="1">
+                                    min="1">
                             </div>
                         </div>
                     </form>
