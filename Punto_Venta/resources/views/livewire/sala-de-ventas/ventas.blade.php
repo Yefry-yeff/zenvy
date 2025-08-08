@@ -1,3 +1,335 @@
 <div>
-    {{-- To attain knowledge, add things every day; To attain wisdom, subtract things every day. --}}
+    <!-- Modal de búsqueda de cliente por identidad -->
+    @if(!isset($cliente))
+    <div x-data="{ open: true, identidad: '' }"
+         x-show="open"
+         x-cloak
+         @cerrar-modal-busqueda.window="open = false"
+         class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+        <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
+            <h2 class="text-lg font-semibold mb-4">Buscar Cliente</h2>
+            <form @submit.prevent="$wire.buscarClientePorIdentidad(identidad)">
+                <label for="identidad" class="block mb-2">Número de Identidad:</label>
+                <input type="text" id="identidad" x-model="identidad" class="form-control mb-4" maxlength="20" placeholder="Ingrese número de identidad" required autofocus>
+                <div class="flex justify-end gap-2">
+                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Buscar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    @endif
+
+    <!-- Mensaje emergente si el cliente no existe -->
+    @if(session('cliente_no_encontrado'))
+        <div class="fixed top-5 right-5 bg-red-500 text-white px-4 py-2 rounded shadow-lg z-50">
+            {{ session('cliente_no_encontrado') }}
+        </div>
+    @endif
+
+    <!-- Modal de selección de clientes -->
+    @if($mostrarModalClientesFlag)
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+        <div class="bg-white rounded-lg shadow-lg w-full max-w-6xl max-h-[90vh] overflow-hidden">
+            <div class="flex justify-between items-center p-4 border-b">
+                <h2 class="text-lg font-semibold">
+                    <i class="fas fa-users me-2"></i>
+                    Seleccionar Cliente
+                </h2>
+                <button wire:click="cerrarModalClientes" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <div class="p-4 overflow-y-auto max-h-[calc(90vh-120px)]">
+                <!-- Buscador -->
+                <div class="mb-4">
+                    <input type="text" 
+                        wire:model.live.debounce.300ms="busquedaCliente"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-200"
+                        placeholder="Buscar cliente por nombre, identidad o RTN...">
+                </div>
+                
+                <!-- Tabla de clientes -->
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>ID</th>
+                                <th>Cliente</th>
+                                <th>Identidad/RTN</th>
+                                <th>Correo</th>
+                                <th>Teléfono</th>
+                                <th>Dirección</th>
+                                <th>Estado</th>
+                                <th>Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($clientesModal as $cliente)
+                                <tr class="align-middle">
+                                    <td>{{ $cliente->id }}</td>
+                                    
+                                    <td class="text-start">
+                                        <div>
+                                            <strong>{{ $cliente->nombre }}</strong><br>
+                                            <small class="text-muted">
+                                                Registrado: {{ $cliente->created_at ? $cliente->created_at->format('d/m/Y') : 'N/A' }}
+                                            </small>
+                                        </div>
+                                    </td>
+
+                                    <td>
+                                        @if($cliente->identidad)
+                                            <span class="badge bg-primary">{{ $cliente->identidad }}</span><br>
+                                        @endif
+                                        @if($cliente->rtn)
+                                            <span class="badge bg-secondary">{{ $cliente->rtn }}</span>
+                                        @endif
+                                        @if(!$cliente->identidad && !$cliente->rtn)
+                                            <span class="text-muted">N/A</span>
+                                        @endif
+                                    </td>
+
+                                    <td>{{ $cliente->correo ?? 'N/A' }}</td>
+                                    
+                                    <td>{{ $cliente->telefono ?? 'N/A' }}</td>
+
+                                    <td class="text-start">
+                                        @php
+                                            $direccionPartes = [];
+                                            if(!empty($cliente->departamento)) $direccionPartes[] = $cliente->departamento;
+                                            if(!empty($cliente->municipio)) $direccionPartes[] = $cliente->municipio;
+                                            if(!empty($cliente->colonia)) $direccionPartes[] = $cliente->colonia;
+                                            if(!empty($cliente->calle)) $direccionPartes[] = $cliente->calle;
+                                            $direccionCompleta = count($direccionPartes) > 0 ? implode(', ', array_slice($direccionPartes, 0, 2)) : 'Sin dirección';
+                                        @endphp
+                                        <small>{{ $direccionCompleta }}</small>
+                                    </td>
+
+                                    <td>
+                                        <span class="badge {{ $cliente->estado_id == 1 ? 'bg-success' : 'bg-secondary' }}">
+                                            {{ $cliente->estado_id == 1 ? 'Activo' : 'Inactivo' }}
+                                        </span>
+                                    </td>
+                                    
+                                    <td>
+                                        <button wire:click="seleccionarClienteModal({{ $cliente->id }})" 
+                                            class="btn btn-sm btn-primary">
+                                            <i class="fas fa-check"></i> Seleccionar
+                                        </button>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="8" class="py-4 text-center text-muted">
+                                        <i class="mb-3 fas fa-users fa-2x"></i><br>
+                                        No se encontraron clientes
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    <!-- Vista de datos del cliente y facturación -->
+    @if(isset($cliente))
+        <div class="bg-white rounded-lg shadow-lg mb-6 border border-gray-300" x-data x-init="$watch('theme', t => localStorage.setItem('theme', t))">
+            <!-- Header -->
+            <div class="flex items-center justify-between px-5 py-3 font-semibold text-white rounded-t"
+                :class="{
+                    'bg-emerald-600': theme === 'verde',
+                    'bg-blue-600': theme === 'azul',
+                    'bg-gray-900': theme === 'oscuro',
+                    'bg-slate-700': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
+                }"
+            >
+                <h3 class="mb-0 text-lg">
+                    <i class="fas fa-user me-2"></i>
+                    Información del Cliente
+                </h3>
+            </div>
+            
+            <!-- Content -->
+            <div class="p-4">
+                <div class="grid grid-cols-1 gap-4">
+                    <!-- Primera fila: Identidad (bloqueado) y Nombre (bloqueado) -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="space-y-1">
+                            <label class="block text-sm font-medium text-gray-700">
+                                Número de Identidad
+                            </label>
+                            <div class="relative">
+                                <input type="text" 
+                                    class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded text-gray-700 cursor-not-allowed pr-10"
+                                    value="{{ !empty($cliente->identidad) ? $cliente->identidad : 'No especificado' }}"
+                                    readonly>
+                                <button type="button" 
+                                    wire:click="mostrarModalClientes"
+                                    class="absolute inset-y-0 right-0 flex items-center px-3 text-gray-400 hover:text-blue-600 transition-colors">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="space-y-1">
+                            <label class="block text-sm font-medium text-gray-700">
+                                Nombre Completo
+                            </label>
+                            <input type="text" 
+                                class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded text-gray-700 cursor-not-allowed"
+                                value="{{ !empty($cliente->nombre) ? $cliente->nombre : 'No especificado' }}"
+                                readonly>
+                        </div>
+                    </div>
+
+                    <!-- Segunda fila: Teléfono y Correo (bloqueados) -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="space-y-1">
+                            <label class="block text-sm font-medium text-gray-700">
+                                Teléfono
+                            </label>
+                            <input type="text" 
+                                class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded text-gray-700 cursor-not-allowed"
+                                value="{{ !empty($cliente->telefono) ? $cliente->telefono : 'No especificado' }}"
+                                readonly>
+                        </div>
+                        
+                        <div class="space-y-1">
+                            <label class="block text-sm font-medium text-gray-700">
+                                Correo Electrónico
+                            </label>
+                            <input type="text" 
+                                class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded text-gray-700 cursor-not-allowed"
+                                value="{{ !empty($cliente->correo) ? $cliente->correo : 'No especificado' }}"
+                                readonly>
+                        </div>
+                    </div>
+
+                    <!-- Tercera fila: Dirección completa (bloqueada) -->
+                    <div class="space-y-1">
+                        <label class="block text-sm font-medium text-gray-700">
+                            Dirección Completa
+                        </label>
+                        <textarea 
+                            class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded text-gray-700 cursor-not-allowed resize-none"
+                            rows="2"
+                            readonly>{{ !empty($cliente->departamento) || !empty($cliente->municipio) || !empty($cliente->colonia) || !empty($cliente->calle) || !empty($cliente->sector) || !empty($cliente->bloque) ? collect([$cliente->departamento, $cliente->municipio, $cliente->colonia, $cliente->calle, $cliente->sector, $cliente->bloque])->filter()->implode(', ') : 'No especificado' }}</textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Formulario de facturación -->
+        <div class="p-4 bg-white rounded shadow">
+            <h3 class="text-lg font-semibold mb-4">Facturación</h3>
+            <!-- Escanear producto -->
+            <div x-data="{ 
+                init() {
+                    this.$el.querySelector('#codigo_barras').focus();
+                }
+            }" class="mb-4">
+                <form wire:submit.prevent="agregarProductoPorCodigo">
+                    <div class="flex flex-wrap gap-2 mb-4">
+                        <div class="flex-1">
+                            <label for="codigo_barras" class="block text-sm font-medium text-gray-700 mb-1">Escanear código de barras</label>
+                            <input type="text" 
+                                id="codigo_barras" 
+                                wire:model.defer="codigoBarras" 
+                                wire:keydown.enter="agregarProductoPorCodigo"
+                                class="form-control w-full" 
+                                placeholder="Escanee el código de barras"
+                                autocomplete="off"
+                                @keydown.enter="$event.target.value = ''; $event.target.focus()"
+                                autofocus>
+                        </div>
+                        <div class="w-32">
+                            <label for="cantidad" class="block text-sm font-medium text-gray-700 mb-1">Cantidad</label>
+                            <input type="number" 
+                                id="cantidad" 
+                                wire:model.defer="cantidad" 
+                                class="form-control w-full" 
+                                min="1" 
+                                value="1">
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Tabla de productos agregados -->
+            <div class="table-responsive mb-4">
+                <table class="table table-sm table-bordered">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Producto</th>
+                            <th>Código</th>
+                            <th>Precio Unit.</th>
+                            <th>Cantidad</th>
+                            <th>Subtotal</th>
+                            <th>ISV</th>
+                            <th>Total</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($productosFactura as $item)
+                        @php
+                            $subtotal = $item['precio'] * $item['cantidad'];
+                            $isv = $subtotal * ($item['isv']/100);
+                            $total = $subtotal + $isv;
+                        @endphp
+                        <tr>
+                            <td>{{ $item['nombre'] }}</td>
+                            <td>{{ $item['codigo'] }}</td>
+                            <td>L. {{ number_format($item['precio'], 2) }}</td>
+                            <td>{{ $item['cantidad'] }}</td>
+                            <td>L. {{ number_format($subtotal, 2) }}</td>
+                            <td>L. {{ number_format($isv, 2) }}
+                                <span class="text-xs text-gray-500">({{ $item['isv'] }}%)</span>
+                            </td>
+                            <td>L. {{ number_format($total, 2) }}</td>
+                            <td>
+                                <button wire:click="eliminarProducto({{ $loop->index }})" class="text-red-600 hover:underline">Eliminar</button>
+                            </td>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="6" class="text-center text-muted">No hay productos agregados</td>
+                        </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Totales -->
+            <div class="flex justify-end mb-4">
+                <div class="bg-gray-100 rounded p-4 w-full max-w-xs">
+                    <div class="flex justify-between mb-2">
+                        <span class="font-semibold">Subtotal:</span>
+                        <span>L. {{ number_format($subtotal, 2) }}</span>
+                    </div>
+                    <div class="flex justify-between mb-2">
+                        <span class="font-semibold">ISV ({{ $isv }}%):</span>
+                        <span>L. {{ number_format($totalIsv, 2) }}</span>
+                    </div>
+                    <div class="flex justify-between text-lg font-bold">
+                        <span>Total:</span>
+                        <span>L. {{ number_format($total, 2) }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Guardar factura -->
+            <div class="flex justify-end">
+                <button wire:click="guardarFactura" class="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700" @if(count($productosFactura) == 0) disabled @endif>
+                    Guardar Factura
+                </button>
+            </div>
+        </div>
+    @endif
 </div>
