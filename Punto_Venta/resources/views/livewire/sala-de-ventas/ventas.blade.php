@@ -347,7 +347,7 @@
                             <th>Subtotal</th>
                             <th>ISV</th>
                             <th>Total</th>
-                            <th></th>
+                            <th>Acción</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -374,16 +374,21 @@
                                 <span class="text-xs text-gray-500">({{ $item['isv'] }}%)</span>
                             </td>
                             <td>L. {{ number_format($total, 2) }}</td>
-                            <td>
+                            <td class="text-center">
                                 <button wire:click="eliminarProducto({{ $loop->index }})" 
-                                    class="text-red-600 hover:text-red-800 transition-colors">
-                                    <i class="fas fa-trash"></i>
+                                    class="btn btn-link p-0 hover:opacity-75 transition-opacity"
+                                    title="Eliminar producto">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 7v12a2 2 0 002 2h8a2 2 0 002-2V7M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2m-7 0h10" style="color:#e3342f;" />
+                                        <line x1="10" y1="11" x2="10" y2="17" stroke="#e3342f" stroke-width="2"/>
+                                        <line x1="14" y1="11" x2="14" y2="17" stroke="#e3342f" stroke-width="2"/>
+                                    </svg>
                                 </button>
                             </td>
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="6" class="text-center text-muted">No hay productos agregados</td>
+                            <td colspan="8" class="text-center text-muted">No hay productos agregados</td>
                         </tr>
                         @endforelse
                     </tbody>
@@ -401,21 +406,20 @@
                         <!-- ISV agrupado por tasa -->
                         @if(!empty($isvPorTasa))
                             @foreach($isvPorTasa as $tasa => $montoIsv)
-                                <div class="flex justify-between mb-1">
-                                    <span class="font-medium text-sm">ISV ({{ $tasa }}%):</span>
-                                    <span class="text-sm">L. {{ number_format($montoIsv, 2) }}</span>
-                                </div>
+                                @if($tasa > 0)
+                                    <div class="flex justify-between mb-1">
+                                        <span class="font-medium text-sm">ISV ({{ $tasa }}%):</span>
+                                        <span class="text-sm">L. {{ number_format($montoIsv, 2) }}</span>
+                                    </div>
+                                @endif
                             @endforeach
-                            <hr class="my-2 border-gray-300">
-                            <div class="flex justify-between mb-2">
-                                <span class="font-semibold">Total ISV:</span>
-                                <span>L. {{ number_format($totalIsv, 2) }}</span>
-                            </div>
-                        @else
-                            <div class="flex justify-between mb-2">
-                                <span class="font-semibold">ISV (0%):</span>
-                                <span>L. 0.00</span>
-                            </div>
+                            @if($totalIsv > 0)
+                                <hr class="my-2 border-gray-300">
+                                <div class="flex justify-between mb-2">
+                                    <span class="font-semibold">Total ISV:</span>
+                                    <span>L. {{ number_format($totalIsv, 2) }}</span>
+                                </div>
+                            @endif
                         @endif
                         
                         <hr class="my-2 border-gray-400">
