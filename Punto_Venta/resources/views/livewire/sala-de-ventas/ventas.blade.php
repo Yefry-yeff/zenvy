@@ -509,7 +509,23 @@
          @click.self="$wire.cerrarModalPago()"
          @keydown.escape.window="$wire.cerrarModalPago()">
         <div class="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-hidden"
-             x-data x-init="$watch('theme', t => localStorage.setItem('theme', t))">
+             x-data="{
+                totalModal: @entangle('total'),
+                montosPorMetodo: @entangle('montosPorMetodo'),
+                get totalDistribuido() {
+                    return Object.values(this.montosPorMetodo || {}).reduce((sum, monto) => sum + parseFloat(monto || 0), 0);
+                },
+                get diferencia() {
+                    return this.totalModal - this.totalDistribuido;
+                },
+                get puedeProceesar() {
+                    return this.totalDistribuido >= this.totalModal && this.totalDistribuido > 0;
+                },
+                get metodosConMonto() {
+                    return Object.entries(this.montosPorMetodo || {}).filter(([id, monto]) => parseFloat(monto || 0) > 0);
+                }
+             }"
+             x-init="$watch('theme', t => localStorage.setItem('theme', t))">
             <!-- Header compacto -->
             <div class="flex justify-between items-center px-4 py-3 text-white"
                 :class="{
@@ -530,9 +546,7 @@
             </div>
             
             <!-- Contenido con scroll -->
-            <div class="overflow-y-auto max-h-[calc(90vh-120px)]" x-data="{ 
-                totalModal: @entangle('total')
-            }">
+            <div class="overflow-y-auto max-h-[calc(90vh-120px)]">
                 <div class="p-4">
                     <!-- Total compacto -->
                     <div class="mb-4 p-3 bg-gray-50 rounded-lg text-center">
@@ -593,65 +607,53 @@
                         @endforelse
                     </div>
                     
-                    <!-- Resumen compacto -->
-                    @php
-                        $totalDistribuido = array_sum($montosPorMetodo ?? []);
-                        $diferencia = $total - $totalDistribuido;
-                        $metodosConMonto = array_filter($montosPorMetodo ?? [], function($monto) { return $monto > 0; });
-                        $puedeProceesar = $totalDistribuido >= $total && $totalDistribuido > 0;
-                    @endphp
-                    
-                    @if($totalDistribuido > 0)
-                        <div class="mb-4 p-3 rounded-lg {{ $puedeProceesar ? 'bg-green-50 border border-green-200' : 'bg-orange-50 border border-orange-200' }}">
-                            <div class="flex justify-between items-center text-sm mb-1">
-                                <span class="font-medium {{ $puedeProceesar ? 'text-green-700' : 'text-orange-700' }}">
-                                    Distribuido:
-                                </span>
-                                <span class="font-bold {{ $puedeProceesar ? 'text-green-700' : 'text-orange-700' }}">
-                                    L. {{ number_format($totalDistribuido, 2) }}
-                                </span>
-                            </div>
-                            
-                            @if($puedeProceesar)
-                                @if($diferencia < 0)
+                    <!-- Resumen compacto con Alpine.js -->
+                    <div x-show="totalDistribuido > 0" class="mb-4 p-3 rounded-lg" 
+                         x-bind:class="puedeProceesar ? 'bg-green-50 border border-green-200' : 'bg-orange-50 border border-orange-200'">
+                        <div class="flex justify-between items-center text-sm mb-1">
+                            <span class="font-medium" x-bind:class="puedeProceesar ? 'text-green-700' : 'text-orange-700'">
+                                Distribuido:
+                            </span>
+                            <span class="font-bold" x-bind:class="puedeProceesar ? 'text-green-700' : 'text-orange-700'" 
+                                  x-text="'L. ' + totalDistribuido.toFixed(2)">
+                            </span>
+                        </div>
+                        
+                        <template x-if="puedeProceesar">
+                            <div>
+                                <template x-if="diferencia < 0">
                                     <div class="text-xs text-green-600 flex items-center">
                                         <i class="fas fa-info-circle mr-1"></i>
-                                        Cambio: L. {{ number_format(abs($diferencia), 2) }}
+                                        <span x-text="'Cambio: L. ' + Math.abs(diferencia).toFixed(2)"></span>
                                     </div>
-                                @else
+                                </template>
+                                <template x-if="diferencia >= 0">
                                     <div class="text-xs text-green-600 flex items-center">
                                         <i class="fas fa-check-circle mr-1"></i>
                                         Listo para procesar
                                     </div>
-                                @endif
-                            @else
-                                <div class="text-xs text-orange-600 flex items-center">
-                                    <i class="fas fa-exclamation-triangle mr-1"></i>
-                                    Falta: L. {{ number_format($diferencia, 2) }}
-                                </div>
-                            @endif
-                            
-                            <!-- Métodos activos compactos -->
-                            @if(count($metodosConMonto) > 0)
-                                <div class="mt-2 flex flex-wrap gap-1">
-                                    @foreach($metodosConMonto as $tipoId => $monto)
-                                        @php
-                                            $tipoPago = collect($tiposPago)->firstWhere('id', $tipoId);
-                                        @endphp
-                                        @if($tipoPago)
-                                            <span class="inline-block px-2 py-1 rounded text-xs font-medium
-                                                @if($tipoPago->nombre == 'Efectivo') bg-green-100 text-green-700
-                                                @elseif($tipoPago->nombre == 'Tarjeta') bg-blue-100 text-blue-700
-                                                @elseif($tipoPago->nombre == 'Cheque') bg-purple-100 text-purple-700
-                                                @else bg-gray-100 text-gray-700 @endif">
-                                                {{ $tipoPago->nombre }}: L. {{ number_format($monto, 2) }}
-                                            </span>
-                                        @endif
-                                    @endforeach
-                                </div>
-                            @endif
-                        </div>
-                    @endif
+                                </template>
+                            </div>
+                        </template>
+                        
+                        <template x-if="!puedeProceesar">
+                            <div class="text-xs text-orange-600 flex items-center">
+                                <i class="fas fa-exclamation-triangle mr-1"></i>
+                                <span x-text="'Falta: L. ' + diferencia.toFixed(2)"></span>
+                            </div>
+                        </template>
+                        
+                        <!-- Métodos activos compactos con Alpine.js -->
+                        <template x-if="metodosConMonto.length > 0">
+                            <div class="mt-2 flex flex-wrap gap-1">
+                                <template x-for="[tipoId, monto] in metodosConMonto" :key="tipoId">
+                                    <span class="inline-block px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-700"
+                                          x-text="'Método ' + tipoId + ': L. ' + parseFloat(monto).toFixed(2)">
+                                    </span>
+                                </template>
+                            </div>
+                        </template>
+                    </div>
                 </div>
             </div>
             
@@ -671,23 +673,15 @@
                         </button>
                     @endif
                     
-                    @php
-                        $totalDistribuido = array_sum($montosPorMetodo ?? []);
-                        $puedeProceesar = $totalDistribuido >= $total && $totalDistribuido > 0;
-                    @endphp
-                    
                     <button wire:click="procesarDistribucionPagos" 
                         wire:loading.attr="disabled"
                         wire:loading.class="opacity-50"
-                        class="px-4 py-2 text-white rounded-lg transition-colors {{ $puedeProceesar ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-400 cursor-not-allowed' }}"
-                        @if(!$puedeProceesar) disabled @endif>
+                        x-bind:disabled="!puedeProceesar"
+                        x-bind:class="puedeProceesar ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-400 cursor-not-allowed'"
+                        class="px-4 py-2 text-white rounded-lg transition-colors">
                         <span wire:loading.remove>
                             <i class="fas fa-check mr-1"></i>
-                            @if($puedeProceesar)
-                                Procesar
-                            @else
-                                Incompleto
-                            @endif
+                            <span x-text="puedeProceesar ? 'Procesar' : 'Incompleto'"></span>
                         </span>
                         <span wire:loading>
                             <i class="fas fa-spinner fa-spin mr-1"></i>
