@@ -75,6 +75,9 @@ Route::middleware('auth')->group(function () {
             ->header('Content-Disposition', 'attachment; filename="' . $nombreArchivo . '"')
             ->header('Cache-Control', 'no-cache, must-revalidate');
     })->name('factura.imagen.descargar');
+    
+    // Ruta para generar PDF de factura
+    Route::get('factura/{id}/pdf', [App\Http\Controllers\FacturaPDFController::class, 'generarPDF'])->name('factura.pdf');
 });
 
 require __DIR__.'/auth.php';

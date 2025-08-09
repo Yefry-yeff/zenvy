@@ -165,6 +165,10 @@
             <button onclick="window.print()" class="btn btn-primary btn-sm me-2">
                 🖨️ Imprimir
             </button>
+            
+            <a href="{{ route('factura.pdf', $factura->id) }}" target="_blank" class="btn btn-danger btn-sm me-2">
+                📄 Generar PDF
+            </a>
 
             <!-- Botones para imagen de factura -->
             @if($factura->factura_imagen)

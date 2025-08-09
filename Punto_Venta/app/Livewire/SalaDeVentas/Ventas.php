@@ -13,6 +13,7 @@ use Livewire\Attributes\On;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Exception;
 
 class Ventas extends Component
@@ -1382,9 +1383,27 @@ class Ventas extends Component
         $this->facturaParaImprimir = null;
         $this->productosFacturaImpresa = [];
         $this->pagosFacturaImpresa = [];
+        $this->caiFacturaImpresa = null;
         
         // Limpiar estado de venta
         $this->limpiarEstadoVenta();
+    }
+    
+    public function generarPDFFactura()
+    {
+        try {
+            if (!$this->facturaParaImprimir) {
+                session()->flash('error', 'No hay factura para generar PDF');
+                return;
+            }
+            
+            // Redirigir a la ruta de generación de PDF
+            return redirect()->route('factura.pdf', $this->facturaParaImprimir->id);
+            
+        } catch (Exception $e) {
+            Log::error("Error al generar PDF: " . $e->getMessage());
+            session()->flash('error', 'Error al generar PDF: ' . $e->getMessage());
+        }
     }
     
     private function generarNumeroFactura()
