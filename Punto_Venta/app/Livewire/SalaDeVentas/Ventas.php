@@ -544,18 +544,95 @@ class Ventas extends Component
     
     private function guardarMetodosPagoDistribucion($facturaId)
     {
-        foreach ($this->metodosActivosParaPago as $metodo) {
-            $tipoPago = TipoPago::find($metodo['id']);
-            if ($tipoPago && $metodo['monto'] > 0) {
-                DB::table('factura_has_pago')->insert([
-                    'factura_id' => $facturaId,
-                    'tipo_pago_id' => $tipoPago->id,
-                    'monto' => $metodo['monto'],
-                    'created_at' => now(),
-                    'updated_at' => now()
+        Log::info("DEBUG guardarMetodosPagoDistribucion INICIO", [
+            'factura_id' => $facturaId,
+            'metodosActivosParaPago' => $this->metodosActivosParaPago,
+            'montosPorMetodo' => $this->montosPorMetodo
+        ]);
+
+        // Si metodosActivosParaPago está vacío, construirlo desde montosPorMetodo
+        $metodosParaGuardar = $this->metodosActivosParaPago;
+        
+        if (empty($metodosParaGuardar) && !empty($this->montosPorMetodo)) {
+            Log::info("DEBUG Construyendo métodos desde montosPorMetodo");
+            
+            $metodosParaGuardar = [];
+            foreach ($this->montosPorMetodo as $tipoId => $monto) {
+                if ($monto > 0) {
+                    $tipoPago = collect($this->tiposPago)->firstWhere('id', $tipoId);
+                    if ($tipoPago) {
+                        $metodosParaGuardar[] = [
+                            'id' => $tipoId,
+                            'nombre' => $tipoPago['nombre'],
+                            'monto' => $monto
+                        ];
+                    }
+                }
+            }
+            
+            Log::info("DEBUG Métodos construidos", ['metodos_construidos' => $metodosParaGuardar]);
+        }
+        
+        // Si aún está vacío, crear un pago por defecto en efectivo
+        if (empty($metodosParaGuardar)) {
+            Log::info("DEBUG Creando pago por defecto en efectivo");
+            
+            $efectivoTipo = collect($this->tiposPago)->firstWhere('nombre', 'Efectivo');
+            if (!$efectivoTipo) {
+                // Si no existe el tipo efectivo, usar el primer tipo disponible
+                $efectivoTipo = collect($this->tiposPago)->first();
+            }
+            
+            if ($efectivoTipo) {
+                $metodosParaGuardar[] = [
+                    'id' => $efectivoTipo['id'],
+                    'nombre' => $efectivoTipo['nombre'],
+                    'monto' => $this->total
+                ];
+                
+                Log::info("DEBUG Método por defecto creado", [
+                    'tipo_id' => $efectivoTipo['id'],
+                    'tipo_nombre' => $efectivoTipo['nombre'],
+                    'monto' => $this->total
                 ]);
             }
         }
+
+        foreach ($metodosParaGuardar as $metodo) {
+            $tipoPago = TipoPago::find($metodo['id']);
+            if ($tipoPago && $metodo['monto'] > 0) {
+                
+                // Inicializar variables
+                $cambio = 0;
+                $pagoRecibido = $metodo['monto'];
+                
+                // Si es efectivo y se recibió más dinero, calcular el cambio
+                if (strtolower($tipoPago->nombre) === 'efectivo' && isset($this->efectivoRecibido) && $this->efectivoRecibido > 0) {
+                    $pagoRecibido = $this->efectivoRecibido;
+                    if ($this->efectivoRecibido > $metodo['monto']) {
+                        $cambio = $this->efectivoRecibido - $metodo['monto'];
+                    }
+                }
+                
+                DB::table('factura_has_pago')->insert([
+                    'factura_id' => $facturaId,
+                    'tipo_pago_id' => $tipoPago->id,
+                    'total_factura' => $this->total, // Total de la factura
+                    'pago_recibido' => $pagoRecibido, // Cantidad recibida para este método
+                    'cambio' => $cambio, // Cambio calculado (solo para efectivo)
+                ]);
+                
+                Log::info("DEBUG Método de pago guardado", [
+                    'tipo_pago_id' => $tipoPago->id,
+                    'tipo_pago_nombre' => $tipoPago->nombre,
+                    'total_factura' => $this->total,
+                    'pago_recibido' => $pagoRecibido,
+                    'cambio' => $cambio
+                ]);
+            }
+        }
+        
+        Log::info("DEBUG guardarMetodosPagoDistribucion FINALIZADO");
     }
 
     public function procesarSoloEfectivoDistribucion()
@@ -646,9 +723,9 @@ class Ventas extends Component
             $this->cerrarModalEfectivo();
             $this->mostrarModalTarjetaFlag = true;
         } else {
-            // Solo efectivo, finalizar venta inmediatamente
+            // Solo efectivo, finalizar venta inmediatamente usando distribución
             $this->cerrarModalEfectivo();
-            $this->finalizarVenta('efectivo');
+            $this->finalizarVentaConDistribucion();
         }
     }
 
@@ -668,14 +745,8 @@ class Ventas extends Component
 
         $this->cerrarModalTarjeta();
         
-        // Verificar si hubo efectivo también
-        if ($this->montoEfectivo > 0) {
-            // Pago mixto completado
-            $this->finalizarVenta('mixto');
-        } else {
-            // Solo tarjeta
-            $this->finalizarVenta('tarjeta');
-        }
+        // Finalizar venta usando el método de distribución
+        $this->finalizarVentaConDistribucion();
     }
 
     public function finalizarVenta($tipoPago)
