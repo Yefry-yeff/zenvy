@@ -13,8 +13,8 @@ class FacturaPDFController extends Controller
     public function generarPDF($facturaId)
     {
         try {
-            // Cargar la factura
-            $factura = DB::table('factura')->where('id', $facturaId)->first();
+            // Cargar la factura usando el modelo (igual que en el componente Livewire)
+            $factura = \App\Models\Factura::find($facturaId);
             
             if (!$factura) {
                 abort(404, 'Factura no encontrada');
@@ -49,28 +49,15 @@ class FacturaPDFController extends Controller
             // Cargar datos de empresa
             $empresa = DB::table('empresa')->first();
             
-            // Cargar datos de tienda con dirección
-            $tienda = null;
-            $direccion = null;
-            if ($factura->users_id) {
-                $tienda = DB::table('users as u')
-                    ->join('tienda as t', 'u.tienda_id', '=', 't.id')
-                    ->where('u.id', $factura->users_id)
-                    ->select('t.*')
-                    ->first();
-                    
-                // Cargar dirección de la tienda
-                if ($tienda && $tienda->direccion_sucursal_id) {
-                    $direccion = DB::table('direccion')
-                        ->where('id', $tienda->direccion_sucursal_id)
-                        ->first();
-                }
-            }
+            // Cargar datos de tienda con dirección (igual que en el componente Livewire)
+            $tienda = DB::table('tienda as t')
+                ->leftJoin('direccion as d', 't.direccion_sucursal_id', '=', 'd.id')
+                ->select('t.*', 'd.domicilio_tributario')
+                ->where('t.id', 1)
+                ->first();
             
-            // Convertir fecha_emision a Carbon si es string
-            if (is_string($factura->fecha_emision)) {
-                $factura->fecha_emision = \Carbon\Carbon::parse($factura->fecha_emision);
-            }
+            // Como usamos el modelo Factura, fecha_emision ya viene como Carbon
+            // No necesitamos convertir la fecha
             
             // Generar el PDF
             $pdf = Pdf::loadView('pdf.factura', compact(
@@ -79,17 +66,16 @@ class FacturaPDFController extends Controller
                 'pagos', 
                 'empresa', 
                 'tienda', 
-                'direccion',
                 'caiFacturaImpresa'
             ))
-            ->setPaper([0, 0, 226.77, 800], 'portrait') // 80mm width, auto height
+            ->setPaper([0, 0, 204.4, 595.3], 'portrait') // 72.1mm x 210mm
             ->setOptions([
-                'defaultFont' => 'Courier',
+                'defaultFont' => 'Arial',
                 'isRemoteEnabled' => true,
                 'isHtml5ParserEnabled' => true,
                 'dpi' => 150,
                 'debugKeepTemp' => false,
-                'chroot' => public_path(),
+                'isFontSubsettingEnabled' => false,
             ]);
             
             $numeroFactura = str_replace(['/', '-', ' '], '_', $factura->numero_factura);
@@ -112,8 +98,8 @@ class FacturaPDFController extends Controller
     public function previsualizarPDF($facturaId)
     {
         try {
-            // Cargar la factura
-            $factura = DB::table('factura')->where('id', $facturaId)->first();
+            // Cargar la factura usando el modelo (igual que en el componente Livewire)
+            $factura = \App\Models\Factura::find($facturaId);
             
             if (!$factura) {
                 abort(404, 'Factura no encontrada');
@@ -148,28 +134,15 @@ class FacturaPDFController extends Controller
             // Cargar datos de empresa
             $empresa = DB::table('empresa')->first();
             
-            // Cargar datos de tienda con dirección
-            $tienda = null;
-            $direccion = null;
-            if ($factura->users_id) {
-                $tienda = DB::table('users as u')
-                    ->join('tienda as t', 'u.tienda_id', '=', 't.id')
-                    ->where('u.id', $factura->users_id)
-                    ->select('t.*')
-                    ->first();
-                    
-                // Cargar dirección de la tienda
-                if ($tienda && $tienda->direccion_sucursal_id) {
-                    $direccion = DB::table('direccion')
-                        ->where('id', $tienda->direccion_sucursal_id)
-                        ->first();
-                }
-            }
+            // Cargar datos de tienda con dirección (igual que en el componente Livewire)
+            $tienda = DB::table('tienda as t')
+                ->leftJoin('direccion as d', 't.direccion_sucursal_id', '=', 'd.id')
+                ->select('t.*', 'd.domicilio_tributario')
+                ->where('t.id', 1)
+                ->first();
             
-            // Convertir fecha_emision a Carbon si es string
-            if (is_string($factura->fecha_emision)) {
-                $factura->fecha_emision = \Carbon\Carbon::parse($factura->fecha_emision);
-            }
+            // Como usamos el modelo Factura, fecha_emision ya viene como Carbon
+            // No necesitamos convertir la fecha
             
             // Generar el PDF para previsualización (inline)
             $pdf = Pdf::loadView('pdf.factura', compact(
@@ -178,17 +151,16 @@ class FacturaPDFController extends Controller
                 'pagos', 
                 'empresa', 
                 'tienda', 
-                'direccion',
                 'caiFacturaImpresa'
             ))
-            ->setPaper([0, 0, 226.77, 800], 'portrait') // 80mm width, auto height
+            ->setPaper([0, 0, 204.4, 595.3], 'portrait') // 72.1mm x 210mm
             ->setOptions([
-                'defaultFont' => 'Courier',
+                'defaultFont' => 'Arial',
                 'isRemoteEnabled' => true,
                 'isHtml5ParserEnabled' => true,
                 'dpi' => 150,
                 'debugKeepTemp' => false,
-                'chroot' => public_path(),
+                'isFontSubsettingEnabled' => false,
             ]);
             
             // Mostrar inline en el navegador para embebido
