@@ -370,6 +370,9 @@ class Ventas extends Component
             return;
         }
         
+        // Asegurar que los totales estén actualizados
+        $this->calcularTotales();
+        
         // Inicializar montos en 0 para todos los métodos
         $this->montosPorMetodo = [];
         foreach ($this->tiposPago as $tipoPago) {

@@ -530,12 +530,14 @@
             </div>
             
             <!-- Contenido con scroll -->
-            <div class="overflow-y-auto max-h-[calc(90vh-120px)]">
+            <div class="overflow-y-auto max-h-[calc(90vh-120px)]" x-data="{ 
+                totalModal: @entangle('total')
+            }">
                 <div class="p-4">
                     <!-- Total compacto -->
                     <div class="mb-4 p-3 bg-gray-50 rounded-lg text-center">
                         <div class="text-sm text-gray-600">Total a Pagar</div>
-                        <div class="text-xl font-bold text-gray-800">L. {{ number_format($total, 2) }}</div>
+                        <div class="text-xl font-bold text-gray-800" x-text="'L. ' + parseFloat(totalModal).toFixed(2)">L. {{ number_format($total, 2) }}</div>
                     </div>
 
                     <!-- Métodos de pago compactos -->
@@ -570,7 +572,7 @@
                                             wire:model.live="montosPorMetodo.{{ $tipoPago->id }}"
                                             step="0.01"
                                             min="0"
-                                            max="{{ $total }}"
+                                            x-bind:max="totalModal"
                                             class="w-full pl-6 pr-2 py-2 border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-200 text-sm text-center"
                                             placeholder="0.00">
                                     </div>
