@@ -294,6 +294,11 @@ class Ventas extends Component
         $this->totalIsv = 0;
         $isvPorTasa = []; // Agrupamos ISV por tasa
         
+        Log::info("DEBUG calcularTotales INICIO", [
+            'productos_en_carrito' => count($this->productosFactura),
+            'productos' => $this->productosFactura
+        ]);
+        
         foreach ($this->productosFactura as $producto) {
             $subtotalProducto = $producto['precio'] * $producto['cantidad'];
             $this->subtotal += $subtotalProducto;
@@ -301,6 +306,15 @@ class Ventas extends Component
             $tasaIsv = $producto['isv'];
             $isvProducto = $subtotalProducto * ($tasaIsv / 100);
             $this->totalIsv += $isvProducto;
+            
+            Log::info("DEBUG producto individual", [
+                'nombre' => $producto['nombre'],
+                'precio' => $producto['precio'],
+                'cantidad' => $producto['cantidad'],
+                'subtotal_producto' => $subtotalProducto,
+                'tasa_isv' => $tasaIsv,
+                'isv_producto' => $isvProducto
+            ]);
             
             // Agrupar ISV por tasa
             if (!isset($isvPorTasa[$tasaIsv])) {
@@ -311,6 +325,62 @@ class Ventas extends Component
         
         $this->isvPorTasa = $isvPorTasa;
         $this->total = $this->subtotal + $this->totalIsv;
+        
+        Log::info("DEBUG calcularTotales FINAL", [
+            'subtotal' => $this->subtotal,
+            'total_isv' => $this->totalIsv,
+            'total' => $this->total,
+            'isv_por_tasa' => $isvPorTasa
+        ]);
+        
+        // Forzar actualización de la vista
+        $this->dispatch('totales-actualizados', [
+            'subtotal' => $this->subtotal,
+            'totalIsv' => $this->totalIsv,
+            'total' => $this->total
+        ]);
+    }
+    
+    public function recalcularTotalesForzado()
+    {
+        Log::info("FORZAR RECÁLCULO - Antes", [
+            'subtotal_antes' => $this->subtotal,
+            'totalIsv_antes' => $this->totalIsv,
+            'total_antes' => $this->total,
+            'productos_count' => count($this->productosFactura)
+        ]);
+        
+        $this->calcularTotales();
+        
+        Log::info("FORZAR RECÁLCULO - Después", [
+            'subtotal_despues' => $this->subtotal,
+            'totalIsv_despues' => $this->totalIsv,
+            'total_despues' => $this->total
+        ]);
+        
+        // Forzar re-renderizado del componente
+        $this->dispatch('$refresh');
+    }
+    
+    // Propiedades computadas para asegurar valores actualizados
+    public function getSubtotalComputedProperty()
+    {
+        return $this->subtotal;
+    }
+    
+    public function getTotalIsvComputedProperty()
+    {
+        return $this->totalIsv;
+    }
+    
+    public function getTotalComputedProperty()
+    {
+        return $this->total;
+    }
+    
+    public function getIsvPorTasaComputedProperty()
+    {
+        return $this->isvPorTasa;
     }
 
     public function guardarFactura()
@@ -486,33 +556,11 @@ class Ventas extends Component
             
             Log::info("DEBUG Factura guardada con ID: " . $factura->id);
             
-            // Guardar productos de la factura
+            // Guardar productos de la factura con distribución FIFO por secciones
+            $indice = 1;
             foreach ($this->productosFactura as $producto) {
-                DB::table('factura_has_producto')->insert([
-                    'factura_id' => $factura->id,
-                    'producto_id' => $producto['id'],
-                    'seccion_id' => 1, // Valor por defecto
-                    'unidad_medida_id' => 1, // Valor por defecto
-                    'indice' => 1, // Valor por defecto
-                    'numero_unidades_resta_inventario' => $producto['cantidad'],
-                    'unidades_nota_credito_resta_inventario' => 0,
-                    'resta_inventario_total' => $producto['cantidad'],
-                    'precio_unidad' => $producto['precio'],
-                    'cantidad' => $producto['cantidad'],
-                    'subtotal' => $producto['cantidad'] * $producto['precio'],
-                    'isv' => $producto['isv'],
-                    'total' => ($producto['cantidad'] * $producto['precio']) + $producto['isv'],
-                    'idPrecioSeleccionado' => '1',
-                    'precio_seleccionado' => $producto['precio']
-                ]);
-                
-                Log::info("DEBUG Producto guardado", [
-                    'producto_id' => $producto['id'],
-                    'cantidad' => $producto['cantidad']
-                ]);
-                
-                // Actualizar stock en bodega principal
-                $this->actualizarStockVenta($producto['id'], $producto['cantidad'], $factura->id);
+                $this->guardarProductoConDistribucionSecciones($factura->id, $producto, $indice);
+                $indice++;
             }
             
             // Guardar métodos de pago usando la distribución
@@ -547,64 +595,85 @@ class Ventas extends Component
         Log::info("DEBUG guardarMetodosPagoDistribucion INICIO", [
             'factura_id' => $facturaId,
             'metodosActivosParaPago' => $this->metodosActivosParaPago,
-            'montosPorMetodo' => $this->montosPorMetodo
+            'montosPorMetodo' => $this->montosPorMetodo,
+            'tiposPago' => $this->tiposPago
         ]);
 
-        // Si metodosActivosParaPago está vacío, construirlo desde montosPorMetodo
-        $metodosParaGuardar = $this->metodosActivosParaPago;
+        $metodosParaGuardar = [];
         
-        if (empty($metodosParaGuardar) && !empty($this->montosPorMetodo)) {
-            Log::info("DEBUG Construyendo métodos desde montosPorMetodo");
+        // Prioridad 1: Si hay metodosActivosParaPago, usarlos (solo los que tienen monto > 0)
+        if (!empty($this->metodosActivosParaPago)) {
+            Log::info("DEBUG Usando metodosActivosParaPago");
             
-            $metodosParaGuardar = [];
-            foreach ($this->montosPorMetodo as $tipoId => $monto) {
-                if ($monto > 0) {
-                    $tipoPago = collect($this->tiposPago)->firstWhere('id', $tipoId);
-                    if ($tipoPago) {
-                        $metodosParaGuardar[] = [
-                            'id' => $tipoId,
-                            'nombre' => $tipoPago['nombre'],
-                            'monto' => $monto
-                        ];
-                    }
+            foreach ($this->metodosActivosParaPago as $metodo) {
+                if ($metodo['monto'] > 0) { // Solo los que tienen monto mayor a 0
+                    $metodosParaGuardar[] = $metodo;
+                    
+                    Log::info("DEBUG Método agregado desde metodosActivosParaPago", [
+                        'tipo_id' => $metodo['id'],
+                        'nombre' => $metodo['nombre'],
+                        'monto' => $metodo['monto']
+                    ]);
                 }
             }
-            
-            Log::info("DEBUG Métodos construidos", ['metodos_construidos' => $metodosParaGuardar]);
         }
-        
-        // Si aún está vacío, crear un pago por defecto en efectivo
-        if (empty($metodosParaGuardar)) {
-            Log::info("DEBUG Creando pago por defecto en efectivo");
+        // Prioridad 2: Si hay montosPorMetodo, construir desde ahí
+        elseif (!empty($this->montosPorMetodo)) {
+            Log::info("DEBUG Construyendo desde montosPorMetodo");
             
-            $efectivoTipo = collect($this->tiposPago)->firstWhere('nombre', 'Efectivo');
-            if (!$efectivoTipo) {
-                // Si no existe el tipo efectivo, usar el primer tipo disponible
-                $efectivoTipo = collect($this->tiposPago)->first();
+            foreach ($this->montosPorMetodo as $tipoId => $monto) {
+                $tipoPago = collect($this->tiposPago)->firstWhere('id', $tipoId);
+                if ($tipoPago && $monto > 0) { // Solo los que tienen monto mayor a 0
+                    $metodosParaGuardar[] = [
+                        'id' => $tipoId,
+                        'nombre' => $tipoPago['nombre'],
+                        'monto' => $monto
+                    ];
+                    
+                    Log::info("DEBUG Método agregado desde montosPorMetodo", [
+                        'tipo_id' => $tipoId,
+                        'nombre' => $tipoPago['nombre'],
+                        'monto' => $monto
+                    ]);
+                }
             }
+        }
+        // Prioridad 3: Si hay tiposPago disponibles, guardar todos como 0 excepto efectivo con el total
+        elseif (!empty($this->tiposPago)) {
+            Log::info("DEBUG Creando métodos por defecto desde tiposPago");
             
-            if ($efectivoTipo) {
+            foreach ($this->tiposPago as $tipoPago) {
+                $monto = 0;
+                
+                // Si es efectivo, poner el total completo
+                if (strtolower($tipoPago['nombre']) === 'efectivo') {
+                    $monto = $this->total;
+                }
+                
                 $metodosParaGuardar[] = [
-                    'id' => $efectivoTipo['id'],
-                    'nombre' => $efectivoTipo['nombre'],
-                    'monto' => $this->total
+                    'id' => $tipoPago['id'],
+                    'nombre' => $tipoPago['nombre'],
+                    'monto' => $monto
                 ];
                 
                 Log::info("DEBUG Método por defecto creado", [
-                    'tipo_id' => $efectivoTipo['id'],
-                    'tipo_nombre' => $efectivoTipo['nombre'],
-                    'monto' => $this->total
+                    'tipo_id' => $tipoPago['id'],
+                    'nombre' => $tipoPago['nombre'],
+                    'monto' => $monto
                 ]);
             }
         }
 
+        Log::info("DEBUG Métodos finales para guardar", ['metodosParaGuardar' => $metodosParaGuardar]);
+
+        // Guardar solo los métodos con monto > 0
         foreach ($metodosParaGuardar as $metodo) {
             $tipoPago = TipoPago::find($metodo['id']);
-            if ($tipoPago && $metodo['monto'] > 0) {
+            if ($tipoPago && $metodo['monto'] > 0) { // Validación adicional de monto > 0
                 
                 // Inicializar variables
                 $cambio = 0;
-                $pagoRecibido = $metodo['monto'];
+                $pagoRecibido = $metodo['monto']; // Por defecto usar el monto del método
                 
                 // Si es efectivo y se recibió más dinero, calcular el cambio
                 if (strtolower($tipoPago->nombre) === 'efectivo' && isset($this->efectivoRecibido) && $this->efectivoRecibido > 0) {
@@ -612,14 +681,17 @@ class Ventas extends Component
                     if ($this->efectivoRecibido > $metodo['monto']) {
                         $cambio = $this->efectivoRecibido - $metodo['monto'];
                     }
+                } else {
+                    // Para métodos que no son efectivo, usar el monto distribuido
+                    $pagoRecibido = $metodo['monto'];
                 }
                 
                 DB::table('factura_has_pago')->insert([
                     'factura_id' => $facturaId,
                     'tipo_pago_id' => $tipoPago->id,
-                    'total_factura' => $this->total, // Total de la factura
-                    'pago_recibido' => $pagoRecibido, // Cantidad recibida para este método
-                    'cambio' => $cambio, // Cambio calculado (solo para efectivo)
+                    'total_factura' => $this->total,
+                    'pago_recibido' => $pagoRecibido,
+                    'cambio' => $cambio,
                 ]);
                 
                 Log::info("DEBUG Método de pago guardado", [
@@ -633,6 +705,109 @@ class Ventas extends Component
         }
         
         Log::info("DEBUG guardarMetodosPagoDistribucion FINALIZADO");
+    }
+
+    private function guardarProductoConDistribucionSecciones($facturaId, $producto, $indice)
+    {
+        Log::info("DEBUG guardarProductoConDistribucionSecciones INICIO", [
+            'factura_id' => $facturaId,
+            'producto_id' => $producto['id'],
+            'cantidad_solicitada' => $producto['cantidad'],
+            'indice' => $indice
+        ]);
+
+        // Obtener producto por código de barras para conseguir el ID correcto
+        $productoDb = DB::table('producto')->where('id', $producto['id'])->first();
+        if (!$productoDb) {
+            Log::error("Producto no encontrado", ['producto_id' => $producto['id']]);
+            return;
+        }
+
+        // Obtener secciones con stock disponible ordenadas por cantidad disponible (FIFO: más stock primero)
+        $seccionesConStock = DB::table('tienda as t')
+            ->join('bodega as b', 'b.tienda_id', '=', 't.id')
+            ->join('segmento as s', 's.bodega_id', '=', 'b.id')
+            ->join('seccion as sc', 'sc.segmento_id', '=', 's.id')
+            ->join('recibido_bodega as rb', 'rb.seccion_id', '=', 'sc.id')
+            ->where('t.id', Auth::user()->tienda_id)
+            ->where('rb.producto_id', $producto['id'])
+            ->where('b.principal', 1)
+            ->where('rb.cantidad_disponible', '>', 0)
+            ->select(
+                'sc.id as seccion_id',
+                'sc.descripcion as seccion_nombre',
+                'rb.cantidad_disponible',
+                'rb.id as recibido_bodega_id'
+            )
+            ->orderBy('rb.cantidad_disponible', 'DESC') // Primero las secciones con más stock
+            ->get();
+
+        Log::info("DEBUG Secciones encontradas", [
+            'secciones_con_stock' => $seccionesConStock->toArray()
+        ]);
+
+        if ($seccionesConStock->isEmpty()) {
+            Log::error("No hay stock disponible", ['producto_id' => $producto['id']]);
+            throw new \Exception("No hay stock disponible para el producto");
+        }
+
+        $cantidadRestante = $producto['cantidad'];
+        $registrosCreados = 0;
+
+        foreach ($seccionesConStock as $seccion) {
+            if ($cantidadRestante <= 0) break;
+
+            // Calcular cuánto tomar de esta sección
+            $cantidadATomar = min($cantidadRestante, $seccion->cantidad_disponible);
+
+            // Crear registro en factura_has_producto
+            DB::table('factura_has_producto')->insert([
+                'factura_id' => $facturaId,
+                'producto_id' => $producto['id'],
+                'seccion_id' => $seccion->seccion_id,
+                'unidad_medida_id' => 1, // Valor por defecto
+                'indice' => $indice,
+                'numero_unidades_resta_inventario' => $cantidadATomar,
+                'unidades_nota_credito_resta_inventario' => 0,
+                'resta_inventario_total' => $cantidadATomar,
+                'precio_unidad' => $producto['precio'],
+                'cantidad' => $cantidadATomar,
+                'subtotal' => $cantidadATomar * $producto['precio'],
+                'isv' => ($cantidadATomar * $producto['precio']) * ($productoDb->isv / 100),
+                'total' => ($cantidadATomar * $producto['precio']) + (($cantidadATomar * $producto['precio']) * ($productoDb->isv / 100)),
+                'idPrecioSeleccionado' => '0',
+                'precio_seleccionado' => 0
+            ]);
+
+            // Actualizar stock en recibido_bodega
+            DB::table('recibido_bodega')
+                ->where('id', $seccion->recibido_bodega_id)
+                ->decrement('cantidad_disponible', $cantidadATomar);
+
+            Log::info("DEBUG Registro creado en factura_has_producto", [
+                'seccion_id' => $seccion->seccion_id,
+                'seccion_nombre' => $seccion->seccion_nombre,
+                'cantidad_tomada' => $cantidadATomar,
+                'stock_anterior' => $seccion->cantidad_disponible,
+                'stock_restante' => $seccion->cantidad_disponible - $cantidadATomar
+            ]);
+
+            $cantidadRestante -= $cantidadATomar;
+            $registrosCreados++;
+        }
+
+        if ($cantidadRestante > 0) {
+            Log::warning("Stock insuficiente", [
+                'producto_id' => $producto['id'],
+                'cantidad_faltante' => $cantidadRestante
+            ]);
+            throw new \Exception("Stock insuficiente. Faltan {$cantidadRestante} unidades");
+        }
+
+        Log::info("DEBUG guardarProductoConDistribucionSecciones FINALIZADO", [
+            'registros_creados' => $registrosCreados,
+            'cantidad_distribuida' => $producto['cantidad']
+        ]);
     }
 
     public function procesarSoloEfectivoDistribucion()

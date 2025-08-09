@@ -439,11 +439,16 @@
             </div>
 
                 <!-- Totales -->
-                <div class="flex justify-end mb-4">
+                <div class="flex justify-end mb-4" x-data="{ 
+                    subtotal: @entangle('subtotal'),
+                    totalIsv: @entangle('totalIsv'),
+                    total: @entangle('total'),
+                    isvPorTasa: @entangle('isvPorTasa')
+                }">
                     <div class="bg-gray-100 rounded-lg p-4 w-full max-w-xs">
                         <div class="flex justify-between mb-2">
                             <span class="font-semibold">Subtotal:</span>
-                            <span>L. {{ number_format($subtotal, 2) }}</span>
+                            <span x-text="'L. ' + parseFloat(subtotal).toFixed(2)">L. {{ number_format($subtotal, 2) }}</span>
                         </div>
                         
                         <!-- ISV agrupado por tasa -->
@@ -460,7 +465,7 @@
                                 <hr class="my-2 border-gray-300">
                                 <div class="flex justify-between mb-2">
                                     <span class="font-semibold">Total ISV:</span>
-                                    <span>L. {{ number_format($totalIsv, 2) }}</span>
+                                    <span x-text="'L. ' + parseFloat(totalIsv).toFixed(2)">L. {{ number_format($totalIsv, 2) }}</span>
                                 </div>
                             @endif
                         @endif
@@ -468,7 +473,15 @@
                         <hr class="my-2 border-gray-400">
                         <div class="flex justify-between text-lg font-bold">
                             <span>Total:</span>
-                            <span>L. {{ number_format($total, 2) }}</span>
+                            <span x-text="'L. ' + parseFloat(total).toFixed(2)">L. {{ number_format($total, 2) }}</span>
+                        </div>
+                        
+                        <!-- Botón temporal para debug -->
+                        <div class="mt-2">
+                            <button wire:click="recalcularTotalesForzado" 
+                                class="w-full px-2 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600">
+                                🔄 Recalcular (Debug)
+                            </button>
                         </div>
                     </div>
                 </div>
