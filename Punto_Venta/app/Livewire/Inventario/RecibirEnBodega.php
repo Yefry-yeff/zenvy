@@ -22,7 +22,7 @@ class RecibirEnBodega extends Component
     public $buscarProducto = '';
     public $productosSugeridos = [];
     public $mostrarSugerenciasProductos = false;
-    
+
     // Producto seleccionado
     public $productoSeleccionado = null;
     public $nombreProducto = '';
@@ -30,7 +30,7 @@ class RecibirEnBodega extends Component
     public $codigoBarraProducto = '';
     public $marcaProducto = '';
     public $unidadMedidaProducto = '';
-    
+
     // Datos del recibido
     public $cantidadCompraLote = '';
     public $cantidadInicialSeccion = '';
@@ -39,12 +39,12 @@ class RecibirEnBodega extends Component
     public $comentario = '';
     public $unidadesCompra = '';
     public $unidadCompraId = null;
-    
+
     // Secciones y bodegas
     public $seccionSeleccionada = null;
     public $secciones = [];
     public $unidadesMedida = [];
-    
+
     // Jerarquía Bodega → Segmento → Sección
     public $buscarBodega = '';
     public $bodegasSugeridas = [];
@@ -58,7 +58,7 @@ class RecibirEnBodega extends Component
     public $filtroProducto = '';
     public $filtroProveedor = '';
     public $filtroEstadoDistribucion = '';
-    
+
     // Modal de distribución
     public $mostrarModalDistribucion = false;
     public $productoParaDistribuir = null;
@@ -73,18 +73,18 @@ class RecibirEnBodega extends Component
     public $nombreBodegaDistribucion = '';
     public $nombreSegmentoDistribucion = '';
     public $nombreSeccionDistribucion = '';
-    
+
     public $buscarSegmento = '';
     public $segmentosSugeridos = [];
     public $mostrarSugerenciasSegmentos = false;
     public $segmentoSeleccionado = null;
     public $nombreSegmento = '';
-    
+
     public $buscarSeccion = '';
     public $seccionesSugeridas = [];
     public $mostrarSugerenciasSecciones = false;
     public $nombreSeccion = '';
-    
+
     // Modales y mensajes
     public $mostrarModalConfirmacion = false;
     public $mostrarModalExito = false;
@@ -123,14 +123,14 @@ class RecibirEnBodega extends Component
     {
         try {
             $user = Auth::user();
-            
+
             $query = Bodega::with('tienda')
                 ->where('estado_id', 1);
-                
+
             if ($user->rol && $user->rol->txt_nombre !== 'Admin') {
                 $query->where('tienda_id', $user->tienda_id);
             }
-                
+
             $this->bodegasSugeridas = $query->limit(10)->get();
         } catch (\Exception $e) {
             Log::error('Error al cargar todas las bodegas', [
@@ -144,15 +144,15 @@ class RecibirEnBodega extends Component
     {
         try {
             $user = Auth::user();
-            
+
             $query = Bodega::with('tienda')
                 ->where('nombre', 'like', '%' . $this->buscarBodega . '%')
                 ->where('estado_id', 1);
-                
+
             if ($user->rol && $user->rol->txt_nombre !== 'Admin') {
                 $query->where('tienda_id', $user->tienda_id);
             }
-                
+
             $this->bodegasSugeridas = $query->limit(10)->get();
         } catch (\Exception $e) {
             Log::error('Error al buscar bodegas', [
@@ -167,18 +167,18 @@ class RecibirEnBodega extends Component
     {
         try {
             $bodega = Bodega::with('tienda')->findOrFail($bodegaId);
-            
+
             $this->bodegaSeleccionada = $bodega;
             $this->buscarBodega = $bodega->nombre;
             $this->nombreBodega = $bodega->nombre;
-            
+
             $this->mostrarSugerenciasBodegas = false;
             $this->bodegasSugeridas = [];
-            
+
             // Limpiar selecciones dependientes
             $this->limpiarSeleccionSegmento();
             $this->limpiarSeleccionSeccion();
-            
+
         } catch (\Exception $e) {
             Log::error('Error al seleccionar bodega', [
                 'bodega_id' => $bodegaId,
@@ -224,7 +224,7 @@ class RecibirEnBodega extends Component
     {
         try {
             if (!$this->bodegaSeleccionada) return;
-            
+
             $this->segmentosSugeridos = Segmento::where('bodega_id', $this->bodegaSeleccionada->id)
                 ->limit(10)
                 ->get();
@@ -241,7 +241,7 @@ class RecibirEnBodega extends Component
     {
         try {
             if (!$this->bodegaSeleccionada) return;
-            
+
             $this->segmentosSugeridos = Segmento::where('bodega_id', $this->bodegaSeleccionada->id)
                 ->where('descripcion', 'like', '%' . $this->buscarSegmento . '%')
                 ->limit(10)
@@ -260,17 +260,17 @@ class RecibirEnBodega extends Component
     {
         try {
             $segmento = Segmento::findOrFail($segmentoId);
-            
+
             $this->segmentoSeleccionado = $segmento;
             $this->buscarSegmento = $segmento->descripcion;
             $this->nombreSegmento = $segmento->descripcion;
-            
+
             $this->mostrarSugerenciasSegmentos = false;
             $this->segmentosSugeridos = [];
-            
+
             // Limpiar selección de sección
             $this->limpiarSeleccionSeccion();
-            
+
         } catch (\Exception $e) {
             Log::error('Error al seleccionar segmento', [
                 'segmento_id' => $segmentoId,
@@ -318,7 +318,7 @@ class RecibirEnBodega extends Component
     {
         try {
             if (!$this->segmentoSeleccionado) return;
-            
+
             $this->seccionesSugeridas = Seccion::where('segmento_id', $this->segmentoSeleccionado->id)
                 ->where('estado_id', 1)
                 ->limit(10)
@@ -336,7 +336,7 @@ class RecibirEnBodega extends Component
     {
         try {
             if (!$this->segmentoSeleccionado) return;
-            
+
             $this->seccionesSugeridas = Seccion::where('segmento_id', $this->segmentoSeleccionado->id)
                 ->where('descripcion', 'like', '%' . $this->buscarSeccion . '%')
                 ->where('estado_id', 1)
@@ -356,14 +356,14 @@ class RecibirEnBodega extends Component
     {
         try {
             $seccion = Seccion::findOrFail($seccionId);
-            
+
             $this->seccionSeleccionada = $seccion->id;
             $this->buscarSeccion = $seccion->descripcion;
             $this->nombreSeccion = $seccion->descripcion;
-            
+
             $this->mostrarSugerenciasSecciones = false;
             $this->seccionesSugeridas = [];
-            
+
         } catch (\Exception $e) {
             Log::error('Error al seleccionar sección', [
                 'seccion_id' => $seccionId,
@@ -439,7 +439,7 @@ class RecibirEnBodega extends Component
     {
         try {
             $producto = Producto::with(['subcategoria.categoria', 'marca', 'unidadMedidaVenta'])->findOrFail($productoId);
-            
+
             // Debug temporal
             Log::info('Producto seleccionado:', [
                 'producto_id' => $producto->id,
@@ -449,7 +449,7 @@ class RecibirEnBodega extends Component
                 'unidad_medida_venta_id' => $producto->unidad_medida_venta_id,
                 'unidad_medida' => $producto->unidadMedidaVenta ? $producto->unidadMedidaVenta->toArray() : null
             ]);
-            
+
             $this->productoSeleccionado = $producto;
             $this->buscarProducto = $producto->nombre;
             $this->nombreProducto = $producto->nombre;
@@ -458,10 +458,10 @@ class RecibirEnBodega extends Component
             $this->marcaProducto = $producto->marca ? $producto->marca->nombre : 'Sin marca';
             $this->unidadMedidaProducto = $producto->unidadMedidaVenta ? $producto->unidadMedidaVenta->nombre : 'N/A';
             $this->unidadCompraId = $producto->unidad_medida_venta_id;
-            
+
             $this->mostrarSugerenciasProductos = false;
             $this->productosSugeridos = [];
-            
+
         } catch (\Exception $e) {
             Log::error('Error al seleccionar producto', [
                 'producto_id' => $productoId,
@@ -562,14 +562,14 @@ class RecibirEnBodega extends Component
         $this->productosSugeridos = [];
         $this->mostrarSugerenciasProductos = false;
         $this->limpiarSeleccionProducto();
-        
+
         $this->cantidadCompraLote = '';
         $this->cantidadInicialSeccion = '';
         $this->fechaRecibido = date('Y-m-d');
         $this->fechaExpiracion = '';
         $this->comentario = '';
         $this->unidadesCompra = '';
-        
+
         // Limpiar jerarquía bodega → segmento → sección
         $this->limpiarSeleccionBodega();
     }
@@ -637,29 +637,29 @@ class RecibirEnBodega extends Component
             ->get();
 
             $this->comprasActivas = [];
-            
+
             foreach ($compras as $compra) {
                 foreach ($compra->detallesCompra as $detalle) {
                     if ($detalle->cantidad_sin_asignar > 0) {
                         // Aplicar filtros si están definidos
                         $cumpleFiltros = true;
-                        
+
                         if ($this->filtroProducto && stripos($detalle->producto->nombre ?? '', $this->filtroProducto) === false) {
                             $cumpleFiltros = false;
                         }
-                        
+
                         if ($this->filtroProveedor && stripos($compra->cliente->nombre ?? '', $this->filtroProveedor) === false) {
                             $cumpleFiltros = false;
                         }
-                        
+
                         if ($this->filtroEstadoDistribucion === 'pendiente' && $detalle->cantidad_sin_asignar == 0) {
                             $cumpleFiltros = false;
                         }
-                        
+
                         if ($this->filtroEstadoDistribucion === 'parcial' && ($detalle->cantidad_sin_asignar == 0 || $detalle->cantidad_sin_asignar == $detalle->cantidad_ingresada)) {
                             $cumpleFiltros = false;
                         }
-                        
+
                         if ($cumpleFiltros) {
                             $this->comprasActivas[] = [
                                 'compra_id' => $compra->id,
@@ -685,7 +685,7 @@ class RecibirEnBodega extends Component
                     }
                 }
             }
-            
+
         } catch (\Exception $e) {
             Log::error('Error al cargar compras activas', [
                 'mensaje' => $e->getMessage(),
@@ -725,7 +725,7 @@ class RecibirEnBodega extends Component
             ->select('id', 'nombre')
             ->orderBy('nombre')
             ->get(); // Eliminar ->toArray() para mantener como objetos
-            
+
         } catch (\Exception $e) {
             Log::error('Error al cargar proveedores', [
                 'mensaje' => $e->getMessage(),
@@ -779,7 +779,7 @@ class RecibirEnBodega extends Component
             $productoCompra = collect($this->comprasActivas)->first(function($item) use ($compraId, $productoId) {
                 return $item['compra_id'] == $compraId && $item['producto_id'] == $productoId;
             });
-            
+
             if ($productoCompra) {
                 $this->productoParaDistribuir = [
                     'compra_id' => $productoCompra['compra_id'],
@@ -797,7 +797,7 @@ class RecibirEnBodega extends Component
                     ->where('compra_id', $compraId)
                     ->where('producto_id', $productoId)
                     ->first();
-                
+
                 if ($detalle) {
                     $this->productoParaDistribuir = [
                         'compra_id' => $detalle->compra_id,
@@ -814,7 +814,7 @@ class RecibirEnBodega extends Component
                     return;
                 }
             }
-            
+
             // Limpiar campos del modal
             $this->cantidadDistribuir = '';
             $this->fechaDistribucion = date('Y-m-d');
@@ -822,13 +822,13 @@ class RecibirEnBodega extends Component
             $this->segmentoDistribucion = '';
             $this->seccionDistribucion = '';
             $this->comentarioDistribucion = '';
-            
+
             // Limpiar listas dependientes
             $this->segmentos = [];
             $this->secciones = [];
-            
+
             $this->mostrarModalDistribucion = true;
-            
+
         } catch (\Exception $e) {
             Log::error('Error al abrir modal de distribución', [
                 'compra_id' => $compraId,
@@ -902,9 +902,9 @@ class RecibirEnBodega extends Component
 
     public function puedeConfirmarDistribucion()
     {
-        return !empty($this->cantidadDistribuir) && 
-               $this->cantidadDistribuir > 0 && 
-               !empty($this->fechaDistribucion) && 
+        return !empty($this->cantidadDistribuir) &&
+               $this->cantidadDistribuir > 0 &&
+               !empty($this->fechaDistribucion) &&
                !empty($this->seccionDistribucion);
     }
 
@@ -914,10 +914,10 @@ class RecibirEnBodega extends Component
             try {
                 $detalle = CompraHasProducto::with(['compra.cliente', 'producto', 'unidadCompra'])
                     ->find($this->productoParaDistribuir['detalle_id']);
-                
+
                 if ($detalle) {
                     $this->productoParaDistribuir['cantidad_pendiente'] = $detalle->cantidad_sin_asignar;
-                    
+
                     // Si ya no hay cantidad disponible, cerrar el modal y recargar
                     if ($detalle->cantidad_sin_asignar <= 0) {
                         $this->mostrarError('Este producto ya no tiene cantidad disponible para distribuir.');
@@ -965,7 +965,7 @@ class RecibirEnBodega extends Component
 
             // Buscar el detalle de compra y verificar estado actual
             $detalleCompra = CompraHasProducto::find($this->productoParaDistribuir['detalle_id']);
-            
+
             if (!$detalleCompra) {
                 throw new \Exception('No se encontró el detalle de compra.');
             }
@@ -974,7 +974,7 @@ class RecibirEnBodega extends Component
             if ($detalleCompra->cantidad_sin_asignar < $cantidadDistribuir) {
                 // Si la cantidad cambió, actualizar los datos del modal
                 $this->productoParaDistribuir['cantidad_pendiente'] = $detalleCompra->cantidad_sin_asignar;
-                
+
                 if ($detalleCompra->cantidad_sin_asignar <= 0) {
                     throw new \Exception('Este producto ya no tiene cantidad disponible para distribuir. La página se actualizará automáticamente.');
                 } else {
@@ -1007,7 +1007,7 @@ class RecibirEnBodega extends Component
             $productosConCantidadPendiente = $compra->detallesCompra()
                 ->where('cantidad_sin_asignar', '>', 0)
                 ->count();
-            
+
             // Log para debugging
             Log::info('Verificando estado de distribución', [
                 'compra_id' => $compra->id,
@@ -1015,20 +1015,20 @@ class RecibirEnBodega extends Component
                 'productos_con_cantidad_pendiente' => $productosConCantidadPendiente,
                 'total_productos' => $compra->detallesCompra()->count()
             ]);
-            
+
             // Si no hay productos con cantidad pendiente, cambiar estado a "Distribuido"
             if ($productosConCantidadPendiente == 0) {
                 $estadoAnterior = $compra->estado_id;
                 $compra->estado_id = 3; // Estado "Distribuido"
                 $compra->save();
-                
+
                 Log::info('Compra marcada como distribuida', [
                     'compra_id' => $compra->id,
                     'numero_factura' => $compra->numero_factura,
                     'nuevo_estado_id' => 3,
                     'estado_anterior' => $estadoAnterior
                 ]);
-                
+
                 // Emitir eventos globales para notificar a otros componentes
                 $this->dispatch('compra-distribuida', $compra->id);
                 $this->dispatch('estado-compra-actualizado', $compra->id, 'distribuido');
@@ -1045,29 +1045,29 @@ class RecibirEnBodega extends Component
 
             // Preparar mensaje de éxito
             $mensaje = "Se distribuyeron {$cantidadDistribuir} {$this->productoParaDistribuir['unidad']} de {$this->productoParaDistribuir['nombre']} exitosamente a la bodega.";
-            
+
             // Si la compra se completó, agregar información adicional
             if ($productosConCantidadPendiente == 0) {
                 $mensaje .= " ¡La factura {$compra->numero_factura} ha sido marcada como completamente distribuida!";
             }
-            
+
             $this->mostrarExito($mensaje);
             $this->cerrarModalDistribucion();
             $this->cargarComprasActivas(); // Recargar datos
-            
+
             // Emitir evento global para actualizar cualquier vista que muestre compras
             $this->dispatch('compra-actualizada', $compra->id);
-            
+
         } catch (\Exception $e) {
             DB::rollback();
-            
+
             // Si es un error de cantidad, intentar actualizar los datos
-            if (str_contains($e->getMessage(), 'cantidad disponible ha cambiado') || 
+            if (str_contains($e->getMessage(), 'cantidad disponible ha cambiado') ||
                 str_contains($e->getMessage(), 'ya no tiene cantidad disponible')) {
                 $this->actualizarDatosProducto();
                 $this->cargarComprasActivas(); // Recargar la tabla
             }
-            
+
             Log::error('Error al distribuir producto', [
                 'detalle_compra_id' => $this->productoParaDistribuir['detalle_id'] ?? null,
                 'cantidad' => $cantidadDistribuir,

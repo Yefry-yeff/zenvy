@@ -39,11 +39,11 @@ $metodosParaGuardar = [];
 // Prioridad 1: Si hay metodosActivosParaPago, usarlos (solo los que tienen monto > 0)
 if (!empty($metodosActivosParaPago)) {
     echo "Usando metodosActivosParaPago" . PHP_EOL;
-    
+
     foreach ($metodosActivosParaPago as $metodo) {
         if ($metodo['monto'] > 0) { // Solo los que tienen monto mayor a 0
             $metodosParaGuardar[] = $metodo;
-            
+
             echo "Método agregado desde metodosActivosParaPago - ID: {$metodo['id']}, Nombre: {$metodo['nombre']}, Monto: {$metodo['monto']}" . PHP_EOL;
         }
     }

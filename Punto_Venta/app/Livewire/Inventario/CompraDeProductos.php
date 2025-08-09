@@ -38,7 +38,7 @@ class CompraDeProductos extends Component
         // Refrescar la vista para mostrar los nuevos estados
         $this->resetPage(); // Reset pagination to show changes
         $this->render(); // Force re-render
-        
+
         // Agregar mensaje de confirmación
         if ($compraId) {
             $compra = Compra::find($compraId);
@@ -202,7 +202,7 @@ class CompraDeProductos extends Component
                 if ($estadoAnulado) {
                     $compra->estado_id = $estadoAnulado->id;
                     $compra->save();
-                    
+
                     session()->flash('success', 'Compra anulada exitosamente.');
                     $this->cerrarModalAnular();
                 } else {

@@ -13,15 +13,15 @@ echo "=== PRUEBA RÁPIDA DESPUÉS DEL FIX ===\n\n";
 
 try {
     $caiService = new CAIService();
-    
+
     // Generar número CAI
     echo "1. Generando número CAI...\n";
     $resultadoCAI = $caiService->obtenerSiguienteNumeroFactura();
-    
+
     echo "Número generado: {$resultadoCAI['numero_factura']}\n";
     echo "CAI ID: {$resultadoCAI['cai_id']}\n";
     echo "Restantes: {$resultadoCAI['cantidad_restante']}\n\n";
-    
+
     // Simular creación de factura con todos los campos requeridos
     echo "2. Creando factura en base de datos...\n";
     $facturaId = DB::table('factura')->insertGetId([
@@ -42,9 +42,9 @@ try {
         'created_at' => now(),
         'updated_at' => now()
     ]);
-    
+
     echo "✅ Factura creada exitosamente con ID: $facturaId\n";
-    
+
     // Verificar la factura creada
     echo "\n3. Verificando factura creada...\n";
     $factura = DB::table('factura as f')
@@ -52,7 +52,7 @@ try {
         ->select('f.*', 'c.cai')
         ->where('f.id', $facturaId)
         ->first();
-        
+
     if ($factura) {
         echo "ID: {$factura->id}\n";
         echo "Número: {$factura->numero_factura}\n";
@@ -61,9 +61,9 @@ try {
         echo "CAI: {$factura->cai}\n";
         echo "Tipo Facturación ID: {$factura->tipo_facturacion_id}\n";
     }
-    
+
     echo "\n✅ Sistema funcionando correctamente después del fix!\n";
-    
+
 } catch (Exception $e) {
     echo "❌ ERROR: " . $e->getMessage() . "\n";
 }

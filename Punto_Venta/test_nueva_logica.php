@@ -27,7 +27,7 @@ echo PHP_EOL . "=== Simulaciones con nueva lógica ===" . PHP_EOL;
 function simularValidacion($stockTotal, $cantidadEnCarrito, $cantidadSolicitada) {
     $nuevaCantidadTotal = $cantidadEnCarrito + $cantidadSolicitada;
     $esValido = $nuevaCantidadTotal <= $stockTotal;
-    
+
     return [
         'valido' => $esValido,
         'nueva_cantidad_total' => $nuevaCantidadTotal,
@@ -48,7 +48,7 @@ $escenarios = [
 foreach ($escenarios as $i => $escenario) {
     $resultado = simularValidacion($stockTotal, $escenario['carrito'], $escenario['solicitud']);
     $estado = $resultado['valido'] ? "✓ PERMITIDO" : "✗ DENEGADO";
-    
+
     echo "Escenario " . ($i + 1) . " - {$escenario['descripcion']}: {$estado}" . PHP_EOL;
     echo "  - Cantidad en carrito: {$escenario['carrito']}" . PHP_EOL;
     echo "  - Cantidad solicitada: {$escenario['solicitud']}" . PHP_EOL;

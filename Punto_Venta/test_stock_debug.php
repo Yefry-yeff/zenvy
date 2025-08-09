@@ -11,7 +11,7 @@ echo PHP_EOL . "=== Datos de ejemplo con código de barra 7421206000039 ===" . P
 $stmt = $pdo->prepare('
     SELECT rb.*, s.producto_id, seg.bodega_id, p.codigo_barra, b.nombre as bodega_nombre, b.principal
     FROM recibido_bodega rb
-    JOIN seccion s ON rb.seccion_id = s.id  
+    JOIN seccion s ON rb.seccion_id = s.id
     JOIN segmento seg ON s.segmento_id = seg.id
     JOIN bodega b ON seg.bodega_id = b.id
     JOIN producto p ON s.producto_id = p.id

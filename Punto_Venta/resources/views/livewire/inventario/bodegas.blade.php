@@ -106,7 +106,7 @@
                         <div class="card-body">
                             <p class="card-text">
                                 <strong>Dirección:</strong> {{ $bodega->direccion->domicilio_tributario ?? 'N/A' }}<br>
-                                <strong>Tienda asignada:</strong> 
+                                <strong>Tienda asignada:</strong>
                                 @if($bodega->tienda)
                                     {{ $bodega->tienda->denominacion_social }}
                                 @else
@@ -180,7 +180,7 @@
                             <div class="mb-3">
                                 <h6 class="text-secondary">🔸 Esta acción puede revertirse posteriormente</h6>
                                 <p>¿Está seguro que desea inactivar la bodega <strong>"{{ $bodegaAInactivar->nombre }}"</strong>?</p>
-                                
+
                                 <div class="alert alert-secondary">
                                     <small><strong>Se inactivarán automáticamente:</strong></small>
                                     <ul class="mb-0 small">
@@ -193,7 +193,7 @@
                                 </div>
                             </div>
                         @endif
-                        
+
                         <div class="flex justify-end gap-2 mt-4">
                             <button type="button" class="btn btn-light" wire:click="cancelarInactivar">Cancelar</button>
                             <button type="button" class="btn btn-secondary" wire:click="confirmarInactivacion">Sí, Inactivar</button>
@@ -223,7 +223,7 @@
                             <div class="mb-3">
                                 <h6 class="text-success">✅ Esta acción reactivará la bodega</h6>
                                 <p>¿Está seguro que desea activar la bodega <strong>"{{ $bodegaAActivar->nombre }}"</strong>?</p>
-                                
+
                                 <div class="alert alert-success">
                                     <small><strong>Se activarán automáticamente:</strong></small>
                                     <ul class="mb-0 small">
@@ -236,7 +236,7 @@
                                 </div>
                             </div>
                         @endif
-                        
+
                         <div class="flex justify-end gap-2 mt-4">
                             <button type="button" class="btn btn-light" wire:click="cancelarActivar">Cancelar</button>
                             <button type="button" class="btn btn-success" wire:click="confirmarActivacion">Sí, Activar</button>

@@ -29,7 +29,7 @@ echo "✓ Producto encontrado: {$producto['nombre']} (ID: {$producto['id']})" . 
 // 2. Verificar stock detallado
 echo PHP_EOL . "=== Stock detallado ===" . PHP_EOL;
 $stmt = $pdo->prepare('
-    SELECT 
+    SELECT
         rb.id,
         rb.cantidad_disponible,
         rb.cantidad_inicial_seccion,
@@ -57,14 +57,14 @@ foreach ($stocks as $stock) {
     $estado = ($stock['stock_estado'] == 1) ? "Activo" : "Inactivo";
     $estadoBodega = ($stock['bodega_estado'] == 1) ? "Activa" : "Inactiva";
     $principal = ($stock['principal'] == 1) ? "PRINCIPAL" : "Secundaria";
-    
+
     echo "- {$stock['bodega']} ({$principal}) - Tienda {$stock['tienda_id']} ({$estadoBodega})" . PHP_EOL;
     echo "  └─ {$stock['segmento']} > {$stock['seccion']}" . PHP_EOL;
     echo "     └─ Cantidad disponible: {$stock['cantidad_disponible']} | Inicial: {$stock['cantidad_inicial_seccion']} | Estado: {$estado}" . PHP_EOL;
-    
+
     if ($stock['stock_estado'] == 1) {
         $stockTotalGeneral += $stock['cantidad_disponible'];
-        
+
         if ($stock['principal'] == 1 && $stock['tienda_id'] == 1 && $stock['bodega_estado'] == 1) {
             $stockBodegaPrincipalTienda1 += $stock['cantidad_disponible'];
         }

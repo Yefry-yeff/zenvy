@@ -10,10 +10,10 @@ class DistribucionStock extends Model
     use HasFactory;
 
     protected $table = 'distribucion_stock';
-    
+
     // Enable timestamps for created_at tracking
     public $timestamps = true;
-    
+
     // Only use created_at, disable updated_at
     const UPDATED_AT = null;
 

@@ -30,20 +30,20 @@ foreach ($productosFactura as $index => $producto) {
     echo "Precio unitario: L. " . number_format($producto['precio'], 2) . PHP_EOL;
     echo "Cantidad: " . $producto['cantidad'] . PHP_EOL;
     echo "Tasa ISV: " . $producto['isv'] . "%" . PHP_EOL;
-    
+
     // Cálculo individual del producto
     $subtotalProducto = $producto['precio'] * $producto['cantidad'];
     $isvProducto = $subtotalProducto * ($producto['isv'] / 100);
     $totalProducto = $subtotalProducto + $isvProducto;
-    
+
     echo "Subtotal producto: L. " . number_format($subtotalProducto, 2) . PHP_EOL;
     echo "ISV producto: L. " . number_format($isvProducto, 2) . PHP_EOL;
     echo "Total producto: L. " . number_format($totalProducto, 2) . PHP_EOL;
-    
+
     // Acumular para totales generales
     $subtotalGeneral += $subtotalProducto;
     $totalIsvGeneral += $isvProducto;
-    
+
     // Agrupar ISV por tasa
     $tasaIsv = $producto['isv'];
     if (!isset($isvPorTasa[$tasaIsv])) {

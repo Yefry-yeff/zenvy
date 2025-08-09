@@ -83,9 +83,9 @@ class SeccionForm extends Component
         $this->bodegaId = $bodegaId;
         $this->segmentoId = $segmentoId;
         $this->form['segmento_id'] = $segmentoId;
-        
+
         $this->cargarDatos();
-        
+
         if ($seccionId) {
             $this->seccionId = $seccionId;
             $this->isEditing = true;
@@ -154,7 +154,7 @@ class SeccionForm extends Component
                 'datos' => $this->form
             ]);
             $this->mostrarError('Error de validación: Revise los campos marcados en rojo');
-            
+
         } catch (\Exception $e) {
             Log::error('Error al guardar sección', [
                 'mensaje' => $e->getMessage(),
@@ -205,7 +205,7 @@ class SeccionForm extends Component
         $this->campoConError = $campo;
         $this->mostrarAlerta = true;
         $this->mensajeAlerta = $mensaje;
-        
+
         if (!in_array($campo, $this->camposConError)) {
             $this->camposConError[] = $campo;
         }
@@ -217,9 +217,9 @@ class SeccionForm extends Component
         $this->camposConError = array_filter($this->camposConError, function($item) use ($campo) {
             return $item !== $campo;
         });
-        
+
         unset($this->erroresValidacion[$campo]);
-        
+
         if (empty($this->camposConError)) {
             $this->mostrarAlerta = false;
             $this->mensajeAlerta = '';

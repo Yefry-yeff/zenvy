@@ -72,9 +72,9 @@ class SegmentoForm extends Component
     {
         $this->bodegaId = $bodegaId;
         $this->form['bodega_id'] = $bodegaId;
-        
+
         $this->cargarBodega();
-        
+
         if ($segmentoId) {
             $this->segmentoId = $segmentoId;
             $this->isEditing = true;
@@ -139,7 +139,7 @@ class SegmentoForm extends Component
                 'datos' => $this->form
             ]);
             $this->mostrarError('Error de validación: Revise los campos marcados en rojo');
-            
+
         } catch (\Exception $e) {
             Log::error('Error al guardar segmento', [
                 'mensaje' => $e->getMessage(),
@@ -177,7 +177,7 @@ class SegmentoForm extends Component
         $this->campoConError = $campo;
         $this->mostrarAlerta = true;
         $this->mensajeAlerta = $mensaje;
-        
+
         if (!in_array($campo, $this->camposConError)) {
             $this->camposConError[] = $campo;
         }
@@ -189,9 +189,9 @@ class SegmentoForm extends Component
         $this->camposConError = array_filter($this->camposConError, function($item) use ($campo) {
             return $item !== $campo;
         });
-        
+
         unset($this->erroresValidacion[$campo]);
-        
+
         if (empty($this->camposConError)) {
             $this->mostrarAlerta = false;
             $this->mensajeAlerta = '';

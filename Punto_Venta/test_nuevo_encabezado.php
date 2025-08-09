@@ -24,46 +24,46 @@ echo "=== GENERACIÓN DE IMAGEN DE FACTURA CON NUEVO ENCABEZADO ===\n\n";
 try {
     // Obtener la factura más reciente
     $factura = Capsule::table('factura')->orderBy('id', 'desc')->first();
-    
+
     if (!$factura) {
         echo "❌ No hay facturas disponibles\n";
         exit;
     }
-    
+
     echo "📄 Generando imagen para factura ID: {$factura->id}, Número: {$factura->numero_factura}\n\n";
-    
+
     // Obtener información de la empresa
     $empresa = Capsule::table('empresa')->first();
-    
+
     // Obtener información de la tienda con dirección
     $tienda = Capsule::table('tienda as t')
         ->leftJoin('direccion as d', 't.direccion_sucursal_id', '=', 'd.id')
         ->select('t.*', 'd.domicilio_tributario')
         ->where('t.id', 1)
         ->first();
-    
+
     // Crear imagen de prueba
     $ancho = 600;
     $alto = 900;
     $imagen = imagecreatetruecolor($ancho, $alto);
-    
+
     // Habilitar alpha blending y guardar alpha
     imagealphablending($imagen, false);
     imagesavealpha($imagen, true);
-    
+
     // Definir colores
     $blanco = imagecolorallocate($imagen, 255, 255, 255);
     $negro = imagecolorallocate($imagen, 0, 0, 0);
     $gris = imagecolorallocate($imagen, 128, 128, 128);
     $azul = imagecolorallocate($imagen, 0, 100, 200);
-    
+
     // Fondo blanco
     imagefill($imagen, 0, 0, $blanco);
-    
+
     $y = 20;
-    
+
     echo "🎨 Generando encabezado...\n";
-    
+
     // LOGO DE LA EMPRESA (si existe)
     if ($empresa && $empresa->logo) {
         try {
@@ -72,17 +72,17 @@ try {
             if ($logoTemporal) {
                 $logoAncho = imagesx($logoTemporal);
                 $logoAlto = imagesy($logoTemporal);
-                
+
                 $maxTamano = 80;
                 $escala = min($maxTamano / $logoAncho, $maxTamano / $logoAlto);
                 $nuevoAncho = (int)($logoAncho * $escala);
                 $nuevoAlto = (int)($logoAlto * $escala);
-                
+
                 $logoX = ($ancho - $nuevoAncho) / 2;
-                
-                imagecopyresampled($imagen, $logoTemporal, $logoX, $y, 0, 0, 
+
+                imagecopyresampled($imagen, $logoTemporal, $logoX, $y, 0, 0,
                                  $nuevoAncho, $nuevoAlto, $logoAncho, $logoAlto);
-                
+
                 imagedestroy($logoTemporal);
                 $y += $nuevoAlto + 15;
                 echo "    ✓ Logo agregado ({$nuevoAncho}x{$nuevoAlto})\n";
@@ -91,7 +91,7 @@ try {
             echo "    ⚠️ Error al procesar logo: " . $e->getMessage() . "\n";
         }
     }
-    
+
     // NOMBRE DE LA TIENDA (grande)
     if ($tienda && $tienda->denominacion_social) {
         $nombreTienda = strtoupper($tienda->denominacion_social);
@@ -101,7 +101,7 @@ try {
         $y += 30;
         echo "  ✓ Nombre de tienda: {$nombreTienda}\n";
     }
-    
+
     // NOMBRE DE LA EMPRESA (mediano)
     if ($empresa && $empresa->nombre) {
         $nombreEmpresa = $empresa->nombre;
@@ -111,7 +111,7 @@ try {
         $y += 25;
         echo "  ✓ Nombre de empresa: {$nombreEmpresa}\n";
     }
-    
+
     // RTN DE LA EMPRESA
     if ($empresa && $empresa->rtn) {
         $rtnTexto = "RTN: " . $empresa->rtn;
@@ -121,7 +121,7 @@ try {
         $y += 20;
         echo "  ✓ RTN: {$empresa->rtn}\n";
     }
-    
+
     // DIRECCIÓN DE LA SUCURSAL
     if ($tienda && $tienda->domicilio_tributario) {
         $direccion = $tienda->domicilio_tributario;
@@ -131,7 +131,7 @@ try {
         $y += 15;
         echo "  ✓ Dirección: {$direccion}\n";
     }
-    
+
     // CORREO DE LA EMPRESA
     if ($empresa && $empresa->correo) {
         $correoTexto = "Email: " . $empresa->correo;
@@ -141,7 +141,7 @@ try {
         $y += 15;
         echo "  ✓ Correo: {$empresa->correo}\n";
     }
-    
+
     // TELÉFONO FORMATEADO
     if ($empresa && $empresa->telefono) {
         $telefono = $empresa->telefono;
@@ -157,13 +157,13 @@ try {
         $y += 25;
         echo "  ✓ Teléfono: {$telefonoFormateado}\n";
     }
-    
+
     // Línea separadora
     imageline($imagen, 20, $y, $ancho-20, $y, $gris);
     $y += 30;
-    
+
     echo "\n📋 Agregando información de factura...\n";
-    
+
     // Información de la factura
     imagestring($imagen, 4, 30, $y, "FACTURA: " . $factura->numero_factura, $negro);
     $y += 25;
@@ -176,11 +176,11 @@ try {
         $y += 20;
     }
     $y += 10;
-    
+
     // Línea separadora
     imageline($imagen, 20, $y, $ancho-20, $y, $gris);
     $y += 20;
-    
+
     // Totales de ejemplo
     imagestring($imagen, 3, 350, $y, "Subtotal:", $negro);
     imagestring($imagen, 3, 470, $y, "L. " . number_format((float)$factura->sub_total, 2), $negro);
@@ -190,10 +190,10 @@ try {
     $y += 20;
     imagestring($imagen, 4, 350, $y, "TOTAL:", $azul);
     imagestring($imagen, 4, 470, $y, "L. " . number_format((float)$factura->total, 2), $azul);
-    
+
     // Guardar imagen
     $nombreArchivo = "test_factura_{$factura->numero_factura}.png";
-    
+
     if (imagepng($imagen, $nombreArchivo)) {
         echo "\n✅ Imagen generada exitosamente: {$nombreArchivo}\n";
         echo "📏 Dimensiones: {$ancho}x{$alto} píxeles\n";
@@ -201,12 +201,12 @@ try {
     } else {
         echo "\n❌ Error al guardar la imagen\n";
     }
-    
+
     imagedestroy($imagen);
-    
+
     echo "\n🎉 Proceso completado!\n";
     echo "💡 Puedes abrir el archivo '{$nombreArchivo}' para ver el resultado\n";
-    
+
 } catch (Exception $e) {
     echo "❌ Error: " . $e->getMessage() . "\n";
 }

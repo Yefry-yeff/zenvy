@@ -52,11 +52,11 @@ class SucursalForm extends Component
     public $departamentos = [];
     public $municipios = [];
     public $departamentoSeleccionado = null;
-    
+
     // Control para sucursal principal
     public $existeSucursalPrincipal = false;
     public $tipoTiendaSucursal = null;
-    
+
     // Control para tipo de dirección (siempre Tienda)
     public $tipoDireccionTienda = null;
 
@@ -64,7 +64,7 @@ class SucursalForm extends Component
     public $mostrarAlerta = false;
     public $mensajeAlerta = '';
     public $campoConError = '';
-    
+
     // Propiedades para modales de éxito y error
     public $mostrarModalExito = false;
     public $mensajeModalExito = '';
@@ -99,7 +99,7 @@ class SucursalForm extends Component
                                           return $query->where('id', '!=', $this->sucursalId);
                                       })
                                       ->exists();
-                        
+
                         if ($exists) {
                             $fail('Este identificador legal ya está en uso por otra sucursal.');
                         }
@@ -159,14 +159,14 @@ class SucursalForm extends Component
         $this->estados = Estado::orderBy('descripcion')->get();
         $this->tiposDireccion = TipoDireccion::orderBy('nombre')->get();
         $this->departamentos = Departamento::orderBy('nombre')->get();
-        
+
         // Configurar tipo de dirección como "Tienda" automáticamente
         $this->configurarTipoDireccionTienda();
-        
+
         // Verificar si ya existe una sucursal principal
         $this->verificarSucursalPrincipal();
     }
-    
+
     private function configurarTipoDireccionTienda()
     {
         // Buscar tipo de dirección "Tienda"
@@ -174,13 +174,13 @@ class SucursalForm extends Component
                                                   ->orWhere('nombre', 'LIKE', '%Tienda%')
                                                   ->orWhere('nombre', 'LIKE', '%TIENDA%')
                                                   ->first();
-        
+
         // Si existe el tipo "Tienda", configurarlo automáticamente
         if ($this->tipoDireccionTienda) {
             $this->direccionForm['tipo_direccion_id'] = $this->tipoDireccionTienda->id;
         }
     }
-    
+
     private function verificarSucursalPrincipal()
     {
         // Buscar tipo de tienda "Principal" (ajusta el nombre según tu BD)
@@ -188,22 +188,22 @@ class SucursalForm extends Component
                                         ->orWhere('nombre', 'LIKE', '%Principal%')
                                         ->orWhere('nombre', 'LIKE', '%PRINCIPAL%')
                                         ->first();
-        
+
         if ($tipoTiendaPrincipal) {
             // Verificar si ya existe una sucursal con tipo principal
             $sucursalPrincipalExiste = Tienda::where('tipo_tienda_id', $tipoTiendaPrincipal->id)
                                            ->where('id', '!=', $this->sucursalId ?? 0) // Excluir la sucursal actual si está editando
                                            ->exists();
-            
+
             if ($sucursalPrincipalExiste) {
                 $this->existeSucursalPrincipal = true;
-                
+
                 // Buscar tipo de tienda "Sucursal"
                 $this->tipoTiendaSucursal = TipoTienda::where('nombre', 'LIKE', '%sucursal%')
                                                      ->orWhere('nombre', 'LIKE', '%Sucursal%')
                                                      ->orWhere('nombre', 'LIKE', '%SUCURSAL%')
                                                      ->first();
-                
+
                 // Si existe sucursal principal y no estamos editando una sucursal principal, forzar tipo sucursal
                 if ($this->tipoTiendaSucursal && !$this->isEditing) {
                     $this->form['tipo_tienda_id'] = $this->tipoTiendaSucursal->id;
@@ -219,7 +219,7 @@ class SucursalForm extends Component
                                        ->orderBy('nombre')
                                        ->get();
             $this->direccionForm['municipio_id'] = null;
-            
+
             // Limpiar error de municipio si había uno
             $this->limpiarErrorCampo('municipio_id');
         } else {
@@ -231,7 +231,7 @@ class SucursalForm extends Component
     private function cargarSucursal()
     {
         $sucursal = Tienda::with('direccion.municipio.departamento')->find($this->sucursalId);
-        
+
         if ($sucursal) {
             $this->form = [
                 'denominacion_social' => $sucursal->denominacion_social,
@@ -258,28 +258,28 @@ class SucursalForm extends Component
                     'latitud' => $sucursal->direccion->latitud,
                     'longitud' => $sucursal->direccion->longitud,
                 ];
-                
+
                 // Cargar departamento y municipios correspondientes al editar
                 if ($sucursal->direccion->municipio && $sucursal->direccion->municipio->departamento) {
                     $this->departamentoSeleccionado = $sucursal->direccion->municipio->departamento->id;
                     $this->municipios = Municipio::where('departamento_id', $this->departamentoSeleccionado)
                                                ->orderBy('nombre')
                                                ->get();
-                    
+
                     // Asegurar que el municipio se mantenga seleccionado
                     $this->direccionForm['municipio_id'] = $sucursal->direccion->municipio_id;
                 }
             }
-            
+
             // Reconfigurar tipo de dirección como "Tienda" (sin afectar municipio)
             $tipoDireccionOriginal = $this->direccionForm['tipo_direccion_id'];
             $this->configurarTipoDireccionTienda();
-            
+
             // Si estamos editando, mantener el tipo de dirección original si ya existe
             if ($this->isEditing && $tipoDireccionOriginal) {
                 $this->direccionForm['tipo_direccion_id'] = $tipoDireccionOriginal;
             }
-            
+
             // Verificar nuevamente después de cargar los datos de la sucursal
             $this->verificarSucursalPrincipal();
         }
@@ -325,7 +325,7 @@ class SucursalForm extends Component
 
             // Crear o actualizar sucursal
             $this->form['direccion_sucursal_id'] = $direccionId;
-            
+
             if ($this->isEditing) {
                 $sucursal->update($this->form);
                 $this->mensajeModalExito = 'Sucursal actualizada correctamente.';
@@ -415,7 +415,7 @@ class SucursalForm extends Component
             $this->direccionForm['municipio_id'] = null;
             return;
         }
-        
+
         if (empty($this->direccionForm['municipio_id'])) {
             $this->mostrarErrorCampo('municipio_id', 'Debe seleccionar un municipio');
         } else {
@@ -468,7 +468,7 @@ class SucursalForm extends Component
                                return $query->where('id', '!=', $this->sucursalId);
                            })
                            ->exists();
-            
+
             if ($exists) {
                 $this->mostrarErrorCampo('identificador_legal', 'Este identificador legal ya está en uso por otra sucursal');
             } else {
@@ -592,7 +592,7 @@ class SucursalForm extends Component
         if ($this->getErrorBag()->has($campo)) {
             return 'is-invalid';
         }
-        
+
         // Mapear nombres de campos para validación backend
         $mapasCampos = [
             'form.denominacion_social' => 'denominacion_social',
@@ -607,14 +607,14 @@ class SucursalForm extends Component
             'direccionForm.tipo_direccion_id' => 'tipo_direccion_id',
             'departamentoSeleccionado' => 'departamento'
         ];
-        
+
         $campoMapeado = $mapasCampos[$campo] ?? null;
-        
+
         // Si es el campo con error de validación backend, mostrar como campo obligatorio vacío
         if ($campoMapeado && $this->campoConError === $campoMapeado) {
             return 'campo-obligatorio-vacio';
         }
-        
+
         return '';
     }
 
@@ -624,7 +624,7 @@ class SucursalForm extends Component
     {
         $this->mostrarModalExito = false;
         $this->mensajeModalExito = '';
-        
+
         // Redirigir a la lista después de cerrar el modal
         return $this->dispatch('cambiarVista', ruta: 'GestionDeSucursales.sucursales');
     }

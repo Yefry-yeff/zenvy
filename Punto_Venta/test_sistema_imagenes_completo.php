@@ -21,7 +21,7 @@ echo "\n2. VERIFICACIÓN DE BASE DE DATOS:\n";
 try {
     $pdo = new PDO('mysql:host=localhost;dbname=db_zenvy', 'root', '');
     echo "   ✅ Conexión a db_zenvy: Exitosa\n";
-    
+
     // Verificar tabla factura y campo factura_imagen
     $stmt = $pdo->query("SHOW COLUMNS FROM factura LIKE 'factura_imagen'");
     if ($stmt->rowCount() > 0) {
@@ -31,7 +31,7 @@ try {
     } else {
         echo "   ❌ Campo factura_imagen: NO existe\n";
     }
-    
+
 } catch (Exception $e) {
     echo "   ❌ Error de conexión: " . $e->getMessage() . "\n";
 }
@@ -40,7 +40,7 @@ try {
 echo "\n3. VERIFICACIÓN DEL MODELO:\n";
 if (file_exists(__DIR__ . '/app/Models/Factura.php')) {
     echo "   ✅ Modelo Factura.php: Existe\n";
-    
+
     $contenido = file_get_contents(__DIR__ . '/app/Models/Factura.php');
     if (strpos($contenido, 'factura_imagen') !== false) {
         echo "   ✅ Campo en \$fillable: Configurado\n";
@@ -55,7 +55,7 @@ if (file_exists(__DIR__ . '/app/Models/Factura.php')) {
 echo "\n4. VERIFICACIÓN DE RUTAS:\n";
 if (file_exists(__DIR__ . '/routes/web.php')) {
     echo "   ✅ Archivo web.php: Existe\n";
-    
+
     $contenido = file_get_contents(__DIR__ . '/routes/web.php');
     if (strpos($contenido, 'factura.imagen') !== false) {
         echo "   ✅ Rutas de imagen: Configuradas\n";
@@ -70,7 +70,7 @@ if (file_exists(__DIR__ . '/routes/web.php')) {
 echo "\n5. VERIFICACIÓN DE VISTAS:\n";
 if (file_exists(__DIR__ . '/resources/views/livewire/sala-de-ventas/factura-impresion.blade.php')) {
     echo "   ✅ Vista factura-impresion.blade.php: Existe\n";
-    
+
     $contenido = file_get_contents(__DIR__ . '/resources/views/livewire/sala-de-ventas/factura-impresion.blade.php');
     if (strpos($contenido, 'Ver Imagen') !== false) {
         echo "   ✅ Botones de imagen: Configurados\n";

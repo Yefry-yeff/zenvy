@@ -7,7 +7,7 @@ try {
     while ($row = $result->fetch(PDO::FETCH_ASSOC)) {
         echo "- {$row['Field']} ({$row['Type']})\n";
     }
-    
+
     echo "\n=== DATOS DE EJEMPLO ===\n";
     $result = $pdo->query('SELECT * FROM direccion LIMIT 3');
     while ($row = $result->fetch(PDO::FETCH_ASSOC)) {

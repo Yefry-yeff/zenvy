@@ -243,8 +243,8 @@
 
                             <div class="mb-3 col-md-6">
                                 <label for="departamento" class="form-label">Departamento <span class="text-red-600">*</span></label>
-                                <select id="departamento" 
-                                        class="form-control" 
+                                <select id="departamento"
+                                        class="form-control"
                                         wire:model.lazy="departamentoSeleccionado"
                                         wire:loading.attr="disabled">
                                     <option value="">Seleccionar departamento</option>
@@ -261,8 +261,8 @@
 
                             <div class="mb-3 col-md-6">
                                 <label for="municipio_id" class="form-label">Municipio <span class="text-red-600">*</span></label>
-                                <select id="municipio_id" 
-                                        class="form-control {{ $this->getClaseCampo('direccionForm.municipio_id') }}" 
+                                <select id="municipio_id"
+                                        class="form-control {{ $this->getClaseCampo('direccionForm.municipio_id') }}"
                                         wire:model="direccionForm.municipio_id"
                                         @if(!$departamentoSeleccionado) disabled @endif>
                                     <option value="">

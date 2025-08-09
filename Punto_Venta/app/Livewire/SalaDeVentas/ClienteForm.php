@@ -59,7 +59,7 @@ class ClienteForm extends Component
     public $campoConError = '';
     public $camposConError = [];
     public $erroresValidacion = [];
-    
+
     // Propiedades para modales de éxito y error
     public $mostrarModalExito = false;
     public $mensajeModalExito = '';
@@ -107,7 +107,7 @@ class ClienteForm extends Component
             'form.tipo_persona_id' => 'required|exists:tipo_persona,id',
             'form.tipo_cliente_id' => 'required|exists:tipo_cliente,id',
             'form.estado_id' => 'required|exists:estado,id',
-            
+
             // Validaciones de dirección (sin domicilio tributario)
             'direccionForm.tipo_direccion_id' => 'required|exists:tipo_direccion,id',
             'direccionForm.municipio_id' => 'required|exists:municipio,id',
@@ -136,7 +136,7 @@ class ClienteForm extends Component
             'form.tipo_persona_id.exists' => 'El tipo de persona seleccionado no es válido',
             'form.tipo_cliente_id.required' => 'Debe seleccionar un tipo de cliente',
             'form.tipo_cliente_id.exists' => 'El tipo de cliente seleccionado no es válido',
-            
+
             // Mensajes de dirección (sin domicilio tributario)
             'direccionForm.tipo_direccion_id.required' => 'Debe seleccionar un tipo de dirección',
             'direccionForm.municipio_id.required' => 'Debe seleccionar un municipio',
@@ -162,7 +162,7 @@ class ClienteForm extends Component
             $this->estados = Estado::orderBy('descripcion')->get();
             $this->tiposDireccion = TipoDireccion::where('nombre', '!=', 'Tienda')->orderBy('nombre')->get();
             $this->departamentos = Departamento::orderBy('nombre')->get();
-            
+
         } catch (\Exception $e) {
             Log::error('Error al cargar datos iniciales para cliente', [
                 'mensaje' => $e->getMessage(),
@@ -177,7 +177,7 @@ class ClienteForm extends Component
     {
         try {
             $cliente = Cliente::with('direccion.municipio.departamento')->findOrFail($this->clienteId);
-            
+
             $this->form = [
                 'nombre' => $cliente->nombre,
                 'correo' => $cliente->correo,
@@ -209,7 +209,7 @@ class ClienteForm extends Component
                     $this->cargarMunicipios();
                 }
             }
-            
+
         } catch (\Exception $e) {
             Log::error('Error al cargar cliente', [
                 'cliente_id' => $this->clienteId,
@@ -224,7 +224,7 @@ class ClienteForm extends Component
     {
         $this->direccionForm['municipio_id'] = null;
         $this->cargarMunicipios();
-        
+
         // Limpiar error de departamento si tenía
         $this->limpiarErrorCampo('departamentoSeleccionado');
         // También limpiar error de municipio ya que se resetea
@@ -260,22 +260,22 @@ class ClienteForm extends Component
         try {
             // Limpiar alertas previas
             $this->cerrarAlerta();
-            
+
             // Validar formulario
             $this->validate();
-            
+
             // Verificar si hay errores después de la validación
             if ($this->getErrorBag()->isNotEmpty()) {
                 $errors = $this->getErrorBag()->toArray();
                 $firstError = collect($errors)->flatten()->first();
                 $firstField = array_key_first($errors);
-                
+
                 Log::info('Errores de validación detectados', [
                     'errores' => $errors,
                     'primer_error' => $firstError,
                     'primer_campo' => $firstField
                 ]);
-                
+
                 $this->mostrarAlerta($firstError, $firstField);
                 return;
             }
@@ -313,14 +313,14 @@ class ClienteForm extends Component
             Log::info('Errores de validación en cliente (catch)', [
                 'errores' => $e->errors()
             ]);
-            
+
             // Obtener el primer error para mostrar en la alerta
             $errors = $e->errors();
             $firstError = collect($errors)->flatten()->first();
             $firstField = array_key_first($errors);
-            
+
             $this->mostrarAlerta($firstError, $firstField);
-            
+
         } catch (\Exception $e) {
             Log::error('Error al guardar cliente', [
                 'mensaje' => $e->getMessage(),
@@ -466,7 +466,7 @@ class ClienteForm extends Component
         if (in_array($campo, $this->camposConError)) {
             return 'is-invalid campo-obligatorio-vacio';
         }
-        
+
         return '';
     }
 
@@ -477,7 +477,7 @@ class ClienteForm extends Component
         $this->mensajeAlerta = $mensaje;
         $this->campoConError = $campo;
         $this->mostrarAlerta = true;
-        
+
         // Agregar campo a la lista de errores si se especifica
         if (!empty($campo)) {
             $this->mostrarErrorCampo($campo, $mensaje);
@@ -515,7 +515,7 @@ class ClienteForm extends Component
 
         // Remover de errores de validación
         unset($this->erroresValidacion[$campo]);
-        
+
         // Si no hay más campos con error, ocultar la alerta
         if (empty($this->camposConError)) {
             $this->mostrarAlerta = false;

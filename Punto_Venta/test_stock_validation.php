@@ -25,7 +25,7 @@ $tienda = \DB::table('tienda as t')
 if (!$tienda) {
     echo "❌ No se encontró ninguna tienda con bodega principal.\n";
     echo "Creando datos de prueba...\n";
-    
+
     // Crear tienda de prueba
     $tiendaId = \DB::table('tienda')->insertGetId([
         'denominacion_social' => 'Tienda Prueba',
@@ -34,7 +34,7 @@ if (!$tienda) {
         'created_at' => now(),
         'updated_at' => now()
     ]);
-    
+
     // Crear bodega principal
     \DB::table('bodega')->insert([
         'nombre' => 'Bodega Principal Prueba',
@@ -44,7 +44,7 @@ if (!$tienda) {
         'created_at' => now(),
         'updated_at' => now()
     ]);
-    
+
     echo "✅ Datos de prueba creados.\n";
     $tienda = (object) ['id' => $tiendaId, 'denominacion_social' => 'Tienda Prueba'];
 } else {

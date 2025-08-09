@@ -34,7 +34,7 @@ try {
     echo "2. Verificando datos existentes...\n";
     $empresas = Capsule::table('empresa')->get();
     echo "   - Total de empresas: " . count($empresas) . "\n";
-    
+
     if (count($empresas) > 0) {
         foreach ($empresas as $empresa) {
             echo "   - ID: {$empresa->id}, Nombre: {$empresa->nombre}\n";
@@ -51,7 +51,7 @@ try {
     echo "3. Verificando modelo Empresa...\n";
     if (file_exists('app/Models/Empresa.php')) {
         echo "   ✓ Archivo del modelo existe\n";
-        
+
         // Verificar el contenido del modelo
         $modelContent = file_get_contents('app/Models/Empresa.php');
         if (strpos($modelContent, 'fillable') !== false) {
@@ -69,7 +69,7 @@ try {
     echo "4. Verificando componente Livewire...\n";
     if (file_exists('app/Livewire/Gestion/Empresa.php')) {
         echo "   ✓ Componente Livewire existe\n";
-        
+
         $componentContent = file_get_contents('app/Livewire/Gestion/Empresa.php');
         if (strpos($componentContent, 'WithFileUploads') !== false) {
             echo "   ✓ Trait WithFileUploads incluido\n";
@@ -89,7 +89,7 @@ try {
     echo "5. Verificando vista Blade...\n";
     if (file_exists('resources/views/livewire/gestion/empresa.blade.php')) {
         echo "   ✓ Vista Blade existe\n";
-        
+
         $viewContent = file_get_contents('resources/views/livewire/gestion/empresa.blade.php');
         if (strpos($viewContent, 'wire:model="nombre"') !== false) {
             echo "   ✓ Campos del formulario configurados\n";
@@ -124,7 +124,7 @@ try {
     } else {
         echo "   ⚠️  Directorio storage/app no es escribible\n";
     }
-    
+
     if (is_writable('storage/logs')) {
         echo "   ✓ Directorio storage/logs es escribible\n";
     } else {
@@ -136,7 +136,7 @@ try {
     echo "✓ El sistema de empresa está configurado correctamente\n";
     echo "✓ Todos los componentes necesarios están presentes\n";
     echo "✓ La base de datos está lista para uso\n\n";
-    
+
     echo "PRÓXIMOS PASOS:\n";
     echo "1. Iniciar el servidor: php artisan serve\n";
     echo "2. Navegar a la sección de empresa desde el menú\n";

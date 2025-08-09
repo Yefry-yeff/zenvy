@@ -1,7 +1,7 @@
 <?php
 try {
     $pdo = new PDO('mysql:host=localhost;dbname=db_zenvy', 'root', '');
-    
+
     echo 'Datos en tabla tipo_facturacion:' . PHP_EOL;
     try {
         $result = $pdo->query('SELECT * FROM tipo_facturacion');
@@ -21,7 +21,7 @@ try {
     } catch(Exception $e) {
         echo 'Error en estado_factura: ' . $e->getMessage() . PHP_EOL;
     }
-    
+
 } catch(Exception $e) {
     echo 'Error de conexión: ' . $e->getMessage() . PHP_EOL;
 }

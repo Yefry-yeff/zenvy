@@ -100,18 +100,18 @@
                                     <td class="text-center" onclick="event.stopPropagation()">
                                         @if($compra->estado && strtolower($compra->estado->nombre) === 'activo')
                                             <div class="position-relative" x-data="{ open: false }">
-                                                <button @click="open = !open" 
-                                                        class="btn btn-sm btn-outline-primary d-flex align-items-center gap-1" 
+                                                <button @click="open = !open"
+                                                        class="btn btn-sm btn-outline-primary d-flex align-items-center gap-1"
                                                         type="button"
                                                         style="font-size: 0.75rem; padding: 0.25rem 0.75rem;">
                                                     <i class="fas fa-ellipsis-v" style="font-size: 0.7rem;"></i>
                                                     <span class="ms-1">Acciones</span>
-                                                    <i class="fas fa-chevron-down ms-1 transition-transform" 
-                                                       :class="{ 'rotate-180': open }" 
+                                                    <i class="fas fa-chevron-down ms-1 transition-transform"
+                                                       :class="{ 'rotate-180': open }"
                                                        style="font-size: 0.6rem; transition: transform 0.2s ease;"></i>
                                                 </button>
-                                                
-                                                <div x-show="open" 
+
+                                                <div x-show="open"
                                                      @click.away="open = false"
                                                      x-transition:enter="transition ease-out duration-200"
                                                      x-transition:enter-start="opacity-0 transform scale-95 translate-y-2"
@@ -121,11 +121,11 @@
                                                      x-transition:leave-end="opacity-0 transform scale-95 translate-y-2"
                                                      class="position-absolute bg-white border rounded-3 shadow-lg"
                                                      style="top: 100%; right: 0; z-index: 1050; min-width: 180px; margin-top: 0.25rem; border: 1px solid rgba(0,0,0,0.125); box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.15);">
-                                                    
+
                                                     <div class="p-1">
-                                                        <button type="button" 
+                                                        <button type="button"
                                                                 class="btn btn-link text-start w-100 d-flex align-items-center text-danger border-0 p-2"
-                                                                wire:click="abrirModalAnular({{ $compra->id }})" 
+                                                                wire:click="abrirModalAnular({{ $compra->id }})"
                                                                 @click="open = false"
                                                                 style="font-size: 0.875rem; text-decoration: none; border-radius: 0.375rem;"
                                                                 onmouseover="this.style.backgroundColor='#fef2f2'"
@@ -136,12 +136,12 @@
                                                                 <small class="text-muted d-block" style="font-size: 0.7rem;">Cancelar esta compra</small>
                                                             </div>
                                                         </button>
-                                                        
+
                                                         <hr class="my-1" style="margin: 0.25rem 0; opacity: 0.1;">
-                                                        
-                                                        <button type="button" 
+
+                                                        <button type="button"
                                                                 class="btn btn-link text-start w-100 d-flex align-items-center text-primary border-0 p-2"
-                                                                wire:click="irARecibirProducto({{ $compra->id }})" 
+                                                                wire:click="irARecibirProducto({{ $compra->id }})"
                                                                 @click="open = false"
                                                                 style="font-size: 0.875rem; text-decoration: none; border-radius: 0.375rem;"
                                                                 onmouseover="this.style.backgroundColor='#eff6ff'"

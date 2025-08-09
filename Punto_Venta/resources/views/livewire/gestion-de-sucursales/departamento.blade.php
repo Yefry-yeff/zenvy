@@ -192,7 +192,7 @@
                         @endif
 
                         <div class="modal-footer">
-                            <button type="submit" 
+                            <button type="submit"
                                     class="px-4 py-2 text-white rounded"
                                     :class="{
                                         'bg-emerald-600 hover:bg-emerald-700': theme === 'verde',

@@ -39,8 +39,8 @@
                         <div class="col-md-6">
                             <div class="input-group">
                                 <span class="input-group-text"><i class="fas fa-search"></i></span>
-                                <input type="text" 
-                                       class="form-control" 
+                                <input type="text"
+                                       class="form-control"
                                        wire:model.live="filtroProducto"
                                        placeholder="Buscar por producto, marca o número de factura...">
                             </div>
@@ -119,7 +119,7 @@
                                         </td>
                                         <td class="text-center">
                                             @if($compra['cantidad_pendiente'] > 0)
-                                                <button type="button" 
+                                                <button type="button"
                                                         class="btn btn-sm btn-outline-primary"
                                                         wire:click="abrirModalDistribuir({{ $compra['compra_id'] }}, {{ $compra['producto_id'] }})"
                                                         title="Distribuir a bodega">
@@ -179,8 +179,8 @@
                                         <p class="mb-1"><strong>Cantidad Pendiente:</strong> {{ $productoParaDistribuir['cantidad_pendiente'] }} {{ $productoParaDistribuir['unidad'] }}</p>
                                         <p class="mb-0"><strong>Proveedor:</strong> {{ $productoParaDistribuir['proveedor'] }}</p>
                                     </div>
-                                    <button type="button" 
-                                            wire:click="actualizarDatosProducto" 
+                                    <button type="button"
+                                            wire:click="actualizarDatosProducto"
                                             class="btn btn-sm btn-outline-secondary"
                                             title="Actualizar datos del producto">
                                         <i class="fas fa-sync-alt"></i>
@@ -193,11 +193,11 @@
                                 <div class="col-md-6">
                                     <div class="mb-3">
                                         <label for="cantidadDistribuir" class="form-label">Cantidad a Distribuir <span class="text-red-600">*</span></label>
-                                        <input type="number" 
-                                               id="cantidadDistribuir" 
-                                               class="form-control" 
+                                        <input type="number"
+                                               id="cantidadDistribuir"
+                                               class="form-control"
                                                wire:model.live="cantidadDistribuir"
-                                               min="1" 
+                                               min="1"
                                                max="{{ $productoParaDistribuir['cantidad_pendiente'] }}"
                                                placeholder="Cantidad a distribuir">
                                         <small class="text-muted">Máximo: {{ $productoParaDistribuir['cantidad_pendiente'] }} {{ $productoParaDistribuir['unidad'] }}</small>
@@ -206,9 +206,9 @@
                                 <div class="col-md-6">
                                     <div class="mb-3">
                                         <label for="fechaDistribucion" class="form-label">Fecha de Distribución <span class="text-red-600">*</span></label>
-                                        <input type="date" 
-                                               id="fechaDistribucion" 
-                                               class="form-control" 
+                                        <input type="date"
+                                               id="fechaDistribucion"
+                                               class="form-control"
                                                wire:model.live="fechaDistribucion">
                                     </div>
                                 </div>
@@ -257,9 +257,9 @@
 
                             <div class="mb-3">
                                 <label for="comentarioDistribucion" class="form-label">Comentario</label>
-                                <textarea id="comentarioDistribucion" 
-                                          class="form-control" 
-                                          wire:model="comentarioDistribucion" 
+                                <textarea id="comentarioDistribucion"
+                                          class="form-control"
+                                          wire:model="comentarioDistribucion"
                                           rows="3"
                                           placeholder="Comentarios adicionales sobre la distribución"></textarea>
                             </div>
@@ -278,8 +278,8 @@
                         <button type="button" wire:click="cerrarModalDistribucion" class="btn btn-secondary">
                             <i class="fas fa-times me-2"></i>Cancelar
                         </button>
-                        <button type="button" 
-                                wire:click="confirmarDistribucion" 
+                        <button type="button"
+                                wire:click="confirmarDistribucion"
                                 class="btn btn-primary"
                                 @if(!$this->puedeConfirmarDistribucion()) disabled @endif>
                             <i class="fas fa-check me-2"></i>Confirmar Distribución

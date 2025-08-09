@@ -81,7 +81,7 @@
                             <div class="card-body">
                                 <p class="card-text">
                                     <strong>Numeración:</strong> {{ $seccion->numeracion ?? 'N/A' }}<br>
-                                    <strong>📦 Productos:</strong> 
+                                    <strong>📦 Productos:</strong>
                                     <span class="badge {{ $seccion->productos_count > 0 ? 'bg-primary' : 'bg-secondary' }}">
                                         {{ $seccion->productos_count ?? 0 }}
                                     </span><br>

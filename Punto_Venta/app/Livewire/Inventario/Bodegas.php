@@ -122,7 +122,7 @@ class Bodegas extends Component
             foreach ($segmentos as $segmento) {
                 $seccionesCount = $segmento->secciones()->count();
                 $totalSecciones += $seccionesCount;
-                
+
                 // Inactivar secciones del segmento (soft delete usando estado inactivo)
                 $segmento->secciones()->update(['estado_id' => 2]);
             }
@@ -154,7 +154,7 @@ class Bodegas extends Component
 
         } catch (\Exception $e) {
             DB::rollback();
-            
+
             Log::error('Error al inactivar bodega desde lista', [
                 'bodega_id' => $this->bodegaAInactivar->id,
                 'mensaje' => $e->getMessage(),
@@ -212,7 +212,7 @@ class Bodegas extends Component
             foreach ($segmentos as $segmento) {
                 $seccionesCount = $segmento->secciones()->count();
                 $totalSecciones += $seccionesCount;
-                
+
                 // Activar secciones del segmento (estado activo)
                 $segmento->secciones()->update(['estado_id' => 1]);
             }
@@ -241,7 +241,7 @@ class Bodegas extends Component
 
         } catch (\Exception $e) {
             DB::rollback();
-            
+
             Log::error('Error al activar bodega desde lista', [
                 'bodega_id' => $this->bodegaAActivar->id,
                 'mensaje' => $e->getMessage(),
@@ -279,7 +279,7 @@ class Bodegas extends Component
         }
 
         $bodegas = $query->orderBy('nombre')->paginate(9);
-        
+
         $tiendas = Tiendas::where('estado_id', 1)->orderBy('denominacion_social')->get();
 
         return view('livewire.inventario.bodegas', compact('bodegas', 'tiendas'));

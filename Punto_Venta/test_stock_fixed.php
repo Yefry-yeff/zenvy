@@ -12,7 +12,7 @@ $stmt = $pdo->prepare('
     SELECT rb.*, p.codigo_barra, b.nombre as bodega_nombre, b.principal, b.tienda_id
     FROM recibido_bodega rb
     JOIN producto p ON rb.producto_id = p.id
-    JOIN seccion s ON rb.seccion_id = s.id  
+    JOIN seccion s ON rb.seccion_id = s.id
     JOIN segmento seg ON s.segmento_id = seg.id
     JOIN bodega b ON seg.bodega_id = b.id
     WHERE p.codigo_barra = ?

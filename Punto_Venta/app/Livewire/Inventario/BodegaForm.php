@@ -99,7 +99,7 @@ class BodegaForm extends Component
         try {
             $this->direcciones = Direccion::all();
             $this->tiendas = Tiendas::where('estado_id', 1)->orderBy('denominacion_social')->get();
-            
+
             Log::info('BodegaForm - Datos iniciales cargados', [
                 'direcciones_count' => count($this->direcciones),
                 'tiendas_count' => count($this->tiendas)
@@ -124,7 +124,7 @@ class BodegaForm extends Component
                 'estado_id' => $bodega->estado_id,
                 'tienda_id' => $bodega->tienda_id,
             ];
-            
+
             // Cargar domicilio tributario para la dirección actual
             $this->cargarDomicilioTributario($bodega->direccion_id);
         } catch (\Exception $e) {
@@ -145,7 +145,7 @@ class BodegaForm extends Component
             }
 
             $direccion = Direccion::find($direccionId);
-            
+
             if ($direccion) {
                 $this->domicilioTributario = $direccion->domicilio_tributario ?? '';
             } else {
@@ -161,7 +161,7 @@ class BodegaForm extends Component
     {
         // Cargar domicilio tributario
         $this->cargarDomicilioTributario($value);
-        
+
         // Validar campo de dirección
         if (empty($value)) {
             $this->mostrarErrorCampo('direccion', 'Debe seleccionar una dirección');

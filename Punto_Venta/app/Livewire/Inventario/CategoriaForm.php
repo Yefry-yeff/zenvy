@@ -15,11 +15,11 @@ class CategoriaForm extends Component
     public $subcategorias;
     public $nuevaSubcategoria = '';
     public $mostrarMensaje = false;
-    
+
     // Propiedades para modal de eliminar subcategoría
     public $modalEliminarSubcategoriaAbierto = false;
     public $subcategoriaAEliminar = null;
-    
+
     // Propiedades para modal de editar subcategoría
     public $modalEditarSubcategoriaAbierto = false;
     public $subcategoriaEditando = null;
@@ -143,7 +143,7 @@ class CategoriaForm extends Component
 
         $subcategoria = Subcategoria::findOrFail($this->formSubcategoria['id']);
         $subcategoria->update(['nombre' => $this->formSubcategoria['nombre']]);
-        
+
         $this->cargarSubcategorias();
         $this->cerrarModalEditarSubcategoria();
         session()->flash('mensaje', 'Subcategoría actualizada correctamente.');

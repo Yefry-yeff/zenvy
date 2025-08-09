@@ -23,7 +23,7 @@ echo "=== PRUEBA DE GENERACIÓN DE ENCABEZADO ===\n\n";
 
 try {
     // Simular la lógica del nuevo encabezado
-    
+
     // 1. Obtener datos de empresa
     $empresa = Capsule::table('empresa')->first();
     echo "1. Datos de empresa:\n";
@@ -44,7 +44,7 @@ try {
         ->select('t.*', 'd.domicilio_tributario')
         ->where('t.id', 1)
         ->first();
-    
+
     echo "2. Datos de tienda:\n";
     if ($tienda) {
         echo "   ✓ ID: {$tienda->id}\n";
@@ -60,31 +60,31 @@ try {
     // 3. Simular el encabezado que se generaría
     echo "3. Encabezado que se generaría:\n";
     echo "   " . str_repeat("=", 50) . "\n";
-    
+
     if ($empresa && $empresa->logo) {
         echo "   [LOGO DE LA EMPRESA]\n";
     }
-    
+
     if ($tienda && $tienda->denominacion_social) {
         echo "   " . strtoupper($tienda->denominacion_social) . " (grande)\n";
     }
-    
+
     if ($empresa && $empresa->nombre) {
         echo "   " . $empresa->nombre . " (mediano)\n";
     }
-    
+
     if ($empresa && $empresa->rtn) {
         echo "   RTN: " . $empresa->rtn . "\n";
     }
-    
+
     if ($tienda && $tienda->domicilio_tributario) {
         echo "   " . $tienda->domicilio_tributario . "\n";
     }
-    
+
     if ($empresa && $empresa->correo) {
         echo "   Email: " . $empresa->correo . "\n";
     }
-    
+
     if ($empresa && $empresa->telefono) {
         $telefono = $empresa->telefono;
         if (strlen($telefono) == 8) {
@@ -94,7 +94,7 @@ try {
         }
         echo "   Tel: " . $telefonoFormateado . "\n";
     }
-    
+
     echo "   " . str_repeat("=", 50) . "\n";
     echo "\n";
 
@@ -104,7 +104,7 @@ try {
         ->orderBy('id', 'desc')
         ->limit(3)
         ->get();
-    
+
     if (count($facturas) > 0) {
         foreach ($facturas as $factura) {
             echo "   - ID: {$factura->id}, Número: {$factura->numero_factura}\n";
@@ -115,7 +115,7 @@ try {
         echo "   ❌ No hay facturas disponibles\n";
         echo "   💡 Crea una factura nueva para probar el encabezado\n";
     }
-    
+
     echo "\n=== RESULTADO ===\n";
     echo "✓ El nuevo encabezado está configurado correctamente\n";
     echo "✓ Incluye logo, nombres, RTN, dirección, correo y teléfono\n";

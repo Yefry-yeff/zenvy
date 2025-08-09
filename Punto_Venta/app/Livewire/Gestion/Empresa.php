@@ -10,19 +10,19 @@ use Illuminate\Support\Facades\Log;
 class Empresa extends Component
 {
     use WithFileUploads;
-    
+
     // Propiedades del formulario
     public $nombre;
     public $rtn;
     public $correo;
     public $telefono;
     public $logo; // Para el archivo subido
-    
+
     // Propiedades de control
     public $empresa;
     public $editando = false;
     public $logoPreview = null;
-    
+
     protected $rules = [
         'nombre' => 'required|string|max:60',
         'rtn' => 'nullable|string|max:45',
@@ -30,7 +30,7 @@ class Empresa extends Component
         'telefono' => 'nullable|integer',
         'logo' => 'nullable|image|max:2048' // máximo 2MB
     ];
-    
+
     protected $messages = [
         'nombre.required' => 'El nombre de la empresa es obligatorio.',
         'nombre.max' => 'El nombre no puede exceder 60 caracteres.',
@@ -41,17 +41,17 @@ class Empresa extends Component
         'logo.image' => 'El logo debe ser una imagen.',
         'logo.max' => 'El logo no puede exceder 2MB.'
     ];
-    
+
     public function mount()
     {
         $this->cargarEmpresa();
     }
-    
+
     public function cargarEmpresa()
     {
         // Cargar la primera empresa (asumiendo que solo hay una)
         $this->empresa = EmpresaModel::first();
-        
+
         if ($this->empresa) {
             $this->nombre = $this->empresa->nombre;
             $this->rtn = $this->empresa->rtn;
@@ -62,29 +62,29 @@ class Empresa extends Component
             $this->editando = false;
         }
     }
-    
+
     public function updatedLogo()
     {
         $this->validate(['logo' => 'image|max:2048']);
-        
+
         if ($this->logo) {
             $this->logoPreview = $this->logo->temporaryUrl();
         }
     }
-    
+
     public function guardarEmpresa()
     {
         $this->validate();
-        
+
         try {
             $logoBlob = null;
-            
+
             // Procesar logo si se subió uno nuevo
             if ($this->logo) {
                 $logoBlob = file_get_contents($this->logo->getRealPath());
                 Log::info('Logo procesado', ['tamaño' => strlen($logoBlob)]);
             }
-            
+
             if ($this->editando && $this->empresa) {
                 // Actualizar empresa existente
                 $this->empresa->update([
@@ -93,14 +93,14 @@ class Empresa extends Component
                     'correo' => $this->correo,
                     'telefono' => $this->telefono,
                 ]);
-                
+
                 // Actualizar logo solo si se subió uno nuevo
                 if ($logoBlob) {
                     $this->empresa->update(['logo' => $logoBlob]);
                 }
-                
+
                 session()->flash('success', 'Información de la empresa actualizada exitosamente.');
-                
+
             } else {
                 // Crear nueva empresa
                 $this->empresa = EmpresaModel::create([
@@ -110,21 +110,21 @@ class Empresa extends Component
                     'telefono' => $this->telefono,
                     'logo' => $logoBlob,
                 ]);
-                
+
                 $this->editando = true;
                 session()->flash('success', 'Empresa creada exitosamente.');
             }
-            
+
             // Limpiar el archivo temporal
             $this->logo = null;
             $this->logoPreview = null;
-            
+
         } catch (\Exception $e) {
             Log::error('Error al guardar empresa', ['error' => $e->getMessage()]);
             session()->flash('error', 'Error al guardar la empresa: ' . $e->getMessage());
         }
     }
-    
+
     public function limpiarFormulario()
     {
         $this->reset(['nombre', 'rtn', 'correo', 'telefono', 'logo']);
@@ -147,7 +147,7 @@ class Empresa extends Component
             session()->flash('error', 'Error al eliminar el logo.');
         }
     }
-    
+
     public function render()
     {
         return view('livewire.gestion.empresa');

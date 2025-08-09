@@ -36,9 +36,9 @@
                     <div class="card-body">
                         <div class="mb-3">
                             <label for="telefono" class="form-label">Teléfono</label>
-                            <input type="text" 
-                                   id="telefono" 
-                                   class="form-control" 
+                            <input type="text"
+                                   id="telefono"
+                                   class="form-control"
                                    placeholder="2234-5678"
                                    maxlength="9"
                                    x-data="{ value: '' }"
@@ -52,7 +52,7 @@
                                        value = inputValue;
                                    "
                                    @keypress="
-                                       if (!/[\d]/.test($event.key) && 
+                                       if (!/[\d]/.test($event.key) &&
                                            !['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab', 'Enter'].includes($event.key)) {
                                            $event.preventDefault();
                                        }
@@ -62,9 +62,9 @@
 
                         <div class="mb-3">
                             <label for="celular" class="form-label">Celular</label>
-                            <input type="text" 
-                                   id="celular" 
-                                   class="form-control" 
+                            <input type="text"
+                                   id="celular"
+                                   class="form-control"
                                    placeholder="9876-5432"
                                    maxlength="9"
                                    x-data="{ value: '' }"
@@ -78,7 +78,7 @@
                                        value = inputValue;
                                    "
                                    @keypress="
-                                       if (!/[\d]/.test($event.key) && 
+                                       if (!/[\d]/.test($event.key) &&
                                            !['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab', 'Enter'].includes($event.key)) {
                                            $event.preventDefault();
                                        }

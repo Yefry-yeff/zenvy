@@ -22,9 +22,9 @@ try {
         'created_at' => now(),
         'updated_at' => now()
     ]);
-    
+
     echo "CAI creado con ID: $caiId\n";
-    
+
     // 2. Crear gestión CAI
     echo "\n2. Creando gestión CAI...\n";
     $gestionId = DB::table('gestion_cai')->insertGetId([
@@ -36,9 +36,9 @@ try {
         'created_at' => now(),
         'updated_at' => now()
     ]);
-    
+
     echo "Gestión CAI creada con ID: $gestionId\n";
-    
+
     // 3. Verificar información
     echo "\n3. Información de CAIs disponibles:\n";
     $informacion = DB::table('gestion_cai as gc')
@@ -49,13 +49,13 @@ try {
         ->where('gc.cantidad_no_utilizada', '>', 0)
         ->orderBy('gc.id', 'asc')
         ->get();
-        
+
     foreach ($informacion as $cai) {
         echo "ID: {$cai->id} | Base: {$cai->numero_base} | Actual: {$cai->numero_actual} | Restantes: {$cai->cantidad_no_utilizada} | Estado: {$cai->estado}\n";
         echo "CAI: {$cai->cai} | Fecha límite: {$cai->fecha_limite_emision}\n";
         echo "---\n";
     }
-    
+
 } catch (Exception $e) {
     echo "ERROR: " . $e->getMessage() . "\n";
 }

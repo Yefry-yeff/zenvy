@@ -20,7 +20,7 @@ class Sucursales extends Component
         $sucursales = Tienda::with(['userCreador', 'tipoTienda', 'estado', 'direccion.municipio.departamento'])
                            ->orderBy('id', 'desc')
                            ->get();
-        
+
         return view('livewire.gestion-de-sucursales.sucursales', compact('sucursales'));
     }
 

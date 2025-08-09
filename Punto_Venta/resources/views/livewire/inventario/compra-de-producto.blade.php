@@ -23,7 +23,7 @@
                 🛒 Nueva Compra de Productos
             </h5>
             <div class="flex gap-2">
-                <button type="button" 
+                <button type="button"
                         wire:click="volver"
                         class="inline-flex items-center gap-1 px-3 py-2 text-sm bg-white text-gray-800 rounded hover:bg-gray-100">
                     <span>←</span> Volver
@@ -115,7 +115,7 @@
                                             <strong>✅ Información completa!</strong>
                                             <span class="ms-2">Ya puede proceder a agregar productos.</span>
                                         </div>
-                                        <button type="button" 
+                                        <button type="button"
                                                 class="btn btn-sm px-4 py-2 d-flex align-items-center"
                                                 wire:click="activarSeccionProductos"
                                                 :class="{
@@ -130,7 +130,7 @@
                                     </div>
                                 @else
                                     <div class="d-flex justify-content-center">
-                                        <button type="button" 
+                                        <button type="button"
                                                 class="btn btn-lg px-5 py-3 d-flex align-items-center"
                                                 wire:click="validarYActivarSeccionProductos"
                                                 :class="{
@@ -155,7 +155,7 @@
                 <div class="p-4 mb-4">
                     <div class="p-4 bg-white border shadow rounded-xl">
                         <h2 class="mb-4 text-lg font-semibold text-gray-700">📦 Agregar Productos</h2>
-                        
+
                         <!-- Fila única de facturación -->
                         <div class="p-3 border rounded bg-gray-50">
                             <!-- Vista Desktop Grande (lg y arriba) - Una sola fila -->
@@ -167,13 +167,13 @@
                                             <strong>Producto / Código</strong> <span class="text-red-600">*</span>
                                         </label>
                                         <div class="position-relative">
-                                            <input type="text" 
-                                                   id="busqueda_producto" 
-                                                   class="form-control" 
-                                                   wire:model.live="busquedaProducto" 
+                                            <input type="text"
+                                                   id="busqueda_producto"
+                                                   class="form-control"
+                                                   wire:model.live="busquedaProducto"
                                                    placeholder="Escanear o buscar...">
                                             @if($busquedaProducto && $productoTemporal['producto_id'])
-                                                <button type="button" 
+                                                <button type="button"
                                                         class="btn btn-sm btn-outline-secondary position-absolute"
                                                         style="right: 5px; top: 5px; padding: 2px 6px;"
                                                         wire:click="limpiarBusqueda">
@@ -181,12 +181,12 @@
                                                 </button>
                                             @endif
                                         </div>
-                                        
+
                                         <!-- Lista de productos filtrados -->
                                         @if($mostrarListaProductos && count($productosFiltrados) > 0)
                                             <div class="position-absolute w-100 bg-white border rounded shadow-lg" style="z-index: 1000; max-height: 200px; overflow-y: auto;">
                                                 @foreach($productosFiltrados as $producto)
-                                                    <div class="p-2 cursor-pointer hover:bg-gray-100" 
+                                                    <div class="p-2 cursor-pointer hover:bg-gray-100"
                                                          wire:click="seleccionarProducto({{ $producto['id'] }})">
                                                         <strong>{{ $producto['nombre'] }}</strong>
                                                         @if($producto['codigo_barra'])
@@ -203,11 +203,11 @@
                                         <label for="precio" class="form-label"><strong>Precio</strong> <span class="text-red-600">*</span></label>
                                         <div class="input-group">
                                             <span class="input-group-text">L.</span>
-                                            <input type="number" 
-                                                   id="precio" 
+                                            <input type="number"
+                                                   id="precio"
                                                    name="precio_lg"
-                                                   class="form-control" 
-                                                   step="0.01" 
+                                                   class="form-control"
+                                                   step="0.01"
                                                    wire:model.live="productoTemporal.precio"
                                                    placeholder="0.00">
                                         </div>
@@ -219,14 +219,14 @@
                                         <div class="d-flex align-items-center justify-content-center">
                                             <!-- Botones + y - verticales a la izquierda -->
                                             <div class="d-flex flex-column me-2">
-                                                <button type="button" 
-                                                        class="btn btn-outline-secondary p-1 mb-1" 
+                                                <button type="button"
+                                                        class="btn btn-outline-secondary p-1 mb-1"
                                                         wire:click="incrementarCantidad"
                                                         style="width: 20px; height: 20px; font-size: 10px; line-height: 1;">
                                                     +
                                                 </button>
-                                                <button type="button" 
-                                                        class="btn btn-outline-secondary p-1" 
+                                                <button type="button"
+                                                        class="btn btn-outline-secondary p-1"
                                                         wire:click="decrementarCantidad"
                                                         style="width: 20px; height: 20px; font-size: 10px; line-height: 1;">
                                                     -
@@ -254,12 +254,12 @@
                                     <div class="col-lg-1">
                                         <label for="isv" class="form-label"><strong>ISV</strong></label>
                                         <div class="input-group">
-                                            <input type="number" 
-                                                   id="isv" 
+                                            <input type="number"
+                                                   id="isv"
                                                    name="isv_lg"
-                                                   class="form-control text-center" 
-                                                   step="0.01" 
-                                                   min="0" 
+                                                   class="form-control text-center"
+                                                   step="0.01"
+                                                   min="0"
                                                    max="100"
                                                    wire:model.live="productoTemporal.isv"
                                                    placeholder="0">
@@ -270,17 +270,17 @@
                                     <!-- Fecha de Expiración -->
                                     <div class="col-lg-2">
                                         <label for="fecha_expiracion" class="form-label"><strong>Exp.</strong></label>
-                                        <input type="date" 
-                                               id="fecha_expiracion" 
-                                               class="form-control" 
+                                        <input type="date"
+                                               id="fecha_expiracion"
+                                               class="form-control"
                                                wire:model.live="productoTemporal.fecha_expiracion">
                                     </div>
 
                                     <!-- Botón Agregar -->
                                     <div class="col-lg-2">
                                         <label class="form-label">&nbsp;</label>
-                                        <button type="button" 
-                                                class="btn w-100 d-flex align-items-center justify-content-center" 
+                                        <button type="button"
+                                                class="btn w-100 d-flex align-items-center justify-content-center"
                                                 wire:click="agregarProducto"
                                                 @disabled(!$this->botonHabilitado)
                                                 :class="{
@@ -305,13 +305,13 @@
                                             <strong>Producto / Código Barras</strong> <span class="text-red-600">*</span>
                                         </label>
                                         <div class="position-relative">
-                                            <input type="text" 
-                                                   id="busqueda_producto_md" 
-                                                   class="form-control" 
-                                                   wire:model.live="busquedaProducto" 
+                                            <input type="text"
+                                                   id="busqueda_producto_md"
+                                                   class="form-control"
+                                                   wire:model.live="busquedaProducto"
                                                    placeholder="Escanear o buscar...">
                                             @if($busquedaProducto && $productoTemporal['producto_id'])
-                                                <button type="button" 
+                                                <button type="button"
                                                         class="btn btn-sm btn-outline-secondary position-absolute"
                                                         style="right: 5px; top: 5px; padding: 2px 6px;"
                                                         wire:click="limpiarBusqueda">
@@ -319,12 +319,12 @@
                                                 </button>
                                             @endif
                                         </div>
-                                        
+
                                         <!-- Lista de productos filtrados -->
                                         @if($mostrarListaProductos && count($productosFiltrados) > 0)
                                             <div class="position-absolute w-100 bg-white border rounded shadow-lg" style="z-index: 1000; max-height: 200px; overflow-y: auto;">
                                                 @foreach($productosFiltrados as $producto)
-                                                    <div class="p-2 cursor-pointer hover:bg-gray-100" 
+                                                    <div class="p-2 cursor-pointer hover:bg-gray-100"
                                                          wire:click="seleccionarProducto({{ $producto['id'] }})">
                                                         <strong>{{ $producto['nombre'] }}</strong>
                                                         @if($producto['codigo_barra'])
@@ -341,11 +341,11 @@
                                         <label for="precio_md" class="form-label"><strong>Precio</strong> <span class="text-red-600">*</span></label>
                                         <div class="input-group">
                                             <span class="input-group-text">L.</span>
-                                            <input type="number" 
-                                                   id="precio_md" 
+                                            <input type="number"
+                                                   id="precio_md"
                                                    name="precio_md"
-                                                   class="form-control" 
-                                                   step="0.01" 
+                                                   class="form-control"
+                                                   step="0.01"
                                                    wire:model.live="productoTemporal.precio"
                                                    placeholder="0.00">
                                         </div>
@@ -357,14 +357,14 @@
                                         <div class="d-flex align-items-center">
                                             <!-- Botones + y - verticales a la izquierda -->
                                             <div class="d-flex flex-column me-2">
-                                                <button type="button" 
-                                                        class="btn btn-outline-secondary p-1 mb-1" 
+                                                <button type="button"
+                                                        class="btn btn-outline-secondary p-1 mb-1"
                                                         wire:click="incrementarCantidad"
                                                         style="width: 20px; height: 20px; font-size: 10px; line-height: 1;">
                                                     +
                                                 </button>
-                                                <button type="button" 
-                                                        class="btn btn-outline-secondary p-1" 
+                                                <button type="button"
+                                                        class="btn btn-outline-secondary p-1"
                                                         wire:click="decrementarCantidad"
                                                         style="width: 20px; height: 20px; font-size: 10px; line-height: 1;">
                                                     -
@@ -395,12 +395,12 @@
                                     <div class="col-md-4">
                                         <label for="isv_md" class="form-label"><strong>ISV</strong></label>
                                         <div class="input-group">
-                                            <input type="number" 
-                                                   id="isv_md" 
+                                            <input type="number"
+                                                   id="isv_md"
                                                    name="isv_md"
-                                                   class="form-control text-center" 
-                                                   step="0.01" 
-                                                   min="0" 
+                                                   class="form-control text-center"
+                                                   step="0.01"
+                                                   min="0"
                                                    max="100"
                                                    wire:model.live="productoTemporal.isv"
                                                    placeholder="0">
@@ -411,9 +411,9 @@
                                     <!-- Fecha de Expiración -->
                                     <div class="col-md-4">
                                         <label for="fecha_expiracion_md" class="form-label"><strong>Fecha de Expiración</strong></label>
-                                        <input type="date" 
-                                               id="fecha_expiracion_md" 
-                                               class="form-control" 
+                                        <input type="date"
+                                               id="fecha_expiracion_md"
+                                               class="form-control"
                                                wire:model.live="productoTemporal.fecha_expiracion">
                                     </div>
                                 </div>
@@ -421,8 +421,8 @@
                                 <!-- Tercera fila: Botón Agregar centrado -->
                                 <div class="row">
                                     <div class="col-12 d-flex justify-content-center">
-                                        <button type="button" 
-                                                class="btn px-4 py-2 d-flex align-items-center" 
+                                        <button type="button"
+                                                class="btn px-4 py-2 d-flex align-items-center"
                                                 wire:click="agregarProducto"
                                                 @disabled(!$this->botonHabilitado)
                                                 :class="{
@@ -442,7 +442,7 @@
                             <div class="d-block d-md-none" style="display: none !important;">
                                 <!-- Solo se muestra en móviles muy pequeños mediante CSS -->
                             </div>
-                            
+
                             <!-- Vista Mobile Real (≤412px) -->
                             <div class="mobile-only-view">
                                 <!-- Búsqueda/Selección de Producto -->
@@ -451,13 +451,13 @@
                                         <strong>Producto / Código Barras</strong> <span class="text-red-600">*</span>
                                     </label>
                                     <div class="position-relative">
-                                        <input type="text" 
-                                               id="busqueda_producto_mobile" 
-                                               class="form-control" 
-                                               wire:model.live="busquedaProducto" 
+                                        <input type="text"
+                                               id="busqueda_producto_mobile"
+                                               class="form-control"
+                                               wire:model.live="busquedaProducto"
                                                placeholder="Escanear o buscar...">
                                         @if($busquedaProducto && $productoTemporal['producto_id'])
-                                            <button type="button" 
+                                            <button type="button"
                                                     class="btn btn-sm btn-outline-secondary position-absolute"
                                                     style="right: 5px; top: 5px; padding: 2px 6px;"
                                                     wire:click="limpiarBusqueda">
@@ -465,12 +465,12 @@
                                             </button>
                                         @endif
                                     </div>
-                                    
+
                                     <!-- Lista de productos filtrados -->
                                     @if($mostrarListaProductos && count($productosFiltrados) > 0)
                                         <div class="position-absolute w-100 bg-white border rounded shadow-lg" style="z-index: 1000; max-height: 200px; overflow-y: auto;">
                                             @foreach($productosFiltrados as $producto)
-                                                <div class="p-2 cursor-pointer hover:bg-gray-100" 
+                                                <div class="p-2 cursor-pointer hover:bg-gray-100"
                                                      wire:click="seleccionarProducto({{ $producto['id'] }})">
                                                     <strong>{{ $producto['nombre'] }}</strong>
                                                     @if($producto['codigo_barra'])
@@ -487,11 +487,11 @@
                                     <label for="precio_mobile" class="form-label"><strong>Precio</strong> <span class="text-red-600">*</span></label>
                                     <div class="input-group">
                                         <span class="input-group-text">L.</span>
-                                        <input type="number" 
-                                               id="precio_mobile" 
+                                        <input type="number"
+                                               id="precio_mobile"
                                                name="precio_mobile"
-                                               class="form-control" 
-                                               step="0.01" 
+                                               class="form-control"
+                                               step="0.01"
                                                wire:model.live="productoTemporal.precio"
                                                placeholder="0.00">
                                     </div>
@@ -503,14 +503,14 @@
                                         <label class="form-label"><strong>Cantidad</strong> <span class="text-red-600">*</span></label>
                                         <div class="d-flex align-items-center">
                                             <div class="d-flex flex-column me-2">
-                                                <button type="button" 
-                                                        class="btn btn-outline-secondary p-1 mb-1" 
+                                                <button type="button"
+                                                        class="btn btn-outline-secondary p-1 mb-1"
                                                         wire:click="incrementarCantidad"
                                                         style="width: 20px; height: 20px; font-size: 10px; line-height: 1;">
                                                     +
                                                 </button>
-                                                <button type="button" 
-                                                        class="btn btn-outline-secondary p-1" 
+                                                <button type="button"
+                                                        class="btn btn-outline-secondary p-1"
                                                         wire:click="decrementarCantidad"
                                                         style="width: 20px; height: 20px; font-size: 10px; line-height: 1;">
                                                     -
@@ -537,12 +537,12 @@
                                     <div class="col-6">
                                         <label for="isv_mobile" class="form-label"><strong>ISV</strong></label>
                                         <div class="input-group">
-                                            <input type="number" 
-                                                   id="isv_mobile" 
+                                            <input type="number"
+                                                   id="isv_mobile"
                                                    name="isv_mobile"
-                                                   class="form-control text-center" 
-                                                   step="0.01" 
-                                                   min="0" 
+                                                   class="form-control text-center"
+                                                   step="0.01"
+                                                   min="0"
                                                    max="100"
                                                    wire:model.live="productoTemporal.isv"
                                                    placeholder="0">
@@ -551,17 +551,17 @@
                                     </div>
                                     <div class="col-6">
                                         <label for="fecha_expiracion_mobile" class="form-label"><strong>Expiración</strong></label>
-                                        <input type="date" 
-                                               id="fecha_expiracion_mobile" 
-                                               class="form-control" 
+                                        <input type="date"
+                                               id="fecha_expiracion_mobile"
+                                               class="form-control"
                                                wire:model.live="productoTemporal.fecha_expiracion">
                                     </div>
                                 </div>
 
                                 <!-- Botón Agregar -->
                                 <div class="mb-3">
-                                    <button type="button" 
-                                            class="btn w-100 d-flex align-items-center justify-content-center" 
+                                    <button type="button"
+                                            class="btn w-100 d-flex align-items-center justify-content-center"
                                             wire:click="agregarProducto"
                                             @disabled(!$this->botonHabilitado)
                                             :class="{
@@ -584,8 +584,8 @@
                                 @if($productoSeleccionado)
                                     <div class="mt-2 p-2 bg-info bg-opacity-10 border border-info rounded">
                                         <small class="text-info">
-                                            <strong>Producto:</strong> {{ $productoSeleccionado['nombre'] }} | 
-                                            <strong>Marca:</strong> {{ $productoSeleccionado['marca'] }} | 
+                                            <strong>Producto:</strong> {{ $productoSeleccionado['nombre'] }} |
+                                            <strong>Marca:</strong> {{ $productoSeleccionado['marca'] }} |
                                             <strong>Categoría:</strong> {{ $productoSeleccionado['subcategoria'] }}
                                         </small>
                                     </div>
@@ -607,7 +607,7 @@
                             </div>
                             <h4 class="text-muted mb-3">Complete la Información de la Compra</h4>
                             <p class="text-muted mb-0">
-                                Para agregar productos, primero complete todos los campos obligatorios 
+                                Para agregar productos, primero complete todos los campos obligatorios
                                 en la sección "Información de la Compra" arriba.
                             </p>
                         </div>
@@ -620,7 +620,7 @@
                 <div class="p-4 mb-4">
                     <div class="p-4 bg-white border shadow rounded-xl">
                         <h2 class="mb-4 text-lg font-semibold text-gray-700">📝 Productos en la Compra</h2>
-                        
+
                         <!-- Tabla para desktop -->
                         <div class="d-none d-md-block">
                             <div class="table-responsive">
@@ -650,22 +650,22 @@
                                                     <div class="d-flex align-items-center justify-content-center">
                                                         <!-- Botones + y - verticales -->
                                                         <div class="d-flex flex-column me-2">
-                                                            <button type="button" 
-                                                                    class="btn btn-outline-secondary p-1 mb-1" 
+                                                            <button type="button"
+                                                                    class="btn btn-outline-secondary p-1 mb-1"
                                                                     wire:click="actualizarCantidad({{ $index }}, {{ $producto['cantidad_ingresada'] + 1 }})"
                                                                     style="width: 20px; height: 20px; font-size: 10px; line-height: 1;">
                                                                 +
                                                             </button>
-                                                            <button type="button" 
-                                                                    class="btn btn-outline-secondary p-1" 
+                                                            <button type="button"
+                                                                    class="btn btn-outline-secondary p-1"
                                                                     wire:click="actualizarCantidad({{ $index }}, {{ max(1, $producto['cantidad_ingresada'] - 1) }})"
                                                                     style="width: 20px; height: 20px; font-size: 10px; line-height: 1;">
                                                                 -
                                                             </button>
                                                         </div>
                                                         <!-- Input de cantidad -->
-                                                        <input type="number" 
-                                                               class="form-control form-control-sm text-center" 
+                                                        <input type="number"
+                                                               class="form-control form-control-sm text-center"
                                                                value="{{ $producto['cantidad_ingresada'] }}"
                                                                wire:change="actualizarCantidad({{ $index }}, $event.target.value)"
                                                                min="1"
@@ -678,8 +678,8 @@
                                                 <td class="text-center">{{ $producto['isv'] }}%</td>
                                                 <td class="text-end"><strong>L. {{ number_format($producto['precio_total'], 2) }}</strong></td>
                                                 <td class="text-center">
-                                                    <button type="button" 
-                                                            class="btn btn-sm btn-outline-danger" 
+                                                    <button type="button"
+                                                            class="btn btn-sm btn-outline-danger"
                                                             wire:click="eliminarProducto({{ $index }})">
                                                         🗑️
                                                     </button>
@@ -690,7 +690,7 @@
                                 </table>
                             </div>
                         </div>
-                        
+
                         <!-- Vista Mobile con tarjetas -->
                         <div class="d-md-none">
                             @foreach($productosCompra as $index => $producto)
@@ -704,13 +704,13 @@
                                                     <small class="text-muted">Código: {{ $producto['producto_codigo'] }}</small>
                                                 @endif
                                             </div>
-                                            <button type="button" 
-                                                    class="btn btn-sm btn-outline-danger" 
+                                            <button type="button"
+                                                    class="btn btn-sm btn-outline-danger"
                                                     wire:click="eliminarProducto({{ $index }})">
                                                 🗑️
                                             </button>
                                         </div>
-                                        
+
                                         <!-- Información del producto -->
                                         <div class="row g-2 mb-3">
                                             <div class="col-6">
@@ -719,22 +719,22 @@
                                                     <div class="d-flex align-items-center justify-content-center mt-1">
                                                         <!-- Botones + y - verticales -->
                                                         <div class="d-flex flex-column me-2">
-                                                            <button type="button" 
-                                                                    class="btn btn-outline-secondary p-1 mb-1" 
+                                                            <button type="button"
+                                                                    class="btn btn-outline-secondary p-1 mb-1"
                                                                     wire:click="actualizarCantidad({{ $index }}, {{ $producto['cantidad_ingresada'] + 1 }})"
                                                                     style="width: 20px; height: 20px; font-size: 10px; line-height: 1;">
                                                                 +
                                                             </button>
-                                                            <button type="button" 
-                                                                    class="btn btn-outline-secondary p-1" 
+                                                            <button type="button"
+                                                                    class="btn btn-outline-secondary p-1"
                                                                     wire:click="actualizarCantidad({{ $index }}, {{ max(1, $producto['cantidad_ingresada'] - 1) }})"
                                                                     style="width: 20px; height: 20px; font-size: 10px; line-height: 1;">
                                                                 -
                                                             </button>
                                                         </div>
                                                         <!-- Input de cantidad -->
-                                                        <input type="number" 
-                                                               class="form-control form-control-sm text-center" 
+                                                        <input type="number"
+                                                               class="form-control form-control-sm text-center"
                                                                value="{{ $producto['cantidad_ingresada'] }}"
                                                                wire:change="actualizarCantidad({{ $index }}, $event.target.value)"
                                                                min="1"
@@ -749,7 +749,7 @@
                                                 </div>
                                             </div>
                                         </div>
-                                        
+
                                         <!-- Precios -->
                                         <div class="row g-2 mb-3">
                                             <div class="col-6">
@@ -765,7 +765,7 @@
                                                 </div>
                                             </div>
                                         </div>
-                                        
+
                                         <!-- Totales -->
                                         <div class="row g-2">
                                             <div class="col-6">
@@ -785,7 +785,7 @@
                                 </div>
                             @endforeach
                         </div>
-                        
+
                         <!-- Totales de factura profesional -->
                         <div class="row justify-content-end mt-4">
                             <div class="col-12 col-md-6 col-lg-4">
@@ -795,13 +795,13 @@
                                         <span class="fw-semibold">Subtotal:</span>
                                         <span class="fw-bold">L.{{ number_format($subtotal, 2) }}</span>
                                     </div>
-                                    
+
                                     <!-- ISV -->
                                     <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
                                         <span class="fw-semibold">ISV (15%):</span>
                                         <span class="fw-bold">L.{{ number_format($totalIsv, 2) }}</span>
                                     </div>
-                                    
+
                                     <!-- Total Final -->
                                     <div class="d-flex justify-content-between align-items-center py-2 mt-2">
                                         <span class="fw-bold text-success fs-5">TOTAL:</span>
@@ -818,12 +818,12 @@
                 <div class="row mt-4">
                     <div class="col-12">
                         <div class="d-flex flex-column flex-md-row justify-content-end gap-2">
-                            <button type="button" 
+                            <button type="button"
                                     wire:click="resetFormulario"
                                     class="btn btn-outline-secondary order-2 order-md-1">
                                 🔄 Limpiar Todo
                             </button>
-                            
+
                             <button type="submit"
                                     class="btn order-1 order-md-2"
                                     @disabled(!$this->botonGuardarHabilitado)
@@ -1098,41 +1098,41 @@
             .col-6 {
                 margin-bottom: 10px;
             }
-            
+
             .table-responsive {
                 font-size: 0.875rem;
             }
-            
+
             .table-sm th,
             .table-sm td {
                 padding: 0.5rem 0.25rem;
             }
-            
+
             /* Padding reducido para móvil */
             .p-4 {
                 padding: 1rem !important;
             }
-            
+
             /* Tarjetas de productos en móvil */
             .card {
                 box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             }
-            
+
             .card-body {
                 padding: 1rem !important;
             }
-            
+
             /* Cajas de información en móvil */
             .border.rounded.p-2 {
                 background-color: #f8f9fa;
                 border: 1px solid #dee2e6 !important;
             }
-            
+
             /* Totales sin espacios extra */
             .fw-bold {
                 white-space: nowrap;
             }
-            
+
             /* Asegurar que L. esté junto al número */
             .fw-bold:contains("L.") {
                 display: inline-block;
@@ -1145,31 +1145,31 @@
                 padding-left: 1rem !important;
                 padding-right: 1rem !important;
             }
-            
+
             .p-4.mb-4 {
                 padding: 0.75rem !important;
                 margin-bottom: 1rem !important;
             }
-            
+
             /* Form mobile optimizado */
             .form-control, .form-select {
                 font-size: 16px; /* Evita zoom en iOS */
                 padding: 0.5rem;
             }
-            
+
             /* Labels más pequeños */
             .form-label {
                 font-size: 0.875rem;
                 margin-bottom: 0.25rem;
             }
-            
+
             /* Botones de cantidad más accesibles */
             .d-flex.flex-column .btn {
                 width: 28px !important;
                 height: 28px !important;
                 font-size: 12px !important;
             }
-            
+
             /* Mostrar solo vista móvil en 412px o menos */
             .mobile-only-view {
                 display: block !important;
@@ -1405,10 +1405,10 @@
                 const productoId = @this.productoTemporal?.producto_id;
                 const precio = parseFloat(@this.productoTemporal?.precio || 0);
                 const unidadId = @this.productoTemporal?.unidad_compra_id;
-                
+
                 const habilitado = productoId && precio > 0 && unidadId;
                 botonAgregar.disabled = !habilitado;
-                
+
                 // Cambiar opacidad visualmente
                 botonAgregar.style.opacity = habilitado ? '1' : '0.6';
             }
@@ -1418,7 +1418,7 @@
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Enter') {
                 const activeElement = document.activeElement;
-                
+
                 // Si está en búsqueda y hay producto seleccionado, ir a precio
                 if (activeElement.id === 'busqueda_producto') {
                     const productoId = @this.productoTemporal?.producto_id;
@@ -1433,7 +1433,7 @@
                         }, 100);
                     }
                 }
-                
+
                 // Si está en precio, ir a unidad
                 else if (activeElement.id === 'precio') {
                     e.preventDefault();
@@ -1444,7 +1444,7 @@
                         }
                     }, 100);
                 }
-                
+
                 // Si está en ISV, agregar producto automáticamente
                 else if (activeElement.id === 'isv') {
                     e.preventDefault();
@@ -1454,7 +1454,7 @@
                     }
                 }
             }
-            
+
             // Atajos de teclado
             if (e.ctrlKey && e.key === '+') {
                 e.preventDefault();

@@ -5,7 +5,7 @@ $pdo = new PDO('mysql:host=localhost;dbname=db_zenvy', 'root', '');
 echo "Verificando relación seccion -> segmento -> bodega:" . PHP_EOL;
 
 $query = "
-SELECT 
+SELECT
     s.id as seccion_id,
     s.descripcion as seccion_nombre,
     seg.id as segmento_id,
@@ -28,7 +28,7 @@ foreach($result as $row) {
 echo PHP_EOL . "Stock por bodega principal:" . PHP_EOL;
 
 $query2 = "
-SELECT 
+SELECT
     p.id as producto_id,
     p.nombre as producto_nombre,
     b.id as bodega_id,

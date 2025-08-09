@@ -18,7 +18,7 @@ class Secciones extends Component
     public $segmentoId;
     public $bodega;
     public $segmento;
-    
+
     // Filtros y búsqueda
     public $buscar = '';
     public $filtroEstado = '';
@@ -63,7 +63,7 @@ class Secciones extends Component
     public function render()
     {
         $secciones = $this->obtenerSecciones();
-        
+
         return view('livewire.inventario.secciones', [
             'secciones' => $secciones
         ]);
@@ -98,7 +98,7 @@ class Secciones extends Component
                 'segmento_id' => $this->segmentoId,
                 'mensaje' => $e->getMessage()
             ]);
-            
+
             return collect()->paginate($this->registrosPorPagina);
         }
     }
@@ -183,7 +183,7 @@ class Secciones extends Component
 
         try {
             Seccion::eliminarSeccion($this->seccionAEliminar->id);
-            
+
             Log::info('Sección eliminada exitosamente', [
                 'seccion_id' => $this->seccionAEliminar->id,
                 'usuario_id' => Auth::id()
@@ -192,14 +192,14 @@ class Secciones extends Component
             $this->mostrarModalEliminar = false;
             $this->seccionAEliminar = null;
             $this->mostrarExito('Sección eliminada exitosamente');
-            
+
         } catch (\Exception $e) {
             Log::error('Error al eliminar sección', [
                 'seccion_id' => $this->seccionAEliminar->id,
                 'mensaje' => $e->getMessage(),
                 'usuario_id' => Auth::id()
             ]);
-            
+
             $this->mostrarModalEliminar = false;
             $this->seccionAEliminar = null;
             $this->mostrarError('Error al eliminar la sección: ' . $e->getMessage());

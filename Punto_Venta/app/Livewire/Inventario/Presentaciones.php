@@ -13,7 +13,7 @@ class Presentaciones extends Component
         'simbolo' => '',
     ];
     public $modalAbierto = false;
-    
+
     public $modalCrearAbierto = false;
     public $nuevaUnidad = '';
     public $nuevoNombre = '';
@@ -52,7 +52,7 @@ class Presentaciones extends Component
             'form.simbolo.required' => 'El símbolo es obligatorio.',
             'form.simbolo.unique' => 'Ya existe una unidad de medida con ese símbolo.',
         ]);
-        
+
         $unidad = \App\Models\UnidadMedida::findOrFail($this->form['id']);
         $unidad->unidad = $this->form['unidad'];
         $unidad->nombre = $this->form['nombre'];
@@ -94,7 +94,7 @@ class Presentaciones extends Component
             'nuevoSimbolo.required' => 'El símbolo es obligatorio.',
             'nuevoSimbolo.unique' => 'Ya existe una unidad de medida con ese símbolo.',
         ]);
-        
+
         \App\Models\UnidadMedida::create([
             'unidad' => $this->nuevaUnidad,
             'nombre' => $this->nuevoNombre,

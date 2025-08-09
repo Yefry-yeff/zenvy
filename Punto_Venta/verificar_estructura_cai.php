@@ -17,9 +17,9 @@ try {
     foreach ($columns as $column) {
         echo "Campo: {$column->Field} | Tipo: {$column->Type} | Null: {$column->Null} | Default: {$column->Default}\n";
     }
-    
+
     echo "\n";
-    
+
     // Ver datos existentes
     echo "Datos existentes:\n";
     $datos = DB::table('cai')->get();
@@ -30,7 +30,7 @@ try {
         }
         echo "---\n";
     }
-    
+
 } catch (Exception $e) {
     echo "ERROR: " . $e->getMessage() . "\n";
 }

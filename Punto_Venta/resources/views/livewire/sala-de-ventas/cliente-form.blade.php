@@ -61,13 +61,13 @@
 
                             <div class="mb-3 col-md-6">
                                 <label for="telefono" class="form-label">Teléfono</label>
-                                <input type="text" 
-                                    id="telefono" 
-                                    class="form-control {{ $this->getClaseCampo('form.telefono') }}" 
-                                    wire:model.blur="form.telefono" 
+                                <input type="text"
+                                    id="telefono"
+                                    class="form-control {{ $this->getClaseCampo('form.telefono') }}"
+                                    wire:model.blur="form.telefono"
                                     placeholder="####-####"
                                     maxlength="9"
-                                    x-data="{ 
+                                    x-data="{
                                         formatPhone(event) {
                                             let value = event.target.value.replace(/\D/g, '');
                                             if (value.length >= 4) {
@@ -151,8 +151,8 @@
                             <!-- Departamento - SEGUNDO -->
                             <div class="mb-3 col-md-6">
                                 <label for="departamento" class="form-label">Departamento <span class="text-red-600">*</span></label>
-                                <select id="departamento" 
-                                        class="form-control {{ $this->getClaseCampo('departamentoSeleccionado') }}" 
+                                <select id="departamento"
+                                        class="form-control {{ $this->getClaseCampo('departamentoSeleccionado') }}"
                                         wire:model.lazy="departamentoSeleccionado"
                                         wire:loading.attr="disabled">
                                     <option value="">Seleccionar departamento</option>
@@ -170,8 +170,8 @@
                             <!-- Municipio - TERCERO -->
                             <div class="mb-3 col-md-6">
                                 <label for="municipio_id" class="form-label">Municipio <span class="text-red-600">*</span></label>
-                                <select id="municipio_id" 
-                                        class="form-control {{ $this->getClaseCampo('direccionForm.municipio_id') }}" 
+                                <select id="municipio_id"
+                                        class="form-control {{ $this->getClaseCampo('direccionForm.municipio_id') }}"
                                         wire:model.live="direccionForm.municipio_id"
                                         @if(!$departamentoSeleccionado) disabled @endif>
                                     <option value="">
@@ -240,7 +240,7 @@
                         class="px-4 py-2 text-gray-700 bg-gray-200 rounded hover:bg-gray-300">
                         Cancelar
                     </button>
-                    
+
                     <button type="submit"
                         class="px-4 py-2 text-white rounded transition-all duration-200"
                         :class="{
@@ -274,7 +274,7 @@
          class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
          @click.self="$wire.cerrarModalExito()"
          @keydown.escape.window="$wire.cerrarModalExito()">
-        
+
         <div class="w-full max-w-md mx-4">
             <div class="bg-white rounded-lg shadow-xl overflow-hidden">
                 <!-- Header -->
@@ -286,7 +286,7 @@
                         <h3 class="text-lg font-semibold">¡Cliente Guardado!</h3>
                     </div>
                 </div>
-                
+
                 <!-- Body -->
                 <div class="p-6 text-center">
                     <div class="mb-4">
@@ -297,10 +297,10 @@
                     <h4 class="text-lg font-medium text-gray-900 mb-2">{{ $mensajeModalExito }}</h4>
                     <p class="text-gray-600">El cliente se ha procesado correctamente en el sistema.</p>
                 </div>
-                
+
                 <!-- Footer -->
                 <div class="bg-gray-50 px-6 py-3 text-center">
-                    <button wire:click="cerrarModalExito" 
+                    <button wire:click="cerrarModalExito"
                             class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors duration-200">
                         <svg class="w-4 h-4 inline mr-1" fill="currentColor" viewBox="0 0 20 20">
                             <path fill-rule="evenodd" d="M7.707 3.293a1 1 0 0 1 0 1.414L5.414 7H11a7 7 0 0 1 7 7v2a1 1 0 1 1-2 0v-2a5 5 0 0 0-5-5H5.414l2.293 2.293a1 1 0 1 1-1.414 1.414l-4-4a1 1 0 0 1 0-1.414l4-4a1 1 0 0 1 1.414 0z" clip-rule="evenodd"></path>
@@ -325,7 +325,7 @@
          class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
          @click.self="$wire.cerrarModalError()"
          @keydown.escape.window="$wire.cerrarModalError()">
-        
+
         <div class="w-full max-w-md mx-4">
             <div class="bg-white rounded-lg shadow-xl overflow-hidden">
                 <!-- Header -->
@@ -337,7 +337,7 @@
                         <h3 class="text-lg font-semibold">Error en la Operación</h3>
                     </div>
                 </div>
-                
+
                 <!-- Body -->
                 <div class="p-6 text-center">
                     <div class="mb-4">
@@ -348,10 +348,10 @@
                     <h4 class="text-lg font-medium text-gray-900 mb-2">{{ $mensajeModalError }}</h4>
                     <p class="text-gray-600">Por favor, revise los datos e intente nuevamente. Si el problema persiste, contacte al administrador.</p>
                 </div>
-                
+
                 <!-- Footer -->
                 <div class="bg-gray-50 px-6 py-3 text-center">
-                    <button wire:click="cerrarModalError" 
+                    <button wire:click="cerrarModalError"
                             class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors duration-200">
                         <svg class="w-4 h-4 inline mr-1" fill="currentColor" viewBox="0 0 20 20">
                             <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 0 1 1.414 0L10 8.586l4.293-4.293a1 1 0 1 1 1.414 1.414L11.414 10l4.293 4.293a1 1 0 0 1-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 0 1-1.414-1.414L8.586 10 4.293 5.707a1 1 0 0 1 0-1.414z" clip-rule="evenodd"></path>

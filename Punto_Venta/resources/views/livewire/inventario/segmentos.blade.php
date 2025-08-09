@@ -132,7 +132,7 @@
                             <div class="mb-3">
                                 <h6 class="text-danger">⚠️ Esta acción es irreversible</h6>
                                 <p>¿Está seguro que desea eliminar el segmento <strong>"{{ $segmentoAEliminar->descripcion }}"</strong>?</p>
-                                
+
                                 <div class="alert alert-danger">
                                     <small><strong>Se eliminarán permanentemente:</strong></small>
                                     <ul class="mb-0 small">
@@ -145,7 +145,7 @@
                                 </div>
                             </div>
                         @endif
-                        
+
                         <div class="flex justify-end gap-2 mt-4">
                             <button type="button" class="btn btn-light" wire:click="cancelarEliminar">Cancelar</button>
                             <button type="button" class="btn btn-danger" wire:click="eliminar">Sí, Eliminar</button>

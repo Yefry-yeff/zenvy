@@ -2,23 +2,23 @@
 
 try {
     $pdo = new PDO('mysql:host=localhost;dbname=db_zenvy', 'root', '');
-    
+
     echo "=== VERIFICACIÓN DE TABLAS CAI ===\n\n";
-    
+
     // Verificar estructura de gestion_cai
     echo "1. Estructura de gestion_cai:\n";
     $result = $pdo->query('DESCRIBE gestion_cai');
     while ($row = $result->fetch(PDO::FETCH_ASSOC)) {
         echo "   - {$row['Field']} ({$row['Type']})\n";
     }
-    
+
     // Verificar estructura de cai
     echo "\n2. Estructura de cai:\n";
     $result = $pdo->query('DESCRIBE cai');
     while ($row = $result->fetch(PDO::FETCH_ASSOC)) {
         echo "   - {$row['Field']} ({$row['Type']})\n";
     }
-    
+
     // Verificar datos existentes en gestion_cai
     echo "\n3. Datos en gestion_cai:\n";
     $result = $pdo->query('SELECT * FROM gestion_cai');
@@ -30,7 +30,7 @@ try {
     } else {
         echo "   No hay datos en gestion_cai\n";
     }
-    
+
     // Verificar datos existentes en cai
     echo "\n4. Datos en cai:\n";
     $result = $pdo->query('SELECT * FROM cai');
@@ -44,14 +44,14 @@ try {
     } else {
         echo "   No hay datos en cai\n";
     }
-    
+
     // Verificar estados
     echo "\n5. Estados disponibles:\n";
     $result = $pdo->query('SELECT * FROM estado');
     while ($row = $result->fetch(PDO::FETCH_ASSOC)) {
         echo "   ID: {$row['id']} - Nombre: {$row['nombre']}\n";
     }
-    
+
 } catch (Exception $e) {
     echo 'Error: ' . $e->getMessage();
 }

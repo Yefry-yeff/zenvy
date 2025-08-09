@@ -32,7 +32,7 @@ class Clientes extends Component
         $clientes = Cliente::with(['tipoPersona', 'tipoCliente', 'direccion.municipio.departamento'])
                           ->orderBy('created_at', 'desc')
                           ->paginate($this->registrosPorPagina);
-        
+
         return view('livewire.sala-de-ventas.clientes', [
             'clientes' => $clientes
         ]);

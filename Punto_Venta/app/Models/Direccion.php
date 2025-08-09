@@ -64,7 +64,7 @@ class Direccion extends Model
             $this->sector_zona,
             $this->bloque
         ]);
-        
+
         return implode(', ', $partes);
     }
 

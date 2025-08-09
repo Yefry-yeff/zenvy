@@ -31,7 +31,7 @@ try {
         echo "     - RTN: {$empresa->rtn}\n";
         echo "     - Correo: {$empresa->correo}\n";
         echo "     - Teléfono: {$empresa->telefono}\n";
-        
+
         if ($empresa->logo) {
             echo "     - Logo: Sí (tamaño: " . strlen($empresa->logo) . " bytes)\n";
         } else {
@@ -51,7 +51,7 @@ try {
         ->leftJoin('direccion as d', 's.direccion_sucursal_id', '=', 'd.id')
         ->select('s.id', 's.nombre', 's.direccion_sucursal_id', 'd.direccion_tributaria')
         ->get();
-    
+
     if (count($sucursales) > 0) {
         echo "   ✓ Sucursales encontradas:\n";
         foreach ($sucursales as $sucursal) {
@@ -120,7 +120,7 @@ try {
     echo "  5. Dirección tributaria de la sucursal\n";
     echo "  6. Correo de la empresa\n";
     echo "  7. Teléfono formateado (####-####)\n\n";
-    
+
     echo "PRÓXIMOS PASOS:\n";
     echo "1. Asegurar que hay datos de empresa registrados\n";
     echo "2. Configurar direcciones tributarias en las sucursales\n";

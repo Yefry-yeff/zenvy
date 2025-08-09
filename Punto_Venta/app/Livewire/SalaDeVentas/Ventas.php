@@ -23,14 +23,14 @@ class Ventas extends Component
     public $mostrarModalClientesFlag = false;
     public $busquedaCliente = '';
     public $clientesModal;
-    
+
     // Búsqueda de productos
     public $codigoBarras = '';
     public $cantidad = 1;
-    
+
     // Productos en la factura
     public $productosFactura = [];
-    
+
     // Totales
     public $subtotal = 0;
     public $isv = 15; // Porcentaje de ISV
@@ -45,12 +45,12 @@ class Ventas extends Component
     public $tiposPago = [];
     public $montosPorMetodo = []; // Nueva: array con montos por cada método
     public $metodosActivosParaPago = []; // Métodos que tendrán monto > 0
-    
+
     // Variables para pago en efectivo
     public $efectivoRecibido = 0;
     public $montoEfectivo = 0;
     public $cambio = 0;
-    
+
     // Variables para pago con tarjeta
     public $montoTarjeta = 0;
 
@@ -74,11 +74,11 @@ class Ventas extends Component
     public function mount()
     {
         $this->clientesModal = collect(); // Inicializar como colección vacía
-        
+
         // Obtener la tienda del usuario autenticado
         $user = Auth::user();
         $this->tiendaUsuario = $user->tienda_id ?? null;
-        
+
         if ($this->tiendaUsuario) {
             // Obtener la bodega principal de la tienda
             $this->bodegaPrincipal = Bodega::where('tienda_id', $this->tiendaUsuario)
@@ -86,29 +86,29 @@ class Ventas extends Component
                                           ->where('estado_id', 1)
                                           ->first();
         }
-        
+
         $this->cargarTiposPago();
         $this->verificarCAI();
     }
-    
+
     public function verificarCAI()
     {
         $caiService = new CAIService();
-        
+
         try {
             // Desactivar CAIs vencidos
             $caisDesactivados = $caiService->desactivarCAIsVencidos();
             if ($caisDesactivados > 0) {
                 Log::info("CAIs vencidos desactivados: $caisDesactivados");
             }
-            
+
             // Verificar disponibilidad
             if (!$caiService->verificarDisponibilidadCAI()) {
                 $this->alertaCAI = "¡CRÍTICO! No hay CAI activos disponibles para facturar. Contacte al administrador.";
             } else {
                 // Obtener información de CAIs
                 $this->informacionCAI = $caiService->obtenerInformacionCAIs();
-                
+
                 // Verificar si algún CAI está por agotarse
                 foreach ($this->informacionCAI as $cai) {
                     if ($cai->cantidad_no_utilizada <= 10 && $cai->cantidad_no_utilizada > 0) {
@@ -117,7 +117,7 @@ class Ventas extends Component
                     }
                 }
             }
-            
+
         } catch (\Exception $e) {
             Log::error("Error al verificar CAI: " . $e->getMessage());
             $this->alertaCAI = "Error al verificar CAI: " . $e->getMessage();
@@ -139,17 +139,17 @@ class Ventas extends Component
     {
         $cliente = Cliente::select([
                 'cliente.*',
-                DB::raw("CONCAT_WS(', ', 
-                    NULLIF(direccion.colonia, ''), 
-                    NULLIF(direccion.calle_blv, ''), 
-                    NULLIF(direccion.sector_zona, ''), 
+                DB::raw("CONCAT_WS(', ',
+                    NULLIF(direccion.colonia, ''),
+                    NULLIF(direccion.calle_blv, ''),
+                    NULLIF(direccion.sector_zona, ''),
                     NULLIF(direccion.bloque, '')
                 ) as direccion_completa")
             ])
             ->leftJoin('direccion', 'cliente.direccion_id', '=', 'direccion.id')
             ->where('cliente.identidad', $identidad)
             ->first();
-            
+
         if ($cliente) {
             $this->cliente = $cliente;
             session()->forget('cliente_no_encontrado');
@@ -176,16 +176,16 @@ class Ventas extends Component
     {
         $query = Cliente::select([
                 'cliente.*',
-                DB::raw("CONCAT_WS(', ', 
-                    NULLIF(direccion.colonia, ''), 
-                    NULLIF(direccion.calle_blv, ''), 
-                    NULLIF(direccion.sector_zona, ''), 
+                DB::raw("CONCAT_WS(', ',
+                    NULLIF(direccion.colonia, ''),
+                    NULLIF(direccion.calle_blv, ''),
+                    NULLIF(direccion.sector_zona, ''),
                     NULLIF(direccion.bloque, '')
                 ) as direccion_completa")
             ])
             ->leftJoin('direccion', 'cliente.direccion_id', '=', 'direccion.id')
             ->where('cliente.estado_id', 1); // Solo clientes activos
-        
+
         if (!empty($this->busquedaCliente)) {
             $query->where(function($q) {
                 $q->where('cliente.nombre', 'LIKE', "%{$this->busquedaCliente}%")
@@ -194,7 +194,7 @@ class Ventas extends Component
                   ->orWhere('cliente.correo', 'LIKE', "%{$this->busquedaCliente}%");
             });
         }
-        
+
         // Usar get() en lugar de paginate() para evitar problemas de serialización
         $this->clientesModal = $query->orderBy('cliente.nombre')->limit(50)->get();
     }
@@ -208,17 +208,17 @@ class Ventas extends Component
     {
         $cliente = Cliente::select([
                 'cliente.*',
-                DB::raw("CONCAT_WS(', ', 
-                    NULLIF(direccion.colonia, ''), 
-                    NULLIF(direccion.calle_blv, ''), 
-                    NULLIF(direccion.sector_zona, ''), 
+                DB::raw("CONCAT_WS(', ',
+                    NULLIF(direccion.colonia, ''),
+                    NULLIF(direccion.calle_blv, ''),
+                    NULLIF(direccion.sector_zona, ''),
                     NULLIF(direccion.bloque, '')
                 ) as direccion_completa")
             ])
             ->leftJoin('direccion', 'cliente.direccion_id', '=', 'direccion.id')
             ->where('cliente.id', $clienteId)
             ->first();
-            
+
         if ($cliente) {
             $this->cliente = $cliente;
             $this->cerrarModalClientes();
@@ -282,13 +282,13 @@ class Ventas extends Component
         // Limpiar campos y mantener el foco en el input
         $this->codigoBarras = '';
         $this->cantidad = 1;
-        
+
         // DEBUG: Log después de resetear
         Log::info("DEBUG después de reseteo", [
             'cantidad_despues_reset' => $this->cantidad,
             'codigo_barras_despues_reset' => $this->codigoBarras
         ]);
-        
+
         $this->calcularTotales();
     }
 
@@ -306,11 +306,11 @@ class Ventas extends Component
             $this->eliminarProducto($index);
             return;
         }
-        
+
         // Validar stock con la nueva cantidad total
         $productoId = $this->productosFactura[$index]['id'];
         $stockTotal = $this->obtenerStockTotal($productoId);
-        
+
         // Calcular cuánto hay en el carrito SIN incluir este item que estamos modificando
         $cantidadEnCarritoSinEsteItem = 0;
         foreach ($this->productosFactura as $i => $item) {
@@ -318,15 +318,15 @@ class Ventas extends Component
                 $cantidadEnCarritoSinEsteItem += $item['cantidad'];
             }
         }
-        
+
         // La nueva cantidad total sería: cantidad en carrito (sin este item) + nueva cantidad de este item
         $nuevaCantidadTotal = $cantidadEnCarritoSinEsteItem + $nuevaCantidad;
-        
+
         if ($nuevaCantidadTotal > $stockTotal) {
             $this->dispatch('mostrar-sin-stock');
             return;
         }
-        
+
         $this->productosFactura[$index]['cantidad'] = $nuevaCantidad;
         $this->calcularTotales();
     }
@@ -336,25 +336,25 @@ class Ventas extends Component
         $this->subtotal = 0;
         $this->totalIsv = 0;
         $isvPorTasa = []; // Agrupamos ISV por tasa
-        
+
         foreach ($this->productosFactura as $producto) {
             $subtotalProducto = $producto['precio'] * $producto['cantidad'];
             $this->subtotal += $subtotalProducto;
-            
+
             $tasaIsv = $producto['isv'];
             $isvProducto = $subtotalProducto * ($tasaIsv / 100);
             $this->totalIsv += $isvProducto;
-            
+
             // Agrupar ISV por tasa
             if (!isset($isvPorTasa[$tasaIsv])) {
                 $isvPorTasa[$tasaIsv] = 0;
             }
             $isvPorTasa[$tasaIsv] += $isvProducto;
         }
-        
+
         $this->isvPorTasa = $isvPorTasa;
         $this->total = $this->subtotal + $this->totalIsv;
-        
+
         // Forzar actualización de la vista
         $this->dispatch('totales-actualizados', [
             'subtotal' => $this->subtotal,
@@ -362,23 +362,23 @@ class Ventas extends Component
             'total' => $this->total
         ]);
     }
-    
+
     // Propiedades computadas para asegurar valores actualizados
     public function getSubtotalComputedProperty()
     {
         return $this->subtotal;
     }
-    
+
     public function getTotalIsvComputedProperty()
     {
         return $this->totalIsv;
     }
-    
+
     public function getTotalComputedProperty()
     {
         return $this->total;
     }
-    
+
     public function getIsvPorTasaComputedProperty()
     {
         return $this->isvPorTasa;
@@ -395,7 +395,7 @@ class Ventas extends Component
             // Aquí implementaremos la lógica para guardar la factura
             // Por ahora solo mostraremos un mensaje de éxito
             session()->flash('success', 'Factura guardada exitosamente');
-            
+
             // Limpiar el estado
             $this->cliente = null;
             $this->productosFactura = [];
@@ -412,16 +412,16 @@ class Ventas extends Component
             session()->flash('error', 'Debe agregar al menos un producto para procesar el pago');
             return;
         }
-        
+
         // Asegurar que los totales estén actualizados
         $this->calcularTotales();
-        
+
         // Inicializar montos en 0 para todos los métodos
         $this->montosPorMetodo = [];
         foreach ($this->tiposPago as $tipoPago) {
             $this->montosPorMetodo[$tipoPago->id] = 0;
         }
-        
+
         $this->mostrarModalPagoFlag = true;
     }
 
@@ -442,7 +442,7 @@ class Ventas extends Component
                 break;
             }
         }
-        
+
         if ($efectivoId) {
             // Resetear todos los montos
             foreach ($this->montosPorMetodo as $key => $value) {
@@ -470,27 +470,27 @@ class Ventas extends Component
 
         // Validar que la distribución sea correcta
         $totalDistribuido = array_sum($this->montosPorMetodo);
-        
+
         Log::info("DEBUG Validación distribución", [
             'total_distribuido' => $totalDistribuido,
             'total_factura' => $this->total,
             'diferencia' => $totalDistribuido - $this->total
         ]);
-        
+
         if ($totalDistribuido < $this->total) {
             $faltante = $this->total - $totalDistribuido;
             session()->flash('error', 'El total distribuido es menor al total a pagar. Faltan: L. ' . number_format($faltante, 2));
             return;
         }
-        
+
         if ($totalDistribuido <= 0) {
             session()->flash('error', 'Debe distribuir al menos un monto en los métodos de pago');
             return;
         }
-        
+
         // Calcular cambio si hay exceso
         $cambioTotal = $totalDistribuido - $this->total;
-        
+
         // Obtener métodos activos (con monto > 0)
         $this->metodosActivosParaPago = [];
         foreach ($this->montosPorMetodo as $tipoId => $monto) {
@@ -505,38 +505,38 @@ class Ventas extends Component
                 }
             }
         }
-        
+
         Log::info("DEBUG Métodos activos", [
             'metodos_activos' => $this->metodosActivosParaPago,
             'cambio_total' => $cambioTotal
         ]);
-        
+
         // Mensaje informativo si hay cambio
         if ($cambioTotal > 0) {
             session()->flash('info', 'Se procesará el pago con cambio de L. ' . number_format($cambioTotal, 2));
         }
-        
+
         Log::info("DEBUG Antes de finalizar venta");
-        
+
         // Procesar directamente la venta SIN cerrar el modal aún
         $this->finalizarVentaConDistribucion();
     }
-    
+
     public function finalizarVentaConDistribucion()
     {
         Log::info("DEBUG finalizarVentaConDistribucion INICIO");
-        
+
         try {
             DB::beginTransaction();
-            
+
             Log::info("DEBUG Transacción iniciada");
-            
+
             // Crear la factura principal
             $factura = new Factura();
-            
+
             // Generar número de factura con CAI
             $factura->numero_factura = $this->generarNumeroFactura();
-            
+
             // Usar el CAI real generado
             $factura->cai_id = $this->caiActual ? $this->caiActual['cai_id'] : 1;
             $factura->tipo_facturacion_id = 1; // Asumiendo que 1 es venta normal
@@ -551,47 +551,47 @@ class Ventas extends Component
             $factura->fecha_emision = now()->format('Y-m-d');
             $factura->estado_factura_id = 1; // Asumiendo que 1 es "Activa"
             $factura->users_id = Auth::id();
-            
+
             Log::info("DEBUG Datos de factura preparados", [
                 'numero_factura' => $factura->numero_factura,
                 'nombre_cliente' => $factura->nombre_cliente,
                 'total' => $factura->total,
                 'user_id' => $factura->users_id
             ]);
-            
+
             $factura->save();
-            
+
             Log::info("DEBUG Factura guardada con ID: " . $factura->id);
-            
+
             // Guardar productos de la factura con distribución FIFO por secciones
             $indice = 1;
             foreach ($this->productosFactura as $producto) {
                 $this->guardarProductoConDistribucionSecciones($factura->id, $producto, $indice);
                 $indice++;
             }
-            
+
             // Guardar métodos de pago usando la distribución
             $this->guardarMetodosPagoDistribucion($factura->id);
-            
+
             DB::commit();
-            
+
             Log::info("DEBUG Transacción confirmada");
-            
+
             // Cargar datos para la vista de impresión
             $this->cargarDatosParaImpresion($factura->id);
-            
+
             Log::info("DEBUG Datos cargados para impresión");
-            
+
             // Cambiar a vista de impresión
             $this->mostrarVistaImpresion = true;
-            
+
             Log::info("DEBUG Vista de impresión activada");
-            
+
             // Limpiar datos del modal DESPUÉS de procesar exitosamente
             $this->cerrarModalPago();
-            
+
             Log::info("DEBUG Modal de pago cerrado y datos limpiados");
-            
+
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error("ERROR en finalizarVentaConDistribucion", [
@@ -601,7 +601,7 @@ class Ventas extends Component
             session()->flash('error', 'Error al procesar la venta: ' . $e->getMessage());
         }
     }
-    
+
     private function guardarMetodosPagoDistribucion($facturaId)
     {
         Log::info("DEBUG guardarMetodosPagoDistribucion INICIO", [
@@ -612,15 +612,15 @@ class Ventas extends Component
         ]);
 
         $metodosParaGuardar = [];
-        
+
         // Prioridad 1: Si hay metodosActivosParaPago, usarlos (solo los que tienen monto > 0)
         if (!empty($this->metodosActivosParaPago)) {
             Log::info("DEBUG Usando metodosActivosParaPago");
-            
+
             foreach ($this->metodosActivosParaPago as $metodo) {
                 if ($metodo['monto'] > 0) { // Solo los que tienen monto mayor a 0
                     $metodosParaGuardar[] = $metodo;
-                    
+
                     Log::info("DEBUG Método agregado desde metodosActivosParaPago", [
                         'tipo_id' => $metodo['id'],
                         'nombre' => $metodo['nombre'],
@@ -632,7 +632,7 @@ class Ventas extends Component
         // Prioridad 2: Si hay montosPorMetodo, construir desde ahí
         elseif (!empty($this->montosPorMetodo)) {
             Log::info("DEBUG Construyendo desde montosPorMetodo");
-            
+
             foreach ($this->montosPorMetodo as $tipoId => $monto) {
                 $tipoPago = collect($this->tiposPago)->firstWhere('id', $tipoId);
                 if ($tipoPago && $monto > 0) { // Solo los que tienen monto mayor a 0
@@ -641,7 +641,7 @@ class Ventas extends Component
                         'nombre' => $tipoPago['nombre'],
                         'monto' => $monto
                     ];
-                    
+
                     Log::info("DEBUG Método agregado desde montosPorMetodo", [
                         'tipo_id' => $tipoId,
                         'nombre' => $tipoPago['nombre'],
@@ -653,21 +653,21 @@ class Ventas extends Component
         // Prioridad 3: Si hay tiposPago disponibles, guardar todos como 0 excepto efectivo con el total
         elseif (!empty($this->tiposPago)) {
             Log::info("DEBUG Creando métodos por defecto desde tiposPago");
-            
+
             foreach ($this->tiposPago as $tipoPago) {
                 $monto = 0;
-                
+
                 // Si es efectivo, poner el total completo
                 if (strtolower($tipoPago['nombre']) === 'efectivo') {
                     $monto = $this->total;
                 }
-                
+
                 $metodosParaGuardar[] = [
                     'id' => $tipoPago['id'],
                     'nombre' => $tipoPago['nombre'],
                     'monto' => $monto
                 ];
-                
+
                 Log::info("DEBUG Método por defecto creado", [
                     'tipo_id' => $tipoPago['id'],
                     'nombre' => $tipoPago['nombre'],
@@ -684,7 +684,7 @@ class Ventas extends Component
         // Guardar solo los métodos con monto > 0
         $totalDistribuido = array_sum($this->montosPorMetodo ?? []);
         $metodosGuardados = 0;
-        
+
         foreach ($metodosParaGuardar as $metodo) {
             Log::info("DEBUG Procesando método", [
                 'metodo_id' => $metodo['id'],
@@ -692,21 +692,21 @@ class Ventas extends Component
                 'metodo_monto' => $metodo['monto'],
                 'monto_mayor_cero' => $metodo['monto'] > 0
             ]);
-            
+
             $tipoPago = TipoPago::find($metodo['id']);
             if ($tipoPago && $metodo['monto'] > 0) { // Validación adicional de monto > 0
-                
+
                 // Para cada método de pago, guardar el monto específico de ese método
                 $montoMetodo = $metodo['monto'];
                 $cambio = 0;
-                
+
                 // Calcular cambio solo si es efectivo y el total distribuido es mayor al total de la factura
                 if (strtolower($tipoPago->nombre) === 'efectivo' && $totalDistribuido > $this->total) {
                     // El cambio se calcula solo en efectivo si hay exceso en el total distribuido
                     $cambioTotal = $totalDistribuido - $this->total;
                     $cambio = $cambioTotal; // Todo el cambio se asigna al efectivo
                 }
-                
+
                 DB::table('factura_has_pago')->insert([
                     'factura_id' => $facturaId,
                     'tipo_pago_id' => $tipoPago->id,
@@ -714,9 +714,9 @@ class Ventas extends Component
                     'pago_recibido' => $montoMetodo, // Monto específico de este método
                     'cambio' => $cambio,
                 ]);
-                
+
                 $metodosGuardados++;
-                
+
                 Log::info("DEBUG Método de pago guardado", [
                     'tipo_pago_id' => $tipoPago->id,
                     'tipo_pago_nombre' => $tipoPago->nombre,
@@ -733,7 +733,7 @@ class Ventas extends Component
                 ]);
             }
         }
-        
+
         Log::info("DEBUG guardarMetodosPagoDistribucion FINALIZADO", [
             'metodos_guardados' => $metodosGuardados,
             'total_metodos_procesados' => count($metodosParaGuardar)
@@ -855,12 +855,12 @@ class Ventas extends Component
     {
         // Para métodos como tarjeta/cheque, usar el primer método activo
         $primerMetodo = collect($this->metodosActivosParaPago)->first();
-        
+
         if (!$primerMetodo) {
             session()->flash('error', 'No hay métodos de pago activos.');
             return;
         }
-        
+
         $this->montoTarjeta = $primerMetodo['monto'];
         $this->mostrarModalTarjetaFlag = true;
     }
@@ -915,18 +915,18 @@ class Ventas extends Component
         }
 
         $this->cambio = $this->efectivoRecibido - $this->montoEfectivo;
-        
+
         // Verificar si es pago mixto
         $tieneMetodoNoEfectivo = collect($this->metodosActivosParaPago)->contains(function($metodo) {
             return $metodo['nombre'] !== 'Efectivo';
         });
-        
+
         if ($tieneMetodoNoEfectivo && $this->montoEfectivo < $this->total) {
             // Es pago mixto, continuar con el siguiente método
             $siguienteMetodo = collect($this->metodosActivosParaPago)->firstWhere(function($metodo) {
                 return $metodo['nombre'] !== 'Efectivo';
             });
-            
+
             $this->montoTarjeta = $siguienteMetodo['monto'];
             $this->cerrarModalEfectivo();
             $this->mostrarModalTarjetaFlag = true;
@@ -952,7 +952,7 @@ class Ventas extends Component
         }
 
         $this->cerrarModalTarjeta();
-        
+
         // Finalizar venta usando el método de distribución
         $this->finalizarVentaConDistribucion();
     }
@@ -961,14 +961,14 @@ class Ventas extends Component
     {
         try {
             DB::beginTransaction();
-            
+
             // Crear la factura principal
             $factura = new Factura();
             $factura->tipo_facturacion_id = 1; // Asumiendo que 1 es venta normal
-            
+
             // Generar número de factura con CAI
             $factura->numero_factura = $this->generarNumeroFactura();
-            
+
             // Usar el CAI real generado
             $factura->cai_id = $this->caiActual ? $this->caiActual['cai_id'] : 1;
             $factura->nombre_cliente = $this->cliente ? $this->cliente->nombre_completo : 'Consumidor Final';
@@ -983,7 +983,7 @@ class Ventas extends Component
             $factura->estado_factura_id = 1; // Asumiendo que 1 es "Activa"
             $factura->users_id = Auth::id();
             $factura->save();
-            
+
             // Guardar productos de la factura
             foreach ($this->productosFactura as $producto) {
                 DB::table('factura_has_producto')->insert([
@@ -1003,38 +1003,38 @@ class Ventas extends Component
                     'idPrecioSeleccionado' => '1',
                     'precio_seleccionado' => $producto['precio']
                 ]);
-                
+
                 // Actualizar stock en bodega principal
                 $this->actualizarStockVenta($producto['id'], $producto['cantidad'], $factura->id);
             }
-            
+
             // Guardar métodos de pago
             $this->guardarMetodosPago($factura->id, $tipoPago);
-            
+
             DB::commit();
-            
+
             // Cargar datos para la vista de impresión
             $this->cargarDatosParaImpresion($factura->id);
-            
+
             // Cambiar a vista de impresión
             $this->mostrarVistaImpresion = true;
-            
+
         } catch (\Exception $e) {
             DB::rollBack();
             session()->flash('error', 'Error al procesar la venta: ' . $e->getMessage());
         }
     }
-    
+
     private function cargarDatosParaImpresion($facturaId)
     {
         // Cargar la factura
         $this->facturaParaImprimir = Factura::find($facturaId);
-        
+
         // Cargar información del CAI asociado a la factura
         $this->caiFacturaImpresa = DB::table('cai')
             ->where('id', $this->facturaParaImprimir->cai_id)
             ->first();
-        
+
         // Cargar productos
         $this->productosFacturaImpresa = DB::table('factura_has_producto as fp')
             ->join('producto as p', 'fp.producto_id', '=', 'p.id')
@@ -1048,23 +1048,23 @@ class Ventas extends Component
                 'fp.isv'
             )
             ->get()->toArray();
-            
+
         // Cargar métodos de pago
         $this->pagosFacturaImpresa = DB::table('factura_has_pago as fp')
             ->join('tipo_pago as tp', 'fp.tipo_pago_id', '=', 'tp.id')
             ->where('fp.factura_id', $facturaId)
             ->select('tp.nombre as metodo', 'fp.pago_recibido')
             ->get()->toArray();
-            
+
         // Generar y guardar imagen de la factura
         $this->generarYGuardarImagenFactura($facturaId);
     }
-    
+
     private function generarYGuardarImagenFactura($facturaId)
     {
         try {
             Log::info("DEBUG Generando imagen de factura", ['factura_id' => $facturaId]);
-            
+
             // Obtener datos de la factura
             $factura = Factura::find($facturaId);
             if (!$factura) {
@@ -1074,34 +1074,34 @@ class Ventas extends Component
 
             // Obtener información de la empresa
             $empresa = DB::table('empresa')->first();
-            
+
             // Obtener información de la tienda con dirección
             $tienda = DB::table('tienda as t')
                 ->leftJoin('direccion as d', 't.direccion_sucursal_id', '=', 'd.id')
                 ->select('t.*', 'd.domicilio_tributario')
                 ->where('t.id', 1) // Asumiendo tienda principal, puedes cambiarlo por un campo en factura
                 ->first();
-            
+
             // Crear una imagen en blanco (600x900 píxeles) - más alta para el nuevo encabezado
             $ancho = 600;
             $alto = 900;
             $imagen = imagecreatetruecolor($ancho, $alto);
-            
+
             // Habilitar alpha blending y guardar alpha
             imagealphablending($imagen, false);
             imagesavealpha($imagen, true);
-            
+
             // Definir colores
             $blanco = imagecolorallocate($imagen, 255, 255, 255);
             $negro = imagecolorallocate($imagen, 0, 0, 0);
             $gris = imagecolorallocate($imagen, 128, 128, 128);
             $azul = imagecolorallocate($imagen, 0, 100, 200);
-            
+
             // Fondo blanco
             imagefill($imagen, 0, 0, $blanco);
-            
+
             $y = 20; // Comenzar más arriba
-            
+
             // LOGO DE LA EMPRESA (si existe)
             if ($empresa && $empresa->logo) {
                 try {
@@ -1111,20 +1111,20 @@ class Ventas extends Component
                         // Obtener dimensiones del logo original
                         $logoAncho = imagesx($logoTemporal);
                         $logoAlto = imagesy($logoTemporal);
-                        
+
                         // Calcular nuevas dimensiones (máximo 80x80)
                         $maxTamano = 80;
                         $escala = min($maxTamano / $logoAncho, $maxTamano / $logoAlto);
                         $nuevoAncho = (int)($logoAncho * $escala);
                         $nuevoAlto = (int)($logoAlto * $escala);
-                        
+
                         // Posicionar logo en el centro horizontal
                         $logoX = ($ancho - $nuevoAncho) / 2;
-                        
+
                         // Redimensionar y copiar logo
-                        imagecopyresampled($imagen, $logoTemporal, $logoX, $y, 0, 0, 
+                        imagecopyresampled($imagen, $logoTemporal, $logoX, $y, 0, 0,
                                          $nuevoAncho, $nuevoAlto, $logoAncho, $logoAlto);
-                        
+
                         imagedestroy($logoTemporal);
                         $y += $nuevoAlto + 15;
                     }
@@ -1132,7 +1132,7 @@ class Ventas extends Component
                     Log::warning("Error al procesar logo: " . $e->getMessage());
                 }
             }
-            
+
             // NOMBRE DE LA TIENDA (grande)
             if ($tienda && $tienda->denominacion_social) {
                 $nombreTienda = strtoupper($tienda->denominacion_social);
@@ -1142,7 +1142,7 @@ class Ventas extends Component
                 imagestring($imagen, 5, max(20, $textoX), $y, $nombreTienda, $azul);
                 $y += 30;
             }
-            
+
             // NOMBRE DE LA EMPRESA (mediano)
             if ($empresa && $empresa->nombre) {
                 $nombreEmpresa = $empresa->nombre;
@@ -1151,7 +1151,7 @@ class Ventas extends Component
                 imagestring($imagen, 3, max(20, $textoX), $y, $nombreEmpresa, $negro);
                 $y += 25;
             }
-            
+
             // RTN DE LA EMPRESA
             if ($empresa && $empresa->rtn) {
                 $rtnTexto = "RTN: " . $empresa->rtn;
@@ -1160,7 +1160,7 @@ class Ventas extends Component
                 imagestring($imagen, 3, max(20, $textoX), $y, $rtnTexto, $negro);
                 $y += 20;
             }
-            
+
             // DIRECCIÓN DE LA SUCURSAL
             if ($tienda && $tienda->domicilio_tributario) {
                 $direccion = $tienda->domicilio_tributario;
@@ -1176,12 +1176,12 @@ class Ventas extends Component
                             $linea2 .= ($linea2 ? ' ' : '') . $palabra;
                         }
                     }
-                    
+
                     $textoAncho = strlen($linea1) * 6;
                     $textoX = ($ancho - $textoAncho) / 2;
                     imagestring($imagen, 2, max(20, $textoX), $y, $linea1, $gris);
                     $y += 15;
-                    
+
                     if ($linea2) {
                         $textoAncho = strlen($linea2) * 6;
                         $textoX = ($ancho - $textoAncho) / 2;
@@ -1195,7 +1195,7 @@ class Ventas extends Component
                     $y += 15;
                 }
             }
-            
+
             // CORREO DE LA EMPRESA
             if ($empresa && $empresa->correo) {
                 $correoTexto = "Email: " . $empresa->correo;
@@ -1204,7 +1204,7 @@ class Ventas extends Component
                 imagestring($imagen, 2, max(20, $textoX), $y, $correoTexto, $gris);
                 $y += 15;
             }
-            
+
             // TELÉFONO FORMATEADO (####-####)
             if ($empresa && $empresa->telefono) {
                 $telefono = $empresa->telefono;
@@ -1220,11 +1220,11 @@ class Ventas extends Component
                 imagestring($imagen, 2, max(20, $textoX), $y, $telefonoTexto, $gris);
                 $y += 25;
             }
-            
+
             // Línea separadora
             imageline($imagen, 20, $y, $ancho-20, $y, $gris);
             $y += 30;
-            
+
             // Información de la factura
             imagestring($imagen, 4, 30, $y, "FACTURA: " . $factura->numero_factura, $negro);
             $y += 25;
@@ -1237,11 +1237,11 @@ class Ventas extends Component
                 $y += 20;
             }
             $y += 10;
-            
+
             // Línea separadora
             imageline($imagen, 20, $y, $ancho-20, $y, $gris);
             $y += 20;
-            
+
             // Encabezados de productos
             imagestring($imagen, 3, 30, $y, "PRODUCTO", $negro);
             imagestring($imagen, 3, 350, $y, "CANT.", $negro);
@@ -1250,7 +1250,7 @@ class Ventas extends Component
             $y += 20;
             imageline($imagen, 20, $y, $ancho-20, $y, $gris);
             $y += 15;
-            
+
             // Productos
             foreach ($this->productosFacturaImpresa as $producto) {
                 $nombreCorto = substr($producto->nombre, 0, 25);
@@ -1260,11 +1260,11 @@ class Ventas extends Component
                 imagestring($imagen, 2, 500, $y, "L. " . number_format($producto->total, 2), $negro);
                 $y += 15;
             }
-            
+
             $y += 10;
             imageline($imagen, 20, $y, $ancho-20, $y, $gris);
             $y += 20;
-            
+
             // Totales
             imagestring($imagen, 3, 350, $y, "Subtotal:", $negro);
             imagestring($imagen, 3, 470, $y, "L. " . number_format($factura->sub_total, 2), $negro);
@@ -1275,51 +1275,51 @@ class Ventas extends Component
             imagestring($imagen, 4, 350, $y, "TOTAL:", $azul);
             imagestring($imagen, 4, 470, $y, "L. " . number_format($factura->total, 2), $azul);
             $y += 30;
-            
+
             // Métodos de pago
             if (!empty($this->pagosFacturaImpresa)) {
                 imageline($imagen, 20, $y, $ancho-20, $y, $gris);
                 $y += 20;
                 imagestring($imagen, 3, 30, $y, "METODOS DE PAGO:", $negro);
                 $y += 20;
-                
+
                 foreach ($this->pagosFacturaImpresa as $pago) {
                     imagestring($imagen, 2, 50, $y, $pago->metodo . ": L. " . number_format($pago->pago_recibido, 2), $negro);
                     $y += 15;
                 }
             }
-            
+
             // Convertir imagen a BLOB PNG de alta calidad
             ob_start();
-            
+
             // Configurar PNG con máxima compresión (0) para mejor calidad
             imagepng($imagen, null, 0);
             $imagenBlob = ob_get_clean();
-            
+
             // Verificar que se generó correctamente
             if (strlen($imagenBlob) === 0) {
                 throw new \Exception("Error al generar PNG: el buffer está vacío");
             }
-            
+
             // Verificar signature PNG
             $signature = bin2hex(substr($imagenBlob, 0, 8));
             if ($signature !== '89504e470d0a1a0a') {
                 throw new \Exception("Error: PNG generado no tiene la signature correcta. Signature: $signature");
             }
-            
+
             // Guardar en la base de datos
             DB::table('factura')
                 ->where('id', $facturaId)
                 ->update(['factura_imagen' => $imagenBlob]);
-            
+
             // Limpiar memoria
             imagedestroy($imagen);
-            
+
             Log::info("DEBUG Imagen de factura generada y guardada", [
                 'factura_id' => $facturaId,
                 'tamaño_bytes' => strlen($imagenBlob)
             ]);
-            
+
         } catch (\Exception $e) {
             Log::error("ERROR al generar imagen de factura", [
                 'factura_id' => $facturaId,
@@ -1327,24 +1327,24 @@ class Ventas extends Component
             ]);
         }
     }
-    
+
     public function descargarImagenFactura($facturaId)
     {
         try {
             $factura = Factura::find($facturaId);
-            
+
             if (!$factura || !$factura->factura_imagen) {
                 session()->flash('error', 'Imagen de factura no encontrada');
                 return;
             }
-            
+
             // Crear respuesta con la imagen
             $nombreArchivo = 'factura_' . $factura->numero_factura . '.png';
-            
+
             return response($factura->factura_imagen)
                 ->header('Content-Type', 'image/png')
                 ->header('Content-Disposition', 'attachment; filename="' . $nombreArchivo . '"');
-                
+
         } catch (\Exception $e) {
             Log::error("ERROR al descargar imagen de factura", [
                 'factura_id' => $facturaId,
@@ -1353,21 +1353,21 @@ class Ventas extends Component
             session()->flash('error', 'Error al descargar la imagen de la factura');
         }
     }
-    
+
     public function mostrarImagenFactura($facturaId)
     {
         try {
             $factura = Factura::find($facturaId);
-            
+
             if (!$factura || !$factura->factura_imagen) {
                 session()->flash('error', 'Imagen de factura no encontrada');
                 return;
             }
-            
+
             // Mostrar la imagen en el navegador
             return response($factura->factura_imagen)
                 ->header('Content-Type', 'image/png');
-                
+
         } catch (\Exception $e) {
             Log::error("ERROR al mostrar imagen de factura", [
                 'factura_id' => $facturaId,
@@ -1376,7 +1376,7 @@ class Ventas extends Component
             session()->flash('error', 'Error al mostrar la imagen de la factura');
         }
     }
-    
+
     public function volverAVentas()
     {
         $this->mostrarVistaImpresion = false;
@@ -1384,11 +1384,11 @@ class Ventas extends Component
         $this->productosFacturaImpresa = [];
         $this->pagosFacturaImpresa = [];
         $this->caiFacturaImpresa = null;
-        
+
         // Limpiar estado de venta
         $this->limpiarEstadoVenta();
     }
-    
+
     public function generarPDFFactura()
     {
         try {
@@ -1396,61 +1396,61 @@ class Ventas extends Component
                 session()->flash('error', 'No hay factura para generar PDF');
                 return;
             }
-            
+
             // Redirigir a la ruta de generación de PDF
             return redirect()->route('factura.pdf', $this->facturaParaImprimir->id);
-            
+
         } catch (Exception $e) {
             Log::error("Error al generar PDF: " . $e->getMessage());
             session()->flash('error', 'Error al generar PDF: ' . $e->getMessage());
         }
     }
-    
+
     private function generarNumeroFactura()
     {
         $caiService = new CAIService();
-        
+
         try {
             $resultadoCAI = $caiService->obtenerSiguienteNumeroFactura();
-            
+
             // Guardar información para usar en la factura
             $this->caiActual = $resultadoCAI;
-            
+
             // Si el CAI se agotó, mostrar alerta
             if ($resultadoCAI['cai_agotado']) {
                 $this->alertaCAI = "¡ATENCIÓN! El CAI se ha agotado. Esta es la última factura disponible para este CAI.";
             } elseif ($resultadoCAI['cantidad_restante'] <= 10) {
                 $this->alertaCAI = "¡AVISO! Quedan solo {$resultadoCAI['cantidad_restante']} facturas disponibles en el CAI actual.";
             }
-            
+
             Log::info("DEBUG CAI generado", [
                 'numero_factura' => $resultadoCAI['numero_factura'],
                 'cai_id' => $resultadoCAI['cai_id'],
                 'cantidad_restante' => $resultadoCAI['cantidad_restante']
             ]);
-            
+
             return $resultadoCAI['numero_factura'];
-            
+
         } catch (\Exception $e) {
             Log::error("ERROR al generar número CAI: " . $e->getMessage());
             $this->alertaCAI = "ERROR: " . $e->getMessage();
-            
+
             // Fallback al método anterior si hay error
             $ultimo = Factura::orderBy('id', 'desc')->first();
             $numero = $ultimo ? $ultimo->id + 1 : 1;
             return str_pad($numero, 8, '0', STR_PAD_LEFT);
         }
     }
-    
+
     private function actualizarStockVenta($productoId, $cantidad, $facturaId)
     {
         // Buscar la bodega principal
         $bodegaPrincipal = Bodega::where('principal', 1)->first();
-        
+
         if (!$bodegaPrincipal) {
             throw new \Exception('No se encontró bodega principal');
         }
-        
+
         // Buscar el stock en la bodega principal para este producto
         $stock = DB::table('recibido_bodega as rb')
             ->join('seccion as s', 'rb.seccion_id', '=', 's.id')
@@ -1460,20 +1460,20 @@ class Ventas extends Component
             ->where('rb.cantidad_disponible', '>', 0)
             ->orderBy('rb.fecha_recibido', 'asc')
             ->get();
-            
+
         $cantidadRestante = $cantidad;
-        
+
         foreach ($stock as $lote) {
             if ($cantidadRestante <= 0) break;
-            
+
             $cantidadADescontar = min($cantidadRestante, $lote->cantidad_disponible);
-            
+
             DB::table('recibido_bodega')
                 ->where('id', $lote->id)
                 ->decrement('cantidad_disponible', $cantidadADescontar);
-                
+
             $cantidadRestante -= $cantidadADescontar;
-            
+
             // Registrar en detalle_factura_lote
             DB::table('detalle_factura_lote')->insert([
                 'factura_id' => $facturaId,
@@ -1485,12 +1485,12 @@ class Ventas extends Component
                 'updated_at' => now()
             ]);
         }
-        
+
         if ($cantidadRestante > 0) {
             throw new \Exception("Stock insuficiente para el producto ID: $productoId");
         }
     }
-    
+
     private function guardarMetodosPago($facturaId, $tipoPago)
     {
         switch ($tipoPago) {
@@ -1504,7 +1504,7 @@ class Ventas extends Component
                     'updated_at' => now()
                 ]);
                 break;
-                
+
             case 'tarjeta':
                 $tipoPagoId = TipoPago::where('nombre', 'Tarjeta')->first()->id;
                 DB::table('factura_has_pago')->insert([
@@ -1515,7 +1515,7 @@ class Ventas extends Component
                     'updated_at' => now()
                 ]);
                 break;
-                
+
             case 'mixto':
                 // Efectivo
                 if ($this->montoEfectivo > 0) {
@@ -1528,7 +1528,7 @@ class Ventas extends Component
                         'updated_at' => now()
                     ]);
                 }
-                
+
                 // Tarjeta
                 $montoTarjeta = $this->total - $this->montoEfectivo;
                 if ($montoTarjeta > 0) {
@@ -1551,7 +1551,7 @@ class Ventas extends Component
         $this->cliente = null;
         $this->busquedaCliente = '';
         $this->calcularTotales();
-        
+
         // Limpiar variables de pago
         $this->mostrarModalPagoFlag = false;
         $this->mostrarModalEfectivoFlag = false;
@@ -1598,10 +1598,10 @@ class Ventas extends Component
                 $cantidadEnCarrito += $item['cantidad'];
             }
         }
-        
+
         // La nueva cantidad total que tendríamos sería: cantidad en carrito + cantidad solicitada
         $nuevaCantidadTotal = $cantidadEnCarrito + $cantidadSolicitada;
-        
+
         // DEBUG: Log para entender qué está pasando
         Log::info("DEBUG Stock Validation", [
             'producto_id' => $productoId,
@@ -1612,13 +1612,13 @@ class Ventas extends Component
             'nueva_cantidad_total' => $nuevaCantidadTotal,
             'validacion' => $nuevaCantidadTotal <= $stockTotal ? 'VALIDO' : 'INVALIDO'
         ]);
-        
+
         // Validar que la nueva cantidad total no exceda el stock total disponible
         if ($nuevaCantidadTotal > $stockTotal) {
             $this->dispatch('mostrar-sin-stock');
             return false;
         }
-        
+
         return true;
     }
 
@@ -1650,7 +1650,7 @@ class Ventas extends Component
                     $cantidadEnCarrito += $item['cantidad'];
                 }
             }
-            
+
             // Retornar stock disponible considerando lo que ya está en el carrito
             return max(0, $stockTotal - $cantidadEnCarrito);
         } catch (\Exception $e) {
@@ -1681,21 +1681,21 @@ class Ventas extends Component
             return 0;
         }
     }
-    
+
     public function limpiarEstadoVenta()
     {
         $this->productosFactura = [];
         $this->cliente = null;
         $this->busquedaCliente = '';
         $this->calcularTotales();
-        
+
         // Limpiar variables de pago
         $this->mostrarModalPagoFlag = false;
         $this->mostrarModalEfectivoFlag = false;
         $this->mostrarModalTarjetaFlag = false;
         $this->mostrarModalClientesFlag = false;
         $this->mostrarModalSinStock = false;
-        
+
         // Resetear montos de pago
         $this->montosPorMetodo = [];
         $this->metodosActivosParaPago = [];
@@ -1703,7 +1703,7 @@ class Ventas extends Component
         $this->montoTarjeta = 0;
         $this->efectivoRecibido = 0;
         $this->cambio = 0;
-        
+
         // Limpiar campos de entrada
         $this->codigoBarras = '';
         $this->cantidad = 1;
@@ -1714,23 +1714,24 @@ class Ventas extends Component
         if ($this->mostrarVistaImpresion) {
             // Obtener información de la empresa
             $empresa = DB::table('empresa')->first();
-            
+
             // Obtener información de la tienda con dirección
             $tienda = DB::table('tienda as t')
                 ->leftJoin('direccion as d', 't.direccion_sucursal_id', '=', 'd.id')
                 ->select('t.*', 'd.domicilio_tributario')
                 ->where('t.id', 1)
                 ->first();
-            
+
             return view('livewire.sala-de-ventas.factura-impresion', [
                 'factura' => $this->facturaParaImprimir,
                 'productos' => $this->productosFacturaImpresa,
                 'pagos' => $this->pagosFacturaImpresa,
                 'empresa' => $empresa,
-                'tienda' => $tienda
+                'tienda' => $tienda,
+                'caiFacturaImpresa' => $this->caiFacturaImpresa
             ]);
         }
-        
+
         return view('livewire.sala-de-ventas.ventas', [
             'tiposPago' => $this->tiposPago
         ]);

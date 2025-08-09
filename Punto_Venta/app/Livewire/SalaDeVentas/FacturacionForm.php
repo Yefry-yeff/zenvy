@@ -20,19 +20,19 @@ class FacturacionForm extends Component
     public $productos = [];
     public $productosFactura = [];
     public $busquedaProducto = '';
-    
+
     // Datos del cliente
     public $nombreCliente = '';
     public $rtnCliente = '';
-    
+
     // Totales
     public $subTotal = 0;
     public $isv = 0;
     public $total = 0;
-    
+
     // Validación de stock
     public $alertasStock = [];
-    
+
     // Tienda del usuario
     public $tiendaUsuario = null;
     public $bodegaPrincipal = null;
@@ -42,7 +42,7 @@ class FacturacionForm extends Component
         // Obtener la tienda del usuario autenticado
         $user = Auth::user();
         $this->tiendaUsuario = $user->tienda_id ?? null;
-        
+
         if ($this->tiendaUsuario) {
             // Obtener la bodega principal de la tienda
             $this->bodegaPrincipal = Bodega::where('tienda_id', $this->tiendaUsuario)
@@ -50,7 +50,7 @@ class FacturacionForm extends Component
                                           ->where('estado_id', 1)
                                           ->first();
         }
-        
+
         $this->cargarProductos();
     }
 
@@ -75,7 +75,7 @@ class FacturacionForm extends Component
     public function agregarProducto($productoId)
     {
         $producto = Producto::find($productoId);
-        
+
         if (!$producto) {
             session()->flash('error', 'Producto no encontrado');
             return;
@@ -111,10 +111,10 @@ class FacturacionForm extends Component
         }
 
         $cantidadSolicitada = $this->productosFactura[$productoId]['cantidad'];
-        
+
         $validacion = Factura::validarStockBodegaPrincipal(
-            $productoId, 
-            $cantidadSolicitada, 
+            $productoId,
+            $cantidadSolicitada,
             $this->tiendaUsuario
         );
 
@@ -138,7 +138,7 @@ class FacturacionForm extends Component
             $this->productosFactura[$productoId]['subtotal'] = $precio * $nuevaCantidad;
             $this->productosFactura[$productoId]['isv'] = ($precio * $nuevaCantidad) * 0.15;
             $this->productosFactura[$productoId]['total'] = ($precio * $nuevaCantidad) * 1.15;
-            
+
             $this->validarStockProducto($productoId);
             $this->calcularTotales();
         }
@@ -187,12 +187,12 @@ class FacturacionForm extends Component
 
             // Aquí implementarías la lógica de crear la factura
             // Por ahora solo mostramos un mensaje de éxito
-            
+
             DB::commit();
-            
+
             session()->flash('success', 'Factura procesada exitosamente.');
             $this->limpiarFormulario();
-            
+
         } catch (\Exception $e) {
             DB::rollback();
             Log::error('Error al procesar factura', [

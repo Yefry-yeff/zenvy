@@ -140,14 +140,14 @@
             background-color: #fff5f5 !important;
             box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25) !important;
         }
-        
+
         /* Mensaje de error personalizado */
         .text-danger {
             color: #dc3545 !important;
             font-size: 0.875rem;
             font-weight: 500;
         }
-        
+
         /* Alerta flotante personalizada */
         .alert-campo-obligatorio {
             position: fixed;
@@ -163,12 +163,12 @@
             border-left: 4px solid #dc3545;
             animation: slideIn 0.3s ease-out;
         }
-        
+
         @keyframes slideIn {
             from { transform: translateX(100%); opacity: 0; }
             to { transform: translateX(0); opacity: 1; }
         }
-        
+
         /* Estilo para labels de campos obligatorios */
         .text-red-600 {
             color: #dc3545 !important;
@@ -194,7 +194,7 @@
          class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
          @click.self="$wire.cerrarModalExito()"
          @keydown.escape.window="$wire.cerrarModalExito()">
-        
+
         <div class="w-full max-w-md mx-4">
             <div class="bg-white rounded-lg shadow-xl overflow-hidden">
                 <!-- Header -->
@@ -206,7 +206,7 @@
                         <h3 class="text-lg font-semibold">¡Operación Exitosa!</h3>
                     </div>
                 </div>
-                
+
                 <!-- Body -->
                 <div class="p-6 text-center">
                     <div class="mb-4">
@@ -217,10 +217,10 @@
                     <h4 class="text-lg font-medium text-gray-900 mb-2">{{ $mensajeModalExito }}</h4>
                     <p class="text-gray-600">La bodega se ha procesado correctamente en el sistema.</p>
                 </div>
-                
+
                 <!-- Footer -->
                 <div class="bg-gray-50 px-6 py-3 text-center">
-                    <button wire:click="cerrarModalExito" 
+                    <button wire:click="cerrarModalExito"
                             class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors duration-200">
                         <svg class="w-4 h-4 inline mr-1" fill="currentColor" viewBox="0 0 20 20">
                             <path fill-rule="evenodd" d="M7.707 3.293a1 1 0 0 1 0 1.414L5.414 7H11a7 7 0 0 1 7 7v2a1 1 0 1 1-2 0v-2a5 5 0 0 0-5-5H5.414l2.293 2.293a1 1 0 1 1-1.414 1.414l-4-4a1 1 0 0 1 0-1.414l4-4a1 1 0 0 1 1.414 0z" clip-rule="evenodd"></path>
@@ -245,7 +245,7 @@
          class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
          @click.self="$wire.cerrarModalError()"
          @keydown.escape.window="$wire.cerrarModalError()">
-        
+
         <div class="w-full max-w-md mx-4">
             <div class="bg-white rounded-lg shadow-xl overflow-hidden">
                 <!-- Header -->
@@ -257,7 +257,7 @@
                         <h3 class="text-lg font-semibold">Error en la Operación</h3>
                     </div>
                 </div>
-                
+
                 <!-- Body -->
                 <div class="p-6 text-center">
                     <div class="mb-4">
@@ -268,10 +268,10 @@
                     <h4 class="text-lg font-medium text-gray-900 mb-2">{{ $mensajeModalError }}</h4>
                     <p class="text-gray-600">Por favor, revise los datos e intente nuevamente. Si el problema persiste, contacte al administrador.</p>
                 </div>
-                
+
                 <!-- Footer -->
                 <div class="bg-gray-50 px-6 py-3 text-center">
-                    <button wire:click="cerrarModalError" 
+                    <button wire:click="cerrarModalError"
                             class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors duration-200">
                         <svg class="w-4 h-4 inline mr-1" fill="currentColor" viewBox="0 0 20 20">
                             <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 0 1 1.414 0L10 8.586l4.293-4.293a1 1 0 1 1 1.414 1.414L11.414 10l4.293 4.293a1 1 0 0 1-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 0 1-1.414-1.414L8.586 10 4.293 5.707a1 1 0 0 1 0-1.414z" clip-rule="evenodd"></path>

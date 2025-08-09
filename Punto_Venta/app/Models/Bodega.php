@@ -52,10 +52,10 @@ class Bodega extends Model
                             ->where('principal', 1)
                             ->where('estado_id', 1)
                             ->exists();
-        
+
         // Si no tiene bodega principal, esta será la principal (1), sino será secundaria (0)
         $datos['principal'] = $tienePrincipal ? 0 : 1;
-        
+
         // Mapear los nombres de campos del formulario a los de la base de datos
         $datosMapeados = [
             'nombre' => $datos['nombre'],
@@ -64,7 +64,7 @@ class Bodega extends Model
             'estado_id' => 1, // Siempre crear como activa
             'principal' => $datos['principal']
         ];
-        
+
         return self::create($datosMapeados);
     }
 

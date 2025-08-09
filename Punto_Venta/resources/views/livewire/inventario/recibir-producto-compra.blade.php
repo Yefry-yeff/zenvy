@@ -98,7 +98,7 @@
                             </thead>
                             <tbody>
                                 @forelse($detallesCompra as $detalle)
-                                    <tr style="cursor: pointer;" 
+                                    <tr style="cursor: pointer;"
                                         wire:click="abrirModalDistribuir({{ $detalle['id'] }})"
                                         title="Clic para distribuir este producto"
                                         class="@if($detalle['cantidad_sin_asignar'] <= 0) table-secondary @endif">
@@ -187,11 +187,11 @@
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="cantidadDistribuir" class="form-label">Cantidad a Distribuir <span class="text-red-600">*</span></label>
-                                    <input type="number" 
-                                           id="cantidadDistribuir" 
-                                           class="form-control @if($cantidadDistribuir > $detalleSeleccionado['cantidad_sin_asignar']) is-invalid @endif" 
+                                    <input type="number"
+                                           id="cantidadDistribuir"
+                                           class="form-control @if($cantidadDistribuir > $detalleSeleccionado['cantidad_sin_asignar']) is-invalid @endif"
                                            wire:model.live="cantidadDistribuir"
-                                           min="1" 
+                                           min="1"
                                            max="{{ $detalleSeleccionado['cantidad_sin_asignar'] }}"
                                            placeholder="Cantidad a distribuir">
                                     <small class="text-muted">Máximo: {{ $detalleSeleccionado['cantidad_sin_asignar'] }} {{ $detalleSeleccionado['unidad_medida'] }}</small>
@@ -205,9 +205,9 @@
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="fechaDistribucion" class="form-label">Fecha de Distribución <span class="text-red-600">*</span></label>
-                                    <input type="date" 
-                                           id="fechaDistribucion" 
-                                           class="form-control" 
+                                    <input type="date"
+                                           id="fechaDistribucion"
+                                           class="form-control"
                                            wire:model.live="fechaDistribucion">
                                 </div>
                             </div>
@@ -234,7 +234,7 @@
                         @if($bodegaDistribucion)
                             <div class="mb-3">
                                 <label for="segmentoDistribucion" class="form-label">Segmento <span class="text-red-600">*</span></label>
-                                <select id="segmentoDistribucion" class="form-select" wire:model.live="segmentoDistribucion" 
+                                <select id="segmentoDistribucion" class="form-select" wire:model.live="segmentoDistribucion"
                                         wire:loading.attr="disabled" wire:target="bodegaDistribucion">
                                     <option value="">Seleccionar segmento</option>
                                     @if(isset($segmentos) && is_iterable($segmentos) && count($segmentos) > 0)
@@ -272,9 +272,9 @@
 
                         <div class="mb-3">
                             <label for="comentarioDistribucion" class="form-label">Comentario</label>
-                            <textarea id="comentarioDistribucion" 
-                                      class="form-control" 
-                                      wire:model="comentarioDistribucion" 
+                            <textarea id="comentarioDistribucion"
+                                      class="form-control"
+                                      wire:model="comentarioDistribucion"
                                       rows="3"
                                       placeholder="Comentarios adicionales sobre la distribución"></textarea>
                         </div>
@@ -292,8 +292,8 @@
                         <button type="button" wire:click="cerrarModalDistribucion" class="btn btn-secondary">
                             <i class="fas fa-times me-2"></i>Cancelar
                         </button>
-                        <button type="button" 
-                                wire:click="confirmarDistribucion" 
+                        <button type="button"
+                                wire:click="confirmarDistribucion"
                                 class="btn btn-primary"
                                 @if(!$this->puedeConfirmarDistribucion() || $cantidadDistribuir > $detalleSeleccionado['cantidad_sin_asignar']) disabled @endif>
                             <i class="fas fa-check me-2"></i>Confirmar Distribución
@@ -318,13 +318,13 @@
                         <div class="text-center mb-3">
                             <i class="fas fa-check-circle text-success" style="font-size: 3rem;"></i>
                         </div>
-                        
+
                         <!-- Información detallada de la distribución -->
                         <div class="bg-light p-3 rounded mb-3">
                             @php
                                 $lineas = explode("\n", $mensajeModalExito);
                             @endphp
-                            
+
                             @foreach($lineas as $linea)
                                 @if(trim($linea))
                                     <div class="mb-2">

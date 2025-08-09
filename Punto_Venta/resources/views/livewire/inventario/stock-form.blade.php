@@ -99,8 +99,8 @@
                                            class="form-control bg-light"
                                            value="{{ $cantidadTotalBodega }}"
                                            readonly>
-                                    <button class="btn btn-outline-primary" 
-                                            type="button" 
+                                    <button class="btn btn-outline-primary"
+                                            type="button"
                                             wire:click="mostrarModalSecciones"
                                             title="Ver distribución por secciones">
                                         <i class="fas fa-search"></i>
@@ -422,21 +422,21 @@
                                         <th class="text-center">{{ $totalDistribuido ?? 0 }}</th>
                                         <th class="text-center">-</th>
                                         <th class="text-center">-</th>
-                                        <th class="text-center">L. {{ 
+                                        <th class="text-center">L. {{
                                             number_format(
                                                 array_sum(
                                                     array_map(
-                                                        function($dist) { 
+                                                        function($dist) {
                                                             // Solo sumar los enviados para evitar duplicar, o históricos sin estado
                                                             $estado = $dist['estado'] ?? 'historico';
-                                                            return ($estado === 'enviado' || $estado === 'N/A' || $estado === 'historico') ? 
-                                                                (float)$dist['cantidad_distribuida'] * (float)$dist['precio_unitario'] : 0; 
-                                                        }, 
+                                                            return ($estado === 'enviado' || $estado === 'N/A' || $estado === 'historico') ?
+                                                                (float)$dist['cantidad_distribuida'] * (float)$dist['precio_unitario'] : 0;
+                                                        },
                                                         $distribuciones ?? []
                                                     )
-                                                ), 
+                                                ),
                                                 2
-                                            ) 
+                                            )
                                         }}</th>
                                         <th class="text-center">-</th>
                                         <th class="text-center">-</th>

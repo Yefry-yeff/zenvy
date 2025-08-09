@@ -16,7 +16,7 @@ class Producto extends Component
         $productos = ProductoModel::with(['subcategoria.categoria', 'marca', 'unidadMedidaVenta'])
             ->select('id', 'nombre', 'descripcion', 'precio_base', 'subcategoria_id', 'marca_id', 'unidad_medida_venta_id', 'created_at')
             ->get();
-            
+
         return view('livewire.inventario.producto', compact('productos'));
     }
 

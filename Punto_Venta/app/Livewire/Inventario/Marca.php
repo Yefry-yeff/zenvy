@@ -11,7 +11,7 @@ class Marca extends Component
         'nombre' => '',
     ];
     public $modalAbierto = false;
-    
+
     public $modalCrearAbierto = false;
     public $nuevaMarcaNombre = '';
 

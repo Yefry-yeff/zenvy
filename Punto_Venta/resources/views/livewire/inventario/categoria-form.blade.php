@@ -47,13 +47,13 @@
 
             <!-- Agregar nueva subcategoría -->
             <div class="flex gap-2 mb-4">
-                <input 
-                    type="text" 
-                    wire:model.defer="nuevaSubcategoria" 
+                <input
+                    type="text"
+                    wire:model.defer="nuevaSubcategoria"
                     placeholder="Nombre de la nueva subcategoría"
                     class="flex-1 px-3 py-2 border rounded"
                 />
-                <button 
+                <button
                     wire:click="agregarSubcategoria"
                     class="px-4 py-2 text-white rounded"
                     :class="{
@@ -86,7 +86,7 @@
                                 <td class="px-3 py-2 border cursor-pointer" wire:click="editarSubcategoria({{ $subcategoria->id }})">{{ $subcategoria->id }}</td>
                                 <td class="px-3 py-2 border cursor-pointer" wire:click="editarSubcategoria({{ $subcategoria->id }})">{{ $subcategoria->nombre }}</td>
                                 <td class="px-3 py-2 border">
-                                    <button 
+                                    <button
                                         wire:click="eliminarSubcategoria({{ $subcategoria->id }})"
                                         class="p-0 btn btn-link"
                                         title="Eliminar"

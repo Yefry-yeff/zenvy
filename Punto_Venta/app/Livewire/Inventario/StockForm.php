@@ -23,11 +23,11 @@ class StockForm extends Component
     public $totalDistribuido = 0;
     public $stockDisponible = 0;
     public $cantidadTotalBodega = 0;
-    
+
     // Propiedades para el modal de secciones
     public $modalSeccionesAbierto = false;
     public $seccionesProducto = [];
-    
+
     // Propiedades para selección de destino
     public $bodegas = [];
     public $segmentosDestino = [];
@@ -102,7 +102,7 @@ class StockForm extends Component
                 $this->recibidoId = $this->recibido->id;
                 $this->isEditing = true;
                 $this->cargarDatosRecibido();
-                
+
                 // Pre-seleccionar la bodega actual
                 $this->form['bodega_destino'] = $this->recibido->seccion->segmento->bodega_id ?? '';
                 if ($this->form['bodega_destino']) {
@@ -187,7 +187,7 @@ class StockForm extends Component
         if ($this->recibido && $this->producto) {
             // Obtener el ID de la bodega a través de la sección
             $bodegaId = $this->recibido->seccion->segmento->bodega_id ?? null;
-            
+
             if ($bodegaId) {
                 // Sumar todas las cantidades del producto en todas las secciones de esta bodega
                 $this->cantidadTotalBodega = RecibidoBodega::whereHas('seccion.segmento', function($query) use ($bodegaId) {
@@ -255,15 +255,15 @@ class StockForm extends Component
             // Obtener información de origen y destino para traslado_a
             $seccionOrigen = $this->recibido->seccion;
             $seccionDestino = \App\Models\Seccion::with(['segmento.bodega'])->find($this->form['seccion_destino']);
-            
-            $trasladoDesdeOrigen = $seccionDestino ? 
-                $seccionDestino->segmento->bodega->nombre . ' > ' . 
-                $seccionDestino->segmento->descripcion . ' > ' . 
+
+            $trasladoDesdeOrigen = $seccionDestino ?
+                $seccionDestino->segmento->bodega->nombre . ' > ' .
+                $seccionDestino->segmento->descripcion . ' > ' .
                 $seccionDestino->descripcion : 'N/A';
-                
-            $trasladoDesdeDestino = $seccionOrigen ? 
-                $seccionOrigen->segmento->bodega->nombre . ' > ' . 
-                $seccionOrigen->segmento->descripcion . ' > ' . 
+
+            $trasladoDesdeDestino = $seccionOrigen ?
+                $seccionOrigen->segmento->bodega->nombre . ' > ' .
+                $seccionOrigen->segmento->descripcion . ' > ' .
                 $seccionOrigen->descripcion : 'N/A';
 
             // 1. Crear registro de ENVÍO en la sección origen (estado = enviado)
@@ -458,10 +458,10 @@ class StockForm extends Component
             'producto_existe' => !is_null($this->producto),
             'recibido_id' => $this->recibidoId
         ]);
-        
+
         $this->cargarSeccionesProducto();
         $this->modalSeccionesAbierto = true;
-        
+
         Log::info('Modal configurado para mostrar', [
             'mostrar_modal' => $this->modalSeccionesAbierto,
             'cantidad_secciones' => count($this->seccionesProducto)
@@ -479,12 +479,12 @@ class StockForm extends Component
         if ($this->recibido && $this->producto) {
             // Obtener el ID de la bodega a través de la sección
             $bodegaId = $this->recibido->seccion->segmento->bodega_id ?? null;
-            
+
             Log::info('Cargando secciones del producto', [
                 'bodega_id' => $bodegaId,
                 'producto_id' => $this->producto->id
             ]);
-            
+
             if ($bodegaId) {
                 // Obtener todas las secciones donde está el producto en esta bodega
                 $registros = RecibidoBodega::whereHas('seccion.segmento', function($query) use ($bodegaId) {
@@ -538,7 +538,7 @@ class StockForm extends Component
         } else {
             $this->segmentosDestino = [];
         }
-        
+
         // Limpiar selecciones dependientes
         $this->form['segmento_destino'] = '';
         $this->form['seccion_destino'] = '';
@@ -555,7 +555,7 @@ class StockForm extends Component
         } else {
             $this->seccionesDestino = [];
         }
-        
+
         // Limpiar selección dependiente
         $this->form['seccion_destino'] = '';
     }

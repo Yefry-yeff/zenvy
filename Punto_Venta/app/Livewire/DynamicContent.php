@@ -15,7 +15,7 @@ class DynamicContent extends Component
         $this->vista = 'dashboard';
         $this->componenteId = uniqid();
     }
-    
+
     protected $listeners = ['cambiarVista'];
 
     public function cambiarVista($ruta, $parametros = [])

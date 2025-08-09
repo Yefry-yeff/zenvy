@@ -28,27 +28,27 @@
                     </svg>
                 </button>
             </div>
-            
+
             <!-- Body -->
             <div class="p-6">
                 <form @submit.prevent="$wire.buscarClientePorIdentidad(identidad)">
                     <label for="identidad" class="block mb-2 text-sm font-medium text-gray-700">Número de Identidad:</label>
-                    <input type="text" 
-                        id="identidad" 
-                        x-model="identidad" 
-                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-200 mb-4" 
-                        maxlength="20" 
-                        placeholder="Ingrese número de identidad" 
-                        required 
+                    <input type="text"
+                        id="identidad"
+                        x-model="identidad"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-200 mb-4"
+                        maxlength="20"
+                        placeholder="Ingrese número de identidad"
+                        required
                         autofocus>
-                    
+
                     <div class="flex justify-end gap-3">
-                        <button type="button" 
+                        <button type="button"
                             @click="open = false"
                             class="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors">
                             Cancelar
                         </button>
-                        <button type="submit" 
+                        <button type="submit"
                             class="px-4 py-2 text-white rounded-lg transition-colors"
                             :class="{
                                 'bg-emerald-600 hover:bg-emerald-700': theme === 'verde',
@@ -98,7 +98,7 @@
                     </svg>
                 </button>
             </div>
-            
+
             <div class="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
                 <!-- Buscador -->
                 <div class="mb-4">
@@ -106,13 +106,13 @@
                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                             <i class="fas fa-search text-gray-400"></i>
                         </div>
-                        <input type="text" 
+                        <input type="text"
                             wire:model.live.debounce.300ms="busquedaCliente"
                             class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-200"
                             placeholder="Buscar cliente por nombre, identidad, RTN o correo...">
                     </div>
                 </div>
-                
+
                 <!-- Tabla de clientes -->
                 <div class="table-responsive">
                     <table class="table table-sm table-bordered table-hover">
@@ -129,11 +129,11 @@
                         </thead>
                         <tbody>
                             @forelse($clientesModal as $cliente)
-                                <tr class="align-middle cursor-pointer hover:bg-blue-50 transition-colors" 
+                                <tr class="align-middle cursor-pointer hover:bg-blue-50 transition-colors"
                                     wire:click="seleccionarClienteModal({{ $cliente->id }})"
                                     title="Clic para seleccionar este cliente">
                                     <td>{{ $cliente->id }}</td>
-                                    
+
                                     <td class="text-start">
                                         <div>
                                             <strong>{{ $cliente->nombre }}</strong><br>
@@ -156,7 +156,7 @@
                                     </td>
 
                                     <td>{{ $cliente->correo ?? 'N/A' }}</td>
-                                    
+
                                     <td>{{ $cliente->telefono ?? 'N/A' }}</td>
 
                                     <td class="text-start">
@@ -180,7 +180,7 @@
                         </tbody>
                     </table>
                 </div>
-                
+
                 <!-- Información adicional -->
                 @if(count($clientesModal) > 0)
                     <div class="mt-4 text-center">
@@ -233,18 +233,18 @@
                     Información del Cliente
                 </h3>
             </div>
-            
+
             <!-- Content -->
             <div class="p-4">
                 <!-- Información de bodega y alertas de stock -->
                 @if($bodegaPrincipal)
                     <div class="alert alert-info mb-3 p-3 rounded bg-blue-50 border border-blue-200">
-                        <i class="fas fa-warehouse text-blue-600"></i> 
+                        <i class="fas fa-warehouse text-blue-600"></i>
                         <span class="text-blue-800">Bodega Principal: <strong>{{ $bodegaPrincipal->nombre }}</strong></span>
                     </div>
                 @else
                     <div class="alert alert-warning mb-3 p-3 rounded bg-yellow-50 border border-yellow-200">
-                        <i class="fas fa-exclamation-triangle text-yellow-600"></i> 
+                        <i class="fas fa-exclamation-triangle text-yellow-600"></i>
                         <span class="text-yellow-800">No se encontró bodega principal para su tienda</span>
                     </div>
                 @endif
@@ -255,9 +255,9 @@
                         $esCritico = str_contains($alertaCAI, 'CRÍTICO') || str_contains($alertaCAI, 'ERROR');
                         $esAviso = str_contains($alertaCAI, 'AVISO') || str_contains($alertaCAI, 'ATENCIÓN');
                     @endphp
-                    
+
                     <div class="alert mb-3 p-3 rounded {{ $esCritico ? 'bg-red-50 border border-red-200' : ($esAviso ? 'bg-yellow-50 border border-yellow-200' : 'bg-blue-50 border border-blue-200') }}">
-                        <i class="fas {{ $esCritico ? 'fa-times-circle text-red-600' : ($esAviso ? 'fa-exclamation-triangle text-yellow-600' : 'fa-info-circle text-blue-600') }}"></i> 
+                        <i class="fas {{ $esCritico ? 'fa-times-circle text-red-600' : ($esAviso ? 'fa-exclamation-triangle text-yellow-600' : 'fa-info-circle text-blue-600') }}"></i>
                         <span class="{{ $esCritico ? 'text-red-800' : ($esAviso ? 'text-yellow-800' : 'text-blue-800') }}">
                             <strong>CAI:</strong> {{ $alertaCAI }}
                         </span>
@@ -272,11 +272,11 @@
                                 Número de Identidad
                             </label>
                             <div class="relative">
-                                <input type="text" 
+                                <input type="text"
                                     class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded text-gray-700 cursor-not-allowed pr-10"
                                     value="{{ !empty($cliente->identidad) ? $cliente->identidad : 'No especificado' }}"
                                     readonly>
-                                <button type="button" 
+                                <button type="button"
                                     wire:click="mostrarModalClientes"
                                     class="absolute inset-y-0 right-0 flex items-center px-3 text-gray-400 hover:text-blue-600 transition-colors">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -285,12 +285,12 @@
                                 </button>
                             </div>
                         </div>
-                        
+
                         <div class="space-y-1">
                             <label class="block text-sm font-medium text-gray-700">
                                 Nombre Completo
                             </label>
-                            <input type="text" 
+                            <input type="text"
                                 class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded text-gray-700 cursor-not-allowed"
                                 value="{{ !empty($cliente->nombre) ? $cliente->nombre : 'No especificado' }}"
                                 readonly>
@@ -303,17 +303,17 @@
                             <label class="block text-sm font-medium text-gray-700">
                                 Teléfono
                             </label>
-                            <input type="text" 
+                            <input type="text"
                                 class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded text-gray-700 cursor-not-allowed"
                                 value="{{ !empty($cliente->telefono) ? $cliente->telefono : 'No especificado' }}"
                                 readonly>
                         </div>
-                        
+
                         <div class="space-y-1">
                             <label class="block text-sm font-medium text-gray-700">
                                 Correo Electrónico
                             </label>
-                            <input type="text" 
+                            <input type="text"
                                 class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded text-gray-700 cursor-not-allowed"
                                 value="{{ !empty($cliente->correo) ? $cliente->correo : 'No especificado' }}"
                                 readonly>
@@ -325,7 +325,7 @@
                         <label class="block text-sm font-medium text-gray-700">
                             Dirección Completa
                         </label>
-                        <textarea 
+                        <textarea
                             class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded text-gray-700 cursor-not-allowed resize-none"
                             rows="2"
                             readonly>{{ !empty($cliente->direccion_completa) ? $cliente->direccion_completa : 'No especificado' }}</textarea>
@@ -348,11 +348,11 @@
                     🧾 Facturación
                 </h3>
             </div>
-            
+
             <!-- Content -->
             <div class="p-4">
                 <!-- Escanear producto -->
-                <div x-data="{ 
+                <div x-data="{
                     init() {
                         this.$el.querySelector('#codigo_barras').focus();
                     }
@@ -361,11 +361,11 @@
                         <div class="flex flex-wrap gap-2 mb-4">
                             <div class="flex-1">
                                 <label for="codigo_barras" class="block text-sm font-medium text-gray-700 mb-1">Escanear código de barras</label>
-                                <input type="text" 
-                                    id="codigo_barras" 
-                                    wire:model.defer="codigoBarras" 
+                                <input type="text"
+                                    id="codigo_barras"
+                                    wire:model.defer="codigoBarras"
                                     wire:keydown.enter="agregarProductoPorCodigo"
-                                    class="form-control w-full" 
+                                    class="form-control w-full"
                                     placeholder="Escanee el código de barras"
                                     autocomplete="off"
                                     @keydown.enter="$event.target.value = ''; $event.target.focus()"
@@ -374,10 +374,10 @@
                             </div>
                             <div class="w-32">
                                 <label for="cantidad" class="block text-sm font-medium text-gray-700 mb-1">Cantidad</label>
-                                <input type="number" 
-                                    id="cantidad" 
-                                    wire:model.live="cantidad" 
-                                    class="form-control w-full" 
+                                <input type="number"
+                                    id="cantidad"
+                                    wire:model.live="cantidad"
+                                    class="form-control w-full"
                                     min="1">
                             </div>
                         </div>
@@ -418,7 +418,7 @@
                             <td>{{ $item['codigo'] }}</td>
                             <td>L. {{ number_format($item['precio'], 2) }}</td>
                             <td>
-                                <input type="number" 
+                                <input type="number"
                                     wire:change="modificarCantidad({{ $loop->index }}, $event.target.value)"
                                     value="{{ $item['cantidad'] }}"
                                     min="1"
@@ -433,7 +433,7 @@
                             </td>
                             <td>L. {{ number_format($total, 2) }}</td>
                             <td class="text-center">
-                                <button wire:click="eliminarProducto({{ $loop->index }})" 
+                                <button wire:click="eliminarProducto({{ $loop->index }})"
                                     class="btn btn-link p-0 hover:opacity-75 transition-opacity"
                                     title="Eliminar producto">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -454,7 +454,7 @@
             </div>
 
                 <!-- Totales -->
-                <div class="flex justify-end mb-4" x-data="{ 
+                <div class="flex justify-end mb-4" x-data="{
                     subtotal: @entangle('subtotal'),
                     totalIsv: @entangle('totalIsv'),
                     total: @entangle('total'),
@@ -465,7 +465,7 @@
                             <span class="font-semibold">Subtotal:</span>
                             <span x-text="'L. ' + parseFloat(subtotal).toFixed(2)">L. {{ number_format($subtotal, 2) }}</span>
                         </div>
-                        
+
                         <!-- ISV agrupado por tasa -->
                         @if(!empty($isvPorTasa))
                             @foreach($isvPorTasa as $tasa => $montoIsv)
@@ -484,7 +484,7 @@
                                 </div>
                             @endif
                         @endif
-                        
+
                         <hr class="my-2 border-gray-400">
                         <div class="flex justify-between text-lg font-bold">
                             <span>Total:</span>
@@ -495,10 +495,10 @@
 
                 <!-- Procesar Pago -->
                 <div class="flex justify-end">
-                    @php 
+                    @php
                         $tieneErrores = count($productosFactura) == 0;
                     @endphp
-                    <button wire:click="mostrarModalPago" 
+                    <button wire:click="mostrarModalPago"
                         class="px-6 py-2 text-white rounded-lg transition-colors {{ $tieneErrores ? 'opacity-50 cursor-not-allowed bg-gray-400' : '' }}"
                         @if(!$tieneErrores)
                         :class="{
@@ -559,7 +559,7 @@
                     </svg>
                 </button>
             </div>
-            
+
             <!-- Contenido con scroll -->
             <div class="overflow-y-auto max-h-[calc(90vh-120px)]">
                 <div class="p-4">
@@ -592,12 +592,12 @@
                                     </div>
                                     <span class="font-medium text-gray-800 text-sm">{{ $tipoPago->nombre }}</span>
                                 </div>
-                                
+
                                 <!-- Input de monto -->
                                 <div class="flex-shrink-0 w-24">
                                     <div class="relative">
                                         <span class="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-500 text-xs">L.</span>
-                                        <input type="number" 
+                                        <input type="number"
                                             wire:model.live="montosPorMetodo.{{ $tipoPago->id }}"
                                             step="0.01"
                                             min="0"
@@ -606,7 +606,7 @@
                                             placeholder="0.00">
                                     </div>
                                 </div>
-                                
+
                                 <!-- Indicador activo -->
                                 @if(($montosPorMetodo[$tipoPago->id] ?? 0) > 0)
                                     <div class="flex-shrink-0">
@@ -621,19 +621,19 @@
                             </div>
                         @endforelse
                     </div>
-                    
+
                     <!-- Resumen compacto con Alpine.js -->
-                    <div x-show="totalDistribuido > 0" class="mb-4 p-3 rounded-lg" 
+                    <div x-show="totalDistribuido > 0" class="mb-4 p-3 rounded-lg"
                          x-bind:class="puedeProceesar ? 'bg-green-50 border border-green-200' : 'bg-orange-50 border border-orange-200'">
                         <div class="flex justify-between items-center text-sm mb-1">
                             <span class="font-medium" x-bind:class="puedeProceesar ? 'text-green-700' : 'text-orange-700'">
                                 Distribuido:
                             </span>
-                            <span class="font-bold" x-bind:class="puedeProceesar ? 'text-green-700' : 'text-orange-700'" 
+                            <span class="font-bold" x-bind:class="puedeProceesar ? 'text-green-700' : 'text-orange-700'"
                                   x-text="'L. ' + totalDistribuido.toFixed(2)">
                             </span>
                         </div>
-                        
+
                         <template x-if="puedeProceesar">
                             <div>
                                 <template x-if="diferencia < 0">
@@ -650,14 +650,14 @@
                                 </template>
                             </div>
                         </template>
-                        
+
                         <template x-if="!puedeProceesar">
                             <div class="text-xs text-orange-600 flex items-center">
                                 <i class="fas fa-exclamation-triangle mr-1"></i>
                                 <span x-text="'Falta: L. ' + diferencia.toFixed(2)"></span>
                             </div>
                         </template>
-                        
+
                         <!-- Métodos activos compactos con Alpine.js -->
                         <template x-if="metodosConMonto.length > 0">
                             <div class="mt-2 flex flex-wrap gap-1">
@@ -671,24 +671,24 @@
                     </div>
                 </div>
             </div>
-            
+
             <!-- Botones fijos en la parte inferior -->
             <div class="flex justify-between items-center gap-3 p-4 border-t border-gray-200 bg-gray-50">
-                <button wire:click="cerrarModalPago" 
+                <button wire:click="cerrarModalPago"
                     class="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors">
                     Cancelar
                 </button>
-                
+
                 <div class="flex gap-2">
                     @if(count($tiposPago) > 0)
-                        <button wire:click="distribuirTotalEnEfectivo" 
+                        <button wire:click="distribuirTotalEnEfectivo"
                             class="px-3 py-2 text-green-700 bg-green-100 rounded-lg hover:bg-green-200 transition-colors text-sm">
                             <i class="fas fa-money-bill-wave mr-1"></i>
                             Efectivo
                         </button>
                     @endif
-                    
-                    <button wire:click="procesarDistribucionPagos" 
+
+                    <button wire:click="procesarDistribucionPagos"
                         wire:loading.attr="disabled"
                         wire:loading.class="opacity-50"
                         x-bind:disabled="!puedeProceesar"
@@ -729,7 +729,7 @@
                     </svg>
                 </button>
             </div>
-            
+
             <div class="p-6">
                 <!-- Información del pago -->
                 <div class="mb-6">
@@ -744,7 +744,7 @@
                             </p>
                         </div>
                     @endif
-                    
+
                     <!-- Monto que debe recibir en efectivo -->
                     <div class="text-center p-6 bg-green-50 rounded-xl border-2 border-green-200 mb-6">
                         <div class="text-sm font-medium text-green-700 mb-1">Monto a recibir en efectivo</div>
@@ -764,7 +764,7 @@
                     </label>
                     <div class="relative">
                         <span class="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 font-bold text-xl">L.</span>
-                        <input type="number" 
+                        <input type="number"
                             id="efectivo_recibido"
                             wire:model.live="efectivoRecibido"
                             step="0.01"
@@ -785,25 +785,25 @@
                         $cambio = $efectivoRecibido - $montoAPagar;
                         $esSuficiente = $efectivoRecibido >= $montoAPagar;
                     @endphp
-                    
+
                     <div class="mb-6 p-6 rounded-xl border-2 {{ $esSuficiente ? 'bg-green-50 border-green-300' : 'bg-red-50 border-red-300' }}">
                         <h3 class="font-bold text-lg {{ $esSuficiente ? 'text-green-800' : 'text-red-800' }} mb-4">
                             📊 Resumen del Pago
                         </h3>
-                        
+
                         <div class="space-y-3">
                             <div class="flex justify-between items-center">
                                 <span class="font-medium text-gray-700">Monto a cobrar:</span>
                                 <span class="font-bold text-gray-800">L. {{ number_format($montoAPagar, 2) }}</span>
                             </div>
-                            
+
                             <div class="flex justify-between items-center">
                                 <span class="font-medium text-gray-700">Efectivo recibido:</span>
                                 <span class="font-bold text-blue-600">L. {{ number_format($efectivoRecibido, 2) }}</span>
                             </div>
-                            
+
                             <hr class="border-gray-300">
-                            
+
                             @if($esSuficiente)
                                 @if($cambio > 0)
                                     <div class="flex justify-between items-center">
@@ -834,12 +834,12 @@
 
                 <!-- Botones de acción -->
                 <div class="flex justify-end gap-4">
-                    <button wire:click="cerrarModalEfectivo" 
+                    <button wire:click="cerrarModalEfectivo"
                         class="px-6 py-3 text-gray-700 bg-gray-200 rounded-xl hover:bg-gray-300 transition-colors font-medium">
                         <i class="fas fa-times mr-2"></i>
                         Cancelar
                     </button>
-                    <button wire:click="confirmarEfectivo" 
+                    <button wire:click="confirmarEfectivo"
                         class="px-8 py-3 text-white rounded-xl transition-colors font-medium text-lg {{ ($efectivoRecibido > 0 && $efectivoRecibido >= ($montoEfectivo ?? 0)) ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-400 cursor-not-allowed' }}"
                         @if($efectivoRecibido <= 0 || $efectivoRecibido < ($montoEfectivo ?? 0)) disabled @endif>
                         <i class="fas fa-check mr-2"></i>
@@ -875,7 +875,7 @@
                     Confirmar Pago
                 </h2>
             </div>
-            
+
             <div class="p-6">
                 <!-- Monto a procesar -->
                 <div class="mb-6 p-4 bg-blue-50 rounded-lg text-center">
@@ -901,12 +901,12 @@
 
                 <!-- Botones de confirmación -->
                 <div class="flex justify-center gap-4">
-                    <button wire:click="confirmarPagoTarjeta(false)" 
+                    <button wire:click="confirmarPagoTarjeta(false)"
                         class="px-6 py-3 text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors">
                         <i class="fas fa-times me-2"></i>
                         No, falló el pago
                     </button>
-                    <button wire:click="confirmarPagoTarjeta(true)" 
+                    <button wire:click="confirmarPagoTarjeta(true)"
                         class="px-6 py-3 text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors">
                         <i class="fas fa-check me-2"></i>
                         Sí, pago exitoso
@@ -940,7 +940,7 @@
                     Sin Stock Disponible
                 </h2>
             </div>
-            
+
             <!-- Body -->
             <div class="p-6 text-center">
                 <div class="mb-4">
@@ -948,7 +948,7 @@
                     <p class="text-gray-700 text-lg">No hay más producto asignado en stock.</p>
                     <p class="text-gray-500 text-sm mt-2">El producto que intentas agregar no tiene stock disponible en la bodega principal.</p>
                 </div>
-                
+
                 <button @click="open = false; $wire.dispatch('enfocar-codigo-barras')"
                     class="w-full px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium">
                     <i class="fas fa-check me-2"></i>

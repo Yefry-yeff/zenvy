@@ -19,7 +19,7 @@ try {
         echo "❌ DomPDF no está disponible\n";
         exit(1);
     }
-    
+
     // 2. Verificar que existe la vista PDF
     echo "\n2. Verificando vista PDF...\n";
     $vistaPDF = 'c:\laragon\www\Procadts\zenvy\Punto_Venta\resources\views\pdf\factura.blade.php';
@@ -29,7 +29,7 @@ try {
         echo "❌ Vista PDF no existe\n";
         exit(1);
     }
-    
+
     // 3. Verificar que existe el controlador
     echo "\n3. Verificando controlador PDF...\n";
     $controladorPDF = 'c:\laragon\www\Procadts\zenvy\Punto_Venta\app\Http\Controllers\FacturaPDFController.php';
@@ -39,7 +39,7 @@ try {
         echo "❌ Controlador PDF no existe\n";
         exit(1);
     }
-    
+
     // 4. Verificar facturas disponibles para prueba
     echo "\n4. Verificando facturas disponibles...\n";
     $facturas = DB::table('factura as f')
@@ -48,30 +48,30 @@ try {
         ->orderBy('f.id', 'desc')
         ->limit(3)
         ->get();
-        
+
     if ($facturas->count() > 0) {
         echo "✅ Facturas disponibles para prueba:\n";
         foreach ($facturas as $factura) {
             echo "   ID: {$factura->id} | Número: {$factura->numero_factura} | Cliente: {$factura->nombre_cliente} | Total: L.{$factura->total}\n";
         }
-        
+
         // 5. Información para probar
         echo "\n5. URLs para probar:\n";
         foreach ($facturas->take(2) as $factura) {
             echo "   PDF Factura {$factura->id}: http://localhost/factura/{$factura->id}/pdf\n";
         }
-        
+
     } else {
         echo "⚠️  No hay facturas disponibles para prueba\n";
     }
-    
+
     // 6. Verificar configuración DomPDF
     echo "\n6. Configuración DomPDF:\n";
     echo "   - Papel: 80mm (226.77 puntos) x altura automática\n";
     echo "   - Fuente: Courier (monospace)\n";
     echo "   - DPI: 150\n";
     echo "   - Soporte para imágenes: Habilitado\n";
-    
+
     echo "\n✅ Sistema PDF listo para usar!\n";
     echo "🎯 Funcionalidades disponibles:\n";
     echo "   - Generación de PDF optimizada para factura térmica\n";
@@ -80,7 +80,7 @@ try {
     echo "   - Información fiscal completa\n";
     echo "   - Formato de impresión 80mm\n";
     echo "   - Descarga automática del archivo PDF\n";
-    
+
 } catch (Exception $e) {
     echo "❌ ERROR: " . $e->getMessage() . "\n";
 }

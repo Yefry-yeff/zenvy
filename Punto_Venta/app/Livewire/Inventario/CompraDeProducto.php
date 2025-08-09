@@ -31,7 +31,7 @@ class CompraDeProducto extends Component
 
     // Productos en la compra
     public $productosCompra = [];
-    
+
     // Producto temporal para agregar
     public $productoTemporal = [
         'producto_id' => null,
@@ -46,7 +46,7 @@ class CompraDeProducto extends Component
     public $busquedaProducto = '';
     public $productosFiltrados = [];
     public $mostrarListaProductos = false;
-    
+
     // Control de visibilidad de sección de productos
     public $mostrarSeccionProductosActiva = false;
 
@@ -121,7 +121,7 @@ class CompraDeProducto extends Component
         // Si no hay proveedores, intentar con diferentes variaciones del nombre
         if (empty($this->proveedores)) {
             Log::warning('No se encontraron proveedores, intentando con búsqueda más amplia...');
-            
+
             $this->proveedores = Cliente::whereHas('tipoCliente', function($query) {
                 $query->where('nombre', 'LIKE', '%proveedor%')
                       ->orWhere('nombre', 'LIKE', '%Proveedor%')
@@ -142,7 +142,7 @@ class CompraDeProducto extends Component
                 ];
             })
             ->toArray();
-            
+
             Log::info('Proveedores encontrados con búsqueda amplia: ', $this->proveedores);
         }
 
@@ -234,9 +234,9 @@ class CompraDeProducto extends Component
     public function getBotonHabilitadoProperty()
     {
         // Solo requiere producto, precio y unidad para agregar productos
-        return !empty($this->productoTemporal['producto_id']) && 
-               !empty($this->productoTemporal['precio']) && 
-               $this->productoTemporal['precio'] > 0 && 
+        return !empty($this->productoTemporal['producto_id']) &&
+               !empty($this->productoTemporal['precio']) &&
+               $this->productoTemporal['precio'] > 0 &&
                !empty($this->productoTemporal['unidad_compra_id']) &&
                $this->productoTemporal['cantidad_ingresada'] > 0;
     }
@@ -244,7 +244,7 @@ class CompraDeProducto extends Component
     // Propiedad computada para habilitar/deshabilitar el botón de guardar compra
     public function getBotonGuardarHabilitadoProperty()
     {
-        // Solo requiere que haya productos agregados, ya que la información de compra 
+        // Solo requiere que haya productos agregados, ya que la información de compra
         // es prerequisito para mostrar la sección de productos
         return count($this->productosCompra) > 0;
     }
@@ -253,9 +253,9 @@ class CompraDeProducto extends Component
     public function getMostrarSeccionProductosProperty()
     {
         // Solo mostrar sección de productos cuando la información básica esté completa
-        return !empty($this->compra['numero_factura']) && 
-               !empty($this->compra['fecha_emision']) && 
-               !empty($this->compra['fecha_recepcion']) && 
+        return !empty($this->compra['numero_factura']) &&
+               !empty($this->compra['fecha_emision']) &&
+               !empty($this->compra['fecha_recepcion']) &&
                !empty($this->proveedorSeleccionado);
     }
 
@@ -270,29 +270,29 @@ class CompraDeProducto extends Component
     {
         // Validar campos obligatorios
         $errores = [];
-        
+
         if (empty($this->compra['numero_factura'])) {
             $errores[] = 'El número de factura es obligatorio';
         }
-        
+
         if (empty($this->compra['fecha_emision'])) {
             $errores[] = 'La fecha de emisión es obligatoria';
         }
-        
+
         if (empty($this->compra['fecha_recepcion'])) {
             $errores[] = 'La fecha de recepción es obligatoria';
         }
-        
+
         if (empty($this->proveedorSeleccionado)) {
             $errores[] = 'Debe seleccionar un proveedor';
         }
-        
+
         // Si hay errores, mostrar alerta
         if (!empty($errores)) {
             $this->mostrarAlertaError('Complete los siguientes campos: ' . implode(', ', $errores));
             return;
         }
-        
+
         // Si todo está correcto, activar la sección de productos
         $this->mostrarSeccionProductosActiva = true;
     }
@@ -327,7 +327,7 @@ class CompraDeProducto extends Component
         $precio = (float) $this->productoTemporal['precio'];
         $cantidad = (int) $this->productoTemporal['cantidad_ingresada'];
         $isv = (float) $this->productoTemporal['isv'];
-        
+
         $subtotalProducto = $precio * $cantidad;
         $isvProducto = $subtotalProducto * ($isv / 100);
         $totalProducto = $subtotalProducto + $isvProducto;
@@ -354,7 +354,7 @@ class CompraDeProducto extends Component
 
         // Limpiar formulario temporal
         $this->resetProductoTemporal();
-        
+
         // Recalcular totales
         $this->calcularTotales();
     }
@@ -369,7 +369,7 @@ class CompraDeProducto extends Component
     public function actualizarCantidad($index, $nuevaCantidad)
     {
         $nuevaCantidad = (int) $nuevaCantidad;
-        
+
         if ($nuevaCantidad <= 0) {
             $this->mostrarAlertaError('La cantidad debe ser mayor a cero');
             return;
@@ -379,18 +379,18 @@ class CompraDeProducto extends Component
             // Actualizar la cantidad
             $this->productosCompra[$index]['cantidad_ingresada'] = $nuevaCantidad;
             $this->productosCompra[$index]['cantidad_sin_asignar'] = $nuevaCantidad;
-            
+
             // Recalcular los totales para este producto
             $precio = $this->productosCompra[$index]['precio'];
             $isv = $this->productosCompra[$index]['isv'];
-            
+
             $subtotalProducto = $precio * $nuevaCantidad;
             $isvProducto = $subtotalProducto * ($isv / 100);
             $totalProducto = $subtotalProducto + $isvProducto;
-            
+
             $this->productosCompra[$index]['sub_total_producto'] = $subtotalProducto;
             $this->productosCompra[$index]['precio_total'] = $totalProducto;
-            
+
             // Recalcular totales generales
             $this->calcularTotales();
         }
@@ -483,7 +483,7 @@ class CompraDeProducto extends Component
     private function validarNumeroFacturaUnico()
     {
         $numeroFactura = $this->compra['numero_factura'];
-        
+
         // Buscar compras existentes con el mismo número de factura
         $compraExistente = Compra::where('numero_factura', $numeroFactura)
             ->with('estado')
@@ -492,16 +492,16 @@ class CompraDeProducto extends Component
         if ($compraExistente) {
             // Verificar si la compra existente está anulada
             $estadoAnulado = strtolower($compraExistente->estado->nombre ?? '') === 'anulado';
-            
+
             if (!$estadoAnulado) {
                 // Si existe una compra activa con el mismo número, lanzar error
-                $this->addError('compra.numero_factura', 
+                $this->addError('compra.numero_factura',
                     'Ya existe una compra con este número de factura. Solo se puede reutilizar si la compra anterior está anulada.');
-                
+
                 // También mostrar alerta visual
                 $this->mostrarAlerta = true;
                 $this->mensajeAlerta = 'El número de factura "' . $numeroFactura . '" ya está en uso. Solo se puede reutilizar si la compra anterior está anulada.';
-                
+
                 throw new \Exception('Número de factura duplicado');
             }
         }
@@ -525,10 +525,10 @@ class CompraDeProducto extends Component
             if ($compraExistente) {
                 // Verificar si la compra existente está anulada
                 $estadoAnulado = strtolower($compraExistente->estado->nombre ?? '') === 'anulado';
-                
+
                 if (!$estadoAnulado) {
                     // Mostrar error inmediato
-                    $this->addError('compra.numero_factura', 
+                    $this->addError('compra.numero_factura',
                         'Este número de factura ya está en uso. Solo se puede reutilizar si la compra anterior está anulada.');
                 } else {
                     // Mostrar advertencia pero permitir continuar
@@ -588,7 +588,7 @@ class CompraDeProducto extends Component
     {
         $todosLosClientes = Cliente::with('tipoCliente')->get();
         Log::info('Todos los clientes: ', $todosLosClientes->toArray());
-        
+
         $this->mostrarAlertaError('Debug ejecutado. Revise los logs para ver la información de clientes.');
     }
 
