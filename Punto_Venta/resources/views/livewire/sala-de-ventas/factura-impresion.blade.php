@@ -96,6 +96,19 @@
             <button onclick="window.print()" class="btn btn-primary btn-sm me-2">
                 🖨️ Imprimir
             </button>
+            
+            <!-- Botones para imagen de factura -->
+            @if($factura->factura_imagen)
+                <a href="{{ route('factura.imagen', $factura->id) }}" target="_blank" class="btn btn-info btn-sm me-2">
+                    🖼️ Ver Imagen
+                </a>
+                <a href="{{ route('factura.imagen.descargar', $factura->id) }}" class="btn btn-success btn-sm me-2">
+                    💾 Descargar
+                </a>
+            @else
+                <span class="text-muted small">📷 Imagen no disponible</span>
+            @endif
+            
             <button wire:click="volverAVentas" class="btn btn-secondary btn-sm">
                 ← Volver a Ventas
             </button>

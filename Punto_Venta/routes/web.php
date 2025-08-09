@@ -39,6 +39,42 @@ Route::middleware('auth')->group(function () {
     Route::get('/facturacion', function () {
         return view('layouts.app');
     })->name('facturacion');
+    
+    // Ruta para gestión de empresa
+    Route::get('/empresa', function () {
+        return view('layouts.app');
+    })->name('empresa');
+    
+    // Rutas para imágenes de facturas
+    Route::get('/factura/{id}/imagen', function ($id) {
+        $factura = \App\Models\Factura::find($id);
+        
+        if (!$factura || !$factura->factura_imagen) {
+            abort(404, 'Imagen de factura no encontrada');
+        }
+        
+        return response($factura->factura_imagen)
+            ->header('Content-Type', 'image/png')
+            ->header('Content-Length', strlen($factura->factura_imagen))
+            ->header('Cache-Control', 'public, max-age=3600')
+            ->header('Content-Disposition', 'inline; filename="factura_' . $factura->numero_factura . '.png"');
+    })->name('factura.imagen');
+    
+    Route::get('/factura/{id}/imagen/descargar', function ($id) {
+        $factura = \App\Models\Factura::find($id);
+        
+        if (!$factura || !$factura->factura_imagen) {
+            abort(404, 'Imagen de factura no encontrada');
+        }
+        
+        $nombreArchivo = 'factura_' . $factura->numero_factura . '.png';
+        
+        return response($factura->factura_imagen)
+            ->header('Content-Type', 'image/png')
+            ->header('Content-Length', strlen($factura->factura_imagen))
+            ->header('Content-Disposition', 'attachment; filename="' . $nombreArchivo . '"')
+            ->header('Cache-Control', 'no-cache, must-revalidate');
+    })->name('factura.imagen.descargar');
 });
 
 require __DIR__.'/auth.php';

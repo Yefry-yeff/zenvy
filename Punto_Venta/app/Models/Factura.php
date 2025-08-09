@@ -33,7 +33,8 @@ class Factura extends Model
         'monto_descuento',
         'precio_dolar',
         'estado_factura_id',
-        'users_id'
+        'users_id',
+        'factura_imagen'
     ];
 
     protected $casts = [

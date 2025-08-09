@@ -998,6 +998,202 @@ class Ventas extends Component
             ->where('fp.factura_id', $facturaId)
             ->select('tp.nombre as metodo', 'fp.pago_recibido')
             ->get()->toArray();
+            
+        // Generar y guardar imagen de la factura
+        $this->generarYGuardarImagenFactura($facturaId);
+    }
+    
+    private function generarYGuardarImagenFactura($facturaId)
+    {
+        try {
+            Log::info("DEBUG Generando imagen de factura", ['factura_id' => $facturaId]);
+            
+            // Obtener datos de la factura
+            $factura = Factura::find($facturaId);
+            if (!$factura) {
+                Log::error("Factura no encontrada para generar imagen", ['factura_id' => $facturaId]);
+                return;
+            }
+            
+            // Crear una imagen en blanco (600x800 píxeles) con TRUE COLOR
+            $ancho = 600;
+            $alto = 800;
+            $imagen = imagecreatetruecolor($ancho, $alto); // Usar truecolor para mejor calidad
+            
+            // Habilitar alpha blending y guardar alpha
+            imagealphablending($imagen, false);
+            imagesavealpha($imagen, true);
+            
+            // Definir colores
+            $blanco = imagecolorallocate($imagen, 255, 255, 255);
+            $negro = imagecolorallocate($imagen, 0, 0, 0);
+            $gris = imagecolorallocate($imagen, 128, 128, 128);
+            $azul = imagecolorallocate($imagen, 0, 100, 200);
+            
+            // Fondo blanco
+            imagefill($imagen, 0, 0, $blanco);
+            
+            // Título de la empresa
+            $y = 30;
+            imagestring($imagen, 5, 200, $y, "PUNTO DE VENTA", $azul);
+            $y += 40;
+            imagestring($imagen, 3, 180, $y, "Sistema de Facturacion", $negro);
+            $y += 30;
+            
+            // Línea separadora
+            imageline($imagen, 20, $y, $ancho-20, $y, $gris);
+            $y += 30;
+            
+            // Información de la factura
+            imagestring($imagen, 4, 30, $y, "FACTURA: " . $factura->numero_factura, $negro);
+            $y += 25;
+            imagestring($imagen, 3, 30, $y, "Cliente: " . ($factura->nombre_cliente ?: 'Consumidor Final'), $negro);
+            $y += 20;
+            imagestring($imagen, 3, 30, $y, "Fecha: " . $factura->fecha_emision, $negro);
+            $y += 20;
+            if ($factura->rtn) {
+                imagestring($imagen, 3, 30, $y, "RTN: " . $factura->rtn, $negro);
+                $y += 20;
+            }
+            $y += 10;
+            
+            // Línea separadora
+            imageline($imagen, 20, $y, $ancho-20, $y, $gris);
+            $y += 20;
+            
+            // Encabezados de productos
+            imagestring($imagen, 3, 30, $y, "PRODUCTO", $negro);
+            imagestring($imagen, 3, 350, $y, "CANT.", $negro);
+            imagestring($imagen, 3, 420, $y, "PRECIO", $negro);
+            imagestring($imagen, 3, 500, $y, "TOTAL", $negro);
+            $y += 20;
+            imageline($imagen, 20, $y, $ancho-20, $y, $gris);
+            $y += 15;
+            
+            // Productos
+            foreach ($this->productosFacturaImpresa as $producto) {
+                $nombreCorto = substr($producto->nombre, 0, 25);
+                imagestring($imagen, 2, 30, $y, $nombreCorto, $negro);
+                imagestring($imagen, 2, 350, $y, $producto->cantidad, $negro);
+                imagestring($imagen, 2, 420, $y, "L. " . number_format($producto->precio_unidad, 2), $negro);
+                imagestring($imagen, 2, 500, $y, "L. " . number_format($producto->total, 2), $negro);
+                $y += 15;
+            }
+            
+            $y += 10;
+            imageline($imagen, 20, $y, $ancho-20, $y, $gris);
+            $y += 20;
+            
+            // Totales
+            imagestring($imagen, 3, 350, $y, "Subtotal:", $negro);
+            imagestring($imagen, 3, 470, $y, "L. " . number_format($factura->sub_total, 2), $negro);
+            $y += 20;
+            imagestring($imagen, 3, 350, $y, "ISV:", $negro);
+            imagestring($imagen, 3, 470, $y, "L. " . number_format($factura->isv, 2), $negro);
+            $y += 20;
+            imagestring($imagen, 4, 350, $y, "TOTAL:", $azul);
+            imagestring($imagen, 4, 470, $y, "L. " . number_format($factura->total, 2), $azul);
+            $y += 30;
+            
+            // Métodos de pago
+            if (!empty($this->pagosFacturaImpresa)) {
+                imageline($imagen, 20, $y, $ancho-20, $y, $gris);
+                $y += 20;
+                imagestring($imagen, 3, 30, $y, "METODOS DE PAGO:", $negro);
+                $y += 20;
+                
+                foreach ($this->pagosFacturaImpresa as $pago) {
+                    imagestring($imagen, 2, 50, $y, $pago->metodo . ": L. " . number_format($pago->pago_recibido, 2), $negro);
+                    $y += 15;
+                }
+            }
+            
+            // Convertir imagen a BLOB PNG de alta calidad
+            ob_start();
+            
+            // Configurar PNG con máxima compresión (0) para mejor calidad
+            imagepng($imagen, null, 0);
+            $imagenBlob = ob_get_clean();
+            
+            // Verificar que se generó correctamente
+            if (strlen($imagenBlob) === 0) {
+                throw new \Exception("Error al generar PNG: el buffer está vacío");
+            }
+            
+            // Verificar signature PNG
+            $signature = bin2hex(substr($imagenBlob, 0, 8));
+            if ($signature !== '89504e470d0a1a0a') {
+                throw new \Exception("Error: PNG generado no tiene la signature correcta. Signature: $signature");
+            }
+            
+            // Guardar en la base de datos
+            DB::table('factura')
+                ->where('id', $facturaId)
+                ->update(['factura_imagen' => $imagenBlob]);
+            
+            // Limpiar memoria
+            imagedestroy($imagen);
+            
+            Log::info("DEBUG Imagen de factura generada y guardada", [
+                'factura_id' => $facturaId,
+                'tamaño_bytes' => strlen($imagenBlob)
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error("ERROR al generar imagen de factura", [
+                'factura_id' => $facturaId,
+                'error' => $e->getMessage()
+            ]);
+        }
+    }
+    
+    public function descargarImagenFactura($facturaId)
+    {
+        try {
+            $factura = Factura::find($facturaId);
+            
+            if (!$factura || !$factura->factura_imagen) {
+                session()->flash('error', 'Imagen de factura no encontrada');
+                return;
+            }
+            
+            // Crear respuesta con la imagen
+            $nombreArchivo = 'factura_' . $factura->numero_factura . '.png';
+            
+            return response($factura->factura_imagen)
+                ->header('Content-Type', 'image/png')
+                ->header('Content-Disposition', 'attachment; filename="' . $nombreArchivo . '"');
+                
+        } catch (\Exception $e) {
+            Log::error("ERROR al descargar imagen de factura", [
+                'factura_id' => $facturaId,
+                'error' => $e->getMessage()
+            ]);
+            session()->flash('error', 'Error al descargar la imagen de la factura');
+        }
+    }
+    
+    public function mostrarImagenFactura($facturaId)
+    {
+        try {
+            $factura = Factura::find($facturaId);
+            
+            if (!$factura || !$factura->factura_imagen) {
+                session()->flash('error', 'Imagen de factura no encontrada');
+                return;
+            }
+            
+            // Mostrar la imagen en el navegador
+            return response($factura->factura_imagen)
+                ->header('Content-Type', 'image/png');
+                
+        } catch (\Exception $e) {
+            Log::error("ERROR al mostrar imagen de factura", [
+                'factura_id' => $facturaId,
+                'error' => $e->getMessage()
+            ]);
+            session()->flash('error', 'Error al mostrar la imagen de la factura');
+        }
     }
     
     public function volverAVentas()
