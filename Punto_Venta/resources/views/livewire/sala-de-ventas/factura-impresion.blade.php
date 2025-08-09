@@ -71,6 +71,17 @@
             @if($factura->rtn)
                 <div><strong>RTN:</strong> {{ $factura->rtn }}</div>
             @endif
+            
+            <!-- INFORMACIÓN DEL CAI -->
+            @if($caiFacturaImpresa)
+                <div style="margin-top: 8px; padding: 3px; border: 1px solid #000; font-size: 9px;">
+                    <div><strong>CAI:</strong> {{ $caiFacturaImpresa->cai }}</div>
+                    <div><strong>Fecha límite emisión:</strong> {{ \Carbon\Carbon::parse($caiFacturaImpresa->fecha_limite_emision)->format('d/m/Y') }}</div>
+                    <div><strong>Rango autorizado:</strong></div>
+                    <div>{{ $caiFacturaImpresa->rango_inicio }} - {{ $caiFacturaImpresa->rango_final }}</div>
+                </div>
+            @endif
+            
             <div style="font-size: 10px;">================================</div>
         </div>
 

@@ -8,6 +8,7 @@ use App\Models\Producto;
 use App\Models\TipoPago;
 use App\Models\Factura;
 use App\Models\Bodega;
+use App\Services\CAIService;
 use Livewire\Attributes\On;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -62,6 +63,12 @@ class Ventas extends Component
     public $facturaParaImprimir = null;
     public $productosFacturaImpresa = [];
     public $pagosFacturaImpresa = [];
+    public $caiFacturaImpresa = null;
+
+    // Propiedades para CAI
+    public $caiActual = null;
+    public $informacionCAI = [];
+    public $alertaCAI = null;
 
     public function mount()
     {
@@ -80,6 +87,40 @@ class Ventas extends Component
         }
         
         $this->cargarTiposPago();
+        $this->verificarCAI();
+    }
+    
+    public function verificarCAI()
+    {
+        $caiService = new CAIService();
+        
+        try {
+            // Desactivar CAIs vencidos
+            $caisDesactivados = $caiService->desactivarCAIsVencidos();
+            if ($caisDesactivados > 0) {
+                Log::info("CAIs vencidos desactivados: $caisDesactivados");
+            }
+            
+            // Verificar disponibilidad
+            if (!$caiService->verificarDisponibilidadCAI()) {
+                $this->alertaCAI = "¡CRÍTICO! No hay CAI activos disponibles para facturar. Contacte al administrador.";
+            } else {
+                // Obtener información de CAIs
+                $this->informacionCAI = $caiService->obtenerInformacionCAIs();
+                
+                // Verificar si algún CAI está por agotarse
+                foreach ($this->informacionCAI as $cai) {
+                    if ($cai->cantidad_no_utilizada <= 10 && $cai->cantidad_no_utilizada > 0) {
+                        $this->alertaCAI = "¡AVISO! El CAI {$cai->numero_base} tiene solo {$cai->cantidad_no_utilizada} facturas restantes.";
+                        break;
+                    }
+                }
+            }
+            
+        } catch (\Exception $e) {
+            Log::error("Error al verificar CAI: " . $e->getMessage());
+            $this->alertaCAI = "Error al verificar CAI: " . $e->getMessage();
+        }
     }
 
     public function cargarTiposPago()
@@ -491,9 +532,13 @@ class Ventas extends Component
             
             // Crear la factura principal
             $factura = new Factura();
-            $factura->cai_id = 1; // Valor por defecto para CAI
-            $factura->tipo_facturacion_id = 1; // Asumiendo que 1 es venta normal
+            
+            // Generar número de factura con CAI
             $factura->numero_factura = $this->generarNumeroFactura();
+            
+            // Usar el CAI real generado
+            $factura->cai_id = $this->caiActual ? $this->caiActual['cai_id'] : 1;
+            $factura->tipo_facturacion_id = 1; // Asumiendo que 1 es venta normal
             $factura->nombre_cliente = $this->cliente ? $this->cliente->nombre_completo : 'Consumidor Final';
             $factura->rtn = $this->cliente ? $this->cliente->rtn : null;
             $factura->sub_total = $this->subtotal;
@@ -919,7 +964,12 @@ class Ventas extends Component
             // Crear la factura principal
             $factura = new Factura();
             $factura->tipo_facturacion_id = 1; // Asumiendo que 1 es venta normal
+            
+            // Generar número de factura con CAI
             $factura->numero_factura = $this->generarNumeroFactura();
+            
+            // Usar el CAI real generado
+            $factura->cai_id = $this->caiActual ? $this->caiActual['cai_id'] : 1;
             $factura->nombre_cliente = $this->cliente ? $this->cliente->nombre_completo : 'Consumidor Final';
             $factura->rtn = $this->cliente ? $this->cliente->rtn : null;
             $factura->sub_total = $this->subtotal;
@@ -978,6 +1028,11 @@ class Ventas extends Component
     {
         // Cargar la factura
         $this->facturaParaImprimir = Factura::find($facturaId);
+        
+        // Cargar información del CAI asociado a la factura
+        $this->caiFacturaImpresa = DB::table('cai')
+            ->where('id', $this->facturaParaImprimir->cai_id)
+            ->first();
         
         // Cargar productos
         $this->productosFacturaImpresa = DB::table('factura_has_producto as fp')
@@ -1334,9 +1389,38 @@ class Ventas extends Component
     
     private function generarNumeroFactura()
     {
-        $ultimo = Factura::orderBy('id', 'desc')->first();
-        $numero = $ultimo ? $ultimo->id + 1 : 1;
-        return str_pad($numero, 8, '0', STR_PAD_LEFT);
+        $caiService = new CAIService();
+        
+        try {
+            $resultadoCAI = $caiService->obtenerSiguienteNumeroFactura();
+            
+            // Guardar información para usar en la factura
+            $this->caiActual = $resultadoCAI;
+            
+            // Si el CAI se agotó, mostrar alerta
+            if ($resultadoCAI['cai_agotado']) {
+                $this->alertaCAI = "¡ATENCIÓN! El CAI se ha agotado. Esta es la última factura disponible para este CAI.";
+            } elseif ($resultadoCAI['cantidad_restante'] <= 10) {
+                $this->alertaCAI = "¡AVISO! Quedan solo {$resultadoCAI['cantidad_restante']} facturas disponibles en el CAI actual.";
+            }
+            
+            Log::info("DEBUG CAI generado", [
+                'numero_factura' => $resultadoCAI['numero_factura'],
+                'cai_id' => $resultadoCAI['cai_id'],
+                'cantidad_restante' => $resultadoCAI['cantidad_restante']
+            ]);
+            
+            return $resultadoCAI['numero_factura'];
+            
+        } catch (\Exception $e) {
+            Log::error("ERROR al generar número CAI: " . $e->getMessage());
+            $this->alertaCAI = "ERROR: " . $e->getMessage();
+            
+            // Fallback al método anterior si hay error
+            $ultimo = Factura::orderBy('id', 'desc')->first();
+            $numero = $ultimo ? $ultimo->id + 1 : 1;
+            return str_pad($numero, 8, '0', STR_PAD_LEFT);
+        }
     }
     
     private function actualizarStockVenta($productoId, $cantidad, $facturaId)

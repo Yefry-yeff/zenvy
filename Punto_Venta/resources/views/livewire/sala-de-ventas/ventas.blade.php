@@ -249,6 +249,21 @@
                     </div>
                 @endif
 
+                <!-- ALERTAS DEL CAI -->
+                @if($alertaCAI)
+                    @php
+                        $esCritico = str_contains($alertaCAI, 'CRÍTICO') || str_contains($alertaCAI, 'ERROR');
+                        $esAviso = str_contains($alertaCAI, 'AVISO') || str_contains($alertaCAI, 'ATENCIÓN');
+                    @endphp
+                    
+                    <div class="alert mb-3 p-3 rounded {{ $esCritico ? 'bg-red-50 border border-red-200' : ($esAviso ? 'bg-yellow-50 border border-yellow-200' : 'bg-blue-50 border border-blue-200') }}">
+                        <i class="fas {{ $esCritico ? 'fa-times-circle text-red-600' : ($esAviso ? 'fa-exclamation-triangle text-yellow-600' : 'fa-info-circle text-blue-600') }}"></i> 
+                        <span class="{{ $esCritico ? 'text-red-800' : ($esAviso ? 'text-yellow-800' : 'text-blue-800') }}">
+                            <strong>CAI:</strong> {{ $alertaCAI }}
+                        </span>
+                    </div>
+                @endif
+
                 <div class="grid grid-cols-1 gap-4">
                     <!-- Primera fila: Identidad (bloqueado) y Nombre (bloqueado) -->
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
