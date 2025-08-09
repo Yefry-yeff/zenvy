@@ -249,16 +249,16 @@
             {{ $factura->numero_factura }}
         </div>
 
-        <!-- DUPLICADO Y RANGOS -->
+        <!-- DUPLICADO Y RANGOS (solo últimos 8 dígitos) -->
         @if($caiFacturaImpresa)
             <div class="duplicado-rango">
-                (DUPLICADO) {{ str_pad($caiFacturaImpresa->rango_inicio, 8, '0', STR_PAD_LEFT) }} - {{ str_pad($caiFacturaImpresa->rango_final, 8, '0', STR_PAD_LEFT) }}
+                (DUPLICADO) {{ substr(str_pad($caiFacturaImpresa->rango_inicio, 8, '0', STR_PAD_LEFT), -8) }} - {{ substr(str_pad($caiFacturaImpresa->rango_final, 8, '0', STR_PAD_LEFT), -8) }}
             </div>
         @endif
 
         <!-- FECHA Y USUARIO -->
         <div class="fecha-usuario">
-            {{ \Carbon\Carbon::parse($factura->fecha_emision)->format('m.d.Y.H.i') }} {{ \Carbon\Carbon::parse($factura->fecha_emision)->format('A') }} Usuario: {{ $factura->user_id ?? 'Admin' }}
+            {{ \Carbon\Carbon::parse($factura->fecha_emision)->format('m.d.Y.H.i') }} {{ \Carbon\Carbon::parse($factura->fecha_emision)->format('A') }} Usuario: {{ Auth::user()->name }}
         </div>
 
         <div class="separator"></div>
@@ -359,27 +359,29 @@
         <div class="separator"></div>
 
         <!-- VALOR EN LETRAS -->
-        <div class="valor-letras">
+        <div class="valor-letras" style="font-size: 15px;">
             <strong>VALOR EN LETRAS:</strong><br>
             @php
                 $total = $factura->total;
                 $entero = floor($total);
+                $centavos = round(($total - $entero) * 100);
                 
                 $unidades = ['', 'UN', 'DOS', 'TRES', 'CUATRO', 'CINCO', 'SEIS', 'SIETE', 'OCHO', 'NUEVE'];
                 $decenas = ['', '', 'VEINTE', 'TREINTA', 'CUARENTA', 'CINCUENTA', 'SESENTA', 'SETENTA', 'OCHENTA', 'NOVENTA'];
                 $especiales = ['DIEZ', 'ONCE', 'DOCE', 'TRECE', 'CATORCE', 'QUINCE', 'DIECISÉIS', 'DIECISIETE', 'DIECIOCHO', 'DIECINUEVE'];
                 $centenas = ['', 'CIENTO', 'DOSCIENTOS', 'TRESCIENTOS', 'CUATROCIENTOS', 'QUINIENTOS', 'SEISCIENTOS', 'SETECIENTOS', 'OCHOCIENTOS', 'NOVECIENTOS'];
                 
-                $letras = '';
+                // Convertir parte entera
+                $letrasEntero = '';
                 if ($entero == 0) {
-                    $letras = 'CERO';
+                    $letrasEntero = 'CERO';
                 } else {
                     if ($entero >= 1000) {
                         $miles = floor($entero / 1000);
                         if ($miles == 1) {
-                            $letras .= 'MIL ';
+                            $letrasEntero .= 'MIL ';
                         } else {
-                            $letras .= $unidades[$miles] . ' MIL ';
+                            $letrasEntero .= $unidades[$miles] . ' MIL ';
                         }
                         $entero %= 1000;
                     }
@@ -387,28 +389,44 @@
                     if ($entero >= 100) {
                         $c = floor($entero / 100);
                         if ($entero == 100) {
-                            $letras .= 'CIEN';
+                            $letrasEntero .= 'CIEN ';
                         } else {
-                            $letras .= $centenas[$c] . ' ';
+                            $letrasEntero .= $centenas[$c] . ' ';
                         }
                         $entero %= 100;
                     }
                     
                     if ($entero >= 20) {
                         $d = floor($entero / 10);
-                        $letras .= $decenas[$d];
+                        $letrasEntero .= $decenas[$d];
                         $entero %= 10;
-                        if ($entero > 0) $letras .= ' Y ' . $unidades[$entero];
+                        if ($entero > 0) $letrasEntero .= ' Y ' . $unidades[$entero];
                     } elseif ($entero >= 10) {
-                        $letras .= $especiales[$entero - 10];
+                        $letrasEntero .= $especiales[$entero - 10];
                     } elseif ($entero > 0) {
-                        $letras .= $unidades[$entero];
+                        $letrasEntero .= $unidades[$entero];
                     }
                 }
                 
-                $letras = trim($letras) . ' LEMPIRAS';
+                $resultado = trim($letrasEntero) . ' LEMPIRAS';
+                
+                // Agregar centavos si existen
+                if ($centavos > 0) {
+                    $letrasCentavos = '';
+                    if ($centavos >= 20) {
+                        $d = floor($centavos / 10);
+                        $letrasCentavos .= $decenas[$d];
+                        $centavos %= 10;
+                        if ($centavos > 0) $letrasCentavos .= ' Y ' . $unidades[$centavos];
+                    } elseif ($centavos >= 10) {
+                        $letrasCentavos .= $especiales[$centavos - 10];
+                    } elseif ($centavos > 0) {
+                        $letrasCentavos .= $unidades[$centavos];
+                    }
+                    $resultado .= ' CON ' . trim($letrasCentavos) . ' CENTAVOS';
+                }
             @endphp
-            {{ $letras }}
+            {{ $resultado }}
         </div>
 
         <div class="separator"></div>
@@ -429,7 +447,8 @@
         @if($caiFacturaImpresa)
             <div class="cai-info">
                 <strong>CAI:</strong> {{ $caiFacturaImpresa->cai }}<br>
-                <strong>FECHA LIMITE:</strong> {{ \Carbon\Carbon::parse($caiFacturaImpresa->fecha_limite_emision)->format('d/m/Y') }}
+                <strong>FECHA LIMITE:</strong> {{ \Carbon\Carbon::parse($caiFacturaImpresa->fecha_limite_emision)->format('d/m/Y') }}<br>
+                <strong>RANGO AUTORIZADO:</strong> {{ str_pad($caiFacturaImpresa->rango_inicio, 8, '0', STR_PAD_LEFT) }} - {{ str_pad($caiFacturaImpresa->rango_final, 8, '0', STR_PAD_LEFT) }}
             </div>
         @endif
 
