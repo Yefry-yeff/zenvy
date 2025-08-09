@@ -79,6 +79,7 @@ class ProductoForm extends Component
         'form.nombre.required' => 'El nombre es obligatorio',
         'form.nombre.max' => 'El nombre no puede exceder 80 caracteres',
         'form.descripcion.max' => 'La descripción no puede exceder 45 caracteres',
+        'form.codigo_barra.unique' => 'Este código de barras ya está en uso por otro producto',
         'form.subcategoria_id.required' => 'La subcategoría es obligatoria',
         'form.subcategoria_id.exists' => 'La subcategoría seleccionada no existe',
         'form.marca_id.required' => 'La marca es obligatoria',
@@ -204,9 +205,8 @@ class ProductoForm extends Component
         $this->cerrarAlerta();
 
         try {
-            // Validar los datos del formulario
-            $this->validate();
-
+            // Validar los datos del formulario con reglas dinámicas
+            $this->validate($this->getRules());
 
             $datos = $this->form;
             $datos['users_id'] = Auth::id();
@@ -241,7 +241,16 @@ class ProductoForm extends Component
                 'errores' => $e->errors(),
                 'datos' => $this->form
             ]);
-            $this->mostrarError('Error de validación: Revise los campos marcados en rojo');
+            
+            // Manejar error específico de código de barras
+            if (isset($e->errors()['form.codigo_barra'])) {
+                $this->mostrarErrorCampo('codigo_barra', $e->errors()['form.codigo_barra'][0]);
+                return;
+            }
+            
+            // Para otros errores de validación
+            $primerError = collect($e->errors())->flatten()->first();
+            $this->mostrarError('Error de validación: ' . $primerError);
 
         } catch (\Exception $e) {
             // Error general - log completo y mensaje simple al usuario
@@ -291,6 +300,39 @@ class ProductoForm extends Component
             $this->limpiarErrorCampo('subcategoria');
         } catch (\Illuminate\Validation\ValidationException $e) {
             $this->mostrarErrorCampo('subcategoria', 'Debe seleccionar una subcategoría');
+        }
+    }
+
+    public function updatedFormCodigoBarra()
+    {
+        // Solo validar si hay contenido en el código de barras
+        if (!empty($this->form['codigo_barra'])) {
+            try {
+                // Crear reglas específicas para este campo
+                $codigoBarra = trim($this->form['codigo_barra']);
+                
+                // Verificar si ya existe el código en otro producto
+                $query = ProductoModel::where('codigo_barra', $codigoBarra);
+                
+                // Si estamos editando, excluir el producto actual
+                if ($this->isEditing && $this->productoId) {
+                    $query->where('id', '!=', $this->productoId);
+                }
+                
+                $existe = $query->exists();
+                
+                if ($existe) {
+                    $this->mostrarErrorCampo('codigo_barra', 'Este código de barras ya está en uso por otro producto');
+                } else {
+                    $this->limpiarErrorCampo('codigo_barra');
+                }
+                
+            } catch (\Exception $e) {
+                Log::error('Error en validación de código de barras', ['error' => $e->getMessage()]);
+                $this->mostrarErrorCampo('codigo_barra', 'Error al validar el código de barras');
+            }
+        } else {
+            $this->limpiarErrorCampo('codigo_barra');
         }
     }
 
@@ -432,6 +474,27 @@ class ProductoForm extends Component
         }
 
         return $camposVacios;
+    }
+
+    /**
+     * Obtiene las reglas de validación dinámicas
+     */
+    public function getRules()
+    {
+        $rules = $this->rules;
+        
+        // Agregar validación unique para código de barras
+        if (!empty($this->form['codigo_barra'])) {
+            if ($this->isEditing && $this->productoId) {
+                // En edición, excluir el producto actual de la validación unique
+                $rules['form.codigo_barra'] = 'nullable|string|max:100|unique:producto,codigo_barra,' . $this->productoId;
+            } else {
+                // En creación, validar que el código no exista
+                $rules['form.codigo_barra'] = 'nullable|string|max:100|unique:producto,codigo_barra';
+            }
+        }
+        
+        return $rules;
     }
 
     public function render()
