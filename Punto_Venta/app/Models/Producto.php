@@ -15,8 +15,11 @@ class Producto extends Model
     protected $fillable = [
         'nombre',
         'descripcion',
-        'isv',
+        'isv_id',
         'precio_base',
+        'descuento_unitario',
+        'descuento_tercera',
+        'descuento_cuarta',
         'ultimo_costo_compra',
         'costo_promedio',
         'codigo_barra',
@@ -42,6 +45,11 @@ class Producto extends Model
     public function marca()
     {
         return $this->belongsTo(Marca::class);
+    }
+
+    public function isv()
+    {
+        return $this->belongsTo(Isv::class, 'isv_id');
     }
 
     // Relación con compras
@@ -91,60 +99,76 @@ class Producto extends Model
     // Static methods for SP operations
     public static function crearProducto($datos)
     {
-        return DB::statement('CALL sp_crud_producto(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
-            1, // Acción: crear
-            null, // ID (se genera automáticamente)
-            $datos['nombre'],
-            $datos['descripcion'],
-            $datos['isv'],
-            $datos['precio_base'],
-            $datos['ultimo_costo_compra'] ?? 0,
-            $datos['costo_promedio'] ?? 0,
-            $datos['codigo_barra'],
-            $datos['codigo_estatal'],
-            $datos['estado_id'],
-            $datos['subcategoria_id'],
-            $datos['marca_id'],
-            $datos['unidad_medida_venta_id'],
-            0, // precio1
-            0, // precio2
-            0, // precio3
-            0, // precio4
-            $datos['users_id']
-        ]);
+        try {
+            return DB::statement('CALL sp_crud_producto(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
+                1, // Acción: crear
+                null, // ID (se genera automáticamente)
+                $datos['nombre'] ?? '',
+                $datos['descripcion'] ?? '',
+                $datos['isv_id'] ?? null,
+                $datos['precio_base'] ?? 0,
+                $datos['ultimo_costo_compra'] ?? 0,
+                $datos['costo_promedio'] ?? 0,
+                $datos['codigo_barra'] ?? '',
+                $datos['codigo_estatal'] ?? '',
+                $datos['estado_id'] ?? 1,
+                $datos['subcategoria_id'] ?? null,
+                $datos['marca_id'] ?? null,
+                $datos['unidad_medida_venta_id'] ?? null,
+                0, // precio1
+                0, // precio2
+                0, // precio3
+                0, // precio4
+                $datos['users_id'] ?? null,
+                $datos['descuento_unitario'] ?? 0,
+                $datos['descuento_tercera'] ?? 0, // SP normaliza a 0/1 automáticamente
+                $datos['descuento_cuarta'] ?? 0   // SP normaliza a 0/1 automáticamente
+            ]);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Error en crearProducto: ' . $e->getMessage(), ['datos' => $datos]);
+            throw $e;
+        }
     }
 
     public static function actualizarProducto($id, $datos)
     {
-        return DB::statement('CALL sp_crud_producto(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
-            2, // Acción: actualizar
-            $id,
-            $datos['nombre'],
-            $datos['descripcion'],
-            $datos['isv'],
-            $datos['precio_base'],
-            $datos['ultimo_costo_compra'] ?? 0,
-            $datos['costo_promedio'] ?? 0,
-            $datos['codigo_barra'],
-            $datos['codigo_estatal'],
-            $datos['estado_id'],
-            $datos['subcategoria_id'],
-            $datos['marca_id'],
-            $datos['unidad_medida_venta_id'],
-            0, // precio1
-            0, // precio2
-            0, // precio3
-            0, // precio4
-            $datos['users_id']
-        ]);
+        try {
+            return DB::statement('CALL sp_crud_producto(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
+                2, // Acción: actualizar
+                $id,
+                $datos['nombre'] ?? '',
+                $datos['descripcion'] ?? '',
+                $datos['isv_id'] ?? null,
+                $datos['precio_base'] ?? 0,
+                $datos['ultimo_costo_compra'] ?? 0,
+                $datos['costo_promedio'] ?? 0,
+                $datos['codigo_barra'] ?? '',
+                $datos['codigo_estatal'] ?? '',
+                $datos['estado_id'] ?? 1,
+                $datos['subcategoria_id'] ?? null,
+                $datos['marca_id'] ?? null,
+                $datos['unidad_medida_venta_id'] ?? null,
+                0, // precio1
+                0, // precio2
+                0, // precio3
+                0, // precio4
+                $datos['users_id'] ?? null,
+                $datos['descuento_unitario'] ?? 0,
+                $datos['descuento_tercera'] ?? 0, // SP normaliza a 0/1 automáticamente
+                $datos['descuento_cuarta'] ?? 0   // SP normaliza a 0/1 automáticamente
+            ]);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Error en actualizarProducto: ' . $e->getMessage(), ['id' => $id, 'datos' => $datos]);
+            throw $e;
+        }
     }
 
     public static function eliminarProducto($id)
     {
-        return DB::statement('CALL sp_crud_producto(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
+        return DB::statement('CALL sp_crud_producto(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
             3, // Acción: eliminar
             $id,
-            null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null
+            null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null
         ]);
     }
 

@@ -1,0 +1,4 @@
+select f.numero_factura,tp.nombre as 'TIPO DE PAGO',P.pago_recibido from factura f
+inner join factura_has_pago p on p.factura_id = f.id
+inner join tipo_pago tp on tp.id = p.tipo_pago_id
+WHERE F.id = 48

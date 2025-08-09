@@ -127,7 +127,7 @@
                         <h2 class="mb-4 text-lg font-semibold text-gray-700">💰 Datos de Venta</h2>
 
                         <div class="row">
-                            <div class="mb-3 col-md-4">
+                            <div class="mb-3 col-md-3">
                                 <label for="unidad_medida_venta" class="form-label">Unidad de Medida <span class="text-red-600">*</span></label>
                                 <select id="unidad_medida_venta" class="form-select {{ $this->getClaseCampo('unidad_medida') }}" wire:model.defer="form.unidad_medida_venta_id">
                                     <option value="">Seleccionar unidad</option>
@@ -139,7 +139,7 @@
                                     <div class="mt-1 text-sm text-danger">❌ Debe seleccionar una unidad de medida</div>
                                 @enderror
                             </div>
-                            <div class="mb-3 col-md-4">
+                            <div class="mb-3 col-md-3">
                                 <label for="precio_base" class="form-label">Precio Base <span class="text-red-600">*</span></label>
                                 <div class="input-group">
                                     <span class="input-group-text">L.</span>
@@ -150,15 +150,54 @@
                                     <div class="mt-1 text-sm text-danger">❌ El precio base es obligatorio</div>
                                 @enderror
                             </div>
-                            <div class="mb-3 col-md-4">
-                                <label for="isv" class="form-label">ISV (%) <span class="text-red-600">*</span></label>
+                            <div class="mb-3 col-md-3">
+                                <label for="isv_id" class="form-label">Tipo de ISV <span class="text-red-600">*</span></label>
+                                <select id="isv_id" class="form-select {{ $this->getClaseCampo('isv_id') }}" wire:model.defer="form.isv_id">
+                                    <option value="">Seleccionar ISV</option>
+                                    @foreach($isvs as $isv)
+                                        <option value="{{ $isv->id }}">{{ $isv->cantidad }}%</option>
+                                    @endforeach
+                                </select>
+                                @error('form.isv_id')
+                                    <div class="mt-1 text-sm text-danger">❌ Debe seleccionar un tipo de ISV</div>
+                                @enderror
+                            </div>
+                            <div class="mb-3 col-md-3">
+                                <label for="descuento_unitario" class="form-label">Descuento Unitario</label>
                                 <div class="input-group">
-                                    <input type="number" id="isv" class="form-control {{ $this->getClaseCampo('isv') }}"
-                                           wire:model.defer="form.isv" step="0.01" min="0" max="100" placeholder="15">
-                                    <span class="input-group-text">%</span>
+                                    <input type="number" id="descuento_unitario" class="form-control"
+                                           wire:model.defer="form.descuento_unitario" step="0.01" min="0" placeholder="0.00">
+                                    <span class="input-group-text">L.</span>
                                 </div>
-                                @error('form.isv')
-                                    <div class="mt-1 text-sm text-danger">❌ El ISV es obligatorio</div>
+                                @error('form.descuento_unitario')
+                                    <div class="mt-1 text-sm text-danger">{{ $message }}</div>
+                                @enderror
+                            </div>
+                        </div>
+
+                        <!-- Descuentos Especiales -->
+                        <div class="row">
+                            <div class="mb-3 col-md-6">
+                                <label class="form-label">Descuentos Especiales</label>
+                                <div class="p-3 border rounded">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="descuento_tercera" wire:model.defer="form.descuento_tercera">
+                                        <label class="form-check-label" for="descuento_tercera">
+                                            Aplica descuento de tercera edad
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="descuento_cuarta" wire:model.defer="form.descuento_cuarta">
+                                        <label class="form-check-label" for="descuento_cuarta">
+                                            Aplica descuento de cuarta edad
+                                        </label>
+                                    </div>
+                                </div>
+                                @error('form.descuento_tercera')
+                                    <div class="mt-1 text-sm text-danger">{{ $message }}</div>
+                                @enderror
+                                @error('form.descuento_cuarta')
+                                    <div class="mt-1 text-sm text-danger">{{ $message }}</div>
                                 @enderror
                             </div>
                         </div>

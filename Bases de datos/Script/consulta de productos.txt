@@ -1,0 +1,20 @@
+SELECT t.denominacion_social as 'TIENDA' ,b.nombre AS 'BODEGA', s.descripcion AS 'SEGMENTO',sc.id as 'seccion_id',sc.descripcion AS 'SECCION',p.id as 'producto_id',p.nombre AS 'PRODUCTO',p.precio_base AS 'PRECIO',p.isv AS 'ISV', rb.cantidad_disponible AS 'CANTIDAD DISPONIBLE POR SECCION' FROM users u 
+inner join tienda t on t.id = u.tienda_id
+inner join bodega b on b.tienda_id = t.id
+inner join segmento s on s.bodega_id = b.id
+inner join seccion sc on sc.segmento_id = s.id
+inner join recibido_bodega rb on rb.seccion_id = sc.id
+inner join producto p on p.id = rb.producto_id
+where p.codigo_barra='721310002057'and b.principal=1
+;
+
+SELECT SUM(rb.cantidad_disponible) AS total_disponible
+FROM tienda t
+INNER JOIN bodega b       ON b.tienda_id = t.id
+INNER JOIN segmento s     ON s.bodega_id = b.id
+INNER JOIN seccion sc     ON sc.segmento_id = s.id
+INNER JOIN recibido_bodega rb ON rb.seccion_id = sc.id
+INNER JOIN producto p     ON p.id = rb.producto_id
+WHERE t.id = 1
+  AND p.codigo_barra = '721310002057'
+  AND b.principal = 1;

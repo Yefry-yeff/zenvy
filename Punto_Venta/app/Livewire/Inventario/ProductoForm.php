@@ -25,8 +25,11 @@ class ProductoForm extends Component
         'estado_id' => 1,
         'subcategoria_id' => null,
         'marca_id' => null,
-        'isv' => 0.15,
+        'isv_id' => null,
         'precio_base' => 0,
+        'descuento_unitario' => 0,
+        'descuento_tercera' => false,
+        'descuento_cuarta' => false,
         'ultimo_costo_compra' => 0,
         'costo_promedio' => 0,
         'unidad_medida_venta_id' => null,
@@ -38,6 +41,7 @@ class ProductoForm extends Component
     public $subcategorias = [];
     public $marcas = [];
     public $unidadesMedida = [];
+    public $isvs = [];
     public $categoriaSeleccionada = null;
 
     // Propiedades para validación backend
@@ -61,8 +65,11 @@ class ProductoForm extends Component
         'form.estado_id' => 'required|integer',
         'form.subcategoria_id' => 'required|integer|exists:subcategoria,id',
         'form.marca_id' => 'required|integer|exists:marca,id',
-        'form.isv' => 'required|numeric|min:0|max:100',
+        'form.isv_id' => 'required|integer|exists:isv,id',
         'form.precio_base' => 'required|numeric|min:0.01',
+        'form.descuento_unitario' => 'nullable|numeric|min:0',
+        'form.descuento_tercera' => 'boolean',
+        'form.descuento_cuarta' => 'boolean',
         'form.ultimo_costo_compra' => 'nullable|numeric|min:0',
         'form.costo_promedio' => 'nullable|numeric|min:0',
         'form.unidad_medida_venta_id' => 'required|integer|exists:unidad_medida,id',
@@ -76,6 +83,13 @@ class ProductoForm extends Component
         'form.subcategoria_id.exists' => 'La subcategoría seleccionada no existe',
         'form.marca_id.required' => 'La marca es obligatoria',
         'form.marca_id.exists' => 'La marca seleccionada no existe',
+        'form.isv_id.required' => 'El tipo de ISV es obligatorio',
+        'form.isv_id.exists' => 'El tipo de ISV seleccionado no existe',
+        'form.precio_base.required' => 'El precio base es obligatorio',
+        'form.precio_base.min' => 'El precio base debe ser mayor a 0',
+        'form.descuento_unitario.min' => 'El descuento unitario no puede ser negativo',
+        'form.unidad_medida_venta_id.required' => 'La unidad de medida es obligatoria',
+        'form.unidad_medida_venta_id.exists' => 'La unidad de medida seleccionada no existe',
     ];
 
     public function mount($id = null)
@@ -94,6 +108,7 @@ class ProductoForm extends Component
         $this->categorias = Categoria::orderBy('nombre')->get();
         $this->marcas = Marca::orderBy('nombre')->get();
         $this->unidadesMedida = DB::table('unidad_medida')->orderBy('nombre')->get();
+        $this->isvs = DB::table('isv')->orderBy('cantidad')->get();
     }
 
     public function cargarProducto()
@@ -109,8 +124,11 @@ class ProductoForm extends Component
                 'estado_id' => $producto->estado_id,
                 'subcategoria_id' => $producto->subcategoria_id,
                 'marca_id' => $producto->marca_id,
-                'isv' => $producto->isv ?? 0.15,
+                'isv_id' => $producto->isv_id ?? null,
                 'precio_base' => $producto->precio_base ?? 0,
+                'descuento_unitario' => $producto->descuento_unitario ?? 0,
+                'descuento_tercera' => $producto->descuento_tercera ? true : false,
+                'descuento_cuarta' => $producto->descuento_cuarta ? true : false,
                 'ultimo_costo_compra' => $producto->ultimo_costo_compra ?? 0,
                 'costo_promedio' => $producto->costo_promedio ?? 0,
                 'unidad_medida_venta_id' => $producto->unidad_medida_venta_id,
@@ -168,7 +186,8 @@ class ProductoForm extends Component
                 'categoria' => 'Debe seleccionar una categoría',
                 'subcategoria' => 'Debe seleccionar una subcategoría',
                 'precio_base' => 'El precio base es obligatorio',
-                'unidad_medida' => 'Debe seleccionar una unidad de medida'
+                'unidad_medida' => 'Debe seleccionar una unidad de medida',
+                'isv_id' => 'Debe seleccionar un tipo de ISV'
             ];
 
             $this->mostrarErrorCampo($primerCampoVacio, $mensajes[$primerCampoVacio]);
@@ -191,6 +210,10 @@ class ProductoForm extends Component
 
             $datos = $this->form;
             $datos['users_id'] = Auth::id();
+
+            // Convertir checkboxes boolean a enteros para el SP
+            $datos['descuento_tercera'] = $datos['descuento_tercera'] ? 1 : 0;
+            $datos['descuento_cuarta'] = $datos['descuento_cuarta'] ? 1 : 0;
 
             // Log para debugging
             Log::info('Intentando guardar producto', [
@@ -374,7 +397,7 @@ class ProductoForm extends Component
     // Método para verificar si todos los campos críticos están completos
     public function verificarCamposCriticos()
     {
-        $camposCriticos = ['nombre', 'marca', 'categoria', 'subcategoria', 'precio_base', 'unidad_medida'];
+        $camposCriticos = ['nombre', 'marca', 'categoria', 'subcategoria', 'precio_base', 'unidad_medida', 'isv_id'];
         $camposVacios = [];
 
         foreach ($camposCriticos as $campo) {
@@ -397,6 +420,9 @@ class ProductoForm extends Component
                     break;
                 case 'unidad_medida':
                     $valor = $this->form['unidad_medida_venta_id'];
+                    break;
+                case 'isv_id':
+                    $valor = $this->form['isv_id'];
                     break;
             }
 
