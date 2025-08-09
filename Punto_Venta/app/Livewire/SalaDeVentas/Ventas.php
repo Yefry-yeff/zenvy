@@ -294,11 +294,6 @@ class Ventas extends Component
         $this->totalIsv = 0;
         $isvPorTasa = []; // Agrupamos ISV por tasa
         
-        Log::info("DEBUG calcularTotales INICIO", [
-            'productos_en_carrito' => count($this->productosFactura),
-            'productos' => $this->productosFactura
-        ]);
-        
         foreach ($this->productosFactura as $producto) {
             $subtotalProducto = $producto['precio'] * $producto['cantidad'];
             $this->subtotal += $subtotalProducto;
@@ -306,15 +301,6 @@ class Ventas extends Component
             $tasaIsv = $producto['isv'];
             $isvProducto = $subtotalProducto * ($tasaIsv / 100);
             $this->totalIsv += $isvProducto;
-            
-            Log::info("DEBUG producto individual", [
-                'nombre' => $producto['nombre'],
-                'precio' => $producto['precio'],
-                'cantidad' => $producto['cantidad'],
-                'subtotal_producto' => $subtotalProducto,
-                'tasa_isv' => $tasaIsv,
-                'isv_producto' => $isvProducto
-            ]);
             
             // Agrupar ISV por tasa
             if (!isset($isvPorTasa[$tasaIsv])) {
@@ -326,40 +312,12 @@ class Ventas extends Component
         $this->isvPorTasa = $isvPorTasa;
         $this->total = $this->subtotal + $this->totalIsv;
         
-        Log::info("DEBUG calcularTotales FINAL", [
-            'subtotal' => $this->subtotal,
-            'total_isv' => $this->totalIsv,
-            'total' => $this->total,
-            'isv_por_tasa' => $isvPorTasa
-        ]);
-        
         // Forzar actualización de la vista
         $this->dispatch('totales-actualizados', [
             'subtotal' => $this->subtotal,
             'totalIsv' => $this->totalIsv,
             'total' => $this->total
         ]);
-    }
-    
-    public function recalcularTotalesForzado()
-    {
-        Log::info("FORZAR RECÁLCULO - Antes", [
-            'subtotal_antes' => $this->subtotal,
-            'totalIsv_antes' => $this->totalIsv,
-            'total_antes' => $this->total,
-            'productos_count' => count($this->productosFactura)
-        ]);
-        
-        $this->calcularTotales();
-        
-        Log::info("FORZAR RECÁLCULO - Después", [
-            'subtotal_despues' => $this->subtotal,
-            'totalIsv_despues' => $this->totalIsv,
-            'total_despues' => $this->total
-        ]);
-        
-        // Forzar re-renderizado del componente
-        $this->dispatch('$refresh');
     }
     
     // Propiedades computadas para asegurar valores actualizados

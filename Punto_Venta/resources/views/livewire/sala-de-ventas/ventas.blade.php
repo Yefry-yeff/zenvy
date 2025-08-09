@@ -475,14 +475,6 @@
                             <span>Total:</span>
                             <span x-text="'L. ' + parseFloat(total).toFixed(2)">L. {{ number_format($total, 2) }}</span>
                         </div>
-                        
-                        <!-- Botón temporal para debug -->
-                        <div class="mt-2">
-                            <button wire:click="recalcularTotalesForzado" 
-                                class="w-full px-2 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600">
-                                🔄 Recalcular (Debug)
-                            </button>
-                        </div>
                     </div>
                 </div>
 
