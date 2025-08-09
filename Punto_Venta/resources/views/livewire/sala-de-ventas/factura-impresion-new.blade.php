@@ -174,11 +174,11 @@
                                 @endif
                                 <div style="display: flex; justify-content: space-between; margin: 2px 0;">
                                     <span>IMPORTE EXONERADO</span>
-                                    <span>L. {{ number_format(collect($productos)->where('isv', 0)->sum('total'), 2) }}</span>
+                                    <span>L. {{ number_format($productos->where('isv', 0)->sum('total'), 2) }}</span>
                                 </div>
                                 <div style="display: flex; justify-content: space-between; margin: 2px 0;">
                                     <span>IMPORTE 15%</span>
-                                    <span>L. {{ number_format(collect($productos)->where('isv', '>', 0)->sum('total'), 2) }}</span>
+                                    <span>L. {{ number_format($productos->where('isv', '>', 0)->sum('total'), 2) }}</span>
                                 </div>
                                 <div style="display: flex; justify-content: space-between; margin: 2px 0;">
                                     <span>IMPORTE 18%</span>
