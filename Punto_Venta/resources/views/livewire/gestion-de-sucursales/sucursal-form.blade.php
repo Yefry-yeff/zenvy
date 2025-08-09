@@ -49,13 +49,8 @@
                                 @enderror
                             </div>
 
-                            <div class="mb-3 col-md-6">
-                                <label for="numero_sucursal" class="form-label">Número de Sucursal</label>
-                                <input type="text" id="numero_sucursal" class="form-control {{ $this->getClaseCampo('form.numero_sucursal') }}" wire:model="form.numero_sucursal">
-                                @error('form.numero_sucursal')
-                                    <div class="mt-1 text-sm text-danger">{{ $message }}</div>
-                                @enderror
-                            </div>
+                            <!-- Campo oculto para numero_sucursal (autoincrementable) -->
+                            <input type="hidden" wire:model="form.numero_sucursal">
 
                             <div class="mb-3 col-md-12">
                                 <label for="descripcion" class="form-label">Descripción</label>
@@ -102,13 +97,23 @@
 
                             <div class="mb-3 col-md-6">
                                 <label for="estado_id" class="form-label">Estado <span class="text-red-600">*</span></label>
-                                <select id="estado_id" class="form-control {{ $this->getClaseCampo('form.estado_id') }}" wire:model="form.estado_id">
-                                    <option value="">Seleccionar estado</option>
-                                    @foreach($estados as $estado)
-                                        <option value="{{ $estado->id }}">{{ $estado->descripcion }}</option>
+                                <input type="text" id="estado_display" class="form-control" value="Activo" readonly disabled style="background-color: #f8f9fa; cursor: not-allowed;">
+                                <input type="hidden" wire:model="form.estado_id" value="1">
+                                <small class="text-muted">El estado se establece automáticamente como Activo</small>
+                                @error('form.estado_id')
+                                    <div class="mt-1 text-sm text-danger">{{ $message }}</div>
+                                @enderror
+                            </div>
+
+                            <div class="mb-3 col-md-6">
+                                <label for="empresa_id" class="form-label">Empresa <span class="text-red-600">*</span></label>
+                                <select id="empresa_id" class="form-control {{ $this->getClaseCampo('form.empresa_id') }}" wire:model="form.empresa_id">
+                                    <option value="">Seleccionar empresa</option>
+                                    @foreach($empresas as $empresa)
+                                        <option value="{{ $empresa->id }}">{{ $empresa->nombre }}</option>
                                     @endforeach
                                 </select>
-                                @error('form.estado_id')
+                                @error('form.empresa_id')
                                     <div class="mt-1 text-sm text-danger">{{ $message }}</div>
                                 @enderror
                             </div>

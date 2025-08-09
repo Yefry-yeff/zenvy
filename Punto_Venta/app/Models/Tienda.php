@@ -19,6 +19,7 @@ class Tienda extends Model
         'correo',
         'tipo_tienda_id',
         'estado_id',
+        'empresa_id',
         'users_creador_id',
         'numero_sucursal',
         'identificador_legal',
@@ -46,6 +47,12 @@ class Tienda extends Model
     public function estado()
     {
         return $this->belongsTo(Estado::class, 'estado_id');
+    }
+
+    // Relación con empresa
+    public function empresa()
+    {
+        return $this->belongsTo(Empresa::class, 'empresa_id');
     }
 
     // Relación con dirección

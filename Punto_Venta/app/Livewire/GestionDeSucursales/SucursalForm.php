@@ -10,6 +10,7 @@ use App\Models\Direccion;
 use App\Models\TipoDireccion;
 use App\Models\Departamento;
 use App\Models\Municipio;
+use App\Models\Empresa;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
@@ -29,6 +30,7 @@ class SucursalForm extends Component
         'estado_id' => 1,
         'numero_sucursal' => '',
         'identificador_legal' => '',
+        'empresa_id' => null,
     ];
 
     // Formulario de dirección
@@ -48,6 +50,7 @@ class SucursalForm extends Component
     // Datos para los selectores
     public $tiposTienda = [];
     public $estados = [];
+    public $empresas = [];
     public $tiposDireccion = [];
     public $departamentos = [];
     public $municipios = [];
@@ -88,6 +91,7 @@ class SucursalForm extends Component
             'form.correo' => 'nullable|email|max:45',
             'form.tipo_tienda_id' => 'required|exists:tipo_tienda,id',
             'form.estado_id' => 'required|exists:estado,id',
+            'form.empresa_id' => 'required|exists:empresa,id',
             'form.numero_sucursal' => 'nullable|max:45',
             'form.identificador_legal' => [
                 'nullable',
@@ -157,6 +161,7 @@ class SucursalForm extends Component
     {
         $this->tiposTienda = TipoTienda::orderBy('nombre')->get();
         $this->estados = Estado::orderBy('descripcion')->get();
+        $this->empresas = Empresa::orderBy('nombre')->get();
         $this->tiposDireccion = TipoDireccion::orderBy('nombre')->get();
         $this->departamentos = Departamento::orderBy('nombre')->get();
 
@@ -241,6 +246,7 @@ class SucursalForm extends Component
                 'correo' => $sucursal->correo,
                 'tipo_tienda_id' => $sucursal->tipo_tienda_id,
                 'estado_id' => $sucursal->estado_id,
+                'empresa_id' => $sucursal->empresa_id,
                 'numero_sucursal' => $sucursal->numero_sucursal,
                 'identificador_legal' => $sucursal->identificador_legal,
             ];
@@ -296,6 +302,7 @@ class SucursalForm extends Component
                 'denominacion_social' => 'La denominación social es obligatoria',
                 'tipo_tienda_id' => 'Debe seleccionar un tipo de tienda',
                 'estado_id' => 'Debe seleccionar un estado',
+                'empresa_id' => 'Debe seleccionar una empresa',
                 'domicilio_tributario' => 'El domicilio tributario es obligatorio',
                 'municipio_id' => 'Debe seleccionar un municipio',
                 'tipo_direccion_id' => 'Debe seleccionar un tipo de dirección'
@@ -538,7 +545,7 @@ class SucursalForm extends Component
 
     public function verificarCamposCriticos()
     {
-        $camposCriticos = ['denominacion_social', 'tipo_tienda_id', 'estado_id', 'domicilio_tributario', 'municipio_id', 'tipo_direccion_id'];
+        $camposCriticos = ['denominacion_social', 'tipo_tienda_id', 'estado_id', 'empresa_id', 'domicilio_tributario', 'municipio_id', 'tipo_direccion_id'];
         $camposVacios = [];
 
         foreach ($camposCriticos as $campo) {
@@ -552,6 +559,9 @@ class SucursalForm extends Component
                     break;
                 case 'estado_id':
                     $valor = $this->form['estado_id'];
+                    break;
+                case 'empresa_id':
+                    $valor = $this->form['empresa_id'];
                     break;
                 case 'domicilio_tributario':
                     $valor = $this->direccionForm['domicilio_tributario'];

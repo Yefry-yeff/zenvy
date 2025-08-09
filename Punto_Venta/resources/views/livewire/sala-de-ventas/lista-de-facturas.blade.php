@@ -238,24 +238,24 @@
                                             <div class="col-md-3">
                                                 <div class="border-right">
                                                     <h6 class="text-muted">Subtotal</h6>
-                                                    <h5 class="text-primary">L. {{ number_format($facturaDetalle->sub_total, 2) }}</h5>
+                                                    <h5 class="text-dark">L. {{ number_format($facturaDetalle->sub_total, 2) }}</h5>
                                                 </div>
                                             </div>
                                             <div class="col-md-3">
                                                 <div class="border-right">
                                                     <h6 class="text-muted">Descuento</h6>
-                                                    <h5 class="text-warning">L. {{ number_format($facturaDetalle->descuento ?? 0, 2) }}</h5>
+                                                    <h5 class="text-dark">L. {{ number_format($facturaDetalle->descuento ?? 0, 2) }}</h5>
                                                 </div>
                                             </div>
                                             <div class="col-md-3">
                                                 <div class="border-right">
                                                     <h6 class="text-muted">ISV</h6>
-                                                    <h5 class="text-info">L. {{ number_format($facturaDetalle->isv, 2) }}</h5>
+                                                    <h5 class="text-dark">L. {{ number_format($facturaDetalle->isv, 2) }}</h5>
                                                 </div>
                                             </div>
                                             <div class="col-md-3">
                                                 <h6 class="text-muted">Total</h6>
-                                                <h4 class="text-success font-weight-bold">L. {{ number_format($facturaDetalle->total, 2) }}</h4>
+                                                <h5 class="text-dark font-weight-bold">L. {{ number_format($facturaDetalle->total, 2) }}</h5>
                                             </div>
                                         </div>
                                     </div>

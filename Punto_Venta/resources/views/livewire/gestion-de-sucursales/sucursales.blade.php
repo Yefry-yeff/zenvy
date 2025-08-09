@@ -25,11 +25,12 @@
                 <table id="sucursalesTable" class="table mb-0 align-middle table-sm table-hover table-bordered">
                     <thead class="table-light">
                         <tr class="text-center align-middle">
-                            <th>Denominación Social</th>
-                            <th>Número Sucursal</th>
+                            <th>Empresa</th>
+                            <th>Nombre Sucursal</th>
+                            <th>Identificador Legal</th>
                             <th>Tipo Tienda</th>
                             <th>Teléfono</th>
-                            <th>Municipio</th>
+                            <th>Dirección Tributaria</th>
                             <th>Estado</th>
                             <th style="width: 150px;">Fecha Creación</th>
                         </tr>
@@ -37,11 +38,12 @@
                     <tbody>
                         @forelse($sucursales as $sucursal)
                             <tr class="text-center align-middle hover:bg-gray-50">
+                                <td class="text-start cursor-pointer" wire:click="editar({{ $sucursal->id }})">{{ $sucursal->empresa->nombre ?? 'N/A' }}</td>
                                 <td class="text-start cursor-pointer" wire:click="editar({{ $sucursal->id }})">{{ $sucursal->denominacion_social }}</td>
-                                <td class="cursor-pointer" wire:click="editar({{ $sucursal->id }})">{{ $sucursal->numero_sucursal ?? 'N/A' }}</td>
+                                <td class="cursor-pointer" wire:click="editar({{ $sucursal->id }})">{{ $sucursal->identificador_legal ?? 'N/A' }}</td>
                                 <td class="cursor-pointer" wire:click="editar({{ $sucursal->id }})">{{ $sucursal->tipoTienda->nombre ?? 'N/A' }}</td>
                                 <td class="cursor-pointer" wire:click="editar({{ $sucursal->id }})">{{ $sucursal->telefono ?? 'N/A' }}</td>
-                                <td class="cursor-pointer" wire:click="editar({{ $sucursal->id }})">{{ $sucursal->direccion->municipio->nombre ?? 'N/A' }}</td>
+                                <td class="text-start cursor-pointer" wire:click="editar({{ $sucursal->id }})">{{ $sucursal->direccion->domicilio_tributario ?? 'N/A' }}</td>
                                 <td class="cursor-pointer" wire:click="editar({{ $sucursal->id }})">
                                     <span class="badge {{ $sucursal->estado_id == 1 ? 'bg-success' : 'bg-danger' }}">
                                         {{ $sucursal->estado->descripcion ?? 'N/A' }}
@@ -51,7 +53,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7" class="py-4 text-center text-muted">No hay sucursales disponibles.</td>
+                                <td colspan="8" class="py-4 text-center text-muted">No hay sucursales disponibles.</td>
                             </tr>
                         @endforelse
                     </tbody>

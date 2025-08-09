@@ -17,7 +17,8 @@ class Sucursales extends Component
 
     public function render()
     {
-        $sucursales = Tienda::with(['userCreador', 'tipoTienda', 'estado', 'direccion.municipio.departamento'])
+        $sucursales = Tienda::with(['userCreador', 'tipoTienda', 'estado', 'empresa', 'direccion.municipio.departamento'])
+                           ->orderByRaw('CASE WHEN tipo_tienda_id = 1 THEN 0 ELSE 1 END')
                            ->orderBy('id', 'desc')
                            ->get();
 
