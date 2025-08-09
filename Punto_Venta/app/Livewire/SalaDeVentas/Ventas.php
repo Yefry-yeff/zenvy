@@ -412,11 +412,12 @@ class Ventas extends Component
 
     public function procesarDistribucionPagos()
     {
-        // DEBUG: Log inicial
+        // DEBUG: Log inicial CON DATOS DEL MODAL
         Log::info("DEBUG procesarDistribucionPagos INICIO", [
-            'productos_factura' => count($this->productosFactura),
+            'productos_factura_count' => count($this->productosFactura),
             'montos_por_metodo' => $this->montosPorMetodo,
-            'total' => $this->total
+            'total' => $this->total,
+            'metodos_activos_existentes' => $this->metodosActivosParaPago
         ]);
 
         if (empty($this->productosFactura)) {
@@ -472,11 +473,9 @@ class Ventas extends Component
             session()->flash('info', 'Se procesará el pago con cambio de L. ' . number_format($cambioTotal, 2));
         }
         
-        $this->cerrarModalPago();
-        
         Log::info("DEBUG Antes de finalizar venta");
         
-        // En lugar de los modales intermedios, procesar directamente la venta
+        // Procesar directamente la venta SIN cerrar el modal aún
         $this->finalizarVentaConDistribucion();
     }
     
@@ -540,6 +539,11 @@ class Ventas extends Component
             $this->mostrarVistaImpresion = true;
             
             Log::info("DEBUG Vista de impresión activada");
+            
+            // Limpiar datos del modal DESPUÉS de procesar exitosamente
+            $this->cerrarModalPago();
+            
+            Log::info("DEBUG Modal de pago cerrado y datos limpiados");
             
         } catch (\Exception $e) {
             DB::rollBack();
@@ -625,47 +629,68 @@ class Ventas extends Component
             }
         }
 
-        Log::info("DEBUG Métodos finales para guardar", ['metodosParaGuardar' => $metodosParaGuardar]);
+        Log::info("DEBUG Métodos finales para guardar", [
+            'metodosParaGuardar' => $metodosParaGuardar,
+            'count_metodos' => count($metodosParaGuardar)
+        ]);
 
         // Guardar solo los métodos con monto > 0
+        $totalDistribuido = array_sum($this->montosPorMetodo ?? []);
+        $metodosGuardados = 0;
+        
         foreach ($metodosParaGuardar as $metodo) {
+            Log::info("DEBUG Procesando método", [
+                'metodo_id' => $metodo['id'],
+                'metodo_nombre' => $metodo['nombre'] ?? 'N/A',
+                'metodo_monto' => $metodo['monto'],
+                'monto_mayor_cero' => $metodo['monto'] > 0
+            ]);
+            
             $tipoPago = TipoPago::find($metodo['id']);
             if ($tipoPago && $metodo['monto'] > 0) { // Validación adicional de monto > 0
                 
-                // Inicializar variables
+                // Para cada método de pago, guardar el monto específico de ese método
+                $montoMetodo = $metodo['monto'];
                 $cambio = 0;
-                $pagoRecibido = $metodo['monto']; // Por defecto usar el monto del método
                 
-                // Si es efectivo y se recibió más dinero, calcular el cambio
-                if (strtolower($tipoPago->nombre) === 'efectivo' && isset($this->efectivoRecibido) && $this->efectivoRecibido > 0) {
-                    $pagoRecibido = $this->efectivoRecibido;
-                    if ($this->efectivoRecibido > $metodo['monto']) {
-                        $cambio = $this->efectivoRecibido - $metodo['monto'];
-                    }
-                } else {
-                    // Para métodos que no son efectivo, usar el monto distribuido
-                    $pagoRecibido = $metodo['monto'];
+                // Calcular cambio solo si es efectivo y el total distribuido es mayor al total de la factura
+                if (strtolower($tipoPago->nombre) === 'efectivo' && $totalDistribuido > $this->total) {
+                    // El cambio se calcula solo en efectivo si hay exceso en el total distribuido
+                    $cambioTotal = $totalDistribuido - $this->total;
+                    $cambio = $cambioTotal; // Todo el cambio se asigna al efectivo
                 }
                 
                 DB::table('factura_has_pago')->insert([
                     'factura_id' => $facturaId,
                     'tipo_pago_id' => $tipoPago->id,
                     'total_factura' => $this->total,
-                    'pago_recibido' => $pagoRecibido,
+                    'pago_recibido' => $montoMetodo, // Monto específico de este método
                     'cambio' => $cambio,
                 ]);
+                
+                $metodosGuardados++;
                 
                 Log::info("DEBUG Método de pago guardado", [
                     'tipo_pago_id' => $tipoPago->id,
                     'tipo_pago_nombre' => $tipoPago->nombre,
                     'total_factura' => $this->total,
-                    'pago_recibido' => $pagoRecibido,
-                    'cambio' => $cambio
+                    'pago_recibido' => $montoMetodo,
+                    'cambio' => $cambio,
+                    'total_distribuido' => $totalDistribuido
+                ]);
+            } else {
+                Log::info("DEBUG Método NO guardado", [
+                    'razon' => !$tipoPago ? 'TipoPago no encontrado' : 'Monto es 0 o menor',
+                    'tipo_pago_found' => !$tipoPago ? false : true,
+                    'monto' => $metodo['monto']
                 ]);
             }
         }
         
-        Log::info("DEBUG guardarMetodosPagoDistribucion FINALIZADO");
+        Log::info("DEBUG guardarMetodosPagoDistribucion FINALIZADO", [
+            'metodos_guardados' => $metodosGuardados,
+            'total_metodos_procesados' => count($metodosParaGuardar)
+        ]);
     }
 
     private function guardarProductoConDistribucionSecciones($facturaId, $producto, $indice)
