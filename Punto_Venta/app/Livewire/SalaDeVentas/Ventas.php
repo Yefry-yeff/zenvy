@@ -37,6 +37,11 @@ class Ventas extends Component
     public $totalIsv = 0;
     public $total = 0;
     public $isvPorTasa = []; // Nuevo: ISV agrupado por tasa
+    
+    // Descuentos por edad
+    public $descuentoTerceraEdad = false;
+    public $descuentoCuartaEdad = false;
+    public $totalDescuentos = 0;
 
     // Variables para procesamiento de pagos
     public $mostrarModalPagoFlag = false;
@@ -245,7 +250,7 @@ class Ventas extends Component
             'productos_en_carrito' => count($this->productosFactura)
         ]);
 
-        $producto = Producto::where('codigo_barra', $this->codigoBarras)->first();
+        $producto = Producto::with('isv')->where('codigo_barra', $this->codigoBarras)->first();
 
         if (!$producto) {
             $this->dispatch('mostrar-error', ['mensaje' => 'Producto no encontrado']);
@@ -269,13 +274,20 @@ class Ventas extends Component
         }
 
         if (!$productoExistente) {
+            // Obtener el valor de ISV desde la relación
+            $valorIsv = $producto->isv ? $producto->isv->cantidad : 0;
+            
             $this->productosFactura[] = [
                 'id' => $producto->id,
                 'nombre' => $producto->nombre,
                 'codigo' => $producto->codigo_barra,
                 'precio' => $producto->precio_base,
-                'isv' => $producto->isv,
-                'cantidad' => $this->cantidad
+                'isv' => $valorIsv,
+                'cantidad' => $this->cantidad,
+                'descuento_tercera' => $producto->descuento_tercera ?? 0,
+                'descuento_cuarta' => $producto->descuento_cuarta ?? 0,
+                'descuento_aplicado' => 0,
+                'subtotal_con_descuento' => 0
             ];
         }
 
@@ -335,14 +347,36 @@ class Ventas extends Component
     {
         $this->subtotal = 0;
         $this->totalIsv = 0;
+        $this->totalDescuentos = 0;
         $isvPorTasa = []; // Agrupamos ISV por tasa
 
-        foreach ($this->productosFactura as $producto) {
+        foreach ($this->productosFactura as $index => $producto) {
             $subtotalProducto = $producto['precio'] * $producto['cantidad'];
-            $this->subtotal += $subtotalProducto;
+            
+            // Aplicar descuentos por edad al subtotal del producto
+            $descuentoProducto = 0;
+            
+            // Verificar descuento de tercera edad
+            if ($this->descuentoTerceraEdad && isset($producto['descuento_tercera']) && $producto['descuento_tercera'] > 0) {
+                $descuentoProducto = $subtotalProducto * ($producto['descuento_tercera'] / 100);
+            }
+            // Verificar descuento de cuarta edad (solo si no hay descuento de tercera edad)
+            elseif ($this->descuentoCuartaEdad && isset($producto['descuento_cuarta']) && $producto['descuento_cuarta'] > 0) {
+                $descuentoProducto = $subtotalProducto * ($producto['descuento_cuarta'] / 100);
+            }
+            
+            // Calcular subtotal con descuento aplicado
+            $subtotalConDescuento = $subtotalProducto - $descuentoProducto;
+            $this->subtotal += $subtotalConDescuento;
+            $this->totalDescuentos += $descuentoProducto;
+            
+            // Actualizar el producto con la información del descuento aplicado
+            $this->productosFactura[$index]['descuento_aplicado'] = $descuentoProducto;
+            $this->productosFactura[$index]['subtotal_con_descuento'] = $subtotalConDescuento;
 
+            // Calcular ISV sobre el subtotal con descuento
             $tasaIsv = $producto['isv'];
-            $isvProducto = $subtotalProducto * ($tasaIsv / 100);
+            $isvProducto = $subtotalConDescuento * ($tasaIsv / 100);
             $this->totalIsv += $isvProducto;
 
             // Agrupar ISV por tasa
@@ -359,8 +393,73 @@ class Ventas extends Component
         $this->dispatch('totales-actualizados', [
             'subtotal' => $this->subtotal,
             'totalIsv' => $this->totalIsv,
-            'total' => $this->total
+            'total' => $this->total,
+            'totalDescuentos' => $this->totalDescuentos
         ]);
+    }
+
+    // Métodos para manejar descuentos por edad
+    public function aplicarDescuentoTerceraEdad()
+    {
+        // Si ya hay un descuento de cuarta edad activo, no permitir
+        if ($this->descuentoCuartaEdad) {
+            session()->flash('warning', 'Ya hay un descuento de cuarta edad aplicado. Solo se permite un descuento por edad a la vez.');
+            return;
+        }
+        
+        // Verificar si hay productos con descuento de tercera edad
+        $productosConDescuento = array_filter($this->productosFactura, function($producto) {
+            return isset($producto['descuento_tercera']) && $producto['descuento_tercera'] > 0;
+        });
+        
+        if (empty($productosConDescuento)) {
+            session()->flash('error', 'No hay productos con descuento para tercera edad en la factura.');
+            return;
+        }
+        
+        // Toggle del descuento
+        $this->descuentoTerceraEdad = !$this->descuentoTerceraEdad;
+        $this->calcularTotales();
+        
+        $mensaje = $this->descuentoTerceraEdad ? 'Descuento de tercera edad aplicado correctamente' : 'Descuento de tercera edad removido';
+        session()->flash('success', $mensaje);
+    }
+    
+    public function aplicarDescuentoCuartaEdad()
+    {
+        // Si ya hay un descuento de tercera edad activo, no permitir
+        if ($this->descuentoTerceraEdad) {
+            session()->flash('warning', 'Ya hay un descuento de tercera edad aplicado. Solo se permite un descuento por edad a la vez.');
+            return;
+        }
+        
+        // Verificar si hay productos con descuento de cuarta edad
+        $productosConDescuento = array_filter($this->productosFactura, function($producto) {
+            return isset($producto['descuento_cuarta']) && $producto['descuento_cuarta'] > 0;
+        });
+        
+        if (empty($productosConDescuento)) {
+            session()->flash('error', 'No hay productos con descuento para cuarta edad en la factura.');
+            return;
+        }
+        
+        // Toggle del descuento
+        $this->descuentoCuartaEdad = !$this->descuentoCuartaEdad;
+        $this->calcularTotales();
+        
+        $mensaje = $this->descuentoCuartaEdad ? 'Descuento de cuarta edad aplicado correctamente' : 'Descuento de cuarta edad removido';
+        session()->flash('success', $mensaje);
+    }
+    
+    // Método para resetear completamente la factura
+    public function resetearFactura()
+    {
+        $this->cliente = null;
+        $this->productosFactura = [];
+        $this->descuentoTerceraEdad = false;
+        $this->descuentoCuartaEdad = false;
+        $this->totalDescuentos = 0;
+        $this->calcularTotales();
     }
 
     // Propiedades computadas para asegurar valores actualizados
@@ -397,9 +496,7 @@ class Ventas extends Component
             session()->flash('success', 'Factura guardada exitosamente');
 
             // Limpiar el estado
-            $this->cliente = null;
-            $this->productosFactura = [];
-            $this->calcularTotales();
+            $this->resetearFactura();
         } catch (\Exception $e) {
             session()->flash('error', 'Error al guardar la factura: ' . $e->getMessage());
         }
@@ -1547,10 +1644,8 @@ class Ventas extends Component
 
     public function limpiarCarrito()
     {
-        $this->productosFactura = [];
-        $this->cliente = null;
+        $this->resetearFactura();
         $this->busquedaCliente = '';
-        $this->calcularTotales();
 
         // Limpiar variables de pago
         $this->mostrarModalPagoFlag = false;
@@ -1684,10 +1779,8 @@ class Ventas extends Component
 
     public function limpiarEstadoVenta()
     {
-        $this->productosFactura = [];
-        $this->cliente = null;
+        $this->resetearFactura();
         $this->busquedaCliente = '';
-        $this->calcularTotales();
 
         // Limpiar variables de pago
         $this->mostrarModalPagoFlag = false;

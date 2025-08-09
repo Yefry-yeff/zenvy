@@ -73,6 +73,31 @@
         </div>
     @endif
 
+    <!-- Alertas de descuentos -->
+    @if(session('success'))
+        <div class="alert alert-success alert-dismissible fade show position-fixed" 
+             style="top: 20px; right: 20px; z-index: 1050; min-width: 300px;">
+            <i class="fas fa-check-circle me-2"></i>{{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
+    @if(session('error'))
+        <div class="alert alert-danger alert-dismissible fade show position-fixed" 
+             style="top: 20px; right: 20px; z-index: 1050; min-width: 300px;">
+            <i class="fas fa-exclamation-circle me-2"></i>{{ session('error') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
+    @if(session('warning'))
+        <div class="alert alert-warning alert-dismissible fade show position-fixed" 
+             style="top: 20px; right: 20px; z-index: 1050; min-width: 300px;">
+            <i class="fas fa-exclamation-triangle me-2"></i>{{ session('warning') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
     <!-- Modal de selección de clientes -->
     @if($mostrarModalClientesFlag)
     <div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
@@ -402,14 +427,22 @@
                     <tbody>
                         @forelse($productosFactura as $item)
                         @php
-                            $subtotal = $item['precio'] * $item['cantidad'];
-                            $isv = $subtotal * ($item['isv']/100);
-                            $total = $subtotal + $isv;
+                            $subtotalOriginal = $item['precio'] * $item['cantidad'];
+                            $descuentoAplicado = $item['descuento_aplicado'] ?? 0;
+                            $subtotalConDescuento = $item['subtotal_con_descuento'] ?? $subtotalOriginal;
+                            $isv = $subtotalConDescuento * ($item['isv']/100);
+                            $total = $subtotalConDescuento + $isv;
                             $stockDisponible = $this->obtenerStockDisponible($item['id']);
                         @endphp
                         <tr>
                             <td>
                                 {{ $item['nombre'] }}
+                                @if($descuentoAplicado > 0)
+                                    <br><small class="text-success">
+                                        <i class="fas fa-percentage"></i> 
+                                        Descuento aplicado: L. {{ number_format($descuentoAplicado, 2) }}
+                                    </small>
+                                @endif
                                 <br>
                                 <small class="text-gray-500">
                                     Stock disponible: {{ $stockDisponible }}
@@ -427,7 +460,14 @@
                                     style="min-width: 60px;"
                                     title="Stock disponible: {{ $stockDisponible }}">
                             </td>
-                            <td>L. {{ number_format($subtotal, 2) }}</td>
+                            <td>
+                                @if($descuentoAplicado > 0)
+                                    <div class="text-decoration-line-through text-muted small">L. {{ number_format($subtotalOriginal, 2) }}</div>
+                                    <div class="text-success fw-bold">L. {{ number_format($subtotalConDescuento, 2) }}</div>
+                                @else
+                                    L. {{ number_format($subtotalConDescuento, 2) }}
+                                @endif
+                            </td>
                             <td>L. {{ number_format($isv, 2) }}
                                 <span class="text-xs text-gray-500">({{ $item['isv'] }}%)</span>
                             </td>
@@ -453,11 +493,39 @@
                 </table>
             </div>
 
+                <!-- Botones de Descuento -->
+                @if(count($productosFactura) > 0)
+                <div class="d-flex justify-content-end mb-3">
+                    <!-- Botón 3ra Edad -->
+                    <button 
+                        wire:click="aplicarDescuentoTerceraEdad" 
+                        class="btn me-2 {{ $descuentoTerceraEdad ? 'btn-danger' : 'btn-success' }} {{ $descuentoCuartaEdad ? 'opacity-50' : '' }}"
+                        {{ $descuentoCuartaEdad ? 'disabled' : '' }}
+                        style="{{ $descuentoCuartaEdad ? 'cursor: not-allowed;' : 'cursor: pointer;' }}"
+                        title="{{ $descuentoCuartaEdad ? 'Deshabilitado: ya hay un descuento de 4ta edad aplicado' : 'Descuento para personas de 60-64 años' }}">
+                        <i class="fas fa-user-friends me-1"></i>
+                        {{ $descuentoTerceraEdad ? 'Remover' : 'Aplicar' }} 3ra Edad
+                    </button>
+                    
+                    <!-- Botón 4ta Edad -->
+                    <button 
+                        wire:click="aplicarDescuentoCuartaEdad" 
+                        class="btn {{ $descuentoCuartaEdad ? 'btn-danger' : 'btn-success' }} {{ $descuentoTerceraEdad ? 'opacity-50' : '' }}"
+                        {{ $descuentoTerceraEdad ? 'disabled' : '' }}
+                        style="{{ $descuentoTerceraEdad ? 'cursor: not-allowed;' : 'cursor: pointer;' }}"
+                        title="{{ $descuentoTerceraEdad ? 'Deshabilitado: ya hay un descuento de 3ra edad aplicado' : 'Descuento para personas de 65+ años' }}">
+                        <i class="fas fa-user-check me-1"></i>
+                        {{ $descuentoCuartaEdad ? 'Remover' : 'Aplicar' }} 4ta Edad
+                    </button>
+                </div>
+                @endif
+
                 <!-- Totales -->
                 <div class="flex justify-end mb-4" x-data="{
                     subtotal: @entangle('subtotal'),
                     totalIsv: @entangle('totalIsv'),
                     total: @entangle('total'),
+                    totalDescuentos: @entangle('totalDescuentos'),
                     isvPorTasa: @entangle('isvPorTasa')
                 }">
                     <div class="bg-gray-100 rounded-lg p-4 w-full max-w-xs">
@@ -465,6 +533,14 @@
                             <span class="font-semibold">Subtotal:</span>
                             <span x-text="'L. ' + parseFloat(subtotal).toFixed(2)">L. {{ number_format($subtotal, 2) }}</span>
                         </div>
+
+                        <!-- Mostrar descuentos si hay alguno aplicado -->
+                        @if($totalDescuentos > 0)
+                        <div class="flex justify-between mb-2 text-red-600">
+                            <span class="font-medium">Descuentos:</span>
+                            <span x-text="'-L. ' + parseFloat(totalDescuentos).toFixed(2)">-L. {{ number_format($totalDescuentos, 2) }}</span>
+                        </div>
+                        @endif
 
                         <!-- ISV agrupado por tasa -->
                         @if(!empty($isvPorTasa))
