@@ -29,11 +29,6 @@ class ListaDeFacturas extends Component
         return redirect()->route('factura.pdf', $facturaId);
     }
 
-    public function imprimirFactura($facturaId)
-    {
-        $this->cargarDatosParaImpresion($facturaId);
-    }
-
     private function cargarDatosParaImpresion($facturaId)
     {
         // Cargar la factura

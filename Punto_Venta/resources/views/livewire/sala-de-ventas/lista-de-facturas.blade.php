@@ -59,11 +59,12 @@
                                             @endif
                                         </td>
                                         <td class="text-center" onclick="event.stopPropagation()">
-                                            <button class="btn btn-sm btn-success"
-                                                    wire:click="imprimirFactura({{ $factura->id }})"
-                                                    title="Imprimir Factura">
+                                            <a href="{{ route('factura.pdf.preview', $factura->id) }}" 
+                                               target="_blank" 
+                                               class="btn btn-sm btn-success"
+                                               title="Imprimir Factura">
                                                 <i class="fas fa-print"></i>
-                                            </button>
+                                            </a>
                                             <button class="btn btn-sm btn-danger"
                                                     wire:click="generarPDF({{ $factura->id }})"
                                                     title="Descargar PDF">
@@ -169,72 +170,111 @@
     @endif
 
     <!-- Modal para ver detalle de la factura -->
-    @if($facturaDetalle)
-        <div class="modal fade show" style="display: block; background-color: rgba(0,0,0,0.5);" tabindex="-1" role="dialog">
-            <div class="modal-dialog modal-lg" role="document">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Detalle de Factura - {{ $facturaDetalle->numero_factura ?? 'N/A' }}</h5>
-                        <button type="button" class="close" wire:click="cerrarDetalle">
-                            <span>&times;</span>
+    @if($facturaDetalle && $facturaDetalle->id)
+        <div class="modal fade show d-flex align-items-center justify-content-center" 
+             style="display: flex; background-color: rgba(0,0,0,0.5);" 
+             tabindex="-1" 
+             role="dialog"
+             wire:click="cerrarDetalle">
+            <div class="modal-dialog modal-lg" 
+                 role="document" 
+                 onclick="event.stopPropagation()">
+                <div class="modal-content shadow-lg">
+                    <div class="modal-header bg-primary text-white">
+                        <h5 class="modal-title">
+                            <i class="fas fa-file-invoice mr-2"></i>
+                            Detalle de Factura - {{ $facturaDetalle->numero_factura ?? 'N/A' }}
+                        </h5>
+                        <button type="button" class="close text-white" wire:click="cerrarDetalle" aria-label="Cerrar">
+                            <span aria-hidden="true">&times;</span>
                         </button>
                     </div>
-                    <div class="modal-body">
+                    <div class="modal-body bg-light">
                         <div class="row">
                             <div class="col-md-6">
-                                <h6>Información del Cliente:</h6>
-                                <p><strong>Nombre:</strong> {{ $facturaDetalle->nombre_cliente ?? 'Cliente General' }}</p>
-                                <p><strong>RTN:</strong> {{ $facturaDetalle->rtn ?? 'N/A' }}</p>
-                                <p><strong>Fecha:</strong> {{ \Carbon\Carbon::parse($facturaDetalle->fecha_emision)->format('d/m/Y H:i') }}</p>
+                                <div class="card h-100">
+                                    <div class="card-header bg-info text-white">
+                                        <h6 class="mb-0"><i class="fas fa-user"></i> Información del Cliente</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <p><strong>Nombre:</strong><br>{{ $facturaDetalle->nombre_cliente ?? 'Cliente General' }}</p>
+                                        <p><strong>RTN:</strong><br>{{ $facturaDetalle->rtn ?? 'N/A' }}</p>
+                                        <p><strong>Fecha:</strong><br>{{ \Carbon\Carbon::parse($facturaDetalle->fecha_emision)->format('d/m/Y H:i') }}</p>
+                                    </div>
+                                </div>
                             </div>
                             <div class="col-md-6">
-                                <h6>Información de la Factura:</h6>
-                                <p><strong>ID:</strong> {{ $facturaDetalle->id }}</p>
-                                <p><strong>No. Factura:</strong> {{ $facturaDetalle->numero_factura ?? 'N/A' }}</p>
-                                <p><strong>Estado:</strong> 
-                                    @if($facturaDetalle->estado_factura_id == 1)
-                                        <span class="badge badge-success">Pagada</span>
-                                    @elseif($facturaDetalle->estado_factura_id == 2)
-                                        <span class="badge badge-warning">Pendiente</span>
-                                    @elseif($facturaDetalle->estado_factura_id == 3)
-                                        <span class="badge badge-danger">Anulada</span>
-                                    @else
-                                        <span class="badge badge-secondary">Desconocido</span>
-                                    @endif
-                                </p>
+                                <div class="card h-100">
+                                    <div class="card-header bg-success text-white">
+                                        <h6 class="mb-0"><i class="fas fa-receipt"></i> Información de la Factura</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <p><strong>ID:</strong><br>{{ $facturaDetalle->id }}</p>
+                                        <p><strong>No. Factura:</strong><br>{{ $facturaDetalle->numero_factura ?? 'N/A' }}</p>
+                                        <p><strong>Estado:</strong><br>
+                                            @if($facturaDetalle->estado_factura_id == 1)
+                                                <span class="badge badge-success">Pagada</span>
+                                            @elseif($facturaDetalle->estado_factura_id == 2)
+                                                <span class="badge badge-warning">Pendiente</span>
+                                            @elseif($facturaDetalle->estado_factura_id == 3)
+                                                <span class="badge badge-danger">Anulada</span>
+                                            @else
+                                                <span class="badge badge-secondary">Desconocido</span>
+                                            @endif
+                                        </p>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         
-                        <hr>
-                        
-                        <div class="row">
-                            <div class="col-md-12">
-                                <h6>Totales:</h6>
-                                <div class="row">
-                                    <div class="col-md-3">
-                                        <p><strong>Subtotal:</strong><br>L. {{ number_format($facturaDetalle->sub_total, 2) }}</p>
+                        <div class="row mt-3">
+                            <div class="col-12">
+                                <div class="card">
+                                    <div class="card-header bg-warning text-dark">
+                                        <h6 class="mb-0"><i class="fas fa-calculator"></i> Resumen de Totales</h6>
                                     </div>
-                                    <div class="col-md-3">
-                                        <p><strong>Descuento:</strong><br>L. {{ number_format($facturaDetalle->descuento ?? 0, 2) }}</p>
-                                    </div>
-                                    <div class="col-md-3">
-                                        <p><strong>ISV:</strong><br>L. {{ number_format($facturaDetalle->isv, 2) }}</p>
-                                    </div>
-                                    <div class="col-md-3">
-                                        <p><strong>Total:</strong><br><span class="h5 text-primary">L. {{ number_format($facturaDetalle->total, 2) }}</span></p>
+                                    <div class="card-body">
+                                        <div class="row text-center">
+                                            <div class="col-md-3">
+                                                <div class="border-right">
+                                                    <h6 class="text-muted">Subtotal</h6>
+                                                    <h5 class="text-primary">L. {{ number_format($facturaDetalle->sub_total, 2) }}</h5>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <div class="border-right">
+                                                    <h6 class="text-muted">Descuento</h6>
+                                                    <h5 class="text-warning">L. {{ number_format($facturaDetalle->descuento ?? 0, 2) }}</h5>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <div class="border-right">
+                                                    <h6 class="text-muted">ISV</h6>
+                                                    <h5 class="text-info">L. {{ number_format($facturaDetalle->isv, 2) }}</h5>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <h6 class="text-muted">Total</h6>
+                                                <h4 class="text-success font-weight-bold">L. {{ number_format($facturaDetalle->total, 2) }}</h4>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" wire:click="cerrarDetalle">Cerrar</button>
-                        <a href="{{ route('factura.pdf', $facturaDetalle->id) }}" target="_blank" class="btn btn-danger">
-                            <i class="fas fa-file-pdf"></i> Ver PDF
-                        </a>
-                        <button type="button" class="btn btn-info" wire:click="imprimirFactura({{ $facturaDetalle->id }})">
-                            <i class="fas fa-print"></i> Imprimir
+                    <div class="modal-footer bg-light">
+                        <button type="button" class="btn btn-secondary" wire:click="cerrarDetalle">
+                            <i class="fas fa-times"></i> Cerrar
                         </button>
+                        @if($facturaDetalle && $facturaDetalle->id)
+                            <a href="{{ route('factura.pdf', $facturaDetalle->id) }}" target="_blank" class="btn btn-danger">
+                                <i class="fas fa-download"></i> Descargar PDF
+                            </a>
+                            <a href="{{ route('factura.pdf.preview', $facturaDetalle->id) }}" target="_blank" class="btn btn-success">
+                                <i class="fas fa-eye"></i> Visualizar Factura
+                            </a>
+                        @endif
                     </div>
                 </div>
             </div>
