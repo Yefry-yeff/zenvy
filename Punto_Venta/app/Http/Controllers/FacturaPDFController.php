@@ -34,8 +34,11 @@ class FacturaPDFController extends Controller
                     'p.codigo_barra',
                     'fp.cantidad',
                     'fp.precio_unidad',
-                    'fp.total',
-                    'fp.isv'
+                    'fp.subtotal',
+                    'fp.descuento',
+                    'fp.isv_aplicado',
+                    'fp.isv',
+                    'fp.total'
                 )
                 ->get();
                 
@@ -119,8 +122,11 @@ class FacturaPDFController extends Controller
                     'p.codigo_barra',
                     'fp.cantidad',
                     'fp.precio_unidad',
-                    'fp.total',
-                    'fp.isv'
+                    'fp.subtotal',
+                    'fp.descuento',
+                    'fp.isv_aplicado',
+                    'fp.isv',
+                    'fp.total'
                 )
                 ->get();
                 

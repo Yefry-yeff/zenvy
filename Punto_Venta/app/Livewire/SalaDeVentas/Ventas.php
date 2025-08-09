@@ -628,26 +628,24 @@ class Ventas extends Component
 
             Log::info("DEBUG Transacción iniciada");
 
-            // Crear la factura principal
-            $factura = new Factura();
-
-            // Generar número de factura con CAI
-            $factura->numero_factura = $this->generarNumeroFactura();
-
-            // Usar el CAI real generado
-            $factura->cai_id = $this->caiActual ? $this->caiActual['cai_id'] : 1;
-            $factura->tipo_facturacion_id = 1; // Asumiendo que 1 es venta normal
-            $factura->nombre_cliente = $this->cliente ? $this->cliente->nombre_completo : 'Consumidor Final';
-            $factura->rtn = $this->cliente ? $this->cliente->rtn : null;
-            $factura->sub_total = $this->subtotal;
-            $factura->sub_total_grabado = $this->subtotal; // Por ahora todo gravado
-            $factura->sub_total_exento = 0; // Por ahora sin exentos
-            $factura->isv = $this->totalIsv;
-            $factura->total = $this->total;
-            $factura->credito = 0;
-            $factura->fecha_emision = now()->format('Y-m-d');
-            $factura->estado_factura_id = 1; // Asumiendo que 1 es "Activa"
-            $factura->users_id = Auth::id();
+            // Crear la factura principal usando create para asegurar que todos los campos se incluyan
+            $factura = Factura::create([
+                'numero_factura' => $this->generarNumeroFactura(),
+                'cai_id' => $this->caiActual ? $this->caiActual['cai_id'] : 1,
+                'tipo_facturacion_id' => 1,
+                'nombre_cliente' => $this->cliente ? $this->cliente->nombre_completo : 'Consumidor Final',
+                'rtn' => $this->cliente ? $this->cliente->rtn : null,
+                'sub_total' => $this->subtotal,
+                'sub_total_grabado' => $this->subtotal,
+                'sub_total_exento' => 0,
+                'isv' => $this->totalIsv,
+                'total' => $this->total,
+                'credito' => 0,
+                'fecha_emision' => now()->format('Y-m-d'),
+                'estado_factura_id' => 1,
+                'users_id' => Auth::id(),
+                'descuentos_id' => 1
+            ]);
 
             Log::info("DEBUG Datos de factura preparados", [
                 'numero_factura' => $factura->numero_factura,
@@ -655,8 +653,6 @@ class Ventas extends Component
                 'total' => $factura->total,
                 'user_id' => $factura->users_id
             ]);
-
-            $factura->save();
 
             Log::info("DEBUG Factura guardada con ID: " . $factura->id);
 
@@ -890,6 +886,14 @@ class Ventas extends Component
             // Calcular cuánto tomar de esta sección
             $cantidadATomar = min($cantidadRestante, $seccion->cantidad_disponible);
 
+            // Calcular valores con descuento aplicado
+            $subtotalOriginal = $cantidadATomar * $producto['precio'];
+            $descuentoAplicado = $producto['descuento_aplicado'] ?? 0;
+            $subtotalConDescuento = $producto['subtotal_con_descuento'] ?? $subtotalOriginal;
+            $isvAplicado = $producto['isv'] ?? 0; // Tasa de ISV del producto
+            $isvCalculado = $subtotalConDescuento * ($isvAplicado / 100);
+            $totalFinal = $subtotalConDescuento + $isvCalculado;
+
             // Crear registro en factura_has_producto
             DB::table('factura_has_producto')->insert([
                 'factura_id' => $facturaId,
@@ -902,9 +906,11 @@ class Ventas extends Component
                 'resta_inventario_total' => $cantidadATomar,
                 'precio_unidad' => $producto['precio'],
                 'cantidad' => $cantidadATomar,
-                'subtotal' => $cantidadATomar * $producto['precio'],
-                'isv' => ($cantidadATomar * $producto['precio']) * ($productoDb->isv / 100),
-                'total' => ($cantidadATomar * $producto['precio']) + (($cantidadATomar * $producto['precio']) * ($productoDb->isv / 100)),
+                'subtotal' => $subtotalConDescuento,
+                'descuento' => $descuentoAplicado,
+                'isv_aplicado' => $isvAplicado,
+                'isv' => $isvCalculado,
+                'total' => $totalFinal,
                 'idPrecioSeleccionado' => '0',
                 'precio_seleccionado' => 0
             ]);
@@ -1059,30 +1065,35 @@ class Ventas extends Component
         try {
             DB::beginTransaction();
 
-            // Crear la factura principal
-            $factura = new Factura();
-            $factura->tipo_facturacion_id = 1; // Asumiendo que 1 es venta normal
-
-            // Generar número de factura con CAI
-            $factura->numero_factura = $this->generarNumeroFactura();
-
-            // Usar el CAI real generado
-            $factura->cai_id = $this->caiActual ? $this->caiActual['cai_id'] : 1;
-            $factura->nombre_cliente = $this->cliente ? $this->cliente->nombre_completo : 'Consumidor Final';
-            $factura->rtn = $this->cliente ? $this->cliente->rtn : null;
-            $factura->sub_total = $this->subtotal;
-            $factura->sub_total_grabado = $this->subtotal; // Por ahora todo gravado
-            $factura->sub_total_exento = 0; // Por ahora sin exentos
-            $factura->isv = $this->totalIsv;
-            $factura->total = $this->total;
-            $factura->credito = 0;
-            $factura->fecha_emision = now()->format('Y-m-d');
-            $factura->estado_factura_id = 1; // Asumiendo que 1 es "Activa"
-            $factura->users_id = Auth::id();
-            $factura->save();
+            // Crear la factura principal usando create para asegurar que todos los campos se incluyan
+            $factura = Factura::create([
+                'tipo_facturacion_id' => 1,
+                'numero_factura' => $this->generarNumeroFactura(),
+                'cai_id' => $this->caiActual ? $this->caiActual['cai_id'] : 1,
+                'nombre_cliente' => $this->cliente ? $this->cliente->nombre_completo : 'Consumidor Final',
+                'rtn' => $this->cliente ? $this->cliente->rtn : null,
+                'sub_total' => $this->subtotal,
+                'sub_total_grabado' => $this->subtotal,
+                'sub_total_exento' => 0,
+                'isv' => $this->totalIsv,
+                'total' => $this->total,
+                'credito' => 0,
+                'fecha_emision' => now()->format('Y-m-d'),
+                'estado_factura_id' => 1,
+                'users_id' => Auth::id(),
+                'descuentos_id' => 1
+            ]);
 
             // Guardar productos de la factura
             foreach ($this->productosFactura as $producto) {
+                // Calcular valores con descuento aplicado
+                $subtotalOriginal = $producto['cantidad'] * $producto['precio'];
+                $descuentoAplicado = $producto['descuento_aplicado'] ?? 0;
+                $subtotalConDescuento = $producto['subtotal_con_descuento'] ?? $subtotalOriginal;
+                $isvAplicado = $producto['isv'] ?? 0; // Tasa de ISV del producto
+                $isvCalculado = $subtotalConDescuento * ($isvAplicado / 100);
+                $totalFinal = $subtotalConDescuento + $isvCalculado;
+
                 DB::table('factura_has_producto')->insert([
                     'factura_id' => $factura->id,
                     'producto_id' => $producto['id'],
@@ -1094,9 +1105,11 @@ class Ventas extends Component
                     'resta_inventario_total' => $producto['cantidad'],
                     'precio_unidad' => $producto['precio'],
                     'cantidad' => $producto['cantidad'],
-                    'subtotal' => $producto['cantidad'] * $producto['precio'],
-                    'isv' => $producto['isv'],
-                    'total' => ($producto['cantidad'] * $producto['precio']) + $producto['isv'],
+                    'subtotal' => $subtotalConDescuento,
+                    'descuento' => $descuentoAplicado,
+                    'isv_aplicado' => $isvAplicado,
+                    'isv' => $isvCalculado,
+                    'total' => $totalFinal,
                     'idPrecioSeleccionado' => '1',
                     'precio_seleccionado' => $producto['precio']
                 ]);
@@ -1141,17 +1154,24 @@ class Ventas extends Component
                 'p.codigo_barra',
                 'fp.cantidad',
                 'fp.precio_unidad',
-                'fp.total',
-                'fp.isv'
+                'fp.subtotal',
+                'fp.descuento',
+                'fp.isv_aplicado',
+                'fp.isv',
+                'fp.total'
             )
-            ->get()->toArray();
+            ->get()->map(function($item) {
+                return (array) $item;
+            })->toArray();
 
         // Cargar métodos de pago
         $this->pagosFacturaImpresa = DB::table('factura_has_pago as fp')
             ->join('tipo_pago as tp', 'fp.tipo_pago_id', '=', 'tp.id')
             ->where('fp.factura_id', $facturaId)
             ->select('tp.nombre as metodo', 'fp.pago_recibido')
-            ->get()->toArray();
+            ->get()->map(function($item) {
+                return (array) $item;
+            })->toArray();
 
         // Generar y guardar imagen de la factura
         $this->generarYGuardarImagenFactura($facturaId);
@@ -1193,6 +1213,7 @@ class Ventas extends Component
             $negro = imagecolorallocate($imagen, 0, 0, 0);
             $gris = imagecolorallocate($imagen, 128, 128, 128);
             $azul = imagecolorallocate($imagen, 0, 100, 200);
+            $rojo = imagecolorallocate($imagen, 200, 0, 0);
 
             // Fondo blanco
             imagefill($imagen, 0, 0, $blanco);
@@ -1349,13 +1370,35 @@ class Ventas extends Component
             $y += 15;
 
             // Productos
+            $totalDescuentos = 0;
+            $isvPorTasa = [];
+            
             foreach ($this->productosFacturaImpresa as $producto) {
-                $nombreCorto = substr($producto->nombre, 0, 25);
+                $nombreCorto = substr($producto['nombre'], 0, 25);
                 imagestring($imagen, 2, 30, $y, $nombreCorto, $negro);
-                imagestring($imagen, 2, 350, $y, $producto->cantidad, $negro);
-                imagestring($imagen, 2, 420, $y, "L. " . number_format($producto->precio_unidad, 2), $negro);
-                imagestring($imagen, 2, 500, $y, "L. " . number_format($producto->total, 2), $negro);
+                imagestring($imagen, 2, 350, $y, $producto['cantidad'], $negro);
+                imagestring($imagen, 2, 420, $y, "L. " . number_format($producto['precio_unidad'], 2), $negro);
+                imagestring($imagen, 2, 500, $y, "L. " . number_format($producto['total'], 2), $negro);
                 $y += 15;
+                
+                // Mostrar descuento si existe
+                if ($producto['descuento'] > 0) {
+                    $porcentajeDescuento = ($producto['descuento'] / ($producto['subtotal'] + $producto['descuento'])) * 100;
+                    $tipoDescuento = $porcentajeDescuento >= 15 ? "4ta edad" : "3ra edad";
+                    imagestring($imagen, 1, 50, $y, "Descuento - " . number_format($porcentajeDescuento, 0) . "% " . $tipoDescuento, $gris);
+                    imagestring($imagen, 1, 500, $y, "-L. " . number_format($producto['descuento'], 2), $gris);
+                    $y += 12;
+                    $totalDescuentos += $producto['descuento'];
+                }
+                
+                // Agrupar ISV por tasa
+                $tasaIsv = $producto['isv_aplicado'];
+                if ($tasaIsv > 0) {
+                    if (!isset($isvPorTasa[$tasaIsv])) {
+                        $isvPorTasa[$tasaIsv] = 0;
+                    }
+                    $isvPorTasa[$tasaIsv] += $producto['isv'];
+                }
             }
 
             $y += 10;
@@ -1364,13 +1407,34 @@ class Ventas extends Component
 
             // Totales
             imagestring($imagen, 3, 350, $y, "Subtotal:", $negro);
-            imagestring($imagen, 3, 470, $y, "L. " . number_format($factura->sub_total, 2), $negro);
+            imagestring($imagen, 3, 470, $y, "L. " . number_format((float)$factura->sub_total, 2), $negro);
             $y += 20;
-            imagestring($imagen, 3, 350, $y, "ISV:", $negro);
-            imagestring($imagen, 3, 470, $y, "L. " . number_format($factura->isv, 2), $negro);
-            $y += 20;
+            
+            // Mostrar descuentos si existen
+            if ($totalDescuentos > 0) {
+                imagestring($imagen, 3, 350, $y, "Descuentos y rebajas:", $rojo);
+                imagestring($imagen, 3, 470, $y, "-L. " . number_format($totalDescuentos, 2), $rojo);
+                $y += 20;
+            }
+            
+            // Mostrar ISV por tasa
+            foreach ($isvPorTasa as $tasa => $montoIsv) {
+                if ($tasa > 0 && $montoIsv > 0) {
+                    imagestring($imagen, 3, 350, $y, "ISV (" . $tasa . "%):", $negro);
+                    imagestring($imagen, 3, 470, $y, "L. " . number_format($montoIsv, 2), $negro);
+                    $y += 20;
+                }
+            }
+            
+            // Si no hay ISV por tasa, mostrar el total de ISV
+            if (empty($isvPorTasa) || array_sum($isvPorTasa) == 0) {
+                imagestring($imagen, 3, 350, $y, "ISV:", $negro);
+                imagestring($imagen, 3, 470, $y, "L. " . number_format((float)$factura->isv, 2), $negro);
+                $y += 20;
+            }
+            
             imagestring($imagen, 4, 350, $y, "TOTAL:", $azul);
-            imagestring($imagen, 4, 470, $y, "L. " . number_format($factura->total, 2), $azul);
+            imagestring($imagen, 4, 470, $y, "L. " . number_format((float)$factura->total, 2), $azul);
             $y += 30;
 
             // Métodos de pago
@@ -1381,7 +1445,7 @@ class Ventas extends Component
                 $y += 20;
 
                 foreach ($this->pagosFacturaImpresa as $pago) {
-                    imagestring($imagen, 2, 50, $y, $pago->metodo . ": L. " . number_format($pago->pago_recibido, 2), $negro);
+                    imagestring($imagen, 2, 50, $y, $pago['metodo'] . ": L. " . number_format($pago['pago_recibido'], 2), $negro);
                     $y += 15;
                 }
             }

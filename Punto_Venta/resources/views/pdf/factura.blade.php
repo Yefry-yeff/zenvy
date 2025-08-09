@@ -293,9 +293,22 @@
                     <div class="col-descripcion">
                         {{ $producto->nombre }}<br>
                         <span style="font-size: 11px;">{{ $producto->cantidad }} x L. {{ number_format($producto->precio_unidad, 2) }}</span>
+                        @if($producto->descuento > 0)
+                            <br><span style="font-size: 10px; color: #666;">
+                                @php
+                                    $subtotalOriginal = $producto->cantidad * $producto->precio_unidad;
+                                    $porcentajeDescuento = ($producto->descuento / $subtotalOriginal) * 100;
+                                    $tipoDescuento = $porcentajeDescuento >= 15 ? "4ta edad" : "3ra edad";
+                                @endphp
+                                Descuento - {{ number_format($porcentajeDescuento, 0) }}% {{ $tipoDescuento }}
+                            </span>
+                        @endif
                     </div>
                     <div class="col-importe">
-                        L. {{ number_format($producto->cantidad * $producto->precio_unidad, 2) }}
+                        L. {{ number_format($producto->subtotal, 2) }}
+                        @if($producto->descuento > 0)
+                            <br><span style="font-size: 10px; color: #666;">-L. {{ number_format($producto->descuento, 2) }}</span>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -310,19 +323,22 @@
                     <div class="table-cell-left">SUB-TOTAL</div>
                     <div class="table-cell-right">L. {{ number_format($factura->sub_total, 2) }}</div>
                 </div>
-                @if($factura->monto_descuento > 0)
+                @php
+                    $totalDescuentos = collect($productos)->sum('descuento');
+                @endphp
+                @if($totalDescuentos > 0)
                 <div class="table-row">
                     <div class="table-cell-left">DESCUENTOS Y REBAJAS</div>
-                    <div class="table-cell-right">L. {{ number_format($factura->monto_descuento, 2) }}</div>
+                    <div class="table-cell-right">-L. {{ number_format($totalDescuentos, 2) }}</div>
                 </div>
                 @endif
                 <div class="table-row">
                     <div class="table-cell-left">IMPORTE EXONERADO</div>
-                    <div class="table-cell-right">L. {{ number_format(collect($productos)->where('isv', 0)->sum(function($p) { return $p->cantidad * $p->precio_unidad; }), 2) }}</div>
+                    <div class="table-cell-right">L. {{ number_format(collect($productos)->where('isv', 0)->sum('subtotal'), 2) }}</div>
                 </div>
                 <div class="table-row">
                     <div class="table-cell-left">IMPORTE 15%</div>
-                    <div class="table-cell-right">L. {{ number_format(collect($productos)->where('isv', '>', 0)->sum(function($p) { return $p->cantidad * $p->precio_unidad; }), 2) }}</div>
+                    <div class="table-cell-right">L. {{ number_format(collect($productos)->where('isv', '>', 0)->sum('subtotal'), 2) }}</div>
                 </div>
                 <div class="table-row">
                     <div class="table-cell-left">IMPORTE 18%</div>
