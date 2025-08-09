@@ -12,6 +12,7 @@ use Livewire\Attributes\On;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Exception;
 
 class Ventas extends Component
 {
@@ -1014,11 +1015,21 @@ class Ventas extends Component
                 Log::error("Factura no encontrada para generar imagen", ['factura_id' => $facturaId]);
                 return;
             }
+
+            // Obtener información de la empresa
+            $empresa = DB::table('empresa')->first();
             
-            // Crear una imagen en blanco (600x800 píxeles) con TRUE COLOR
+            // Obtener información de la tienda con dirección
+            $tienda = DB::table('tienda as t')
+                ->leftJoin('direccion as d', 't.direccion_sucursal_id', '=', 'd.id')
+                ->select('t.*', 'd.domicilio_tributario')
+                ->where('t.id', 1) // Asumiendo tienda principal, puedes cambiarlo por un campo en factura
+                ->first();
+            
+            // Crear una imagen en blanco (600x900 píxeles) - más alta para el nuevo encabezado
             $ancho = 600;
-            $alto = 800;
-            $imagen = imagecreatetruecolor($ancho, $alto); // Usar truecolor para mejor calidad
+            $alto = 900;
+            $imagen = imagecreatetruecolor($ancho, $alto);
             
             // Habilitar alpha blending y guardar alpha
             imagealphablending($imagen, false);
@@ -1033,12 +1044,126 @@ class Ventas extends Component
             // Fondo blanco
             imagefill($imagen, 0, 0, $blanco);
             
-            // Título de la empresa
-            $y = 30;
-            imagestring($imagen, 5, 200, $y, "PUNTO DE VENTA", $azul);
-            $y += 40;
-            imagestring($imagen, 3, 180, $y, "Sistema de Facturacion", $negro);
-            $y += 30;
+            $y = 20; // Comenzar más arriba
+            
+            // LOGO DE LA EMPRESA (si existe)
+            if ($empresa && $empresa->logo) {
+                try {
+                    // Crear imagen temporal del logo
+                    $logoTemporal = imagecreatefromstring($empresa->logo);
+                    if ($logoTemporal) {
+                        // Obtener dimensiones del logo original
+                        $logoAncho = imagesx($logoTemporal);
+                        $logoAlto = imagesy($logoTemporal);
+                        
+                        // Calcular nuevas dimensiones (máximo 80x80)
+                        $maxTamano = 80;
+                        $escala = min($maxTamano / $logoAncho, $maxTamano / $logoAlto);
+                        $nuevoAncho = (int)($logoAncho * $escala);
+                        $nuevoAlto = (int)($logoAlto * $escala);
+                        
+                        // Posicionar logo en el centro horizontal
+                        $logoX = ($ancho - $nuevoAncho) / 2;
+                        
+                        // Redimensionar y copiar logo
+                        imagecopyresampled($imagen, $logoTemporal, $logoX, $y, 0, 0, 
+                                         $nuevoAncho, $nuevoAlto, $logoAncho, $logoAlto);
+                        
+                        imagedestroy($logoTemporal);
+                        $y += $nuevoAlto + 15;
+                    }
+                } catch (Exception $e) {
+                    Log::warning("Error al procesar logo: " . $e->getMessage());
+                }
+            }
+            
+            // NOMBRE DE LA TIENDA (grande)
+            if ($tienda && $tienda->denominacion_social) {
+                $nombreTienda = strtoupper($tienda->denominacion_social);
+                // Centrar el texto
+                $textoAncho = strlen($nombreTienda) * 12; // Aproximado para fuente 5
+                $textoX = ($ancho - $textoAncho) / 2;
+                imagestring($imagen, 5, max(20, $textoX), $y, $nombreTienda, $azul);
+                $y += 30;
+            }
+            
+            // NOMBRE DE LA EMPRESA (mediano)
+            if ($empresa && $empresa->nombre) {
+                $nombreEmpresa = $empresa->nombre;
+                $textoAncho = strlen($nombreEmpresa) * 8; // Aproximado para fuente 3
+                $textoX = ($ancho - $textoAncho) / 2;
+                imagestring($imagen, 3, max(20, $textoX), $y, $nombreEmpresa, $negro);
+                $y += 25;
+            }
+            
+            // RTN DE LA EMPRESA
+            if ($empresa && $empresa->rtn) {
+                $rtnTexto = "RTN: " . $empresa->rtn;
+                $textoAncho = strlen($rtnTexto) * 8;
+                $textoX = ($ancho - $textoAncho) / 2;
+                imagestring($imagen, 3, max(20, $textoX), $y, $rtnTexto, $negro);
+                $y += 20;
+            }
+            
+            // DIRECCIÓN DE LA SUCURSAL
+            if ($tienda && $tienda->domicilio_tributario) {
+                $direccion = $tienda->domicilio_tributario;
+                // Dividir dirección si es muy larga
+                if (strlen($direccion) > 50) {
+                    $palabras = explode(' ', $direccion);
+                    $linea1 = '';
+                    $linea2 = '';
+                    foreach ($palabras as $palabra) {
+                        if (strlen($linea1 . ' ' . $palabra) <= 50) {
+                            $linea1 .= ($linea1 ? ' ' : '') . $palabra;
+                        } else {
+                            $linea2 .= ($linea2 ? ' ' : '') . $palabra;
+                        }
+                    }
+                    
+                    $textoAncho = strlen($linea1) * 6;
+                    $textoX = ($ancho - $textoAncho) / 2;
+                    imagestring($imagen, 2, max(20, $textoX), $y, $linea1, $gris);
+                    $y += 15;
+                    
+                    if ($linea2) {
+                        $textoAncho = strlen($linea2) * 6;
+                        $textoX = ($ancho - $textoAncho) / 2;
+                        imagestring($imagen, 2, max(20, $textoX), $y, $linea2, $gris);
+                        $y += 15;
+                    }
+                } else {
+                    $textoAncho = strlen($direccion) * 6;
+                    $textoX = ($ancho - $textoAncho) / 2;
+                    imagestring($imagen, 2, max(20, $textoX), $y, $direccion, $gris);
+                    $y += 15;
+                }
+            }
+            
+            // CORREO DE LA EMPRESA
+            if ($empresa && $empresa->correo) {
+                $correoTexto = "Email: " . $empresa->correo;
+                $textoAncho = strlen($correoTexto) * 6;
+                $textoX = ($ancho - $textoAncho) / 2;
+                imagestring($imagen, 2, max(20, $textoX), $y, $correoTexto, $gris);
+                $y += 15;
+            }
+            
+            // TELÉFONO FORMATEADO (####-####)
+            if ($empresa && $empresa->telefono) {
+                $telefono = $empresa->telefono;
+                // Formatear teléfono como ####-####
+                if (strlen($telefono) == 8) {
+                    $telefonoFormateado = substr($telefono, 0, 4) . '-' . substr($telefono, 4, 4);
+                } else {
+                    $telefonoFormateado = $telefono;
+                }
+                $telefonoTexto = "Tel: " . $telefonoFormateado;
+                $textoAncho = strlen($telefonoTexto) * 6;
+                $textoX = ($ancho - $textoAncho) / 2;
+                imagestring($imagen, 2, max(20, $textoX), $y, $telefonoTexto, $gris);
+                $y += 25;
+            }
             
             // Línea separadora
             imageline($imagen, 20, $y, $ancho-20, $y, $gris);
@@ -1484,10 +1609,22 @@ class Ventas extends Component
     public function render()
     {
         if ($this->mostrarVistaImpresion) {
+            // Obtener información de la empresa
+            $empresa = DB::table('empresa')->first();
+            
+            // Obtener información de la tienda con dirección
+            $tienda = DB::table('tienda as t')
+                ->leftJoin('direccion as d', 't.direccion_sucursal_id', '=', 'd.id')
+                ->select('t.*', 'd.domicilio_tributario')
+                ->where('t.id', 1)
+                ->first();
+            
             return view('livewire.sala-de-ventas.factura-impresion', [
                 'factura' => $this->facturaParaImprimir,
                 'productos' => $this->productosFacturaImpresa,
-                'pagos' => $this->pagosFacturaImpresa
+                'pagos' => $this->pagosFacturaImpresa,
+                'empresa' => $empresa,
+                'tienda' => $tienda
             ]);
         }
         

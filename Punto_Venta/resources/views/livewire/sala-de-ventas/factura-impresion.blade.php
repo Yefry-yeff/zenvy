@@ -3,9 +3,64 @@
         
         <!-- ENCABEZADO -->
         <div class="text-center mb-3">
-            <div style="font-weight: bold; font-size: 14px;">ZENVY POS</div>
-            <div style="font-size: 10px;">Sistema de Punto de Venta</div>
-            <div style="font-size: 10px;">================================</div>
+            <!-- LOGO DE LA EMPRESA -->
+            @if($empresa && $empresa->logo)
+                <div class="mb-2">
+                    <img src="data:image/png;base64,{{ base64_encode($empresa->logo) }}" 
+                         alt="Logo" 
+                         style="max-width: 60mm; max-height: 20mm; object-fit: contain;">
+                </div>
+            @endif
+            
+            <!-- NOMBRE DE LA TIENDA (grande) -->
+            @if($tienda && $tienda->denominacion_social)
+                <div style="font-weight: bold; font-size: 16px; text-transform: uppercase;">
+                    {{ $tienda->denominacion_social }}
+                </div>
+            @endif
+            
+            <!-- NOMBRE DE LA EMPRESA (mediano) -->
+            @if($empresa && $empresa->nombre)
+                <div style="font-weight: bold; font-size: 12px; margin-top: 2px;">
+                    {{ $empresa->nombre }}
+                </div>
+            @endif
+            
+            <!-- RTN DE LA EMPRESA -->
+            @if($empresa && $empresa->rtn)
+                <div style="font-size: 10px; margin-top: 1px;">
+                    RTN: {{ $empresa->rtn }}
+                </div>
+            @endif
+            
+            <!-- DIRECCIÓN TRIBUTARIA -->
+            @if($tienda && $tienda->domicilio_tributario)
+                <div style="font-size: 10px; margin-top: 1px;">
+                    {{ $tienda->domicilio_tributario }}
+                </div>
+            @endif
+            
+            <!-- CORREO -->
+            @if($empresa && $empresa->correo)
+                <div style="font-size: 9px; margin-top: 1px;">
+                    Email: {{ $empresa->correo }}
+                </div>
+            @endif
+            
+            <!-- TELÉFONO FORMATEADO -->
+            @if($empresa && $empresa->telefono)
+                @php
+                    $telefono = $empresa->telefono;
+                    $telefonoFormateado = strlen($telefono) == 8 
+                        ? substr($telefono, 0, 4) . '-' . substr($telefono, 4, 4)
+                        : $telefono;
+                @endphp
+                <div style="font-size: 9px; margin-top: 1px;">
+                    Tel: {{ $telefonoFormateado }}
+                </div>
+            @endif
+            
+            <div style="font-size: 10px; margin-top: 5px;">================================</div>
         </div>
 
         <!-- INFORMACIÓN DE LA FACTURA -->
@@ -138,10 +193,24 @@
         .mt-4 {
             display: none !important;
         }
+        
+        /* Optimizar logo para impresión */
+        .thermal-receipt img {
+            max-width: 50mm !important;
+            max-height: 15mm !important;
+            print-color-adjust: exact;
+            -webkit-print-color-adjust: exact;
+        }
     }
     
     .thermal-receipt {
         box-shadow: 0 0 10px rgba(0,0,0,0.1);
         border: 1px solid #ddd;
+    }
+    
+    /* Asegurar que el logo se vea bien en pantalla también */
+    .thermal-receipt img {
+        image-rendering: -webkit-optimize-contrast;
+        image-rendering: crisp-edges;
     }
 </style>
