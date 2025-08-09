@@ -1,57 +1,57 @@
 <div class="d-flex justify-content-center align-items-center min-vh-100 bg-light">
     <div class="thermal-receipt" style="width: 80mm; background: white; padding: 5mm; font-family: 'Courier New', monospace; font-size: 12px; line-height: 1.2;">
-        
+
         <!-- ENCABEZADO -->
-        <div class="text-center mb-3">
+        <div class="mb-3 text-center">
             <!-- LOGO DE LA EMPRESA -->
             @if($empresa && $empresa->logo)
                 <div class="mb-2">
-                    <img src="data:image/png;base64,{{ base64_encode($empresa->logo) }}" 
-                         alt="Logo" 
+                    <img src="data:image/png;base64,{{ base64_encode($empresa->logo) }}"
+                         alt="Logo"
                          style="max-width: 60mm; max-height: 20mm; object-fit: contain;">
                 </div>
             @endif
-            
+
             <!-- NOMBRE DE LA TIENDA (grande) -->
             @if($tienda && $tienda->denominacion_social)
                 <div style="font-weight: bold; font-size: 16px; text-transform: uppercase;">
                     {{ $tienda->denominacion_social }}
                 </div>
             @endif
-            
+
             <!-- NOMBRE DE LA EMPRESA (mediano) -->
             @if($empresa && $empresa->nombre)
                 <div style="font-weight: bold; font-size: 12px; margin-top: 2px;">
                     {{ $empresa->nombre }}
                 </div>
             @endif
-            
+
             <!-- RTN DE LA EMPRESA -->
             @if($empresa && $empresa->rtn)
                 <div style="font-size: 10px; margin-top: 1px;">
                     RTN: {{ $empresa->rtn }}
                 </div>
             @endif
-            
+
             <!-- DIRECCIÓN TRIBUTARIA -->
             @if($tienda && $tienda->domicilio_tributario)
                 <div style="font-size: 10px; margin-top: 1px;">
                     {{ $tienda->domicilio_tributario }}
                 </div>
             @endif
-            
+
             <!-- CORREO -->
             @if($empresa && $empresa->correo)
                 <div style="font-size: 9px; margin-top: 1px;">
                     Email: {{ $empresa->correo }}
                 </div>
             @endif
-            
+
             <!-- TELÉFONO FORMATEADO -->
             @if($empresa && $empresa->telefono)
                 @php
                     $telefono = $empresa->telefono;
-                    $telefonoFormateado = strlen($telefono) == 8 
+                    $telefonoFormateado = strlen($telefono) == 8
                         ? substr($telefono, 0, 4) . '-' . substr($telefono, 4, 4)
                         : $telefono;
                 @endphp
@@ -59,7 +59,7 @@
                     Tel: {{ $telefonoFormateado }}
                 </div>
             @endif
-            
+
             <div style="font-size: 10px; margin-top: 5px;">================================</div>
         </div>
 
@@ -71,24 +71,14 @@
             @if($factura->rtn)
                 <div><strong>RTN:</strong> {{ $factura->rtn }}</div>
             @endif
-            
-            <!-- INFORMACIÓN DEL CAI -->
-            @if($caiFacturaImpresa)
-                <div style="margin-top: 8px; padding: 3px; border: 1px solid #000; font-size: 9px;">
-                    <div><strong>CAI:</strong> {{ $caiFacturaImpresa->cai }}</div>
-                    <div><strong>Fecha límite emisión:</strong> {{ \Carbon\Carbon::parse($caiFacturaImpresa->fecha_limite_emision)->format('d/m/Y') }}</div>
-                    <div><strong>Rango autorizado:</strong></div>
-                    <div>{{ $caiFacturaImpresa->rango_inicio }} - {{ $caiFacturaImpresa->rango_final }}</div>
-                </div>
-            @endif
-            
+
             <div style="font-size: 10px;">================================</div>
         </div>
 
         <!-- PRODUCTOS -->
         <div class="mb-3" style="font-size: 10px;">
             <div style="font-weight: bold;">PRODUCTOS:</div>
-            
+
             @foreach($productos as $producto)
                 <div class="mb-2">
                     <div style="font-weight: bold;">{{ $producto->nombre }}</div>
@@ -96,12 +86,9 @@
                         <span>{{ $producto->cantidad }} x L.{{ number_format($producto->precio_unidad, 2) }}</span>
                         <span>L.{{ number_format($producto->total, 2) }}</span>
                     </div>
-                    @if($producto->codigo_barra)
-                        <div style="font-size: 9px; color: #666;">Código: {{ $producto->codigo_barra }}</div>
-                    @endif
                 </div>
             @endforeach
-            
+
             <div style="font-size: 10px;">================================</div>
         </div>
 
@@ -134,13 +121,13 @@
                     <span>L.{{ number_format($pago->pago_recibido, 2) }}</span>
                 </div>
             @endforeach
-            
+
             @php
                 $pagoEfectivo = collect($pagos)->firstWhere('metodo', 'Efectivo');
                 $montoEfectivo = $pagoEfectivo ? $pagoEfectivo->pago_recibido : 0;
                 $cambio = $montoEfectivo > $factura->total ? ($montoEfectivo - $factura->total) : 0;
             @endphp
-            
+
             @if($cambio > 0)
                 <div class="d-flex justify-content-between" style="margin-top: 5px;">
                     <span>Cambio:</span>
@@ -149,20 +136,36 @@
             @endif
         </div>
 
+        <!-- INFORMACIÓN FISCAL ADICIONAL -->
+        <div style="font-size: 8px; margin-top: 8px; text-align: center; border-top: 1px dashed #000; padding-top: 5px;">
+            <div style="margin-bottom: 3px;">
+                <strong>ORIGINAL: CLIENTE</strong>
+            </div>
+                        <!-- INFORMACIÓN DEL CAI -->
+            @if($caiFacturaImpresa)
+                <div style="margin-top: 8px; padding: 3px; border: 1px solid #000; font-size: 9px;">
+                    <div><strong>CAI:</strong> {{ $caiFacturaImpresa->cai }}</div>
+                    <div><strong>Fecha límite emisión:</strong> {{ \Carbon\Carbon::parse($caiFacturaImpresa->fecha_limite_emision)->format('d/m/Y') }}</div>
+                    <div><strong>Rango autorizado:</strong></div>
+                    <div>{{ $caiFacturaImpresa->rango_inicio }} - {{ $caiFacturaImpresa->rango_final }}</div>
+                </div>
+            @endif
+        </div>
+
         <!-- PIE DE PÁGINA -->
         <div class="text-center" style="font-size: 9px; margin-top: 10px;">
             <div style="font-size: 10px;">================================</div>
             <div>¡Gracias por su compra!</div>
-            <div>Conserve este ticket</div>
+            <div>Obligado Tributario Emisor</div>
             <div style="margin-top: 5px;">{{ now()->format('d/m/Y H:i:s') }}</div>
         </div>
 
         <!-- BOTONES DE ACCIÓN -->
-        <div class="text-center mt-4" style="margin-top: 15px;">
+        <div class="mt-4 text-center" style="margin-top: 15px;">
             <button onclick="window.print()" class="btn btn-primary btn-sm me-2">
                 🖨️ Imprimir
             </button>
-            
+
             <!-- Botones para imagen de factura -->
             @if($factura->factura_imagen)
                 <a href="{{ route('factura.imagen', $factura->id) }}" target="_blank" class="btn btn-info btn-sm me-2">
@@ -174,7 +177,7 @@
             @else
                 <span class="text-muted small">📷 Imagen no disponible</span>
             @endif
-            
+
             <button wire:click="volverAVentas" class="btn btn-secondary btn-sm">
                 ← Volver a Ventas
             </button>
@@ -204,7 +207,7 @@
         .mt-4 {
             display: none !important;
         }
-        
+
         /* Optimizar logo para impresión */
         .thermal-receipt img {
             max-width: 50mm !important;
@@ -213,12 +216,12 @@
             -webkit-print-color-adjust: exact;
         }
     }
-    
+
     .thermal-receipt {
         box-shadow: 0 0 10px rgba(0,0,0,0.1);
         border: 1px solid #ddd;
     }
-    
+
     /* Asegurar que el logo se vea bien en pantalla también */
     .thermal-receipt img {
         image-rendering: -webkit-optimize-contrast;
