@@ -295,7 +295,7 @@
                         <span style="font-size: 11px;">{{ $producto->cantidad }} x L. {{ number_format($producto->precio_unidad, 2) }}</span>
                     </div>
                     <div class="col-importe">
-                        L. {{ number_format($producto->total, 2) }}
+                        L. {{ number_format($producto->cantidad * $producto->precio_unidad, 2) }}
                     </div>
                 </div>
             </div>
@@ -318,11 +318,11 @@
                 @endif
                 <div class="table-row">
                     <div class="table-cell-left">IMPORTE EXONERADO</div>
-                    <div class="table-cell-right">L. {{ number_format(collect($productos)->where('isv', 0)->sum('total'), 2) }}</div>
+                    <div class="table-cell-right">L. {{ number_format(collect($productos)->where('isv', 0)->sum(function($p) { return $p->cantidad * $p->precio_unidad; }), 2) }}</div>
                 </div>
                 <div class="table-row">
                     <div class="table-cell-left">IMPORTE 15%</div>
-                    <div class="table-cell-right">L. {{ number_format(collect($productos)->where('isv', '>', 0)->sum('total'), 2) }}</div>
+                    <div class="table-cell-right">L. {{ number_format(collect($productos)->where('isv', '>', 0)->sum(function($p) { return $p->cantidad * $p->precio_unidad; }), 2) }}</div>
                 </div>
                 <div class="table-row">
                     <div class="table-cell-left">IMPORTE 18%</div>
@@ -438,6 +438,13 @@
                 @foreach($pagos as $pago)
                     {{ $pago->metodo }}: L. {{ number_format($pago->pago_recibido, 2) }}<br>
                 @endforeach
+                @php
+                    $totalPagado = collect($pagos)->sum('pago_recibido');
+                    $cambio = $totalPagado - $factura->total;
+                @endphp
+                @if($cambio > 0)
+                    <strong>CAMBIO:</strong> L. {{ number_format($cambio, 2) }}<br>
+                @endif
             </div>
         @endif
 
