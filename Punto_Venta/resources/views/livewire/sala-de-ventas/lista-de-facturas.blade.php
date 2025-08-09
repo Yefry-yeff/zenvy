@@ -1,18 +1,9 @@
-<div class="container-fluid px-4">
-    <!-- Encabezado con filtros -->
-    <div class="row mb-4">
+<div class="px-4 container-fluid">
+    <!-- Encabezado -->
+    <div class="mb-4 row">
         <div class="col-12">
             <div class="d-flex justify-content-between align-items-center">
-                <h1 class="h3 mb-0 text-gray-800">Lista de Facturas</h1>
-                <div class="d-flex gap-2">
-                    <input type="date" class="form-control" style="width: auto;" 
-                           wire:model="fechaDesde" placeholder="Fecha desde">
-                    <input type="date" class="form-control" style="width: auto;" 
-                           wire:model="fechaHasta" placeholder="Fecha hasta">
-                    <button class="btn btn-primary" wire:click="filtrar">
-                        <i class="fas fa-search"></i> Filtrar
-                    </button>
-                </div>
+                <h1 class="mb-0 text-gray-800 h3">Lista de Facturas</h1>
             </div>
         </div>
     </div>
@@ -20,78 +11,72 @@
     <!-- Tabla de Facturas -->
     <div class="row">
         <div class="col-12">
-            <div class="card shadow">
-                <div class="card-header py-3">
+            <div class="shadow card">
+                <div class="py-3 card-header">
                     <h6 class="m-0 font-weight-bold text-primary">Facturas Registradas</h6>
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
-                        <table class="table table-bordered table-striped" width="100%" cellspacing="0">
-                            <thead class="table-dark">
+                        <table id="listafacturasTable" class="table table-hover table-sm">
+                            <thead class="table-light">
                                 <tr>
-                                    <th class="text-center">#</th>
-                                    <th class="text-center">No. Factura</th>
-                                    <th class="text-center">Cliente</th>
-                                    <th class="text-center">RTN</th>
-                                    <th class="text-center">Fecha</th>
-                                    <th class="text-center">Subtotal</th>
-                                    <th class="text-center">ISV</th>
-                                    <th class="text-center">Total</th>
-                                    <th class="text-center">Estado</th>
-                                    <th class="text-center">Acciones</th>
+                                    <th style="width: 8%;">ID</th>
+                                    <th style="width: 12%;">No. Fac</th>
+                                    <th style="width: 20%;">Cliente</th>
+                                    <th style="width: 12%;">RTN</th>
+                                    <th style="width: 12%;">Fecha</th>
+                                    <th style="width: 10%;" class="text-end">Subtotal</th>
+                                    <th style="width: 8%;" class="text-end">ISV</th>
+                                    <th style="width: 10%;" class="text-end">Total</th>
+                                    <th style="width: 10%;">Estado</th>
+                                    <th style="width: 8%;" class="text-center">Acciones</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                @forelse($facturas as $index => $factura)
-                                    <tr>
-                                        <td class="text-center">{{ $facturas->firstItem() + $index }}</td>
-                                        <td class="text-center">
-                                            <span class="badge badge-secondary">{{ $factura->numero_factura ?? 'N/A' }}</span>
+                                @forelse($facturas as $factura)
+                                    <tr wire:click="verDetalle({{ $factura->id }})">
+                                        <td>{{ $factura->id }}</td>
+                                        <td>
+                                            <strong>{{ $factura->numero_factura ?? 'N/A' }}</strong>
                                         </td>
-                                        <td>{{ $factura->cliente_nombre ?? 'Cliente General' }}</td>
-                                        <td class="text-center">{{ $factura->cliente_rtn ?? 'N/A' }}</td>
-                                        <td class="text-center">
-                                            {{ \Carbon\Carbon::parse($factura->fecha_emision)->format('d/m/Y H:i A') }}
+                                        <td>{{ $factura->nombre_cliente ?? 'Cliente General' }}</td>
+                                        <td>{{ $factura->rtn ?? 'N/A' }}</td>
+                                        <td>
+                                            {{ \Carbon\Carbon::parse($factura->fecha_emision)->format('d/m/Y') }}
                                         </td>
-                                        <td class="text-right">L. {{ number_format($factura->subtotal, 2) }}</td>
-                                        <td class="text-right">L. {{ number_format($factura->isv_total, 2) }}</td>
-                                        <td class="text-right font-weight-bold">L. {{ number_format($factura->total, 2) }}</td>
-                                        <td class="text-center">
-                                            @if($factura->estado_id == 1)
-                                                <span class="badge badge-success">Pagada</span>
-                                            @elseif($factura->estado_id == 2)
-                                                <span class="badge badge-warning">Pendiente</span>
-                                            @elseif($factura->estado_id == 3)
-                                                <span class="badge badge-danger">Anulada</span>
+                                        <td class="text-end">L. {{ number_format($factura->sub_total, 2) }}</td>
+                                        <td class="text-end">L. {{ number_format($factura->isv, 2) }}</td>
+                                        <td class="text-end"><strong>L. {{ number_format($factura->total, 2) }}</strong></td>
+                                        <td>
+                                            @if($factura->estado_factura_id == 1)
+                                                <span class="badge bg-success">Pagada</span>
+                                            @elseif($factura->estado_factura_id == 2)
+                                                <span class="badge bg-warning">Pendiente</span>
+                                            @elseif($factura->estado_factura_id == 3)
+                                                <span class="badge bg-danger">Anulada</span>
                                             @else
-                                                <span class="badge badge-secondary">Desconocido</span>
+                                                <span class="badge bg-secondary">Desconocido</span>
                                             @endif
                                         </td>
-                                        <td class="text-center">
-                                            <button class="btn btn-sm btn-outline-primary" 
-                                                    title="Ver detalles">
-                                                <i class="fas fa-eye"></i>
+                                        <td class="text-center" onclick="event.stopPropagation()">
+                                            <button class="btn btn-sm btn-success"
+                                                    wire:click="imprimirFactura({{ $factura->id }})"
+                                                    title="Imprimir Factura">
+                                                <i class="fas fa-print"></i>
                                             </button>
-                                            @if($factura->estado_id != 3)
-                                                <button class="btn btn-sm btn-success" 
-                                                        wire:click="imprimirFactura({{ $factura->id }})"
-                                                        title="Reimprimir factura">
-                                                    <i class="fas fa-print"></i>
-                                                </button>
-                                            @else
-                                                <button class="btn btn-sm btn-secondary" 
-                                                        title="Factura anulada" disabled>
-                                                    <i class="fas fa-print"></i>
-                                                </button>
-                                            @endif
+                                            <button class="btn btn-sm btn-danger"
+                                                    wire:click="generarPDF({{ $factura->id }})"
+                                                    title="Descargar PDF">
+                                                <i class="fas fa-file-pdf"></i>
+                                            </button>
                                         </td>
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="10" class="text-center py-4">
+                                        <td colspan="10" class="py-4 text-center">
                                             <div class="text-muted">
-                                                <i class="fas fa-file-invoice fa-3x mb-3"></i>
-                                                <p class="mb-0">No se encontraron facturas en el rango de fechas seleccionado</p>
+                                                <i class="mb-3 fas fa-file-invoice fa-3x"></i>
+                                                <p class="mb-0">No se encontraron facturas</p>
                                             </div>
                                         </td>
                                     </tr>
@@ -99,33 +84,160 @@
                             </tbody>
                         </table>
                     </div>
-                    
-                    <!-- Paginación -->
-                    @if($facturas->hasPages())
-                        <div class="d-flex justify-content-between align-items-center mt-3">
-                            <div>
-                                <span class="text-muted">
-                                    Mostrando {{ $facturas->firstItem() }} a {{ $facturas->lastItem() }} 
-                                    de {{ $facturas->total() }} registros
-                                </span>
-                            </div>
-                            <div>
-                                {{ $facturas->links() }}
-                            </div>
-                        </div>
-                    @endif
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Mensajes de éxito -->
-    @if (session()->has('message'))
-        <div class="alert alert-success alert-dismissible fade show mt-3" role="alert">
-            {{ session('message') }}
-            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                <span aria-hidden="true">&times;</span>
-            </button>
+    <!-- Modal de impresión de factura -->
+    @if($facturaParaImprimir)
+        <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+            <div class="modal-dialog modal-xl">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="fas fa-print"></i>
+                            Impresión de Factura {{ $facturaParaImprimir->numero_factura }}
+                        </h5>
+                        <button type="button" class="btn-close" wire:click="cerrarImpresion"></button>
+                    </div>
+                    <div class="p-0 modal-body">
+                        <div class="row no-gutters">
+                            <!-- Vista previa de la factura -->
+                            <div class="col-md-8">
+                                <div class="p-3" style="background-color: #f8f9fa; height: 600px; overflow-y: auto;">
+                                    <div class="p-4 bg-white shadow-sm" style="max-width: 400px; margin: 0 auto; font-family: Arial, sans-serif; font-size: 12px;">
+                                        @include('pdf.factura', [
+                                            'factura' => $facturaParaImprimir,
+                                            'productos' => collect($productosFacturaImpresa),
+                                            'pagos' => collect($pagosFacturaImpresa),
+                                            'empresa' => \Illuminate\Support\Facades\DB::table('empresa')->first(),
+                                            'tienda' => \Illuminate\Support\Facades\DB::table('tienda as t')
+                                                ->leftJoin('direccion as d', 't.direccion_sucursal_id', '=', 'd.id')
+                                                ->select('t.*', 'd.domicilio_tributario')
+                                                ->where('t.id', 1)
+                                                ->first(),
+                                            'caiFacturaImpresa' => $caiFacturaImpresa
+                                        ])
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Panel de opciones -->
+                            <div class="col-md-4">
+                                <div class="p-4">
+                                    <h6 class="mb-3">Opciones de impresión</h6>
+
+                                    <div class="gap-2 mb-3 d-grid">
+                                        <button onclick="window.print()" class="btn btn-primary">
+                                            <i class="fas fa-print"></i> Imprimir ahora
+                                        </button>
+
+                                        <a href="{{ route('factura.pdf', $facturaParaImprimir->id) }}"
+                                           target="_blank" class="btn btn-danger">
+                                            <i class="fas fa-file-pdf"></i> Descargar PDF
+                                        </a>
+
+                                        @if($facturaParaImprimir->factura_imagen)
+                                            <a href="{{ route('factura.imagen', $facturaParaImprimir->id) }}"
+                                               target="_blank" class="btn btn-info">
+                                                <i class="fas fa-image"></i> Ver imagen PNG
+                                            </a>
+                                        @endif
+                                    </div>
+
+                                    <div class="pt-3 border-top">
+                                        <small class="text-muted">
+                                            <strong>Información de la factura:</strong><br>
+                                            • Cliente: {{ $facturaParaImprimir->nombre_cliente }}<br>
+                                            • Total: L. {{ number_format($facturaParaImprimir->total, 2) }}<br>
+                                            • Fecha: {{ $facturaParaImprimir->fecha_emision->format('d/m/Y') }}
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" wire:click="cerrarImpresion">
+                            <i class="fas fa-times"></i> Cerrar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    <!-- Modal para ver detalle de la factura -->
+    @if($facturaDetalle)
+        <div class="modal fade show" style="display: block; background-color: rgba(0,0,0,0.5);" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Detalle de Factura - {{ $facturaDetalle->numero_factura ?? 'N/A' }}</h5>
+                        <button type="button" class="close" wire:click="cerrarDetalle">
+                            <span>&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>Información del Cliente:</h6>
+                                <p><strong>Nombre:</strong> {{ $facturaDetalle->nombre_cliente ?? 'Cliente General' }}</p>
+                                <p><strong>RTN:</strong> {{ $facturaDetalle->rtn ?? 'N/A' }}</p>
+                                <p><strong>Fecha:</strong> {{ \Carbon\Carbon::parse($facturaDetalle->fecha_emision)->format('d/m/Y H:i') }}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Información de la Factura:</h6>
+                                <p><strong>ID:</strong> {{ $facturaDetalle->id }}</p>
+                                <p><strong>No. Factura:</strong> {{ $facturaDetalle->numero_factura ?? 'N/A' }}</p>
+                                <p><strong>Estado:</strong> 
+                                    @if($facturaDetalle->estado_factura_id == 1)
+                                        <span class="badge badge-success">Pagada</span>
+                                    @elseif($facturaDetalle->estado_factura_id == 2)
+                                        <span class="badge badge-warning">Pendiente</span>
+                                    @elseif($facturaDetalle->estado_factura_id == 3)
+                                        <span class="badge badge-danger">Anulada</span>
+                                    @else
+                                        <span class="badge badge-secondary">Desconocido</span>
+                                    @endif
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <hr>
+                        
+                        <div class="row">
+                            <div class="col-md-12">
+                                <h6>Totales:</h6>
+                                <div class="row">
+                                    <div class="col-md-3">
+                                        <p><strong>Subtotal:</strong><br>L. {{ number_format($facturaDetalle->sub_total, 2) }}</p>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <p><strong>Descuento:</strong><br>L. {{ number_format($facturaDetalle->descuento ?? 0, 2) }}</p>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <p><strong>ISV:</strong><br>L. {{ number_format($facturaDetalle->isv, 2) }}</p>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <p><strong>Total:</strong><br><span class="h5 text-primary">L. {{ number_format($facturaDetalle->total, 2) }}</span></p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" wire:click="cerrarDetalle">Cerrar</button>
+                        <a href="{{ route('factura.pdf', $facturaDetalle->id) }}" target="_blank" class="btn btn-danger">
+                            <i class="fas fa-file-pdf"></i> Ver PDF
+                        </a>
+                        <button type="button" class="btn btn-info" wire:click="imprimirFactura({{ $facturaDetalle->id }})">
+                            <i class="fas fa-print"></i> Imprimir
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
     @endif
 </div>

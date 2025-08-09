@@ -80,6 +80,9 @@ Route::middleware('auth')->group(function () {
     // Rutas para factura PDF
     Route::get('factura/{id}/pdf', [App\Http\Controllers\FacturaPDFController::class, 'generarPDF'])->name('factura.pdf');
     Route::get('factura/{id}/pdf/preview', [App\Http\Controllers\FacturaPDFController::class, 'previsualizarPDF'])->name('factura.pdf.preview');
+    
+    // Ruta para ver detalle de factura
+    Route::get('factura/{id}/detalle', [App\Http\Controllers\FacturaController::class, 'detalle'])->name('factura.detalle');
 });
 
 require __DIR__.'/auth.php';

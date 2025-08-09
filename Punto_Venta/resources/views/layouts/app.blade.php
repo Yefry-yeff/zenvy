@@ -12,7 +12,7 @@
     <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
 
     {{-- Estilos compilados con Vite --}}
-    <link rel="stylesheet" href="{{ asset('build/assets/app-40VihjNQ.css') }}">
+    <link rel="stylesheet" href="{{ asset('build/assets/app-B16nTjeb.css') }}">
 
     {{-- Bootstrap 5 CSS (sin integrity para evitar error) --}}
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -106,6 +106,7 @@
     {{-- Tom Select --}}
     <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
 
+    <script src="{{ asset('JS/Script/TablasBoostrap/listafacturas.js') }}"></script>
     <script src="{{ asset('JS/Script/TablasBoostrap/compra.js') }}"></script>
     <script src="{{ asset('JS/Script/TablasBoostrap/sucursales.js') }}"></script>
     <script src="{{ asset('JS/Script/TablasBoostrap/clientes.js') }}"></script>

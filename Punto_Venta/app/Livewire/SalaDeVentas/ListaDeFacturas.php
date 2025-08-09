@@ -4,56 +4,95 @@ namespace App\Livewire\SalaDeVentas;
 
 use Livewire\Component;
 use Illuminate\Support\Facades\DB;
-use Livewire\WithPagination;
+use App\Models\Factura;
 
 class ListaDeFacturas extends Component
 {
-    use WithPagination;
+    public $facturaParaImprimir = null;
+    public $productosFacturaImpresa = [];
+    public $pagosFacturaImpresa = [];
+    public $caiFacturaImpresa = null;
+    public $facturaDetalle = null;
 
-    public $fechaDesde;
-    public $fechaHasta;
-
-    public function mount()
+    public function verDetalle($facturaId)
     {
-        // Establecer fechas por defecto (últimos 30 días)
-        $this->fechaHasta = now()->format('Y-m-d');
-        $this->fechaDesde = now()->subDays(30)->format('Y-m-d');
+        $this->facturaDetalle = Factura::find($facturaId);
     }
 
-    public function filtrar()
+    public function cerrarDetalle()
     {
-        $this->resetPage();
+        $this->facturaDetalle = null;
+    }
+
+    public function generarPDF($facturaId)
+    {
+        return redirect()->route('factura.pdf', $facturaId);
     }
 
     public function imprimirFactura($facturaId)
     {
-        // Esta función se implementará después
-        session()->flash('message', "Imprimir factura ID: {$facturaId}");
+        $this->cargarDatosParaImpresion($facturaId);
+    }
+
+    private function cargarDatosParaImpresion($facturaId)
+    {
+        // Cargar la factura
+        $this->facturaParaImprimir = Factura::find($facturaId);
+
+        // Cargar información del CAI asociado a la factura
+        $this->caiFacturaImpresa = DB::table('cai')
+            ->where('id', $this->facturaParaImprimir->cai_id)
+            ->first();
+
+        // Cargar productos
+        $this->productosFacturaImpresa = DB::table('factura_has_producto as fp')
+            ->join('producto as p', 'fp.producto_id', '=', 'p.id')
+            ->where('fp.factura_id', $facturaId)
+            ->select(
+                'p.nombre',
+                'p.codigo_barra',
+                'fp.cantidad',
+                'fp.precio_unidad',
+                'fp.subtotal',
+                'fp.descuento',
+                'fp.isv_aplicado',
+                'fp.isv',
+                'fp.total'
+            )
+            ->get();
+
+        // Cargar métodos de pago
+        $this->pagosFacturaImpresa = DB::table('factura_has_pago as fp')
+            ->join('tipo_pago as tp', 'fp.tipo_pago_id', '=', 'tp.id')
+            ->where('fp.factura_id', $facturaId)
+            ->select('tp.nombre as metodo', 'fp.pago_recibido')
+            ->get();
+    }
+
+    public function cerrarImpresion()
+    {
+        $this->facturaParaImprimir = null;
+        $this->productosFacturaImpresa = [];
+        $this->pagosFacturaImpresa = [];
+        $this->caiFacturaImpresa = null;
     }
 
     public function render()
     {
         $facturas = DB::table('factura as f')
-            ->leftJoin('cliente as c', 'f.cliente_id', '=', 'c.id')
             ->select(
                 'f.id',
                 'f.numero_factura',
                 'f.fecha_emision',
-                'f.subtotal',
-                'f.isv_total',
+                'f.sub_total',
+                'f.isv',
                 'f.total',
-                'f.estado_id',
-                'c.nombre as cliente_nombre',
-                'c.rtn as cliente_rtn'
+                'f.estado_factura_id',
+                'f.nombre_cliente',
+                'f.rtn'
             )
-            ->when($this->fechaDesde, function($query) {
-                return $query->whereDate('f.fecha_emision', '>=', $this->fechaDesde);
-            })
-            ->when($this->fechaHasta, function($query) {
-                return $query->whereDate('f.fecha_emision', '<=', $this->fechaHasta);
-            })
             ->orderBy('f.fecha_emision', 'desc')
-            ->paginate(10);
+            ->get();
 
         return view('livewire.sala-de-ventas.lista-de-facturas', [
             'facturas' => $facturas
