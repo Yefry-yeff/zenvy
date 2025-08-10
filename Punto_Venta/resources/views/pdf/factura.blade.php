@@ -14,7 +14,7 @@
             margin: 0;
             padding: 0;
             font-family: Arial, sans-serif;
-            font-size: 18px;
+            font-size: 20px;
             line-height: 1.4;
             color: #000;
         }
@@ -43,92 +43,92 @@
         
         .company-name {
             font-weight: bold;
-            font-size: 20px;
+            font-size: 22px;
             text-transform: uppercase;
             margin-bottom: 3px;
         }
         
         .business-name {
             font-weight: bold;
-            font-size: 17px;
+            font-size: 19px;
             margin: 2px 0;
         }
         
         .company-info {
-            font-size: 15px;
+            font-size: 17px;
             margin: 1px 0;
         }
         
         .factura-title {
             font-weight: bold;
-            font-size: 18px;
+            font-size: 20px;
             text-align: center;
             margin: 8px 0;
         }
         
         .factura-number {
-            font-size: 16px;
+            font-size: 18px;
             text-align: center;
             margin: 4px 0;
         }
         
         .duplicado-rango {
-            font-size: 14px;
+            font-size: 16px;
             text-align: center;
             margin: 4px 0;
         }
         
         .fecha-usuario {
-            font-size: 14px;
+            font-size: 16px;
             margin: 6px 0;
         }
         
         .consumidor-final {
             font-weight: bold;
-            font-size: 16px;
+            font-size: 18px;
             margin: 8px 0;
         }
         
         .table-header {
             font-weight: bold;
-            font-size: 14px;
+            font-size: 16px;
             margin-bottom: 4px;
         }
         
         .product-row {
-            font-size: 13px;
+            font-size: 15px;
             margin-bottom: 3px;
         }
         
         .totals-section {
-            font-size: 14px;
+            font-size: 16px;
             margin: 8px 0;
         }
         
         .total-final {
             font-weight: bold;
-            font-size: 16px;
+            font-size: 18px;
             margin: 4px 0;
         }
         
         .valor-letras {
-            font-size: 12px;
+            font-size: 14px;
             margin: 8px 0;
             text-align: center;
         }
         
         .forma-pago {
-            font-size: 14px;
+            font-size: 16px;
             margin: 6px 0;
         }
         
         .cai-info {
-            font-size: 12px;
+            font-size: 14px;
             margin: 8px 0;
         }
         
         .footer-info {
-            font-size: 11px;
+            font-size: 13px;
             margin-top: 10px;
         }
         
@@ -292,13 +292,13 @@
                     </div>
                     <div class="col-descripcion">
                         {{ $producto->nombre }}<br>
-                        <span style="font-size: 11px;">{{ $producto->cantidad }} x L. {{ number_format($producto->precio_unidad, 2) }}</span>
+                        <span style="font-size: 13px;">{{ $producto->cantidad }} x L. {{ number_format($producto->precio_unidad, 2) }}</span>
                         @if($producto->descuento > 0)
-                            <br><span style="font-size: 10px; color: #666;">
+                            <br><span style="font-size: 15px;">
                                 @php
                                     $subtotalOriginal = $producto->cantidad * $producto->precio_unidad;
                                     $porcentajeDescuento = ($producto->descuento / $subtotalOriginal) * 100;
-                                    $tipoDescuento = $porcentajeDescuento >= 15 ? "4ta edad" : "3ra edad";
+                                    $tipoDescuento = $porcentajeDescuento >= 30 ? "4ta edad" : "3ra edad";
                                 @endphp
                                 Descuento - {{ number_format($porcentajeDescuento, 0) }}% {{ $tipoDescuento }}
                             </span>
@@ -307,7 +307,7 @@
                     <div class="col-importe">
                         L. {{ number_format($producto->subtotal, 2) }}
                         @if($producto->descuento > 0)
-                            <br><span style="font-size: 10px; color: #666;">-L. {{ number_format($producto->descuento, 2) }}</span>
+                            <br><span style="font-size: 15px;">-L. {{ number_format($producto->descuento, 2) }}</span>
                         @endif
                     </div>
                 </div>
@@ -336,13 +336,22 @@
                     <div class="table-cell-left">IMPORTE EXONERADO</div>
                     <div class="table-cell-right">L. {{ number_format(collect($productos)->where('isv', 0)->sum('subtotal'), 2) }}</div>
                 </div>
+                @php
+                    // Calcular importes por tasa de ISV
+                    $importe15 = collect($productos)->where('isv', 15)->sum('subtotal');
+                    $importe18 = collect($productos)->where('isv', 18)->sum('subtotal');
+                    
+                    // Calcular impuestos por tasa
+                    $impuesto15 = collect($productos)->where('isv', 15)->sum('isv_aplicado');
+                    $impuesto18 = collect($productos)->where('isv', 18)->sum('isv_aplicado');
+                @endphp
                 <div class="table-row">
                     <div class="table-cell-left">IMPORTE 15%</div>
-                    <div class="table-cell-right">L. {{ number_format(collect($productos)->where('isv', '>', 0)->sum('subtotal'), 2) }}</div>
+                    <div class="table-cell-right">L. {{ number_format($importe15, 2) }}</div>
                 </div>
                 <div class="table-row">
                     <div class="table-cell-left">IMPORTE 18%</div>
-                    <div class="table-cell-right">L. 0.00</div>
+                    <div class="table-cell-right">L. {{ number_format($importe18, 2) }}</div>
                 </div>
                 <div class="table-row">
                     <div class="table-cell-left">TOTAL IMPORTE</div>
@@ -350,11 +359,11 @@
                 </div>
                 <div class="table-row">
                     <div class="table-cell-left">IMPUESTO DEL 15%</div>
-                    <div class="table-cell-right">L. {{ number_format($factura->isv, 2) }}</div>
+                    <div class="table-cell-right">L. {{ number_format($impuesto15, 2) }}</div>
                 </div>
                 <div class="table-row">
                     <div class="table-cell-left">IMPUESTO DEL 18%</div>
-                    <div class="table-cell-right">L. 0.00</div>
+                    <div class="table-cell-right">L. {{ number_format($impuesto18, 2) }}</div>
                 </div>
                 <div class="table-row">
                     <div class="table-cell-left">TOTAL IMPUESTOS</div>
@@ -375,7 +384,7 @@
         <div class="separator"></div>
 
         <!-- VALOR EN LETRAS -->
-        <div class="valor-letras" style="font-size: 15px;">
+        <div class="valor-letras" style="font-size: 17px;">
             <strong>VALOR EN LETRAS:</strong><br>
             @php
                 $total = $factura->total;
