@@ -16,6 +16,7 @@ class GestionDeDiferencias extends Component
     // Modal de gestión
     public $mostrarModal = false;
     public $diferenciaSeleccionada = null;
+    public $historialGestiones = [];
     public $monto = '';
     public $descripcion = '';
     public $mensaje = '';
@@ -134,15 +135,35 @@ class GestionDeDiferencias extends Component
             ->firstWhere('cierre_id', $cierreId);
 
         if ($this->diferenciaSeleccionada) {
+            // Cargar historial de gestiones para esta diferencia
+            $this->cargarHistorialGestiones($cierreId);
             $this->mostrarModal = true;
             $this->resetForm();
         }
+    }
+
+    public function cargarHistorialGestiones($cierreId)
+    {
+        $this->historialGestiones = DB::table('gestion_diferencia as gd')
+            ->join('users as u', 'gd.users_id', '=', 'u.id')
+            ->where('gd.cierre_de_caja_id', $cierreId)
+            ->select(
+                'gd.id',
+                'gd.monto',
+                'gd.descripcion',
+                'gd.created_at',
+                'u.name as gestor_nombre'
+            )
+            ->orderBy('gd.created_at', 'desc')
+            ->get()
+            ->toArray();
     }
 
     public function cerrarModal()
     {
         $this->mostrarModal = false;
         $this->diferenciaSeleccionada = null;
+        $this->historialGestiones = [];
         $this->resetForm();
     }
 
@@ -220,8 +241,17 @@ class GestionDeDiferencias extends Component
                 $this->mensajeExito = "Se registró un {$tipoMovimiento} de L. " . number_format(abs($this->monto), 2) . " en la Caja #{$this->diferenciaSeleccionada->caja_id}, {$impactoTexto}. Nueva diferencia: L. " . number_format(abs($nuevaDiferencia), 2) . ". La transacción permanece abierta.";
             }
 
-            // Recargar datos, cerrar modal de gestión y mostrar modal de éxito
+            // Recargar datos
             $this->cargarDiferencias();
+            
+            // Si la diferencia no se cerró completamente, actualizar historial en el modal
+            if (!$this->diferenciaTotalmenteResuelta) {
+                $this->cargarHistorialGestiones($this->diferenciaSeleccionada->cierre_id);
+                // Actualizar la diferencia seleccionada con los nuevos datos
+                $this->diferenciaSeleccionada = collect($this->diferencias)
+                    ->firstWhere('cierre_id', $this->diferenciaSeleccionada->cierre_id);
+            }
+            
             $this->cerrarModal();
             $this->mostrarModalExito = true;
 

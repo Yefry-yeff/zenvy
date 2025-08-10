@@ -274,6 +274,46 @@
                     </div>
                 </div>
 
+                <!-- Historial de Gestiones -->
+                @if(count($historialGestiones) > 0)
+                    <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
+                        <h4 class="font-semibold text-gray-800 mb-3">
+                            <i class="fas fa-history text-purple-500 mr-2"></i>
+                            Historial de Gestiones ({{ count($historialGestiones) }})
+                        </h4>
+                        <div class="space-y-3 max-h-40 overflow-y-auto">
+                            @foreach($historialGestiones as $gestion)
+                                <div class="bg-white border border-gray-100 rounded-lg p-3">
+                                    <div class="flex items-start justify-between">
+                                        <div class="flex-1">
+                                            <div class="flex items-center space-x-3 mb-2">
+                                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium {{ $gestion->monto > 0 ? 'bg-blue-100 text-blue-800' : 'bg-orange-100 text-orange-800' }}">
+                                                    <i class="fas {{ $gestion->monto > 0 ? 'fa-plus' : 'fa-minus' }} mr-1"></i>
+                                                    {{ $gestion->monto > 0 ? '+' : '' }}L. {{ number_format($gestion->monto, 2) }}
+                                                </span>
+                                                <span class="text-sm text-gray-600">
+                                                    {{ $gestion->monto > 0 ? 'Reduce diferencia' : 'Aumenta diferencia' }}
+                                                </span>
+                                            </div>
+                                            <p class="text-sm text-gray-700 mb-2">{{ $gestion->descripcion }}</p>
+                                            <div class="flex items-center space-x-4 text-xs text-gray-500">
+                                                <span>
+                                                    <i class="fas fa-user mr-1"></i>
+                                                    {{ $gestion->gestor_nombre }}
+                                                </span>
+                                                <span>
+                                                    <i class="fas fa-clock mr-1"></i>
+                                                    {{ \Carbon\Carbon::parse($gestion->created_at)->format('d/m/Y H:i:s') }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
+
                 @if(abs($diferenciaSeleccionada->diferencia_pendiente) >= 0.01)
                     <!-- Formulario de Gestión -->
                     <form wire:submit.prevent="gestionarDiferencia" class="space-y-4">
