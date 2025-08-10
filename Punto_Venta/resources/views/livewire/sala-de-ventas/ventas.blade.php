@@ -993,6 +993,125 @@
     </div>
     @endif
 
+    <!-- Modal de descuento para adulto mayor -->
+    @if($mostrarModalDescuentoAdulto)
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+         @click.self="$wire.cerrarModalDescuentoAdulto()"
+         @keydown.escape.window="$wire.cerrarModalDescuentoAdulto()">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md overflow-hidden"
+             x-data x-init="$watch('theme', t => localStorage.setItem('theme', t))">
+            <!-- Header con tema -->
+            <div class="flex justify-between items-center px-6 py-4 text-white"
+                :class="{
+                    'bg-emerald-600': theme === 'verde',
+                    'bg-blue-600': theme === 'azul',
+                    'bg-gray-900': theme === 'oscuro',
+                    'bg-slate-700': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
+                }">
+                <h2 class="text-lg font-semibold">
+                    <i class="fas fa-user-friends me-2"></i>
+                    Datos del {{ $tipoDescuentoActual === 'tercera' ? 'Adulto Mayor (3ra Edad)' : 'Adulto Mayor (4ta Edad)' }}
+                </h2>
+                <button wire:click="cerrarModalDescuentoAdulto" class="text-white hover:text-gray-200 transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="p-6">
+                <!-- Información del descuento -->
+                <div class="mb-4 p-4 rounded-lg {{ $tipoDescuentoActual === 'tercera' ? 'bg-blue-50 border border-blue-200' : 'bg-purple-50 border border-purple-200' }}">
+                    <div class="flex items-center mb-2">
+                        <i class="fas {{ $tipoDescuentoActual === 'tercera' ? 'fa-user-friends text-blue-600' : 'fa-user-check text-purple-600' }} mr-2"></i>
+                        <span class="font-semibold {{ $tipoDescuentoActual === 'tercera' ? 'text-blue-800' : 'text-purple-800' }}">
+                            Descuento {{ $tipoDescuentoActual === 'tercera' ? 'del 25%' : 'del 35%' }}
+                        </span>
+                    </div>
+                    <p class="text-sm {{ $tipoDescuentoActual === 'tercera' ? 'text-blue-700' : 'text-purple-700' }}">
+                        {{ $tipoDescuentoActual === 'tercera' ? 'Para personas de 60 a 64 años' : 'Para personas de 65 años en adelante' }}
+                    </p>
+                </div>
+
+                <!-- Formulario de datos -->
+                <form wire:submit.prevent="confirmarDescuentoAdulto">
+                    <div class="space-y-4">
+                        <!-- DNI/Identidad -->
+                        <div>
+                            <label for="dni_adulto" class="block text-sm font-medium text-gray-700 mb-1">
+                                Número de Identidad <span class="text-red-500">*</span>
+                            </label>
+                            <input type="text"
+                                id="dni_adulto"
+                                wire:model.defer="dniAdulto"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-200"
+                                placeholder="Ej: 0801-1990-12345"
+                                maxlength="60"
+                                required>
+                        </div>
+
+                        <!-- Nombre completo -->
+                        <div>
+                            <label for="nombre_adulto" class="block text-sm font-medium text-gray-700 mb-1">
+                                Nombre Completo <span class="text-red-500">*</span>
+                            </label>
+                            <input type="text"
+                                id="nombre_adulto"
+                                wire:model.defer="nombreAdulto"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-200"
+                                placeholder="Nombre completo del adulto mayor"
+                                maxlength="70"
+                                required>
+                        </div>
+
+                        <!-- Edad -->
+                        <div>
+                            <label for="edad_adulto" class="block text-sm font-medium text-gray-700 mb-1">
+                                Edad <span class="text-red-500">*</span>
+                            </label>
+                            <input type="number"
+                                id="edad_adulto"
+                                wire:model.defer="edadAdulto"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-200"
+                                placeholder="{{ $tipoDescuentoActual === 'tercera' ? '60-64 años' : '65+ años' }}"
+                                min="{{ $tipoDescuentoActual === 'tercera' ? '60' : '65' }}"
+                                max="120"
+                                required>
+                        </div>
+
+                        <!-- Información adicional -->
+                        <div class="text-xs text-gray-600 bg-gray-50 p-3 rounded">
+                            <i class="fas fa-info-circle mr-1"></i>
+                            <strong>Importante:</strong> Estos datos se guardarán temporalmente y se registrarán al confirmar la venta. 
+                            Si remueve el descuento, deberá ingresar los datos nuevamente.
+                        </div>
+                    </div>
+
+                    <!-- Botones -->
+                    <div class="flex justify-end gap-3 mt-6">
+                        <button type="button"
+                            wire:click="cerrarModalDescuentoAdulto"
+                            class="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors">
+                            Cancelar
+                        </button>
+                        <button type="submit"
+                            class="px-6 py-2 text-white rounded-lg transition-colors"
+                            :class="{
+                                'bg-emerald-600 hover:bg-emerald-700': theme === 'verde',
+                                'bg-blue-600 hover:bg-blue-700': theme === 'azul',
+                                'bg-gray-900 hover:bg-gray-800': theme === 'oscuro',
+                                'bg-slate-700 hover:bg-slate-800': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
+                            }">
+                            <i class="fas fa-check mr-1"></i>
+                            Aplicar Descuento
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    @endif
+
     <!-- Modal de sin stock -->
     <div x-data="{ open: false }"
          x-show="open"

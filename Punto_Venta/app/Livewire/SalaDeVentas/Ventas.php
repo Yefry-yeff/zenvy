@@ -8,6 +8,7 @@ use App\Models\Producto;
 use App\Models\TipoPago;
 use App\Models\Factura;
 use App\Models\Bodega;
+use App\Models\DescuentoAdulto;
 use App\Services\CAIService;
 use Livewire\Attributes\On;
 use Illuminate\Support\Facades\DB;
@@ -78,6 +79,14 @@ class Ventas extends Component
 
     // Control de procesamiento para evitar duplicados
     public $procesandoVenta = false;
+
+    // Modal y datos de descuento para adulto mayor
+    public $mostrarModalDescuentoAdulto = false;
+    public $tipoDescuentoActual = null; // 'tercera' o 'cuarta'
+    public $dniAdulto = '';
+    public $nombreAdulto = '';
+    public $edadAdulto = null;
+    public $datosDescuentoAdulto = []; // Para mantener en memoria
 
     public function mount()
     {
@@ -416,6 +425,15 @@ class Ventas extends Component
             return;
         }
         
+        // Si el descuento ya está activo, removerlo
+        if ($this->descuentoTerceraEdad) {
+            $this->descuentoTerceraEdad = false;
+            $this->datosDescuentoAdulto = []; // Limpiar datos en memoria
+            $this->calcularTotales();
+            session()->flash('success', 'Descuento de tercera edad removido');
+            return;
+        }
+        
         // Verificar que hay productos elegibles para descuento de tercera edad
         $productosElegibles = collect($this->productosFactura)->filter(function($producto) {
             return ($producto['descuento_tercera'] ?? 0) == 1;
@@ -426,16 +444,9 @@ class Ventas extends Component
             return;
         }
         
-        // Toggle del descuento
-        $this->descuentoTerceraEdad = !$this->descuentoTerceraEdad;
-        $this->calcularTotales();
-        
-        if ($this->descuentoTerceraEdad) {
-            $mensaje = 'Descuento del 25% para tercera edad aplicado a ' . $productosElegibles->count() . ' producto(s) elegible(s)';
-        } else {
-            $mensaje = 'Descuento de tercera edad removido';
-        }
-        session()->flash('success', $mensaje);
+        // Abrir modal para capturar datos del adulto mayor
+        $this->tipoDescuentoActual = 'tercera';
+        $this->mostrarModalDescuentoAdulto = true;
     }
     
     public function aplicarDescuentoCuartaEdad()
@@ -452,6 +463,15 @@ class Ventas extends Component
             return;
         }
         
+        // Si el descuento ya está activo, removerlo
+        if ($this->descuentoCuartaEdad) {
+            $this->descuentoCuartaEdad = false;
+            $this->datosDescuentoAdulto = []; // Limpiar datos en memoria
+            $this->calcularTotales();
+            session()->flash('success', 'Descuento de cuarta edad removido');
+            return;
+        }
+        
         // Verificar que hay productos elegibles para descuento de cuarta edad
         $productosElegibles = collect($this->productosFactura)->filter(function($producto) {
             return ($producto['descuento_cuarta'] ?? 0) == 1;
@@ -462,16 +482,70 @@ class Ventas extends Component
             return;
         }
         
-        // Toggle del descuento
-        $this->descuentoCuartaEdad = !$this->descuentoCuartaEdad;
+        // Abrir modal para capturar datos del adulto mayor
+        $this->tipoDescuentoActual = 'cuarta';
+        $this->mostrarModalDescuentoAdulto = true;
+    }
+    
+    // Funciones para manejar el modal de descuento de adulto mayor
+    public function cerrarModalDescuentoAdulto()
+    {
+        $this->mostrarModalDescuentoAdulto = false;
+        $this->tipoDescuentoActual = null;
+        $this->limpiarDatosModalAdulto();
+    }
+    
+    public function limpiarDatosModalAdulto()
+    {
+        $this->dniAdulto = '';
+        $this->nombreAdulto = '';
+        $this->edadAdulto = null;
+    }
+    
+    public function confirmarDescuentoAdulto()
+    {
+        // Validar campos requeridos
+        if (empty($this->dniAdulto) || empty($this->nombreAdulto) || empty($this->edadAdulto)) {
+            session()->flash('error', 'Todos los campos son obligatorios');
+            return;
+        }
+        
+        // Validar edad según el tipo de descuento
+        if ($this->tipoDescuentoActual === 'tercera' && ($this->edadAdulto < 60 || $this->edadAdulto > 64)) {
+            session()->flash('error', 'Para descuento de tercera edad, la edad debe estar entre 60 y 64 años');
+            return;
+        }
+        
+        if ($this->tipoDescuentoActual === 'cuarta' && $this->edadAdulto < 65) {
+            session()->flash('error', 'Para descuento de cuarta edad, la edad debe ser de 65 años o más');
+            return;
+        }
+        
+        // Guardar datos en memoria
+        $this->datosDescuentoAdulto = [
+            'dni' => $this->dniAdulto,
+            'nombre' => $this->nombreAdulto,
+            'edad' => $this->edadAdulto,
+            'tipo_descuento' => $this->tipoDescuentoActual
+        ];
+        
+        // Aplicar el descuento correspondiente
+        if ($this->tipoDescuentoActual === 'tercera') {
+            $this->descuentoTerceraEdad = true;
+            $porcentaje = 25;
+        } else {
+            $this->descuentoCuartaEdad = true;
+            $porcentaje = 35;
+        }
+        
         $this->calcularTotales();
         
-        if ($this->descuentoCuartaEdad) {
-            $mensaje = 'Descuento del 35% para cuarta edad aplicado a ' . $productosElegibles->count() . ' producto(s) elegible(s)';
-        } else {
-            $mensaje = 'Descuento de cuarta edad removido';
-        }
-        session()->flash('success', $mensaje);
+        // Mensaje de éxito
+        $tipoTexto = $this->tipoDescuentoActual === 'tercera' ? 'tercera' : 'cuarta';
+        session()->flash('success', "Descuento del {$porcentaje}% para {$tipoTexto} edad aplicado correctamente para {$this->nombreAdulto}");
+        
+        // Cerrar modal
+        $this->cerrarModalDescuentoAdulto();
     }
     
     // Método para resetear completamente la factura
@@ -482,6 +556,7 @@ class Ventas extends Component
         $this->descuentoTerceraEdad = false;
         $this->descuentoCuartaEdad = false;
         $this->totalDescuentos = 0;
+        $this->datosDescuentoAdulto = []; // Limpiar datos del adulto mayor
         $this->calcularTotales();
     }
 
@@ -696,6 +771,9 @@ class Ventas extends Component
 
             // Guardar métodos de pago usando la distribución
             $this->guardarMetodosPagoDistribucion($factura->id);
+
+            // Guardar datos del descuento de adulto mayor si aplica
+            $this->guardarDescuentoAdultoMayor($factura->id);
 
             DB::commit();
 
@@ -1874,5 +1952,39 @@ class Ventas extends Component
         return view('livewire.sala-de-ventas.ventas', [
             'tiposPago' => $this->tiposPago
         ]);
+    }
+
+    /**
+     * Guardar datos del descuento de adulto mayor si hay descuento aplicado
+     */
+    private function guardarDescuentoAdultoMayor($facturaId)
+    {
+        // Verificar si hay descuento de edad aplicado y datos capturados
+        if (($this->descuentoTerceraEdad || $this->descuentoCuartaEdad) && !empty($this->datosDescuentoAdulto)) {
+            try {
+                DescuentoAdulto::create([
+                    'factura_id' => $facturaId,
+                    'dni' => $this->datosDescuentoAdulto['dni'],
+                    'nombre' => $this->datosDescuentoAdulto['nombre'],
+                    'edad' => $this->datosDescuentoAdulto['edad'],
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ]);
+
+                Log::info("DEBUG Datos de descuento adulto mayor guardados", [
+                    'factura_id' => $facturaId,
+                    'dni' => $this->datosDescuentoAdulto['dni'],
+                    'nombre' => $this->datosDescuentoAdulto['nombre'],
+                    'edad' => $this->datosDescuentoAdulto['edad']
+                ]);
+                
+            } catch (\Exception $e) {
+                Log::error("ERROR al guardar descuento adulto mayor", [
+                    'factura_id' => $facturaId,
+                    'error' => $e->getMessage()
+                ]);
+                // No lanzar la excepción para no afectar el guardado de la factura
+            }
+        }
     }
 }
