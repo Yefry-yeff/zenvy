@@ -28,10 +28,12 @@ class FacturaPDFController extends Controller
             // Cargar productos
             $productos = DB::table('factura_has_producto as fp')
                 ->join('producto as p', 'fp.producto_id', '=', 'p.id')
+                ->join('isv as i', 'p.isv_id', '=', 'i.id')
                 ->where('fp.factura_id', $facturaId)
                 ->select(
                     'p.nombre',
                     'p.codigo_barra',
+                    'i.cantidad as tasa_isv',
                     'fp.cantidad',
                     'fp.precio_unidad',
                     'fp.subtotal',
@@ -116,10 +118,12 @@ class FacturaPDFController extends Controller
             // Cargar productos
             $productos = DB::table('factura_has_producto as fp')
                 ->join('producto as p', 'fp.producto_id', '=', 'p.id')
+                ->join('isv as i', 'p.isv_id', '=', 'i.id')
                 ->where('fp.factura_id', $facturaId)
                 ->select(
                     'p.nombre',
                     'p.codigo_barra',
+                    'i.cantidad as tasa_isv',
                     'fp.cantidad',
                     'fp.precio_unidad',
                     'fp.subtotal',

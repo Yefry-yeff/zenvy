@@ -334,16 +334,16 @@
                 @endif
                 <div class="table-row">
                     <div class="table-cell-left">IMPORTE EXONERADO</div>
-                    <div class="table-cell-right">L. {{ number_format(collect($productos)->where('isv', 0)->sum('subtotal'), 2) }}</div>
+                    <div class="table-cell-right">L. {{ number_format(collect($productos)->where('tasa_isv', 0)->sum('subtotal'), 2) }}</div>
                 </div>
                 @php
                     // Calcular importes por tasa de ISV
-                    $importe15 = collect($productos)->where('isv', 15)->sum('subtotal');
-                    $importe18 = collect($productos)->where('isv', 18)->sum('subtotal');
+                    $importe15 = collect($productos)->where('tasa_isv', 15)->sum('subtotal');
+                    $importe18 = collect($productos)->where('tasa_isv', 18)->sum('subtotal');
                     
-                    // Calcular impuestos por tasa
-                    $impuesto15 = collect($productos)->where('isv', 15)->sum('isv_aplicado');
-                    $impuesto18 = collect($productos)->where('isv', 18)->sum('isv_aplicado');
+                    // Calcular impuestos por tasa (usar campo 'isv' que siempre tiene el monto calculado)
+                    $impuesto15 = collect($productos)->where('tasa_isv', 15)->sum('isv');
+                    $impuesto18 = collect($productos)->where('tasa_isv', 18)->sum('isv');
                 @endphp
                 <div class="table-row">
                     <div class="table-cell-left">IMPORTE 15%</div>

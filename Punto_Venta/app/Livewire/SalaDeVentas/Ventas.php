@@ -1040,8 +1040,8 @@ class Ventas extends Component
                 'cantidad' => $cantidadATomar,
                 'subtotal' => $subtotalConDescuento,
                 'descuento' => $descuentoAplicado,
-                'isv_aplicado' => $isvAplicado,
-                'isv' => $isvCalculado,
+                'isv_aplicado' => $isvAplicado, // Tasa de ISV
+                'isv' => $isvCalculado, // Monto calculado de ISV
                 'total' => $totalFinal,
                 'idPrecioSeleccionado' => '0',
                 'precio_seleccionado' => 0
@@ -1205,10 +1205,12 @@ class Ventas extends Component
         // Cargar productos
         $this->productosFacturaImpresa = DB::table('factura_has_producto as fp')
             ->join('producto as p', 'fp.producto_id', '=', 'p.id')
+            ->join('isv as i', 'p.isv_id', '=', 'i.id')
             ->where('fp.factura_id', $facturaId)
             ->select(
                 'p.nombre',
                 'p.codigo_barra',
+                'i.cantidad as tasa_isv',
                 'fp.cantidad',
                 'fp.precio_unidad',
                 'fp.subtotal',
