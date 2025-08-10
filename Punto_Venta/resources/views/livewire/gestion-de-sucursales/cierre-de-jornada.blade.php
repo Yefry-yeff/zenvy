@@ -207,6 +207,18 @@
 
                         <!-- Botón de Acción -->
                         <div class="flex justify-end space-x-4">
+                            <!-- Botón de Debug -->
+                            <button 
+                                type="button"
+                                wire:click="debugCajas"
+                                class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors"
+                                wire:loading.attr="disabled"
+                            >
+                                <i class="fas fa-bug mr-2"></i>
+                                <span wire:loading.remove>Debug - Ver Cajas</span>
+                                <span wire:loading>Cargando...</span>
+                            </button>
+                            
                             <button 
                                 type="button"
                                 onclick="window.history.back()"
