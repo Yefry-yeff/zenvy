@@ -101,28 +101,28 @@ class GestionDeDiferencias extends Component
     {
         if (!$this->tiendaUsuario) return;
 
-        // Obtener todas las cajas con diferencias de la tienda, agrupadas por fecha
+        // Obtener todas las cajas con diferencias de la tienda
+        // Ahora usamos directamente cc.diferencia_efectivo que se actualiza con las gestiones
         $this->diferencias = DB::table('cierre_de_caja as cc')
             ->join('caja as c', 'cc.caja_id', '=', 'c.id')
             ->join('users as u', 'c.users_id', '=', 'u.id')
             ->leftJoin('gestion_diferencia as gd', 'cc.id', '=', 'gd.cierre_de_caja_id')
             ->where('u.tienda_id', $this->tiendaUsuario)
-            ->whereRaw('ABS(cc.total_efectivo - cc.conteo_efectivo) > 0.01') // Usar diferencia calculada original
+            ->whereRaw('ABS(cc.diferencia_efectivo) >= 0.01') // Solo mostrar diferencias que aún tienen saldo pendiente
             ->select(
                 'cc.id as cierre_id',
                 'c.id as caja_id',
                 'c.users_id',
                 'u.name as nombre_usuario',
-                DB::raw('(cc.total_efectivo - cc.conteo_efectivo) as diferencia_efectivo'), // Diferencia original calculada
+                'cc.diferencia_efectivo', // Usar directamente el campo actualizado
                 'cc.total_efectivo',
                 'cc.conteo_efectivo',
                 'cc.created_at',
                 DB::raw('COALESCE(SUM(gd.monto), 0) as total_gestionado'),
-                DB::raw('((cc.total_efectivo - cc.conteo_efectivo) - COALESCE(SUM(gd.monto), 0)) as diferencia_pendiente'),
+                'cc.diferencia_efectivo as diferencia_pendiente', // Ahora es lo mismo que diferencia_efectivo
                 DB::raw('COUNT(gd.id) as gestiones_realizadas')
             )
-            ->groupBy('cc.id', 'c.id', 'c.users_id', 'u.name', 'cc.total_efectivo', 'cc.conteo_efectivo', 'cc.created_at')
-            ->havingRaw('ABS(((cc.total_efectivo - cc.conteo_efectivo) - COALESCE(SUM(gd.monto), 0))) >= 0.01') // Solo mostrar diferencias que aún tienen saldo pendiente
+            ->groupBy('cc.id', 'c.id', 'c.users_id', 'u.name', 'cc.diferencia_efectivo', 'cc.total_efectivo', 'cc.conteo_efectivo', 'cc.created_at')
             ->orderBy('cc.created_at', 'desc')
             ->get()
             ->toArray();
@@ -201,19 +201,15 @@ class GestionDeDiferencias extends Component
                 'updated_at' => now()
             ]);
 
-            // 2. Calcular nueva diferencia basada en la suma algebraica de todas las gestiones
-            $totalGestiones = DB::table('gestion_diferencia')
-                ->where('cierre_de_caja_id', $this->diferenciaSeleccionada->cierre_id)
-                ->sum('monto');
+            // 2. Simplemente sumar el monto actual a la diferencia actual
+            // (La diferencia actual ya incluye gestiones anteriores)
+            $nuevaDiferencia = $this->diferenciaSeleccionada->diferencia_efectivo + $this->monto;
 
-            // La nueva diferencia es: diferencia_original - suma_total_gestiones
-            $nuevaDiferencia = $this->diferenciaSeleccionada->diferencia_efectivo - $totalGestiones;
-
-            // 3. NO actualizar diferencia_efectivo - debe mantenerse como diferencia original
-            // Solo actualizar timestamp para auditoría
+            // 3. ACTUALIZAR diferencia_efectivo en cierre_de_caja con la nueva diferencia
             DB::table('cierre_de_caja')
                 ->where('id', $this->diferenciaSeleccionada->cierre_id)
                 ->update([
+                    'diferencia_efectivo' => $nuevaDiferencia,
                     'updated_at' => now()
                 ]);
 
