@@ -90,18 +90,31 @@ class ListaDeFacturas extends Component
                 'f.rtn'
             );
 
-        // Filtrar por usuario actual - solo mostrar facturas creadas por este usuario
-        if ($user) {
-            $query->where('f.users_id', $user->id);
-        } else {
-            // Si no hay usuario autenticado, no mostrar ninguna factura
-            $query->where('f.id', '=', 0);
+        // Verificar si el usuario es Admin
+        $esAdmin = false;
+        if ($user && $user->roles_id) {
+            $esAdmin = DB::table('roles')
+                ->where('id', $user->roles_id)
+                ->whereIn('txt_nombre', ['Admin', 'Administrador', 'admin', 'administrador'])
+                ->exists();
         }
+
+        if (!$esAdmin) {
+            // Si no es admin, filtrar por usuario actual - solo mostrar facturas creadas por este usuario
+            if ($user) {
+                $query->where('f.users_id', $user->id);
+            } else {
+                // Si no hay usuario autenticado, no mostrar ninguna factura
+                $query->where('f.id', '=', 0);
+            }
+        }
+        // Si es admin, no aplicar filtro (mostrará todas las facturas)
 
         $facturas = $query->orderBy('f.fecha_emision', 'desc')->get();
 
         return view('livewire.sala-de-ventas.lista-de-facturas', [
-            'facturas' => $facturas
+            'facturas' => $facturas,
+            'esAdmin' => $esAdmin
         ]);
     }
 }

@@ -13,15 +13,27 @@
         <div class="col-12">
             <!-- Información de filtro por usuario -->
             @auth
-                <div class="mb-3 alert alert-info border-left-info">
-                    <div class="d-flex align-items-center">
-                        <i class="fas fa-info-circle me-2"></i>
-                        <div>
-                            <strong>Vista personalizada:</strong> Solo se muestran las facturas que has creado.
-                            <small class="d-block text-muted">Usuario actual: {{ Auth::user()->name }}</small>
+                @if($esAdmin ?? false)
+                    <div class="mb-3 alert alert-success border-left-success">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-user-shield me-2"></i>
+                            <div>
+                                <strong>Vista de Administrador:</strong> Puedes ver todas las facturas del sistema.
+                                <small class="d-block text-muted">Usuario: {{ Auth::user()->name }} (Admin)</small>
+                            </div>
                         </div>
                     </div>
-                </div>
+                @else
+                    <div class="mb-3 alert alert-info border-left-info">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <div>
+                                <strong>Vista personalizada:</strong> Solo se muestran las facturas que has creado.
+                                <small class="d-block text-muted">Usuario actual: {{ Auth::user()->name }}</small>
+                            </div>
+                        </div>
+                    </div>
+                @endif
             @endauth
 
             <div class="shadow card">

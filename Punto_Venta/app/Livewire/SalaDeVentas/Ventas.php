@@ -76,6 +76,9 @@ class Ventas extends Component
     public $informacionCAI = [];
     public $alertaCAI = null;
 
+    // Control de procesamiento para evitar duplicados
+    public $procesandoVenta = false;
+
     public function mount()
     {
         $this->clientesModal = collect(); // Inicializar como colección vacía
@@ -356,13 +359,13 @@ class Ventas extends Component
             // Aplicar descuentos por edad al subtotal del producto
             $descuentoProducto = 0;
             
-            // Verificar descuento de tercera edad
-            if ($this->descuentoTerceraEdad && isset($producto['descuento_tercera']) && $producto['descuento_tercera'] > 0) {
-                $descuentoProducto = $subtotalProducto * ($producto['descuento_tercera'] / 100);
+            // Verificar descuento de tercera edad (25%) - solo si el producto lo permite
+            if ($this->descuentoTerceraEdad && ($producto['descuento_tercera'] ?? 0) == 1) {
+                $descuentoProducto = $subtotalProducto * 0.25; // 25%
             }
-            // Verificar descuento de cuarta edad (solo si no hay descuento de tercera edad)
-            elseif ($this->descuentoCuartaEdad && isset($producto['descuento_cuarta']) && $producto['descuento_cuarta'] > 0) {
-                $descuentoProducto = $subtotalProducto * ($producto['descuento_cuarta'] / 100);
+            // Verificar descuento de cuarta edad (35%) - solo si el producto lo permite y no hay descuento de tercera edad
+            elseif ($this->descuentoCuartaEdad && ($producto['descuento_cuarta'] ?? 0) == 1) {
+                $descuentoProducto = $subtotalProducto * 0.35; // 35%
             }
             
             // Calcular subtotal con descuento aplicado
@@ -407,13 +410,19 @@ class Ventas extends Component
             return;
         }
         
-        // Verificar si hay productos con descuento de tercera edad
-        $productosConDescuento = array_filter($this->productosFactura, function($producto) {
-            return isset($producto['descuento_tercera']) && $producto['descuento_tercera'] > 0;
+        // Verificar que hay productos en la factura
+        if (empty($this->productosFactura)) {
+            session()->flash('error', 'No hay productos en la factura para aplicar el descuento.');
+            return;
+        }
+        
+        // Verificar que hay productos elegibles para descuento de tercera edad
+        $productosElegibles = collect($this->productosFactura)->filter(function($producto) {
+            return ($producto['descuento_tercera'] ?? 0) == 1;
         });
         
-        if (empty($productosConDescuento)) {
-            session()->flash('error', 'No hay productos con descuento para tercera edad en la factura.');
+        if ($productosElegibles->isEmpty()) {
+            session()->flash('warning', 'Ningún producto en la factura permite descuento de tercera edad.');
             return;
         }
         
@@ -421,7 +430,11 @@ class Ventas extends Component
         $this->descuentoTerceraEdad = !$this->descuentoTerceraEdad;
         $this->calcularTotales();
         
-        $mensaje = $this->descuentoTerceraEdad ? 'Descuento de tercera edad aplicado correctamente' : 'Descuento de tercera edad removido';
+        if ($this->descuentoTerceraEdad) {
+            $mensaje = 'Descuento del 25% para tercera edad aplicado a ' . $productosElegibles->count() . ' producto(s) elegible(s)';
+        } else {
+            $mensaje = 'Descuento de tercera edad removido';
+        }
         session()->flash('success', $mensaje);
     }
     
@@ -433,13 +446,19 @@ class Ventas extends Component
             return;
         }
         
-        // Verificar si hay productos con descuento de cuarta edad
-        $productosConDescuento = array_filter($this->productosFactura, function($producto) {
-            return isset($producto['descuento_cuarta']) && $producto['descuento_cuarta'] > 0;
+        // Verificar que hay productos en la factura
+        if (empty($this->productosFactura)) {
+            session()->flash('error', 'No hay productos en la factura para aplicar el descuento.');
+            return;
+        }
+        
+        // Verificar que hay productos elegibles para descuento de cuarta edad
+        $productosElegibles = collect($this->productosFactura)->filter(function($producto) {
+            return ($producto['descuento_cuarta'] ?? 0) == 1;
         });
         
-        if (empty($productosConDescuento)) {
-            session()->flash('error', 'No hay productos con descuento para cuarta edad en la factura.');
+        if ($productosElegibles->isEmpty()) {
+            session()->flash('warning', 'Ningún producto en la factura permite descuento de cuarta edad.');
             return;
         }
         
@@ -447,7 +466,11 @@ class Ventas extends Component
         $this->descuentoCuartaEdad = !$this->descuentoCuartaEdad;
         $this->calcularTotales();
         
-        $mensaje = $this->descuentoCuartaEdad ? 'Descuento de cuarta edad aplicado correctamente' : 'Descuento de cuarta edad removido';
+        if ($this->descuentoCuartaEdad) {
+            $mensaje = 'Descuento del 35% para cuarta edad aplicado a ' . $productosElegibles->count() . ' producto(s) elegible(s)';
+        } else {
+            $mensaje = 'Descuento de cuarta edad removido';
+        }
         session()->flash('success', $mensaje);
     }
     
@@ -621,6 +644,14 @@ class Ventas extends Component
 
     public function finalizarVentaConDistribucion()
     {
+        // Prevenir procesamiento duplicado
+        if ($this->procesandoVenta) {
+            Log::warning("Intento de procesamiento duplicado detectado");
+            return;
+        }
+
+        $this->procesandoVenta = true;
+        
         Log::info("DEBUG finalizarVentaConDistribucion INICIO");
 
         try {
@@ -685,8 +716,15 @@ class Ventas extends Component
 
             Log::info("DEBUG Modal de pago cerrado y datos limpiados");
 
+            // Resetear bandera de procesamiento
+            $this->procesandoVenta = false;
+
         } catch (\Exception $e) {
             DB::rollBack();
+            
+            // Resetear bandera de procesamiento en caso de error
+            $this->procesandoVenta = false;
+            
             Log::error("ERROR en finalizarVentaConDistribucion", [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
@@ -894,6 +932,22 @@ class Ventas extends Component
             $isvCalculado = $subtotalConDescuento * ($isvAplicado / 100);
             $totalFinal = $subtotalConDescuento + $isvCalculado;
 
+            // Verificar si el registro ya existe para evitar duplicados
+            $existeRegistro = DB::table('factura_has_producto')
+                ->where('factura_id', $facturaId)
+                ->where('producto_id', $producto['id'])
+                ->where('seccion_id', $seccion->seccion_id)
+                ->exists();
+
+            if ($existeRegistro) {
+                Log::warning("Registro duplicado detectado", [
+                    'factura_id' => $facturaId,
+                    'producto_id' => $producto['id'],
+                    'seccion_id' => $seccion->seccion_id
+                ]);
+                continue; // Saltar esta sección si ya existe el registro
+            }
+
             // Crear registro en factura_has_producto
             DB::table('factura_has_producto')->insert([
                 'factura_id' => $facturaId,
@@ -1058,81 +1112,6 @@ class Ventas extends Component
 
         // Finalizar venta usando el método de distribución
         $this->finalizarVentaConDistribucion();
-    }
-
-    public function finalizarVenta($tipoPago)
-    {
-        try {
-            DB::beginTransaction();
-
-            // Crear la factura principal usando create para asegurar que todos los campos se incluyan
-            $factura = Factura::create([
-                'tipo_facturacion_id' => 1,
-                'numero_factura' => $this->generarNumeroFactura(),
-                'cai_id' => $this->caiActual ? $this->caiActual['cai_id'] : 1,
-                'nombre_cliente' => $this->cliente ? $this->cliente->nombre_completo : 'Consumidor Final',
-                'rtn' => $this->cliente ? $this->cliente->rtn : null,
-                'sub_total' => $this->subtotal,
-                'sub_total_grabado' => $this->subtotal,
-                'sub_total_exento' => 0,
-                'isv' => $this->totalIsv,
-                'total' => $this->total,
-                'credito' => 0,
-                'fecha_emision' => now()->format('Y-m-d'),
-                'estado_factura_id' => 1,
-                'users_id' => Auth::id(),
-                'descuentos_id' => 1
-            ]);
-
-            // Guardar productos de la factura
-            foreach ($this->productosFactura as $producto) {
-                // Calcular valores con descuento aplicado
-                $subtotalOriginal = $producto['cantidad'] * $producto['precio'];
-                $descuentoAplicado = $producto['descuento_aplicado'] ?? 0;
-                $subtotalConDescuento = $producto['subtotal_con_descuento'] ?? $subtotalOriginal;
-                $isvAplicado = $producto['isv'] ?? 0; // Tasa de ISV del producto
-                $isvCalculado = $subtotalConDescuento * ($isvAplicado / 100);
-                $totalFinal = $subtotalConDescuento + $isvCalculado;
-
-                DB::table('factura_has_producto')->insert([
-                    'factura_id' => $factura->id,
-                    'producto_id' => $producto['id'],
-                    'seccion_id' => 1, // Valor por defecto
-                    'unidad_medida_id' => 1, // Valor por defecto
-                    'indice' => 1, // Valor por defecto
-                    'numero_unidades_resta_inventario' => $producto['cantidad'],
-                    'unidades_nota_credito_resta_inventario' => 0,
-                    'resta_inventario_total' => $producto['cantidad'],
-                    'precio_unidad' => $producto['precio'],
-                    'cantidad' => $producto['cantidad'],
-                    'subtotal' => $subtotalConDescuento,
-                    'descuento' => $descuentoAplicado,
-                    'isv_aplicado' => $isvAplicado,
-                    'isv' => $isvCalculado,
-                    'total' => $totalFinal,
-                    'idPrecioSeleccionado' => '1',
-                    'precio_seleccionado' => $producto['precio']
-                ]);
-
-                // Actualizar stock en bodega principal
-                $this->actualizarStockVenta($producto['id'], $producto['cantidad'], $factura->id);
-            }
-
-            // Guardar métodos de pago
-            $this->guardarMetodosPago($factura->id, $tipoPago);
-
-            DB::commit();
-
-            // Cargar datos para la vista de impresión
-            $this->cargarDatosParaImpresion($factura->id);
-
-            // Cambiar a vista de impresión
-            $this->mostrarVistaImpresion = true;
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            session()->flash('error', 'Error al procesar la venta: ' . $e->getMessage());
-        }
     }
 
     private function cargarDatosParaImpresion($facturaId)
@@ -1864,6 +1843,9 @@ class Ventas extends Component
         // Limpiar campos de entrada
         $this->codigoBarras = '';
         $this->cantidad = 1;
+
+        // Resetear bandera de procesamiento
+        $this->procesandoVenta = false;
     }
 
     public function render()
