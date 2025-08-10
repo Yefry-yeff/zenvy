@@ -13,6 +13,45 @@
                         Último acceso: {{ $datosUsuario['ultimo_acceso'] }}
                     </p>
                     
+                    <!-- Estado de la Jornada -->
+                    @if($estadoJornada)
+                    <div class="mt-2 flex items-center space-x-4">
+                        <div class="flex items-center space-x-2">
+                            <i class="fas fa-calendar-day text-purple-500"></i>
+                            <span class="text-sm text-gray-600">Estado de Jornada:</span>
+                            @if($estadoJornada['estado'] == 'abierta')
+                                <span class="px-2 py-1 text-xs font-medium text-green-800 bg-green-100 rounded-full">
+                                    🟢 {{ $estadoJornada['estado_texto'] }}
+                                </span>
+                            @elseif($estadoJornada['estado'] == 'cerrada')
+                                <span class="px-2 py-1 text-xs font-medium text-red-800 bg-red-100 rounded-full">
+                                    🔴 {{ $estadoJornada['estado_texto'] }}
+                                </span>
+                            @elseif($estadoJornada['estado'] == 'sin_aperturar')
+                                <span class="px-2 py-1 text-xs font-medium text-yellow-800 bg-yellow-100 rounded-full">
+                                    🟡 Sin aperturar
+                                </span>
+                            @else
+                                <span class="px-2 py-1 text-xs font-medium text-gray-800 bg-gray-100 rounded-full">
+                                    ⚪ {{ $estadoJornada['estado_texto'] }}
+                                </span>
+                            @endif
+                        </div>
+                        @if($estadoJornada['usuario_apertura'])
+                        <div class="flex items-center space-x-2">
+                            <span class="text-sm text-gray-600">Aperturada por:</span>
+                            <span class="text-sm font-semibold text-purple-600">{{ $estadoJornada['usuario_apertura'] }}</span>
+                        </div>
+                        @endif
+                        @if($estadoJornada['usuario_cierre'])
+                        <div class="flex items-center space-x-2">
+                            <span class="text-sm text-gray-600">Cerrada por:</span>
+                            <span class="text-sm font-semibold text-red-600">{{ $estadoJornada['usuario_cierre'] }}</span>
+                        </div>
+                        @endif
+                    </div>
+                    @endif
+                    
                     <!-- Estado de la Caja -->
                     @if($estadoCaja)
                     <div class="mt-2 flex items-center space-x-4">

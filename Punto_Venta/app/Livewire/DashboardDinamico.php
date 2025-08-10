@@ -16,12 +16,14 @@ class DashboardDinamico extends Component
     public $productosStockBajo = [];
     public $actividad = [];
     public $estadoCaja = null;
+    public $estadoJornada = null;
 
     public function mount()
     {
         $this->cargarDatosUsuario();
         $this->cargarEstadisticas();
         $this->cargarDatosPorRol();
+        $this->cargarEstadoJornada();
         $this->cargarEstadoCaja();
     }
 
@@ -179,6 +181,100 @@ class DashboardDinamico extends Component
                 ]
             ]);
         }
+    }
+
+    public function cargarEstadoJornada()
+    {
+        $usuario = Auth::user();
+        
+        // Solo cargar estado de jornada si el usuario tiene tienda asignada
+        if ($usuario->tienda_id) {
+            $fechaActual = date('Y-m-d');
+            
+            // Buscar la jornada del día actual para la tienda del usuario
+            $jornadaActual = DB::table('jornada')
+                ->where('fecha', $fechaActual)
+                ->where('tienda_id', $usuario->tienda_id)
+                ->orderBy('created_at', 'desc')
+                ->first();
+
+            if ($jornadaActual) {
+                // Determinar el estado de la jornada
+                $estado = 'cerrada'; // Por defecto cerrada
+                $estado_codigo = 0;
+                
+                if ($jornadaActual->apertura == 1 && $jornadaActual->cierre == 0) {
+                    $estado = 'abierta';
+                    $estado_codigo = 1;
+                } elseif ($jornadaActual->apertura == 0 && $jornadaActual->cierre == 1) {
+                    $estado = 'cerrada';
+                    $estado_codigo = 2;
+                } elseif ($jornadaActual->apertura == 0 && $jornadaActual->cierre == 0) {
+                    $estado = 'sin_aperturar';
+                    $estado_codigo = 0;
+                }
+
+                // Obtener información del usuario que aperturó y cerró
+                $usuarioApertura = null;
+                $usuarioCierre = null;
+                
+                if ($jornadaActual->user_id_apertura) {
+                    $usuarioApertura = DB::table('users')
+                        ->where('id', $jornadaActual->user_id_apertura)
+                        ->select('name')
+                        ->first();
+                }
+                
+                if ($jornadaActual->user_id_cierre) {
+                    $usuarioCierre = DB::table('users')
+                        ->where('id', $jornadaActual->user_id_cierre)
+                        ->select('name')
+                        ->first();
+                }
+
+                $this->estadoJornada = [
+                    'id' => $jornadaActual->id,
+                    'fecha' => $jornadaActual->fecha,
+                    'estado' => $estado,
+                    'estado_codigo' => $estado_codigo,
+                    'estado_texto' => $this->obtenerTextoEstadoJornada($estado),
+                    'apertura' => $jornadaActual->apertura,
+                    'cierre' => $jornadaActual->cierre,
+                    'usuario_apertura' => $usuarioApertura->name ?? null,
+                    'usuario_cierre' => $usuarioCierre->name ?? null,
+                    'comentario' => $jornadaActual->comentario,
+                    'fecha_creacion' => $jornadaActual->created_at,
+                    'fecha_actualizacion' => $jornadaActual->updated_at
+                ];
+            } else {
+                // No hay jornada para hoy
+                $this->estadoJornada = [
+                    'id' => null,
+                    'fecha' => $fechaActual,
+                    'estado' => 'sin_jornada',
+                    'estado_codigo' => -1,
+                    'estado_texto' => 'Sin jornada creada',
+                    'apertura' => 0,
+                    'cierre' => 0,
+                    'usuario_apertura' => null,
+                    'usuario_cierre' => null,
+                    'comentario' => null,
+                    'fecha_creacion' => null,
+                    'fecha_actualizacion' => null
+                ];
+            }
+        }
+    }
+
+    private function obtenerTextoEstadoJornada($estado)
+    {
+        return match($estado) {
+            'abierta' => 'Abierta',
+            'cerrada' => 'Cerrada',
+            'sin_aperturar' => 'Sin aperturar',
+            'sin_jornada' => 'Sin jornada',
+            default => 'Desconocido'
+        };
     }
 
     public function cargarEstadoCaja()
