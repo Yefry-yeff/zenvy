@@ -59,58 +59,6 @@ class CierreDeJornada extends Component
         }
     }
 
-    public function debugCajas()
-    {
-        // Método para debug - ver qué cajas está cargando
-        $this->resetear();
-        
-        if (!$this->tiendaUsuario) {
-            $this->mensaje = 'Usuario sin tienda asignada para debug.';
-            $this->tipoMensaje = 'error';
-            return;
-        }
-
-        // Cargar las mismas consultas que usa verificarCondicionesParaCierre
-        $this->cajasAbiertas = DB::table('caja as c')
-            ->join('users as u', 'c.users_id', '=', 'u.id')
-            ->where('c.estado_caja', 1)
-            ->where('c.tienda_id', $this->tiendaUsuario)
-            ->whereDate('c.created_at', $this->fechaCierre)
-            ->select('c.*', 'u.name as nombre_usuario')
-            ->get()
-            ->toArray();
-
-        $this->cajasConDiferencia = DB::table('cierre_de_caja as cc')
-            ->join('caja as c', 'cc.caja_id', '=', 'c.id')
-            ->join('users as u', 'c.users_id', '=', 'u.id')
-            ->where('cc.diferencia_efectivo', '!=', 0)
-            ->where('c.tienda_id', $this->tiendaUsuario)
-            ->whereDate('cc.created_at', $this->fechaCierre)
-            ->select(
-                'c.id', 
-                'c.users_id', 
-                'u.name as nombre_usuario',
-                'cc.diferencia_efectivo', 
-                'cc.created_at'
-            )
-            ->get()
-            ->toArray();
-
-        $cajasAbiertas = count($this->cajasAbiertas);
-        $cajasConDiferencia = count($this->cajasConDiferencia);
-        
-        $this->mensaje = "DEBUG - Usuario: " . Auth::user()->name . 
-                        " | Tienda: " . $this->tiendaUsuario . " (" . $this->nombreTienda . ")" .
-                        " | Fecha: " . $this->fechaCierre .
-                        " | Cajas abiertas: " . $cajasAbiertas .
-                        " | Cajas con diferencia: " . $cajasConDiferencia;
-        $this->tipoMensaje = 'info';
-        
-        if ($cajasAbiertas > 0 || $cajasConDiferencia > 0) {
-            $this->mostrarAlerta = true;
-        }
-    }
-
     public function verificarCondicionesParaCierre()
     {
         $this->resetear();

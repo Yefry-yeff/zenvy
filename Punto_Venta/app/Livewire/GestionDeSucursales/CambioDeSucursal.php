@@ -351,7 +351,7 @@ public function seleccionarUsuario($usuarioId)
                 // Determinar el estado de la caja según el estado de la jornada
                 if ($jornadaCerrada || $sinJornada) {
                     // Jornada cerrada: crear caja con estado 0 (cerrada)
-                    $estadoCaja = 0;
+                    $estadoCaja = 2;
                     $motivo = $sinJornada ? 'Sin jornada para hoy' : 'Jornada cerrada';
                 } else {
                     // Jornada abierta: crear caja con estado 2 (cerrado - usuario debe abrirla manualmente)
@@ -395,7 +395,7 @@ public function seleccionarUsuario($usuarioId)
                 'archivo' => $e->getFile(),
                 'linea' => $e->getLine()
             ]);
-            
+
             // No lanzamos la excepción para no afectar el cambio de sucursal
             // Solo registramos el error
         }

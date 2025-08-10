@@ -649,6 +649,7 @@ class Ventas extends Component
         // 2. Verificar caja del usuario
         $cajaAbierta = DB::table('caja')
             ->where('users_id', $user->id)
+            ->where('tienda_id', $tiendaId)
             ->where('estado_caja', 1) // 1 = abierta
             ->exists();
 
@@ -1004,9 +1005,10 @@ class Ventas extends Component
 
         $user = Auth::user();
         
-        // Obtener el ID de la caja del usuario
+        // Obtener el ID de la caja del usuario en su tienda actual
         $caja = DB::table('caja')
             ->where('users_id', $user->id)
+            ->where('tienda_id', $user->tienda_id)
             ->where('estado_caja', 1)
             ->first();
             
@@ -1101,11 +1103,13 @@ class Ventas extends Component
             $caja = DB::table('caja')
                 ->where('id', $cajaId)
                 ->where('users_id', $user->id)
+                ->where('tienda_id', $user->tienda_id)
                 ->where('estado_caja', 1)
                 ->first();
         } else {
             $caja = DB::table('caja')
                 ->where('users_id', $user->id)
+                ->where('tienda_id', $user->tienda_id)
                 ->where('estado_caja', 1) // 1 = abierta
                 ->first();
         }
