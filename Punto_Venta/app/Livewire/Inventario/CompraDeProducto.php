@@ -177,10 +177,14 @@ class CompraDeProducto extends Component
 
     public function updatedBusquedaProducto()
     {
-        if (strlen($this->busquedaProducto) >= 2) {
-            // Buscar por código de barras exacto primero
-            $productoPorCodigo = collect($this->productos)->first(function($producto) {
-                return $producto['codigo_barra'] === $this->busquedaProducto;
+        // Solo buscar por código de barras exacto (para escáner)
+        if (!empty($this->busquedaProducto)) {
+            // Limpiar espacios en blanco
+            $codigoBarra = trim($this->busquedaProducto);
+            
+            // Buscar producto por código de barras exacto
+            $productoPorCodigo = collect($this->productos)->first(function($producto) use ($codigoBarra) {
+                return $producto['codigo_barra'] === $codigoBarra;
             });
 
             if ($productoPorCodigo) {
@@ -188,17 +192,11 @@ class CompraDeProducto extends Component
                 $this->seleccionarProducto($productoPorCodigo['id']);
                 return;
             }
-
-            // Si no es código exacto, mostrar lista filtrada
-            $this->productosFiltrados = collect($this->productos)->filter(function($producto) {
-                return stripos($producto['nombre'], $this->busquedaProducto) !== false ||
-                       stripos($producto['codigo_barra'], $this->busquedaProducto) !== false;
-            })->take(10)->values()->toArray();
-            $this->mostrarListaProductos = count($this->productosFiltrados) > 0;
-        } else {
-            $this->productosFiltrados = [];
-            $this->mostrarListaProductos = false;
         }
+        
+        // No mostrar lista de productos filtrados (solo funciona con códigos exactos)
+        $this->productosFiltrados = [];
+        $this->mostrarListaProductos = false;
     }
 
     public function seleccionarProducto($productoId)
@@ -206,7 +204,8 @@ class CompraDeProducto extends Component
         $producto = collect($this->productos)->firstWhere('id', $productoId);
         if ($producto) {
             $this->productoTemporal['producto_id'] = $producto['id'];
-            $this->busquedaProducto = $producto['nombre'] . ' (' . ($producto['codigo_barra'] ?? 'Sin código') . ')';
+            // Mostrar solo el código de barras en el campo
+            $this->busquedaProducto = $producto['codigo_barra'] ?? '';
             $this->mostrarListaProductos = false;
         }
     }
@@ -220,6 +219,19 @@ class CompraDeProducto extends Component
     {
         if ($this->productoTemporal['cantidad_ingresada'] > 1) {
             $this->productoTemporal['cantidad_ingresada']--;
+        }
+    }
+
+    // Validación en tiempo real para cantidad ingresada manualmente
+    public function updatedProductoTemporalCantidadIngresada($value)
+    {
+        // Asegurar que sea un número entero positivo
+        $cantidad = (int) $value;
+        
+        if ($cantidad < 1) {
+            $this->productoTemporal['cantidad_ingresada'] = 1;
+        } else {
+            $this->productoTemporal['cantidad_ingresada'] = $cantidad;
         }
     }
 

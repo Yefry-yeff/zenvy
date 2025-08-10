@@ -44,7 +44,12 @@
                         <div class="row">
                             <div class="mb-3 col-md-6">
                                 <label for="codigo_barra" class="form-label">Código de Barras</label>
-                                <input type="text" id="codigo_barra" class="form-control {{ $this->getClaseCampo('codigo_barra') }}" wire:model="form.codigo_barra" autofocus>
+                                <input type="text" 
+                                       id="codigo_barra" 
+                                       class="form-control {{ $this->getClaseCampo('codigo_barra') }}" 
+                                       wire:model="form.codigo_barra" 
+                                       onkeydown="if(event.key==='Enter'){event.preventDefault(); return false;}"
+                                       autofocus>
                                 @error('form.codigo_barra')
                                     <div class="mt-1 text-sm text-danger">{{ $message }}</div>
                                 @enderror

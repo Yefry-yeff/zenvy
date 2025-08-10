@@ -2,7 +2,7 @@
 
     <!-- Mensajes de error -->
     @if (session()->has('error'))
-        <div class="mb-4 px-4 py-3 rounded relative bg-red-100 border border-red-400 text-red-700" role="alert">
+        <div class="relative px-4 py-3 mb-4 text-red-700 bg-red-100 border border-red-400 rounded" role="alert">
             <strong class="font-bold">Error:</strong>
             <span class="block sm:inline">{{ session('error') }}</span>
         </div>
@@ -25,7 +25,7 @@
             <div class="flex gap-2">
                 <button type="button"
                         wire:click="volver"
-                        class="inline-flex items-center gap-1 px-3 py-2 text-sm bg-white text-gray-800 rounded hover:bg-gray-100">
+                        class="inline-flex items-center gap-1 px-3 py-2 text-sm text-gray-800 bg-white rounded hover:bg-gray-100">
                     <span>←</span> Volver
                 </button>
             </div>
@@ -107,7 +107,7 @@
                         </div>
 
                         <!-- Botón Ingresar Productos (siempre visible) -->
-                        <div class="row mt-4">
+                        <div class="mt-4 row">
                             <div class="col-12">
                                 @if($this->mostrarSeccionProductos && !$mostrarSeccionProductosActiva)
                                     <div class="alert alert-success d-flex align-items-center justify-content-between">
@@ -116,7 +116,7 @@
                                             <span class="ms-2">Ya puede proceder a agregar productos.</span>
                                         </div>
                                         <button type="button"
-                                                class="btn btn-sm px-4 py-2 d-flex align-items-center"
+                                                class="px-4 py-2 btn btn-sm d-flex align-items-center"
                                                 wire:click="activarSeccionProductos"
                                                 :class="{
                                                     'btn-success': theme === 'verde' || !theme,
@@ -131,7 +131,7 @@
                                 @else
                                     <div class="d-flex justify-content-center">
                                         <button type="button"
-                                                class="btn btn-lg px-5 py-3 d-flex align-items-center"
+                                                class="px-5 py-3 btn btn-lg d-flex align-items-center"
                                                 wire:click="validarYActivarSeccionProductos"
                                                 :class="{
                                                     'btn-success': theme === 'verde' || !theme,
@@ -164,14 +164,15 @@
                                     <!-- Búsqueda/Selección de Producto -->
                                     <div class="col-lg-2">
                                         <label for="busqueda_producto" class="form-label">
-                                            <strong>Producto / Código</strong> <span class="text-red-600">*</span>
+                                            <strong>Código de Barras</strong> <span class="text-red-600">*</span>
                                         </label>
                                         <div class="position-relative">
                                             <input type="text"
                                                    id="busqueda_producto"
                                                    class="form-control"
                                                    wire:model.live="busquedaProducto"
-                                                   placeholder="Escanear o buscar...">
+                                                   onkeydown="if(event.key==='Enter'){event.preventDefault(); return false;}"
+                                                   placeholder="Escanear código...">
                                             @if($busquedaProducto && $productoTemporal['producto_id'])
                                                 <button type="button"
                                                         class="btn btn-sm btn-outline-secondary position-absolute"
@@ -181,21 +182,6 @@
                                                 </button>
                                             @endif
                                         </div>
-
-                                        <!-- Lista de productos filtrados -->
-                                        @if($mostrarListaProductos && count($productosFiltrados) > 0)
-                                            <div class="position-absolute w-100 bg-white border rounded shadow-lg" style="z-index: 1000; max-height: 200px; overflow-y: auto;">
-                                                @foreach($productosFiltrados as $producto)
-                                                    <div class="p-2 cursor-pointer hover:bg-gray-100"
-                                                         wire:click="seleccionarProducto({{ $producto['id'] }})">
-                                                        <strong>{{ $producto['nombre'] }}</strong>
-                                                        @if($producto['codigo_barra'])
-                                                            <br><small class="text-muted">{{ $producto['codigo_barra'] }} - {{ $producto['marca'] }}</small>
-                                                        @endif
-                                                    </div>
-                                                @endforeach
-                                            </div>
-                                        @endif
                                     </div>
 
                                     <!-- Precio -->
@@ -220,22 +206,25 @@
                                             <!-- Botones + y - verticales a la izquierda -->
                                             <div class="d-flex flex-column me-2">
                                                 <button type="button"
-                                                        class="btn btn-outline-secondary p-1 mb-1"
+                                                        class="p-1 mb-1 btn btn-outline-secondary"
                                                         wire:click="incrementarCantidad"
                                                         style="width: 20px; height: 20px; font-size: 10px; line-height: 1;">
                                                     +
                                                 </button>
                                                 <button type="button"
-                                                        class="btn btn-outline-secondary p-1"
+                                                        class="p-1 btn btn-outline-secondary"
                                                         wire:click="decrementarCantidad"
                                                         style="width: 20px; height: 20px; font-size: 10px; line-height: 1;">
                                                     -
                                                 </button>
                                             </div>
-                                            <!-- Número a la derecha -->
-                                            <span class="badge bg-secondary px-2 py-1" style="min-width: 30px; font-size: 0.8rem;">
-                                                {{ $productoTemporal['cantidad_ingresada'] }}
-                                            </span>
+                                            <!-- Input manual de cantidad -->
+                                            <input type="number"
+                                                   class="text-center form-control cantidad-input"
+                                                   style="width: 60px; font-size: 0.8rem;"
+                                                   min="1"
+                                                   wire:model.live="productoTemporal.cantidad_ingresada"
+                                                   placeholder="1">
                                         </div>
                                     </div>
 
@@ -252,18 +241,17 @@
 
                                     <!-- ISV -->
                                     <div class="col-lg-1">
-                                        <label for="isv" class="form-label"><strong>ISV</strong></label>
+                                        <label for="isv" class="form-label"><strong>ISV(%)</strong></label>
                                         <div class="input-group">
                                             <input type="number"
                                                    id="isv"
                                                    name="isv_lg"
-                                                   class="form-control text-center"
+                                                   class="text-center form-control"
                                                    step="0.01"
                                                    min="0"
                                                    max="100"
                                                    wire:model.live="productoTemporal.isv"
                                                    placeholder="0">
-                                            <span class="input-group-text">%</span>
                                         </div>
                                     </div>
 
@@ -298,18 +286,19 @@
                             <!-- Vista Desktop Mediana (md-lg) - 3 elementos por fila + botón al final -->
                             <div class="d-none d-md-block d-lg-none">
                                 <!-- Primera fila: Producto, Precio, Cantidad -->
-                                <div class="row g-3 mb-3">
+                                <div class="mb-3 row g-3">
                                     <!-- Búsqueda/Selección de Producto -->
                                     <div class="col-md-4">
                                         <label for="busqueda_producto_md" class="form-label">
-                                            <strong>Producto / Código Barras</strong> <span class="text-red-600">*</span>
+                                            <strong>Código de Barras</strong> <span class="text-red-600">*</span>
                                         </label>
                                         <div class="position-relative">
                                             <input type="text"
                                                    id="busqueda_producto_md"
                                                    class="form-control"
                                                    wire:model.live="busquedaProducto"
-                                                   placeholder="Escanear o buscar...">
+                                                   onkeydown="if(event.key==='Enter'){event.preventDefault(); return false;}"
+                                                   placeholder="Escanear código...">
                                             @if($busquedaProducto && $productoTemporal['producto_id'])
                                                 <button type="button"
                                                         class="btn btn-sm btn-outline-secondary position-absolute"
@@ -319,21 +308,6 @@
                                                 </button>
                                             @endif
                                         </div>
-
-                                        <!-- Lista de productos filtrados -->
-                                        @if($mostrarListaProductos && count($productosFiltrados) > 0)
-                                            <div class="position-absolute w-100 bg-white border rounded shadow-lg" style="z-index: 1000; max-height: 200px; overflow-y: auto;">
-                                                @foreach($productosFiltrados as $producto)
-                                                    <div class="p-2 cursor-pointer hover:bg-gray-100"
-                                                         wire:click="seleccionarProducto({{ $producto['id'] }})">
-                                                        <strong>{{ $producto['nombre'] }}</strong>
-                                                        @if($producto['codigo_barra'])
-                                                            <br><small class="text-muted">{{ $producto['codigo_barra'] }} - {{ $producto['marca'] }}</small>
-                                                        @endif
-                                                    </div>
-                                                @endforeach
-                                            </div>
-                                        @endif
                                     </div>
 
                                     <!-- Precio -->
@@ -358,28 +332,31 @@
                                             <!-- Botones + y - verticales a la izquierda -->
                                             <div class="d-flex flex-column me-2">
                                                 <button type="button"
-                                                        class="btn btn-outline-secondary p-1 mb-1"
+                                                        class="p-1 mb-1 btn btn-outline-secondary"
                                                         wire:click="incrementarCantidad"
                                                         style="width: 20px; height: 20px; font-size: 10px; line-height: 1;">
                                                     +
                                                 </button>
                                                 <button type="button"
-                                                        class="btn btn-outline-secondary p-1"
+                                                        class="p-1 btn btn-outline-secondary"
                                                         wire:click="decrementarCantidad"
                                                         style="width: 20px; height: 20px; font-size: 10px; line-height: 1;">
                                                     -
                                                 </button>
                                             </div>
-                                            <!-- Número a la derecha -->
-                                            <span class="badge bg-secondary px-2 py-1" style="min-width: 30px; font-size: 0.8rem;">
-                                                {{ $productoTemporal['cantidad_ingresada'] }}
-                                            </span>
+                                            <!-- Input manual de cantidad -->
+                                            <input type="number"
+                                                   class="text-center form-control cantidad-input"
+                                                   style="width: 80px; font-size: 0.9rem;"
+                                                   min="1"
+                                                   wire:model.live="productoTemporal.cantidad_ingresada"
+                                                   placeholder="1">
                                         </div>
                                     </div>
                                 </div>
 
                                 <!-- Segunda fila: Unidad, ISV, Fecha -->
-                                <div class="row g-3 mb-3">
+                                <div class="mb-3 row g-3">
                                     <!-- Unidad -->
                                     <div class="col-md-4">
                                         <label for="unidad_compra_md" class="form-label"><strong>Unidad</strong> <span class="text-red-600">*</span></label>
@@ -393,18 +370,17 @@
 
                                     <!-- ISV -->
                                     <div class="col-md-4">
-                                        <label for="isv_md" class="form-label"><strong>ISV</strong></label>
+                                        <label for="isv_md" class="form-label"><strong>ISV(%)</strong></label>
                                         <div class="input-group">
                                             <input type="number"
                                                    id="isv_md"
                                                    name="isv_md"
-                                                   class="form-control text-center"
+                                                   class="text-center form-control"
                                                    step="0.01"
                                                    min="0"
                                                    max="100"
                                                    wire:model.live="productoTemporal.isv"
                                                    placeholder="0">
-                                            <span class="input-group-text">%</span>
                                         </div>
                                     </div>
 
@@ -422,7 +398,7 @@
                                 <div class="row">
                                     <div class="col-12 d-flex justify-content-center">
                                         <button type="button"
-                                                class="btn px-4 py-2 d-flex align-items-center"
+                                                class="px-4 py-2 btn d-flex align-items-center"
                                                 wire:click="agregarProducto"
                                                 @disabled(!$this->botonHabilitado)
                                                 :class="{
@@ -448,14 +424,15 @@
                                 <!-- Búsqueda/Selección de Producto -->
                                 <div class="mb-3">
                                     <label for="busqueda_producto_mobile" class="form-label">
-                                        <strong>Producto / Código Barras</strong> <span class="text-red-600">*</span>
+                                        <strong>Código de Barras</strong> <span class="text-red-600">*</span>
                                     </label>
                                     <div class="position-relative">
                                         <input type="text"
                                                id="busqueda_producto_mobile"
                                                class="form-control"
                                                wire:model.live="busquedaProducto"
-                                               placeholder="Escanear o buscar...">
+                                               onkeydown="if(event.key==='Enter'){event.preventDefault(); return false;}"
+                                               placeholder="Escanear código...">
                                         @if($busquedaProducto && $productoTemporal['producto_id'])
                                             <button type="button"
                                                     class="btn btn-sm btn-outline-secondary position-absolute"
@@ -465,21 +442,6 @@
                                             </button>
                                         @endif
                                     </div>
-
-                                    <!-- Lista de productos filtrados -->
-                                    @if($mostrarListaProductos && count($productosFiltrados) > 0)
-                                        <div class="position-absolute w-100 bg-white border rounded shadow-lg" style="z-index: 1000; max-height: 200px; overflow-y: auto;">
-                                            @foreach($productosFiltrados as $producto)
-                                                <div class="p-2 cursor-pointer hover:bg-gray-100"
-                                                     wire:click="seleccionarProducto({{ $producto['id'] }})">
-                                                    <strong>{{ $producto['nombre'] }}</strong>
-                                                    @if($producto['codigo_barra'])
-                                                        <br><small class="text-muted">{{ $producto['codigo_barra'] }} - {{ $producto['marca'] }}</small>
-                                                    @endif
-                                                </div>
-                                            @endforeach
-                                        </div>
-                                    @endif
                                 </div>
 
                                 <!-- Precio -->
@@ -498,27 +460,31 @@
                                 </div>
 
                                 <!-- Cantidad y Unidad en la misma fila -->
-                                <div class="row mb-3">
+                                <div class="mb-3 row">
                                     <div class="col-6">
                                         <label class="form-label"><strong>Cantidad</strong> <span class="text-red-600">*</span></label>
                                         <div class="d-flex align-items-center">
                                             <div class="d-flex flex-column me-2">
                                                 <button type="button"
-                                                        class="btn btn-outline-secondary p-1 mb-1"
+                                                        class="p-1 mb-1 btn btn-outline-secondary"
                                                         wire:click="incrementarCantidad"
                                                         style="width: 20px; height: 20px; font-size: 10px; line-height: 1;">
                                                     +
                                                 </button>
                                                 <button type="button"
-                                                        class="btn btn-outline-secondary p-1"
+                                                        class="p-1 btn btn-outline-secondary"
                                                         wire:click="decrementarCantidad"
                                                         style="width: 20px; height: 20px; font-size: 10px; line-height: 1;">
                                                     -
                                                 </button>
                                             </div>
-                                            <span class="badge bg-secondary px-2 py-1" style="min-width: 30px; font-size: 0.8rem;">
-                                                {{ $productoTemporal['cantidad_ingresada'] }}
-                                            </span>
+                                            <!-- Input manual de cantidad -->
+                                            <input type="number"
+                                                   class="text-center form-control cantidad-input"
+                                                   style="width: 60px; font-size: 0.9rem;"
+                                                   min="1"
+                                                   wire:model.live="productoTemporal.cantidad_ingresada"
+                                                   placeholder="1">
                                         </div>
                                     </div>
                                     <div class="col-6">
@@ -533,20 +499,19 @@
                                 </div>
 
                                 <!-- ISV y Fecha en la misma fila -->
-                                <div class="row mb-3">
+                                <div class="mb-3 row">
                                     <div class="col-6">
-                                        <label for="isv_mobile" class="form-label"><strong>ISV</strong></label>
+                                        <label for="isv_mobile" class="form-label"><strong>ISV(%)</strong></label>
                                         <div class="input-group">
                                             <input type="number"
                                                    id="isv_mobile"
                                                    name="isv_mobile"
-                                                   class="form-control text-center"
+                                                   class="text-center form-control"
                                                    step="0.01"
                                                    min="0"
                                                    max="100"
                                                    wire:model.live="productoTemporal.isv"
                                                    placeholder="0">
-                                            <span class="input-group-text">%</span>
                                         </div>
                                     </div>
                                     <div class="col-6">
@@ -582,11 +547,11 @@
                                     $productoSeleccionado = collect($productos)->firstWhere('id', $productoTemporal['producto_id']);
                                 @endphp
                                 @if($productoSeleccionado)
-                                    <div class="mt-2 p-2 bg-info bg-opacity-10 border border-info rounded">
+                                    <div class="p-2 mt-2 border rounded bg-info bg-opacity-10 border-info">
                                         <small class="text-info">
-                                            <strong>Producto:</strong> {{ $productoSeleccionado['nombre'] }} |
-                                            <strong>Marca:</strong> {{ $productoSeleccionado['marca'] }} |
-                                            <strong>Categoría:</strong> {{ $productoSeleccionado['subcategoria'] }}
+                                            <strong>Producto:</strong> {{ $productoSeleccionado->nombre ?? $productoSeleccionado['nombre'] ?? 'N/A' }} |
+                                            <strong>Marca:</strong> {{ $productoSeleccionado->marca ?? $productoSeleccionado['marca'] ?? 'N/A' }} |
+                                            <strong>Categoría:</strong> {{ $productoSeleccionado->subcategoria ?? $productoSeleccionado['subcategoria'] ?? 'N/A' }}
                                         </small>
                                     </div>
                                 @endif
@@ -601,12 +566,12 @@
                 <!-- Mensaje para completar información de compra -->
                 <div class="p-4 mb-4">
                     <div class="p-4 bg-white border shadow rounded-xl">
-                        <div class="text-center py-5">
+                        <div class="py-5 text-center">
                             <div class="mb-3">
                                 <i class="text-muted" style="font-size: 3rem;">📋</i>
                             </div>
-                            <h4 class="text-muted mb-3">Complete la Información de la Compra</h4>
-                            <p class="text-muted mb-0">
+                            <h4 class="mb-3 text-muted">Complete la Información de la Compra</h4>
+                            <p class="mb-0 text-muted">
                                 Para agregar productos, primero complete todos los campos obligatorios
                                 en la sección "Información de la Compra" arriba.
                             </p>
@@ -651,13 +616,13 @@
                                                         <!-- Botones + y - verticales -->
                                                         <div class="d-flex flex-column me-2">
                                                             <button type="button"
-                                                                    class="btn btn-outline-secondary p-1 mb-1"
+                                                                    class="p-1 mb-1 btn btn-outline-secondary"
                                                                     wire:click="actualizarCantidad({{ $index }}, {{ $producto['cantidad_ingresada'] + 1 }})"
                                                                     style="width: 20px; height: 20px; font-size: 10px; line-height: 1;">
                                                                 +
                                                             </button>
                                                             <button type="button"
-                                                                    class="btn btn-outline-secondary p-1"
+                                                                    class="p-1 btn btn-outline-secondary"
                                                                     wire:click="actualizarCantidad({{ $index }}, {{ max(1, $producto['cantidad_ingresada'] - 1) }})"
                                                                     style="width: 20px; height: 20px; font-size: 10px; line-height: 1;">
                                                                 -
@@ -665,7 +630,7 @@
                                                         </div>
                                                         <!-- Input de cantidad -->
                                                         <input type="number"
-                                                               class="form-control form-control-sm text-center"
+                                                               class="text-center form-control form-control-sm"
                                                                value="{{ $producto['cantidad_ingresada'] }}"
                                                                wire:change="actualizarCantidad({{ $index }}, $event.target.value)"
                                                                min="1"
@@ -694,10 +659,10 @@
                         <!-- Vista Mobile con tarjetas -->
                         <div class="d-md-none">
                             @foreach($productosCompra as $index => $producto)
-                                <div class="card mb-3 border">
-                                    <div class="card-body p-3">
+                                <div class="mb-3 border card">
+                                    <div class="p-3 card-body">
                                         <!-- Encabezado del producto -->
-                                        <div class="d-flex justify-content-between align-items-start mb-3">
+                                        <div class="mb-3 d-flex justify-content-between align-items-start">
                                             <div>
                                                 <h6 class="mb-1 fw-bold">{{ $producto['producto_nombre'] }}</h6>
                                                 @if($producto['producto_codigo'])
@@ -712,21 +677,21 @@
                                         </div>
 
                                         <!-- Información del producto -->
-                                        <div class="row g-2 mb-3">
+                                        <div class="mb-3 row g-2">
                                             <div class="col-6">
-                                                <div class="border rounded p-2 text-center">
+                                                <div class="p-2 text-center border rounded">
                                                     <small class="text-muted d-block">Cantidad</small>
-                                                    <div class="d-flex align-items-center justify-content-center mt-1">
+                                                    <div class="mt-1 d-flex align-items-center justify-content-center">
                                                         <!-- Botones + y - verticales -->
                                                         <div class="d-flex flex-column me-2">
                                                             <button type="button"
-                                                                    class="btn btn-outline-secondary p-1 mb-1"
+                                                                    class="p-1 mb-1 btn btn-outline-secondary"
                                                                     wire:click="actualizarCantidad({{ $index }}, {{ $producto['cantidad_ingresada'] + 1 }})"
                                                                     style="width: 20px; height: 20px; font-size: 10px; line-height: 1;">
                                                                 +
                                                             </button>
                                                             <button type="button"
-                                                                    class="btn btn-outline-secondary p-1"
+                                                                    class="p-1 btn btn-outline-secondary"
                                                                     wire:click="actualizarCantidad({{ $index }}, {{ max(1, $producto['cantidad_ingresada'] - 1) }})"
                                                                     style="width: 20px; height: 20px; font-size: 10px; line-height: 1;">
                                                                 -
@@ -734,7 +699,7 @@
                                                         </div>
                                                         <!-- Input de cantidad -->
                                                         <input type="number"
-                                                               class="form-control form-control-sm text-center"
+                                                               class="text-center form-control form-control-sm"
                                                                value="{{ $producto['cantidad_ingresada'] }}"
                                                                wire:change="actualizarCantidad({{ $index }}, $event.target.value)"
                                                                min="1"
@@ -743,7 +708,7 @@
                                                 </div>
                                             </div>
                                             <div class="col-6">
-                                                <div class="border rounded p-2 text-center">
+                                                <div class="p-2 text-center border rounded">
                                                     <small class="text-muted d-block">Unidad</small>
                                                     <span class="fw-semibold">{{ $producto['unidad_compra_nombre'] }}</span>
                                                 </div>
@@ -751,15 +716,15 @@
                                         </div>
 
                                         <!-- Precios -->
-                                        <div class="row g-2 mb-3">
+                                        <div class="mb-3 row g-2">
                                             <div class="col-6">
-                                                <div class="border rounded p-2 text-center">
+                                                <div class="p-2 text-center border rounded">
                                                     <small class="text-muted d-block">Precio Unit.</small>
                                                     <span class="fw-semibold">L.{{ number_format($producto['precio'], 2) }}</span>
                                                 </div>
                                             </div>
                                             <div class="col-6">
-                                                <div class="border rounded p-2 text-center">
+                                                <div class="p-2 text-center border rounded">
                                                     <small class="text-muted d-block">ISV</small>
                                                     <span class="fw-semibold">{{ $producto['isv'] }}%</span>
                                                 </div>
@@ -769,13 +734,13 @@
                                         <!-- Totales -->
                                         <div class="row g-2">
                                             <div class="col-6">
-                                                <div class="border rounded p-2 text-center bg-light">
+                                                <div class="p-2 text-center border rounded bg-light">
                                                     <small class="text-muted d-block">Subtotal</small>
                                                     <span class="fw-bold text-primary">L.{{ number_format($producto['sub_total_producto'], 2) }}</span>
                                                 </div>
                                             </div>
                                             <div class="col-6">
-                                                <div class="border rounded p-2 text-center bg-success bg-opacity-10">
+                                                <div class="p-2 text-center border rounded bg-success bg-opacity-10">
                                                     <small class="text-muted d-block">Total</small>
                                                     <span class="fw-bold text-success">L.{{ number_format($producto['precio_total'], 2) }}</span>
                                                 </div>
@@ -787,23 +752,23 @@
                         </div>
 
                         <!-- Totales de factura profesional -->
-                        <div class="row justify-content-end mt-4">
+                        <div class="mt-4 row justify-content-end">
                             <div class="col-12 col-md-6 col-lg-4">
-                                <div class="border rounded p-3 bg-light">
+                                <div class="p-3 border rounded bg-light">
                                     <!-- Subtotal -->
-                                    <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                                    <div class="py-2 d-flex justify-content-between align-items-center border-bottom">
                                         <span class="fw-semibold">Subtotal:</span>
                                         <span class="fw-bold">L.{{ number_format($subtotal, 2) }}</span>
                                     </div>
 
                                     <!-- ISV -->
-                                    <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                                    <div class="py-2 d-flex justify-content-between align-items-center border-bottom">
                                         <span class="fw-semibold">ISV (15%):</span>
                                         <span class="fw-bold">L.{{ number_format($totalIsv, 2) }}</span>
                                     </div>
 
                                     <!-- Total Final -->
-                                    <div class="d-flex justify-content-between align-items-center py-2 mt-2">
+                                    <div class="py-2 mt-2 d-flex justify-content-between align-items-center">
                                         <span class="fw-bold text-success fs-5">TOTAL:</span>
                                         <span class="fw-bold text-success fs-4">L.{{ number_format($total, 2) }}</span>
                                     </div>
@@ -815,17 +780,17 @@
                 @endif
 
                 <!-- Botones -->
-                <div class="row mt-4">
+                <div class="mt-4 row">
                     <div class="col-12">
-                        <div class="d-flex flex-column flex-md-row justify-content-end gap-2">
+                        <div class="gap-2 d-flex flex-column flex-md-row justify-content-end">
                             <button type="button"
                                     wire:click="resetFormulario"
-                                    class="btn btn-outline-secondary order-2 order-md-1">
+                                    class="order-2 btn btn-outline-secondary order-md-1">
                                 🔄 Limpiar Todo
                             </button>
 
                             <button type="submit"
-                                    class="btn order-1 order-md-2"
+                                    class="order-1 btn order-md-2"
                                     @disabled(!$this->botonGuardarHabilitado)
                                     :class="{
                                         'btn-success': theme === 'verde' || !theme,
@@ -1221,6 +1186,20 @@
         /* Estilos para distribución flexible */
         .row.g-3 {
             margin-bottom: 1rem;
+        }
+
+        /* Input de cantidad manual */
+        .cantidad-input {
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+
+        .cantidad-input:focus {
+            border-color: #0d6efd;
+            box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+            outline: 0;
         }
 
         /* Botón centrado mejorado */

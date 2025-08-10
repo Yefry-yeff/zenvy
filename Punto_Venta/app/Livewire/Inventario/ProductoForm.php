@@ -305,11 +305,20 @@ class ProductoForm extends Component
 
     public function updatedFormCodigoBarra()
     {
+        // Limpiar errores previos completamente
+        $this->limpiarErrorCampo('codigo_barra');
+        $this->resetErrorBag('form.codigo_barra');
+        
         // Solo validar si hay contenido en el código de barras
         if (!empty($this->form['codigo_barra'])) {
             try {
                 // Crear reglas específicas para este campo
                 $codigoBarra = trim($this->form['codigo_barra']);
+                
+                // Si el código está vacío después del trim, no validar
+                if (empty($codigoBarra)) {
+                    return;
+                }
                 
                 // Verificar si ya existe el código en otro producto
                 $query = ProductoModel::where('codigo_barra', $codigoBarra);
@@ -323,16 +332,12 @@ class ProductoForm extends Component
                 
                 if ($existe) {
                     $this->mostrarErrorCampo('codigo_barra', 'Este código de barras ya está en uso por otro producto');
-                } else {
-                    $this->limpiarErrorCampo('codigo_barra');
                 }
                 
             } catch (\Exception $e) {
                 Log::error('Error en validación de código de barras', ['error' => $e->getMessage()]);
                 $this->mostrarErrorCampo('codigo_barra', 'Error al validar el código de barras');
             }
-        } else {
-            $this->limpiarErrorCampo('codigo_barra');
         }
     }
 
@@ -353,14 +358,18 @@ class ProductoForm extends Component
 
     private function limpiarErrorCampo($campo)
     {
-        // Remover de errores
+        // Remover de errores personalizados
         $this->camposConError = array_filter($this->camposConError, function($c) use ($campo) {
             return $c !== $campo;
         });
 
-        // Remover de errores
+        // Remover de errores de validación personalizados
         unset($this->erroresValidacion[$campo]);
 
+        // Limpiar errores de validación de Livewire
+        $this->resetErrorBag('form.' . $campo);
+
+        // Cerrar alerta si este era el campo con error
         if ($this->campoConError === $campo) {
             $this->cerrarAlerta();
         }
