@@ -15,12 +15,14 @@ class DashboardDinamico extends Component
     public $ventasRecientes = [];
     public $productosStockBajo = [];
     public $actividad = [];
+    public $estadoCaja = null;
 
     public function mount()
     {
         $this->cargarDatosUsuario();
         $this->cargarEstadisticas();
         $this->cargarDatosPorRol();
+        $this->cargarEstadoCaja();
     }
 
     public function cargarDatosUsuario()
@@ -177,6 +179,45 @@ class DashboardDinamico extends Component
                 ]
             ]);
         }
+    }
+
+    public function cargarEstadoCaja()
+    {
+        $usuario = Auth::user();
+        $rolNombre = $usuario->rol->txt_nombre ?? '';
+
+        // Solo cargar estado de caja si el usuario tiene permisos de caja
+        // Verificar si el rol tiene permisos relacionados con caja
+        $rolesCaja = ['Cajero', 'Facturador', 'Admin', 'Administrador'];
+        
+        if (in_array($rolNombre, $rolesCaja)) {
+            // Buscar la caja más reciente del usuario
+            $cajaActual = DB::table('caja')
+                ->where('users_id', $usuario->id)
+                ->orderBy('created_at', 'desc')
+                ->first();
+
+            if ($cajaActual) {
+                $this->estadoCaja = [
+                    'id' => $cajaActual->id,
+                    'estado' => $cajaActual->estado_caja,
+                    'estado_texto' => $this->obtenerTextoEstado($cajaActual->estado_caja),
+                    'balance' => $cajaActual->balance,
+                    'fecha_creacion' => $cajaActual->created_at,
+                    'fecha_actualizacion' => $cajaActual->updated_at
+                ];
+            }
+        }
+    }
+
+    private function obtenerTextoEstado($estado)
+    {
+        return match($estado) {
+            0 => 'Sin usar',
+            1 => 'Abierta',
+            2 => 'Cerrada',
+            default => 'Desconocido'
+        };
     }
 
     public function render()

@@ -12,6 +12,33 @@
                         Tienda: <span class="font-medium">{{ $datosUsuario['tienda'] }}</span> |
                         Último acceso: {{ $datosUsuario['ultimo_acceso'] }}
                     </p>
+                    
+                    <!-- Estado de la Caja -->
+                    @if($estadoCaja)
+                    <div class="mt-2 flex items-center space-x-4">
+                        <div class="flex items-center space-x-2">
+                            <i class="fas fa-cash-register text-blue-500"></i>
+                            <span class="text-sm text-gray-600">Estado de Caja:</span>
+                            @if($estadoCaja['estado'] == 1)
+                                <span class="px-2 py-1 text-xs font-medium text-green-800 bg-green-100 rounded-full">
+                                    ✅ {{ $estadoCaja['estado_texto'] }}
+                                </span>
+                            @elseif($estadoCaja['estado'] == 2)
+                                <span class="px-2 py-1 text-xs font-medium text-red-800 bg-red-100 rounded-full">
+                                    🔒 {{ $estadoCaja['estado_texto'] }}
+                                </span>
+                            @else
+                                <span class="px-2 py-1 text-xs font-medium text-yellow-800 bg-yellow-100 rounded-full">
+                                    ⚠️ {{ $estadoCaja['estado_texto'] }}
+                                </span>
+                            @endif
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <span class="text-sm text-gray-600">Balance:</span>
+                            <span class="text-sm font-semibold text-gray-800">L. {{ number_format($estadoCaja['balance'], 2) }}</span>
+                        </div>
+                    </div>
+                    @endif
                 </div>
                 <div class="text-right">
                     <div class="text-sm text-gray-500">{{ \Carbon\Carbon::now()->format('l, d \d\e F \d\e Y') }}</div>
