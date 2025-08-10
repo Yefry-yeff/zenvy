@@ -51,12 +51,33 @@ class SaldoInicial extends Component
 
     public function cargarCajaActual()
     {
-        // Buscar la caja del usuario actual que esté cerrada (estado_caja = 2)
+        $usuario = Auth::user();
+        
+        // Verificar que el usuario tenga tienda asignada
+        if (!$usuario || !$usuario->tienda_id) {
+            $this->cajaActual = null;
+            $this->mensaje = 'Usuario sin tienda asignada. No se puede cargar información de caja.';
+            $this->tipoMensaje = 'error';
+            return;
+        }
+
+        // Buscar la caja del usuario actual en su tienda actual que esté cerrada (estado_caja = 2)
         $this->cajaActual = DB::table('caja')
-            ->where('users_id', Auth::id())
-            ->where('estado_caja', 2) // Cajas cerradas
+            ->where('users_id', $usuario->id)
+            ->where('tienda_id', $usuario->tienda_id)
+            ->where('estado_caja', 2) // Cajas cerradas (listas para abrir)
             ->orderBy('created_at', 'desc')
             ->first();
+        
+        // Si no se encuentra caja, establecer mensaje informativo
+        if (!$this->cajaActual) {
+            $this->mensaje = 'No se encontró caja en estado cerrado (estado 2) para el usuario en la sucursal actual.';
+            $this->tipoMensaje = 'info';
+        } else {
+            // Limpiar mensaje si se encuentra caja
+            $this->mensaje = '';
+            $this->tipoMensaje = '';
+        }
     }
 
     public function establecerSaldoInicial()

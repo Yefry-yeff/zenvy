@@ -287,9 +287,17 @@ class DashboardDinamico extends Component
         $rolesCaja = ['Cajero', 'Facturador', 'Admin', 'Administrador'];
         
         if (in_array($rolNombre, $rolesCaja)) {
-            // Buscar la caja más reciente del usuario
+            // Obtener la tienda actual del usuario
+            $tiendaId = $usuario->tienda_id;
+            
+            // Fecha actual para filtrar por día en transcurso
+            $fechaHoy = date('Y-m-d');
+            
+            // Buscar la caja del usuario en la tienda actual y fecha actual
             $cajaActual = DB::table('caja')
                 ->where('users_id', $usuario->id)
+                ->where('tienda_id', $tiendaId)
+                ->whereDate('created_at', $fechaHoy)
                 ->orderBy('created_at', 'desc')
                 ->first();
 
@@ -300,7 +308,13 @@ class DashboardDinamico extends Component
                     'estado_texto' => $this->obtenerTextoEstado($cajaActual->estado_caja),
                     'balance' => $cajaActual->balance,
                     'fecha_creacion' => $cajaActual->created_at,
-                    'fecha_actualizacion' => $cajaActual->updated_at
+                    'fecha_actualizacion' => $cajaActual->updated_at,
+                    'tienda_id' => $cajaActual->tienda_id
+                ];
+            } else {
+                // Si no se encuentra caja, establecer mensaje apropiado
+                $this->estadoCaja = [
+                    'mensaje' => 'No se encontró caja para el usuario en esta tienda hoy'
                 ];
             }
         }

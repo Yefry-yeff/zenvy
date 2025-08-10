@@ -79,8 +79,15 @@ class CierreDeCaja extends Component
     {
         $usuario = Auth::user();
         
+        // Verificar que el usuario tenga tienda asignada
+        if (!$usuario || !$usuario->tienda_id) {
+            $this->cajaActual = null;
+            return;
+        }
+        
         $this->cajaActual = DB::table('caja')
             ->where('users_id', $usuario->id)
+            ->where('tienda_id', $usuario->tienda_id)
             ->where('estado_caja', 1) // 1 = abierta
             ->orderBy('created_at', 'desc')
             ->first();

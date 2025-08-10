@@ -184,6 +184,9 @@ public function seleccionarUsuario($usuarioId)
                     'updated_at' => now()
                 ]);
 
+            // Verificar si la nueva sucursal tiene jornada cerrada y crear caja cerrada si es necesario
+            $this->verificarYCrearCajaSiEsNecesario($this->usuarioSeleccionado->id, $this->nuevaSucursalId);
+
             DB::commit();
 
             Log::info('Cambio de sucursal exitoso', [
@@ -305,6 +308,97 @@ public function seleccionarUsuario($usuarioId)
         }
 
         return true;
+    }
+
+    /**
+     * Verifica si la sucursal tiene jornada cerrada y crea un registro de caja cerrada para el usuario
+     */
+    private function verificarYCrearCajaSiEsNecesario($userId, $tiendaId)
+    {
+        try {
+            // Verificar si la jornada está cerrada en la nueva sucursal
+            $jornadaCerrada = DB::table('jornada')
+                ->where('tienda_id', $tiendaId)
+                ->whereDate('fecha', today())
+                ->where(function ($query) {
+                    // Jornada cerrada: cierre = 1 o no hay jornada abierta (apertura = 0)
+                    $query->where('cierre', 1)
+                          ->orWhere('apertura', 0);
+                })
+                ->exists();
+
+            // También verificar si no existe jornada para hoy (consideramos que está cerrada)
+            $sinJornada = !DB::table('jornada')
+                ->where('tienda_id', $tiendaId)
+                ->whereDate('fecha', today())
+                ->exists();
+
+            // Verificar si el usuario ya tiene una caja en esta tienda para la fecha actual
+            $cajaExistente = DB::table('caja')
+                ->where('users_id', $userId)
+                ->where('tienda_id', $tiendaId)
+                ->where(function ($query) {
+                    // Verificar por fecha de apertura (si existe) o por fecha de creación del mismo día
+                    $query->whereDate('fecha_apertura', today())
+                          ->orWhere(function ($subQuery) {
+                              $subQuery->whereNull('fecha_apertura')
+                                       ->whereDate('created_at', today());
+                          });
+                })
+                ->exists();
+
+            if (!$cajaExistente) {
+                // Determinar el estado de la caja según el estado de la jornada
+                if ($jornadaCerrada || $sinJornada) {
+                    // Jornada cerrada: crear caja con estado 0 (cerrada)
+                    $estadoCaja = 0;
+                    $motivo = $sinJornada ? 'Sin jornada para hoy' : 'Jornada cerrada';
+                } else {
+                    // Jornada abierta: crear caja con estado 2 (cerrado - usuario debe abrirla manualmente)
+                    $estadoCaja = 2;
+                    $motivo = 'Jornada abierta - caja lista para apertura manual';
+                }
+
+                // Crear registro de caja
+                DB::table('caja')->insert([
+                    'tienda_id' => $tiendaId,
+                    'users_id' => $userId,
+                    'balance' => 0.00,
+                    'fecha_apertura' => null,
+                    'fecha_cierre' => null,
+                    'estado_caja' => $estadoCaja,
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ]);
+
+                Log::info('Caja creada automáticamente por cambio de sucursal', [
+                    'user_id' => $userId,
+                    'tienda_id' => $tiendaId,
+                    'estado_caja' => $estadoCaja,
+                    'motivo' => $motivo,
+                    'fecha_verificacion' => today()->toDateString(),
+                    'realizado_por' => Auth::id()
+                ]);
+            } else {
+                Log::info('Usuario ya tiene caja en la nueva sucursal para la fecha actual', [
+                    'user_id' => $userId,
+                    'tienda_id' => $tiendaId,
+                    'fecha_verificacion' => today()->toDateString()
+                ]);
+            }
+
+        } catch (\Exception $e) {
+            Log::error('Error al verificar y crear caja automáticamente', [
+                'user_id' => $userId,
+                'tienda_id' => $tiendaId,
+                'mensaje' => $e->getMessage(),
+                'archivo' => $e->getFile(),
+                'linea' => $e->getLine()
+            ]);
+            
+            // No lanzamos la excepción para no afectar el cambio de sucursal
+            // Solo registramos el error
+        }
     }
 
     public function render()

@@ -8,7 +8,7 @@
          @click.self="open = false"
          @keydown.escape.window="open = false"
          class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-        <div class="bg-white rounded-lg shadow-xl w-full max-w-md overflow-hidden"
+        <div class="w-full max-w-md overflow-hidden bg-white rounded-lg shadow-xl"
              x-data x-init="$watch('theme', t => localStorage.setItem('theme', t))">
             <!-- Header con tema -->
             <div class="flex items-center justify-between px-6 py-4 text-white"
@@ -22,7 +22,7 @@
                     <i class="fas fa-search me-2"></i>
                     Buscar Cliente
                 </h2>
-                <button @click="open = false" class="text-white hover:text-gray-200 transition-colors">
+                <button @click="open = false" class="text-white transition-colors hover:text-gray-200">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                     </svg>
@@ -36,7 +36,7 @@
                     <input type="text"
                         id="identidad"
                         x-model="identidad"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-200 mb-4"
+                        class="w-full px-3 py-2 mb-4 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-200"
                         maxlength="20"
                         placeholder="Ingrese número de identidad"
                         required
@@ -45,11 +45,11 @@
                     <div class="flex justify-end gap-3">
                         <button type="button"
                             @click="open = false"
-                            class="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors">
+                            class="px-4 py-2 text-gray-700 transition-colors bg-gray-200 rounded-lg hover:bg-gray-300">
                             Cancelar
                         </button>
                         <button type="submit"
-                            class="px-4 py-2 text-white rounded-lg transition-colors"
+                            class="px-4 py-2 text-white transition-colors rounded-lg"
                             :class="{
                                 'bg-emerald-600 hover:bg-emerald-700': theme === 'verde',
                                 'bg-blue-600 hover:bg-blue-700': theme === 'azul',
@@ -68,14 +68,14 @@
 
     <!-- Mensaje emergente si el cliente no existe -->
     @if(session('cliente_no_encontrado'))
-        <div class="fixed top-5 right-5 bg-red-500 text-white px-4 py-2 rounded shadow-lg z-50">
+        <div class="fixed z-50 px-4 py-2 text-white bg-red-500 rounded shadow-lg top-5 right-5">
             {{ session('cliente_no_encontrado') }}
         </div>
     @endif
 
     <!-- Alertas de descuentos -->
     @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show position-fixed" 
+        <div class="alert alert-success alert-dismissible fade show position-fixed"
              style="top: 20px; right: 20px; z-index: 1050; min-width: 300px;">
             <i class="fas fa-check-circle me-2"></i>{{ session('success') }}
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
@@ -83,7 +83,7 @@
     @endif
 
     @if(session('error'))
-        <div class="alert alert-danger alert-dismissible fade show position-fixed" 
+        <div class="alert alert-danger alert-dismissible fade show position-fixed"
              style="top: 20px; right: 20px; z-index: 1050; min-width: 300px;">
             <i class="fas fa-exclamation-circle me-2"></i>{{ session('error') }}
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
@@ -91,7 +91,7 @@
     @endif
 
     @if(session('warning'))
-        <div class="alert alert-warning alert-dismissible fade show position-fixed" 
+        <div class="alert alert-warning alert-dismissible fade show position-fixed"
              style="top: 20px; right: 20px; z-index: 1050; min-width: 300px;">
             <i class="fas fa-exclamation-triangle me-2"></i>{{ session('warning') }}
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
@@ -106,7 +106,7 @@
         <div class="bg-white rounded-lg shadow-xl w-full max-w-6xl max-h-[90vh] overflow-hidden"
              x-data x-init="$watch('theme', t => localStorage.setItem('theme', t))">
             <!-- Header con tema -->
-            <div class="flex justify-between items-center px-6 py-4 text-white"
+            <div class="flex items-center justify-between px-6 py-4 text-white"
                 :class="{
                     'bg-emerald-600': theme === 'verde',
                     'bg-blue-600': theme === 'azul',
@@ -117,7 +117,7 @@
                     <i class="fas fa-users me-2"></i>
                     Seleccionar Cliente
                 </h2>
-                <button wire:click="cerrarModalClientes" class="text-white hover:text-gray-200 transition-colors">
+                <button wire:click="cerrarModalClientes" class="text-white transition-colors hover:text-gray-200">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                     </svg>
@@ -128,12 +128,12 @@
                 <!-- Buscador -->
                 <div class="mb-4">
                     <div class="relative">
-                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <i class="fas fa-search text-gray-400"></i>
+                        <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                            <i class="text-gray-400 fas fa-search"></i>
                         </div>
                         <input type="text"
                             wire:model.live.debounce.300ms="busquedaCliente"
-                            class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-200"
+                            class="w-full py-3 pl-10 pr-4 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-200"
                             placeholder="Buscar cliente por nombre, identidad, RTN o correo...">
                     </div>
                 </div>
@@ -154,7 +154,7 @@
                         </thead>
                         <tbody>
                             @forelse($clientesModal as $cliente)
-                                <tr class="align-middle cursor-pointer hover:bg-blue-50 transition-colors"
+                                <tr class="align-middle transition-colors cursor-pointer hover:bg-blue-50"
                                     wire:click="seleccionarClienteModal({{ $cliente->id }})"
                                     title="Clic para seleccionar este cliente">
                                     <td>{{ $cliente->id }}</td>
@@ -224,26 +224,26 @@
     @if(isset($cliente))
         <!-- Información de bodega y alertas de stock -->
         @if($bodegaPrincipal)
-            <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+            <div class="p-3 mb-4 border border-blue-200 rounded-lg bg-blue-50">
                 <div class="flex items-center">
-                    <i class="fas fa-warehouse text-blue-600 mr-2"></i>
-                    <span class="text-blue-800 font-medium">
+                    <i class="mr-2 text-blue-600 fas fa-warehouse"></i>
+                    <span class="font-medium text-blue-800">
                         Bodega Principal: <strong>{{ $bodegaPrincipal->nombre }}</strong>
                     </span>
                 </div>
             </div>
         @else
-            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+            <div class="p-3 mb-4 border border-yellow-200 rounded-lg bg-yellow-50">
                 <div class="flex items-center">
-                    <i class="fas fa-exclamation-triangle text-yellow-600 mr-2"></i>
-                    <span class="text-yellow-800 font-medium">
+                    <i class="mr-2 text-yellow-600 fas fa-exclamation-triangle"></i>
+                    <span class="font-medium text-yellow-800">
                         No se encontró bodega principal para su tienda
                     </span>
                 </div>
             </div>
         @endif
 
-        <div class="bg-white rounded-lg shadow-lg mb-6 border border-gray-300" x-data x-init="$watch('theme', t => localStorage.setItem('theme', t))">>
+        <div class="mb-6 bg-white border border-gray-300 rounded-lg shadow-lg" x-data x-init="$watch('theme', t => localStorage.setItem('theme', t))">
             <!-- Header -->
             <div class="flex items-center justify-between px-5 py-3 font-semibold text-white rounded-t"
                 :class="{
@@ -261,18 +261,6 @@
 
             <!-- Content -->
             <div class="p-4">
-                <!-- Información de bodega y alertas de stock -->
-                @if($bodegaPrincipal)
-                    <div class="alert alert-info mb-3 p-3 rounded bg-blue-50 border border-blue-200">
-                        <i class="fas fa-warehouse text-blue-600"></i>
-                        <span class="text-blue-800">Bodega Principal: <strong>{{ $bodegaPrincipal->nombre }}</strong></span>
-                    </div>
-                @else
-                    <div class="alert alert-warning mb-3 p-3 rounded bg-yellow-50 border border-yellow-200">
-                        <i class="fas fa-exclamation-triangle text-yellow-600"></i>
-                        <span class="text-yellow-800">No se encontró bodega principal para su tienda</span>
-                    </div>
-                @endif
 
                 <!-- ALERTAS DEL CAI -->
                 @if($alertaCAI)
@@ -291,19 +279,19 @@
 
                 <div class="grid grid-cols-1 gap-4">
                     <!-- Primera fila: Identidad (bloqueado) y Nombre (bloqueado) -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
                         <div class="space-y-1">
                             <label class="block text-sm font-medium text-gray-700">
                                 Número de Identidad
                             </label>
                             <div class="relative">
                                 <input type="text"
-                                    class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded text-gray-700 cursor-not-allowed pr-10"
+                                    class="w-full px-3 py-2 pr-10 text-gray-700 border border-gray-200 rounded cursor-not-allowed bg-gray-50"
                                     value="{{ !empty($cliente->identidad) ? $cliente->identidad : 'No especificado' }}"
                                     readonly>
                                 <button type="button"
                                     wire:click="mostrarModalClientes"
-                                    class="absolute inset-y-0 right-0 flex items-center px-3 text-gray-400 hover:text-blue-600 transition-colors">
+                                    class="absolute inset-y-0 right-0 flex items-center px-3 text-gray-400 transition-colors hover:text-blue-600">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                                     </svg>
@@ -316,20 +304,20 @@
                                 Nombre Completo
                             </label>
                             <input type="text"
-                                class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded text-gray-700 cursor-not-allowed"
+                                class="w-full px-3 py-2 text-gray-700 border border-gray-200 rounded cursor-not-allowed bg-gray-50"
                                 value="{{ !empty($cliente->nombre) ? $cliente->nombre : 'No especificado' }}"
                                 readonly>
                         </div>
                     </div>
 
                     <!-- Segunda fila: Teléfono y Correo (bloqueados) -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
                         <div class="space-y-1">
                             <label class="block text-sm font-medium text-gray-700">
                                 Teléfono
                             </label>
                             <input type="text"
-                                class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded text-gray-700 cursor-not-allowed"
+                                class="w-full px-3 py-2 text-gray-700 border border-gray-200 rounded cursor-not-allowed bg-gray-50"
                                 value="{{ !empty($cliente->telefono) ? $cliente->telefono : 'No especificado' }}"
                                 readonly>
                         </div>
@@ -339,7 +327,7 @@
                                 Correo Electrónico
                             </label>
                             <input type="text"
-                                class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded text-gray-700 cursor-not-allowed"
+                                class="w-full px-3 py-2 text-gray-700 border border-gray-200 rounded cursor-not-allowed bg-gray-50"
                                 value="{{ !empty($cliente->correo) ? $cliente->correo : 'No especificado' }}"
                                 readonly>
                         </div>
@@ -351,7 +339,7 @@
                             Dirección Completa
                         </label>
                         <textarea
-                            class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded text-gray-700 cursor-not-allowed resize-none"
+                            class="w-full px-3 py-2 text-gray-700 border border-gray-200 rounded cursor-not-allowed resize-none bg-gray-50"
                             rows="2"
                             readonly>{{ !empty($cliente->direccion_completa) ? $cliente->direccion_completa : 'No especificado' }}</textarea>
                     </div>
@@ -359,7 +347,7 @@
             </div>
         </div>
         <!-- Formulario de facturación -->
-        <div class="bg-white rounded-lg shadow-lg border border-gray-300" x-data x-init="$watch('theme', t => localStorage.setItem('theme', t))">
+        <div class="bg-white border border-gray-300 rounded-lg shadow-lg" x-data x-init="$watch('theme', t => localStorage.setItem('theme', t))">
             <!-- Header con tema -->
             <div class="flex items-center justify-between px-5 py-3 font-semibold text-white rounded-t"
                 :class="{
@@ -385,12 +373,12 @@
                     <form wire:submit.prevent="agregarProductoPorCodigo">
                         <div class="flex flex-wrap gap-2 mb-4">
                             <div class="flex-1">
-                                <label for="codigo_barras" class="block text-sm font-medium text-gray-700 mb-1">Escanear código de barras</label>
+                                <label for="codigo_barras" class="block mb-1 text-sm font-medium text-gray-700">Escanear código de barras</label>
                                 <input type="text"
                                     id="codigo_barras"
                                     wire:model.defer="codigoBarras"
                                     wire:keydown.enter="agregarProductoPorCodigo"
-                                    class="form-control w-full"
+                                    class="w-full form-control"
                                     placeholder="Escanee el código de barras"
                                     autocomplete="off"
                                     @keydown.enter="$event.target.value = ''; $event.target.focus()"
@@ -398,11 +386,11 @@
                                     autofocus>
                             </div>
                             <div class="w-32">
-                                <label for="cantidad" class="block text-sm font-medium text-gray-700 mb-1">Cantidad</label>
+                                <label for="cantidad" class="block mb-1 text-sm font-medium text-gray-700">Cantidad</label>
                                 <input type="number"
                                     id="cantidad"
                                     wire:model.live="cantidad"
-                                    class="form-control w-full"
+                                    class="w-full form-control"
                                     min="1">
                             </div>
                         </div>
@@ -410,7 +398,7 @@
                 </div>
 
             <!-- Tabla de productos agregados -->
-            <div class="table-responsive mb-4">
+            <div class="mb-4 table-responsive">
                 <table class="table table-sm table-bordered">
                     <thead class="table-light">
                         <tr>
@@ -439,7 +427,7 @@
                                 {{ $item['nombre'] }}
                                 @if($descuentoAplicado > 0)
                                     <br><small class="text-success">
-                                        <i class="fas fa-percentage"></i> 
+                                        <i class="fas fa-percentage"></i>
                                         Descuento aplicado: L. {{ number_format($descuentoAplicado, 2) }}
                                     </small>
                                 @endif
@@ -456,7 +444,7 @@
                                     value="{{ $item['cantidad'] }}"
                                     min="1"
                                     max="{{ $stockDisponible }}"
-                                    class="form-control w-20 text-center"
+                                    class="w-20 text-center form-control"
                                     style="min-width: 60px;"
                                     title="Stock disponible: {{ $stockDisponible }}">
                             </td>
@@ -474,7 +462,7 @@
                             <td>L. {{ number_format($total, 2) }}</td>
                             <td class="text-center">
                                 <button wire:click="eliminarProducto({{ $loop->index }})"
-                                    class="btn btn-link p-0 hover:opacity-75 transition-opacity"
+                                    class="p-0 transition-opacity btn btn-link hover:opacity-75"
                                     title="Eliminar producto">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M6 7v12a2 2 0 002 2h8a2 2 0 002-2V7M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2m-7 0h10" style="color:#e3342f;" />
@@ -495,10 +483,10 @@
 
                 <!-- Botones de Descuento -->
                 @if(count($productosFactura) > 0)
-                <div class="d-flex justify-content-end mb-3">
+                <div class="mb-3 d-flex justify-content-end">
                     <!-- Botón 3ra Edad -->
-                    <button 
-                        wire:click="aplicarDescuentoTerceraEdad" 
+                    <button
+                        wire:click="aplicarDescuentoTerceraEdad"
                         class="btn me-2 {{ $descuentoTerceraEdad ? 'btn-danger' : 'btn-success' }} {{ $descuentoCuartaEdad ? 'opacity-50' : '' }}"
                         {{ $descuentoCuartaEdad ? 'disabled' : '' }}
                         style="{{ $descuentoCuartaEdad ? 'cursor: not-allowed;' : 'cursor: pointer;' }}"
@@ -506,10 +494,10 @@
                         <i class="fas fa-user-friends me-1"></i>
                         {{ $descuentoTerceraEdad ? 'Remover' : 'Aplicar' }} 3ra Edad
                     </button>
-                    
+
                     <!-- Botón 4ta Edad -->
-                    <button 
-                        wire:click="aplicarDescuentoCuartaEdad" 
+                    <button
+                        wire:click="aplicarDescuentoCuartaEdad"
                         class="btn {{ $descuentoCuartaEdad ? 'btn-danger' : 'btn-success' }} {{ $descuentoTerceraEdad ? 'opacity-50' : '' }}"
                         {{ $descuentoTerceraEdad ? 'disabled' : '' }}
                         style="{{ $descuentoTerceraEdad ? 'cursor: not-allowed;' : 'cursor: pointer;' }}"
@@ -528,7 +516,7 @@
                     totalDescuentos: @entangle('totalDescuentos'),
                     isvPorTasa: @entangle('isvPorTasa')
                 }">
-                    <div class="bg-gray-100 rounded-lg p-4 w-full max-w-xs">
+                    <div class="w-full max-w-xs p-4 bg-gray-100 rounded-lg">
                         <div class="flex justify-between mb-2">
                             <span class="font-semibold">Subtotal:</span>
                             <span x-text="'L. ' + parseFloat(subtotal).toFixed(2)">L. {{ number_format($subtotal, 2) }}</span>
@@ -547,7 +535,7 @@
                             @foreach($isvPorTasa as $tasa => $montoIsv)
                                 @if($tasa > 0)
                                     <div class="flex justify-between mb-1">
-                                        <span class="font-medium text-sm">ISV ({{ $tasa }}%):</span>
+                                        <span class="text-sm font-medium">ISV ({{ $tasa }}%):</span>
                                         <span class="text-sm">L. {{ number_format($montoIsv, 2) }}</span>
                                     </div>
                                 @endif
@@ -618,7 +606,7 @@
              }"
              x-init="$watch('theme', t => localStorage.setItem('theme', t))">
             <!-- Header compacto -->
-            <div class="flex justify-between items-center px-4 py-3 text-white"
+            <div class="flex items-center justify-between px-4 py-3 text-white"
                 :class="{
                     'bg-emerald-600': theme === 'verde',
                     'bg-blue-600': theme === 'azul',
@@ -629,7 +617,7 @@
                     <i class="fas fa-credit-card me-2"></i>
                     Métodos de Pago
                 </h2>
-                <button wire:click="cerrarModalPago" class="text-white hover:text-gray-200 transition-colors">
+                <button wire:click="cerrarModalPago" class="text-white transition-colors hover:text-gray-200">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                     </svg>
@@ -640,45 +628,45 @@
             <div class="overflow-y-auto max-h-[calc(90vh-120px)]">
                 <div class="p-4">
                     <!-- Total compacto -->
-                    <div class="mb-4 p-3 bg-gray-50 rounded-lg text-center">
+                    <div class="p-3 mb-4 text-center rounded-lg bg-gray-50">
                         <div class="text-sm text-gray-600">Total a Pagar</div>
                         <div class="text-xl font-bold text-gray-800" x-text="'L. ' + parseFloat(totalModal).toFixed(2)">L. {{ number_format($total, 2) }}</div>
                     </div>
 
                     <!-- Métodos de pago compactos -->
-                    <div class="space-y-3 mb-4">
+                    <div class="mb-4 space-y-3">
                         @forelse($tiposPago as $tipoPago)
                             <div class="flex items-center gap-3 p-3 border border-gray-200 rounded-lg {{ ($montosPorMetodo[$tipoPago->id] ?? 0) > 0 ? 'bg-blue-50 border-blue-300' : '' }}">
                                 <!-- Icono y nombre -->
-                                <div class="flex items-center min-w-0 flex-1">
+                                <div class="flex items-center flex-1 min-w-0">
                                     <div class="w-8 h-8 rounded-full flex items-center justify-center mr-2 flex-shrink-0
                                         @if($tipoPago->nombre == 'Efectivo') bg-green-100 text-green-600
                                         @elseif($tipoPago->nombre == 'Tarjeta') bg-blue-100 text-blue-600
                                         @elseif($tipoPago->nombre == 'Cheque') bg-purple-100 text-purple-600
                                         @else bg-gray-100 text-gray-600 @endif">
                                         @if($tipoPago->nombre == 'Efectivo')
-                                            <i class="fas fa-money-bill-wave text-sm"></i>
+                                            <i class="text-sm fas fa-money-bill-wave"></i>
                                         @elseif($tipoPago->nombre == 'Tarjeta')
-                                            <i class="fas fa-credit-card text-sm"></i>
+                                            <i class="text-sm fas fa-credit-card"></i>
                                         @elseif($tipoPago->nombre == 'Cheque')
-                                            <i class="fas fa-file-invoice-dollar text-sm"></i>
+                                            <i class="text-sm fas fa-file-invoice-dollar"></i>
                                         @else
-                                            <i class="fas fa-coins text-sm"></i>
+                                            <i class="text-sm fas fa-coins"></i>
                                         @endif
                                     </div>
-                                    <span class="font-medium text-gray-800 text-sm">{{ $tipoPago->nombre }}</span>
+                                    <span class="text-sm font-medium text-gray-800">{{ $tipoPago->nombre }}</span>
                                 </div>
 
                                 <!-- Input de monto -->
                                 <div class="flex-shrink-0 w-24">
                                     <div class="relative">
-                                        <span class="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-500 text-xs">L.</span>
+                                        <span class="absolute text-xs text-gray-500 transform -translate-y-1/2 left-2 top-1/2">L.</span>
                                         <input type="number"
                                             wire:model.live="montosPorMetodo.{{ $tipoPago->id }}"
                                             step="0.01"
                                             min="0"
                                             x-bind:max="totalModal"
-                                            class="w-full pl-6 pr-2 py-2 border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-200 text-sm text-center"
+                                            class="w-full py-2 pl-6 pr-2 text-sm text-center border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-200"
                                             placeholder="0.00">
                                     </div>
                                 </div>
@@ -686,22 +674,22 @@
                                 <!-- Indicador activo -->
                                 @if(($montosPorMetodo[$tipoPago->id] ?? 0) > 0)
                                     <div class="flex-shrink-0">
-                                        <i class="fas fa-check-circle text-green-500"></i>
+                                        <i class="text-green-500 fas fa-check-circle"></i>
                                     </div>
                                 @endif
                             </div>
                         @empty
-                            <div class="text-center text-gray-500 py-4">
-                                <i class="fas fa-exclamation-triangle mb-2"></i>
+                            <div class="py-4 text-center text-gray-500">
+                                <i class="mb-2 fas fa-exclamation-triangle"></i>
                                 <p class="text-sm">No hay métodos de pago configurados</p>
                             </div>
                         @endforelse
                     </div>
 
                     <!-- Resumen compacto con Alpine.js -->
-                    <div x-show="totalDistribuido > 0" class="mb-4 p-3 rounded-lg"
+                    <div x-show="totalDistribuido > 0" class="p-3 mb-4 rounded-lg"
                          x-bind:class="puedeProceesar ? 'bg-green-50 border border-green-200' : 'bg-orange-50 border border-orange-200'">
-                        <div class="flex justify-between items-center text-sm mb-1">
+                        <div class="flex items-center justify-between mb-1 text-sm">
                             <span class="font-medium" x-bind:class="puedeProceesar ? 'text-green-700' : 'text-orange-700'">
                                 Distribuido:
                             </span>
@@ -713,14 +701,14 @@
                         <template x-if="puedeProceesar">
                             <div>
                                 <template x-if="diferencia < 0">
-                                    <div class="text-xs text-green-600 flex items-center">
-                                        <i class="fas fa-info-circle mr-1"></i>
+                                    <div class="flex items-center text-xs text-green-600">
+                                        <i class="mr-1 fas fa-info-circle"></i>
                                         <span x-text="'Cambio: L. ' + Math.abs(diferencia).toFixed(2)"></span>
                                     </div>
                                 </template>
                                 <template x-if="diferencia >= 0">
-                                    <div class="text-xs text-green-600 flex items-center">
-                                        <i class="fas fa-check-circle mr-1"></i>
+                                    <div class="flex items-center text-xs text-green-600">
+                                        <i class="mr-1 fas fa-check-circle"></i>
                                         Listo para procesar
                                     </div>
                                 </template>
@@ -728,17 +716,17 @@
                         </template>
 
                         <template x-if="!puedeProceesar">
-                            <div class="text-xs text-orange-600 flex items-center">
-                                <i class="fas fa-exclamation-triangle mr-1"></i>
+                            <div class="flex items-center text-xs text-orange-600">
+                                <i class="mr-1 fas fa-exclamation-triangle"></i>
                                 <span x-text="'Falta: L. ' + diferencia.toFixed(2)"></span>
                             </div>
                         </template>
 
                         <!-- Métodos activos compactos con Alpine.js -->
                         <template x-if="metodosConMonto.length > 0">
-                            <div class="mt-2 flex flex-wrap gap-1">
+                            <div class="flex flex-wrap gap-1 mt-2">
                                 <template x-for="[tipoId, monto] in metodosConMonto" :key="tipoId">
-                                    <span class="inline-block px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-700"
+                                    <span class="inline-block px-2 py-1 text-xs font-medium text-blue-700 bg-blue-100 rounded"
                                           x-text="'Método ' + tipoId + ': L. ' + parseFloat(monto).toFixed(2)">
                                     </span>
                                 </template>
@@ -749,17 +737,17 @@
             </div>
 
             <!-- Botones fijos en la parte inferior -->
-            <div class="flex justify-between items-center gap-3 p-4 border-t border-gray-200 bg-gray-50">
+            <div class="flex items-center justify-between gap-3 p-4 border-t border-gray-200 bg-gray-50">
                 <button wire:click="cerrarModalPago"
-                    class="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors">
+                    class="px-4 py-2 text-gray-700 transition-colors bg-gray-200 rounded-lg hover:bg-gray-300">
                     Cancelar
                 </button>
 
                 <div class="flex gap-2">
                     @if(count($tiposPago) > 0)
                         <button wire:click="distribuirTotalEnEfectivo"
-                            class="px-3 py-2 text-green-700 bg-green-100 rounded-lg hover:bg-green-200 transition-colors text-sm">
-                            <i class="fas fa-money-bill-wave mr-1"></i>
+                            class="px-3 py-2 text-sm text-green-700 transition-colors bg-green-100 rounded-lg hover:bg-green-200">
+                            <i class="mr-1 fas fa-money-bill-wave"></i>
                             Efectivo
                         </button>
                     @endif
@@ -769,13 +757,13 @@
                         wire:loading.class="opacity-50"
                         x-bind:disabled="!puedeProceesar"
                         x-bind:class="puedeProceesar ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-400 cursor-not-allowed'"
-                        class="px-4 py-2 text-white rounded-lg transition-colors">
+                        class="px-4 py-2 text-white transition-colors rounded-lg">
                         <span wire:loading.remove>
-                            <i class="fas fa-check mr-1"></i>
+                            <i class="mr-1 fas fa-check"></i>
                             <span x-text="puedeProceesar ? 'Procesar' : 'Incompleto'"></span>
                         </span>
                         <span wire:loading>
-                            <i class="fas fa-spinner fa-spin mr-1"></i>
+                            <i class="mr-1 fas fa-spinner fa-spin"></i>
                             ...
                         </span>
                     </button>
@@ -790,16 +778,16 @@
     <div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
          @click.self="$wire.cerrarModalEfectivo()"
          @keydown.escape.window="$wire.cerrarModalEfectivo()">
-        <div class="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden"
+        <div class="w-full max-w-lg overflow-hidden bg-white shadow-xl rounded-xl"
              x-data="{ efectivoRecibido: @entangle('efectivoRecibido') }"
              x-init="$watch('theme', t => localStorage.setItem('theme', t))">
             <!-- Header con tema -->
-            <div class="flex justify-between items-center px-6 py-4 text-white bg-green-600">
+            <div class="flex items-center justify-between px-6 py-4 text-white bg-green-600">
                 <h2 class="text-xl font-semibold">
                     <i class="fas fa-money-bill-wave me-2"></i>
                     Pago en Efectivo
                 </h2>
-                <button wire:click="cerrarModalEfectivo" class="text-white hover:text-gray-200 transition-colors">
+                <button wire:click="cerrarModalEfectivo" class="text-white transition-colors hover:text-gray-200">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                     </svg>
@@ -810,9 +798,9 @@
                 <!-- Información del pago -->
                 <div class="mb-6">
                     @if(count($metodosActivosParaPago) > 1)
-                        <div class="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                            <h3 class="font-semibold text-blue-800 mb-2">
-                                <i class="fas fa-info-circle mr-2"></i>
+                        <div class="p-4 mb-4 border border-blue-200 rounded-lg bg-blue-50">
+                            <h3 class="mb-2 font-semibold text-blue-800">
+                                <i class="mr-2 fas fa-info-circle"></i>
                                 Pago Mixto Detectado
                             </h3>
                             <p class="text-sm text-blue-700">
@@ -822,11 +810,11 @@
                     @endif
 
                     <!-- Monto que debe recibir en efectivo -->
-                    <div class="text-center p-6 bg-green-50 rounded-xl border-2 border-green-200 mb-6">
-                        <div class="text-sm font-medium text-green-700 mb-1">Monto a recibir en efectivo</div>
+                    <div class="p-6 mb-6 text-center border-2 border-green-200 bg-green-50 rounded-xl">
+                        <div class="mb-1 text-sm font-medium text-green-700">Monto a recibir en efectivo</div>
                         <div class="text-3xl font-bold text-green-800">L. {{ number_format($montoEfectivo ?? 0, 2) }}</div>
                         @if(count($metodosActivosParaPago) > 1)
-                            <div class="text-sm text-green-600 mt-2">
+                            <div class="mt-2 text-sm text-green-600">
                                 Restante para otros métodos: L. {{ number_format($total - ($montoEfectivo ?? 0), 2) }}
                             </div>
                         @endif
@@ -835,21 +823,21 @@
 
                 <!-- Input de efectivo recibido del cliente -->
                 <div class="mb-6">
-                    <label for="efectivo_recibido" class="block text-lg font-semibold text-gray-800 mb-3">
+                    <label for="efectivo_recibido" class="block mb-3 text-lg font-semibold text-gray-800">
                         💵 ¿Cuánto efectivo entregó el cliente?
                     </label>
                     <div class="relative">
-                        <span class="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 font-bold text-xl">L.</span>
+                        <span class="absolute text-xl font-bold text-gray-500 transform -translate-y-1/2 left-4 top-1/2">L.</span>
                         <input type="number"
                             id="efectivo_recibido"
                             wire:model.live="efectivoRecibido"
                             step="0.01"
                             min="0"
-                            class="w-full pl-12 pr-6 py-4 border-2 border-gray-300 rounded-xl focus:border-green-500 focus:ring-2 focus:ring-green-200 text-2xl font-bold text-center transition-all"
+                            class="w-full py-4 pl-12 pr-6 text-2xl font-bold text-center transition-all border-2 border-gray-300 rounded-xl focus:border-green-500 focus:ring-2 focus:ring-green-200"
                             placeholder="0.00"
                             autofocus>
                     </div>
-                    <div class="text-sm text-gray-600 mt-2 text-center">
+                    <div class="mt-2 text-sm text-center text-gray-600">
                         Ejemplo: Si el cliente le entrega un billete de L. 100, escriba 100.00
                     </div>
                 </div>
@@ -868,12 +856,12 @@
                         </h3>
 
                         <div class="space-y-3">
-                            <div class="flex justify-between items-center">
+                            <div class="flex items-center justify-between">
                                 <span class="font-medium text-gray-700">Monto a cobrar:</span>
                                 <span class="font-bold text-gray-800">L. {{ number_format($montoAPagar, 2) }}</span>
                             </div>
 
-                            <div class="flex justify-between items-center">
+                            <div class="flex items-center justify-between">
                                 <span class="font-medium text-gray-700">Efectivo recibido:</span>
                                 <span class="font-bold text-blue-600">L. {{ number_format($efectivoRecibido, 2) }}</span>
                             </div>
@@ -882,25 +870,25 @@
 
                             @if($esSuficiente)
                                 @if($cambio > 0)
-                                    <div class="flex justify-between items-center">
+                                    <div class="flex items-center justify-between">
                                         <span class="font-bold text-green-700">💰 Cambio a entregar:</span>
-                                        <span class="font-bold text-2xl text-green-600">L. {{ number_format($cambio, 2) }}</span>
+                                        <span class="text-2xl font-bold text-green-600">L. {{ number_format($cambio, 2) }}</span>
                                     </div>
-                                    <div class="text-sm text-green-600 text-center mt-2">
+                                    <div class="mt-2 text-sm text-center text-green-600">
                                         ✅ Devuelva L. {{ number_format($cambio, 2) }} al cliente
                                     </div>
                                 @else
                                     <div class="text-center">
-                                        <span class="font-bold text-green-700 text-lg">✅ Pago exacto</span>
-                                        <div class="text-sm text-green-600 mt-1">No hay cambio que entregar</div>
+                                        <span class="text-lg font-bold text-green-700">✅ Pago exacto</span>
+                                        <div class="mt-1 text-sm text-green-600">No hay cambio que entregar</div>
                                     </div>
                                 @endif
                             @else
-                                <div class="flex justify-between items-center">
+                                <div class="flex items-center justify-between">
                                     <span class="font-bold text-red-700">❌ Falta por pagar:</span>
-                                    <span class="font-bold text-2xl text-red-600">L. {{ number_format(abs($cambio), 2) }}</span>
+                                    <span class="text-2xl font-bold text-red-600">L. {{ number_format(abs($cambio), 2) }}</span>
                                 </div>
-                                <div class="text-sm text-red-600 text-center mt-2">
+                                <div class="mt-2 text-sm text-center text-red-600">
                                     El efectivo recibido es insuficiente
                                 </div>
                             @endif
@@ -911,14 +899,14 @@
                 <!-- Botones de acción -->
                 <div class="flex justify-end gap-4">
                     <button wire:click="cerrarModalEfectivo"
-                        class="px-6 py-3 text-gray-700 bg-gray-200 rounded-xl hover:bg-gray-300 transition-colors font-medium">
-                        <i class="fas fa-times mr-2"></i>
+                        class="px-6 py-3 font-medium text-gray-700 transition-colors bg-gray-200 rounded-xl hover:bg-gray-300">
+                        <i class="mr-2 fas fa-times"></i>
                         Cancelar
                     </button>
                     <button wire:click="confirmarEfectivo"
                         class="px-8 py-3 text-white rounded-xl transition-colors font-medium text-lg {{ ($efectivoRecibido > 0 && $efectivoRecibido >= ($montoEfectivo ?? 0)) ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-400 cursor-not-allowed' }}"
                         @if($efectivoRecibido <= 0 || $efectivoRecibido < ($montoEfectivo ?? 0)) disabled @endif>
-                        <i class="fas fa-check mr-2"></i>
+                        <i class="mr-2 fas fa-check"></i>
                         @if(count($metodosActivosParaPago) > 1)
                             Continuar con otros pagos
                         @else
@@ -936,10 +924,10 @@
     <div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
          @click.self="$wire.cerrarModalTarjeta()"
          @keydown.escape.window="$wire.cerrarModalTarjeta()">
-        <div class="bg-white rounded-lg shadow-xl w-full max-w-md overflow-hidden"
+        <div class="w-full max-w-md overflow-hidden bg-white rounded-lg shadow-xl"
              x-data x-init="$watch('theme', t => localStorage.setItem('theme', t))">
             <!-- Header con tema -->
-            <div class="flex justify-between items-center px-6 py-4 text-white"
+            <div class="flex items-center justify-between px-6 py-4 text-white"
                 :class="{
                     'bg-emerald-600': theme === 'verde',
                     'bg-blue-600': theme === 'azul',
@@ -954,7 +942,7 @@
 
             <div class="p-6">
                 <!-- Monto a procesar -->
-                <div class="mb-6 p-4 bg-blue-50 rounded-lg text-center">
+                <div class="p-4 mb-6 text-center rounded-lg bg-blue-50">
                     <span class="text-sm font-medium text-gray-700">Monto a procesar:</span>
                     <div class="text-2xl font-bold text-blue-600">L. {{ number_format($montoTarjeta ?? $total, 2) }}</div>
                 </div>
@@ -962,9 +950,9 @@
                 <!-- Mensaje de confirmación -->
                 <div class="mb-6 text-center">
                     <div class="mb-4">
-                        <i class="fas fa-credit-card fa-3x text-blue-500 mb-3"></i>
+                        <i class="mb-3 text-blue-500 fas fa-credit-card fa-3x"></i>
                         <p class="text-lg font-medium text-gray-800">¿Se procesó correctamente el pago?</p>
-                        <p class="text-sm text-gray-600 mt-2">
+                        <p class="mt-2 text-sm text-gray-600">
                             Confirme que la transacción fue exitosa
                             @if(in_array(2, $metodosPagoSeleccionados ?? []))
                                 en el terminal de pago
@@ -978,12 +966,12 @@
                 <!-- Botones de confirmación -->
                 <div class="flex justify-center gap-4">
                     <button wire:click="confirmarPagoTarjeta(false)"
-                        class="px-6 py-3 text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors">
+                        class="px-6 py-3 text-white transition-colors bg-red-600 rounded-lg hover:bg-red-700">
                         <i class="fas fa-times me-2"></i>
                         No, falló el pago
                     </button>
                     <button wire:click="confirmarPagoTarjeta(true)"
-                        class="px-6 py-3 text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors">
+                        class="px-6 py-3 text-white transition-colors bg-green-600 rounded-lg hover:bg-green-700">
                         <i class="fas fa-check me-2"></i>
                         Sí, pago exitoso
                     </button>
@@ -998,10 +986,10 @@
     <div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
          @click.self="$wire.cerrarModalDescuentoAdulto()"
          @keydown.escape.window="$wire.cerrarModalDescuentoAdulto()">
-        <div class="bg-white rounded-lg shadow-xl w-full max-w-md overflow-hidden"
+        <div class="w-full max-w-md overflow-hidden bg-white rounded-lg shadow-xl"
              x-data x-init="$watch('theme', t => localStorage.setItem('theme', t))">
             <!-- Header con tema -->
-            <div class="flex justify-between items-center px-6 py-4 text-white"
+            <div class="flex items-center justify-between px-6 py-4 text-white"
                 :class="{
                     'bg-emerald-600': theme === 'verde',
                     'bg-blue-600': theme === 'azul',
@@ -1012,7 +1000,7 @@
                     <i class="fas fa-user-friends me-2"></i>
                     Datos del {{ $tipoDescuentoActual === 'tercera' ? 'Adulto Mayor (3ra Edad)' : 'Adulto Mayor (4ta Edad)' }}
                 </h2>
-                <button wire:click="cerrarModalDescuentoAdulto" class="text-white hover:text-gray-200 transition-colors">
+                <button wire:click="cerrarModalDescuentoAdulto" class="text-white transition-colors hover:text-gray-200">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                     </svg>
@@ -1038,7 +1026,7 @@
                     <div class="space-y-4">
                         <!-- DNI/Identidad -->
                         <div>
-                            <label for="dni_adulto" class="block text-sm font-medium text-gray-700 mb-1">
+                            <label for="dni_adulto" class="block mb-1 text-sm font-medium text-gray-700">
                                 Número de Identidad <span class="text-red-500">*</span>
                             </label>
                             <input type="text"
@@ -1052,7 +1040,7 @@
 
                         <!-- Nombre completo -->
                         <div>
-                            <label for="nombre_adulto" class="block text-sm font-medium text-gray-700 mb-1">
+                            <label for="nombre_adulto" class="block mb-1 text-sm font-medium text-gray-700">
                                 Nombre Completo <span class="text-red-500">*</span>
                             </label>
                             <input type="text"
@@ -1066,7 +1054,7 @@
 
                         <!-- Edad -->
                         <div>
-                            <label for="edad_adulto" class="block text-sm font-medium text-gray-700 mb-1">
+                            <label for="edad_adulto" class="block mb-1 text-sm font-medium text-gray-700">
                                 Edad <span class="text-red-500">*</span>
                             </label>
                             <input type="number"
@@ -1080,9 +1068,9 @@
                         </div>
 
                         <!-- Información adicional -->
-                        <div class="text-xs text-gray-600 bg-gray-50 p-3 rounded">
-                            <i class="fas fa-info-circle mr-1"></i>
-                            <strong>Importante:</strong> Estos datos se guardarán temporalmente y se registrarán al confirmar la venta. 
+                        <div class="p-3 text-xs text-gray-600 rounded bg-gray-50">
+                            <i class="mr-1 fas fa-info-circle"></i>
+                            <strong>Importante:</strong> Estos datos se guardarán temporalmente y se registrarán al confirmar la venta.
                             Si remueve el descuento, deberá ingresar los datos nuevamente.
                         </div>
                     </div>
@@ -1091,18 +1079,18 @@
                     <div class="flex justify-end gap-3 mt-6">
                         <button type="button"
                             wire:click="cerrarModalDescuentoAdulto"
-                            class="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors">
+                            class="px-4 py-2 text-gray-700 transition-colors bg-gray-200 rounded-lg hover:bg-gray-300">
                             Cancelar
                         </button>
                         <button type="submit"
-                            class="px-6 py-2 text-white rounded-lg transition-colors"
+                            class="px-6 py-2 text-white transition-colors rounded-lg"
                             :class="{
                                 'bg-emerald-600 hover:bg-emerald-700': theme === 'verde',
                                 'bg-blue-600 hover:bg-blue-700': theme === 'azul',
                                 'bg-gray-900 hover:bg-gray-800': theme === 'oscuro',
                                 'bg-slate-700 hover:bg-slate-800': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
                             }">
-                            <i class="fas fa-check mr-1"></i>
+                            <i class="mr-1 fas fa-check"></i>
                             Aplicar Descuento
                         </button>
                     </div>
@@ -1120,7 +1108,7 @@
          @click.self="open = false"
          @keydown.escape.window="open = false"
          class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-        <div class="bg-white rounded-lg shadow-xl w-full max-w-md overflow-hidden"
+        <div class="w-full max-w-md overflow-hidden bg-white rounded-lg shadow-xl"
              x-data x-init="$watch('theme', t => localStorage.setItem('theme', t))">
             <!-- Header con tema -->
             <div class="flex items-center justify-between px-6 py-4 text-white"
@@ -1139,13 +1127,13 @@
             <!-- Body -->
             <div class="p-6 text-center">
                 <div class="mb-4">
-                    <i class="fas fa-box-open text-red-500 text-4xl mb-3"></i>
-                    <p class="text-gray-700 text-lg">No hay más producto asignado en stock.</p>
-                    <p class="text-gray-500 text-sm mt-2">El producto que intentas agregar no tiene stock disponible en la bodega principal.</p>
+                    <i class="mb-3 text-4xl text-red-500 fas fa-box-open"></i>
+                    <p class="text-lg text-gray-700">No hay más producto asignado en stock.</p>
+                    <p class="mt-2 text-sm text-gray-500">El producto que intentas agregar no tiene stock disponible en la bodega principal.</p>
                 </div>
 
                 <button @click="open = false; $wire.dispatch('enfocar-codigo-barras')"
-                    class="w-full px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium">
+                    class="w-full px-4 py-2 font-medium text-white transition-colors bg-red-600 rounded-lg hover:bg-red-700">
                     <i class="fas fa-check me-2"></i>
                     Aceptar
                 </button>

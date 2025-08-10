@@ -608,6 +608,11 @@ class Ventas extends Component
             return;
         }
 
+        // Validar jornada y caja antes de permitir procesar pago
+        if (!$this->validarJornadaYCaja()) {
+            return;
+        }
+
         // Asegurar que los totales estén actualizados
         $this->calcularTotales();
 
@@ -618,6 +623,41 @@ class Ventas extends Component
         }
 
         $this->mostrarModalPagoFlag = true;
+    }
+
+    /**
+     * Validar que la jornada esté abierta y la caja esté abierta
+     */
+    private function validarJornadaYCaja()
+    {
+        $user = Auth::user();
+        $tiendaId = $user->tienda_id;
+
+        // 1. Verificar jornada (apertura = 1 y cierre = 0)
+        $jornadaAbierta = DB::table('jornada')
+            ->where('tienda_id', $tiendaId)
+            ->where('apertura', 1)
+            ->where('cierre', 0)
+            ->whereDate('fecha', now()->toDateString())
+            ->exists();
+
+        if (!$jornadaAbierta) {
+            session()->flash('error', '❌ No se puede procesar la venta: La jornada debe estar abierta para realizar ventas.');
+            return false;
+        }
+
+        // 2. Verificar caja del usuario
+        $cajaAbierta = DB::table('caja')
+            ->where('users_id', $user->id)
+            ->where('estado_caja', 1) // 1 = abierta
+            ->exists();
+
+        if (!$cajaAbierta) {
+            session()->flash('error', '❌ No se puede procesar la venta: Su caja debe estar abierta para realizar ventas.');
+            return false;
+        }
+
+        return true;
     }
 
     public function cerrarModalPago()
@@ -771,6 +811,9 @@ class Ventas extends Component
 
             // Guardar métodos de pago usando la distribución
             $this->guardarMetodosPagoDistribucion($factura->id);
+
+            // Registrar transacciones por método de pago
+            $this->registrarTransaccionesPorMetodoPago($factura->id, $factura->numero_factura);
 
             // Guardar datos del descuento de adulto mayor si aplica
             $this->guardarDescuentoAdultoMayor($factura->id);
@@ -947,6 +990,148 @@ class Ventas extends Component
             'metodos_guardados' => $metodosGuardados,
             'total_metodos_procesados' => count($metodosParaGuardar)
         ]);
+    }
+
+    /**
+     * Registrar transacciones por método de pago y actualizar balance de caja si hay efectivo
+     */
+    private function registrarTransaccionesPorMetodoPago($facturaId, $numeroFactura)
+    {
+        Log::info("DEBUG registrarTransaccionesPorMetodoPago INICIO", [
+            'factura_id' => $facturaId,
+            'numero_factura' => $numeroFactura
+        ]);
+
+        $user = Auth::user();
+        
+        // Obtener el ID de la caja del usuario
+        $caja = DB::table('caja')
+            ->where('users_id', $user->id)
+            ->where('estado_caja', 1)
+            ->first();
+            
+        if (!$caja) {
+            Log::error("No se encontró caja abierta para el usuario: " . $user->id);
+            return;
+        }
+        
+        $cajaId = $caja->id;
+        
+        $metodosParaRegistrar = [];
+
+        // Obtener métodos activos con monto > 0
+        if (!empty($this->metodosActivosParaPago)) {
+            foreach ($this->metodosActivosParaPago as $metodo) {
+                if ($metodo['monto'] > 0) {
+                    $metodosParaRegistrar[] = $metodo;
+                }
+            }
+        } elseif (!empty($this->montosPorMetodo)) {
+            foreach ($this->montosPorMetodo as $tipoId => $monto) {
+                $tipoPago = collect($this->tiposPago)->firstWhere('id', $tipoId);
+                if ($tipoPago && $monto > 0) {
+                    $metodosParaRegistrar[] = [
+                        'id' => $tipoId,
+                        'nombre' => $tipoPago['nombre'],
+                        'monto' => $monto
+                    ];
+                }
+            }
+        }
+
+        // Registrar transacciones para cada método de pago
+        foreach ($metodosParaRegistrar as $metodo) {
+            $tipoPago = TipoPago::find($metodo['id']);
+            if (!$tipoPago) continue;
+
+            // Determinar el monto a registrar por método específico
+            $montoTransaccion = 0;
+            $tipoMovimiento = 'entrada';
+
+            switch (strtolower($tipoPago->nombre)) {
+                case 'efectivo':
+                    $montoTransaccion = $metodo['monto'];
+                    // Actualizar balance de caja si hay efectivo
+                    $this->actualizarBalanceCaja($montoTransaccion, $cajaId);
+                    break;
+                case 'tarjeta':
+                    $montoTransaccion = $metodo['monto'];
+                    break;
+                case 'cheque':
+                    $montoTransaccion = $metodo['monto'];
+                    break;
+                default:
+                    $montoTransaccion = $metodo['monto'];
+                    break;
+            }
+
+            // Registrar transacción solo si hay monto
+            if ($montoTransaccion > 0) {
+                DB::table('transaccion')->insert([
+                    'caja_id' => $cajaId,
+                    'efectivo' => strtolower($tipoPago->nombre) === 'efectivo' ? $montoTransaccion : 0,
+                    'tarjeta' => strtolower($tipoPago->nombre) === 'tarjeta' ? $montoTransaccion : 0,
+                    'cheque' => strtolower($tipoPago->nombre) === 'cheque' ? $montoTransaccion : 0,
+                    'transaccion' => 'Facturacion',
+                    'descripcion' => "Factura #$numeroFactura",
+                    'created_at' => now(),
+                    'update_at' => now()
+                ]);
+
+                Log::info("DEBUG Transacción registrada", [
+                    'tipo_pago' => $tipoPago->nombre,
+                    'monto' => $montoTransaccion,
+                    'numero_factura' => $numeroFactura
+                ]);
+            }
+        }
+
+        Log::info("DEBUG registrarTransaccionesPorMetodoPago FINALIZADO");
+    }
+
+    /**
+     * Actualizar balance de caja cuando hay pago en efectivo
+     */
+    private function actualizarBalanceCaja($montoEfectivo, $cajaId = null)
+    {
+        $user = Auth::user();
+
+        // Si se proporciona cajaId, usar ese, sino buscar la caja abierta del usuario
+        if ($cajaId) {
+            $caja = DB::table('caja')
+                ->where('id', $cajaId)
+                ->where('users_id', $user->id)
+                ->where('estado_caja', 1)
+                ->first();
+        } else {
+            $caja = DB::table('caja')
+                ->where('users_id', $user->id)
+                ->where('estado_caja', 1) // 1 = abierta
+                ->first();
+        }
+
+        if ($caja) {
+            // Incrementar el balance con el efectivo recibido
+            $nuevoBalance = $caja->balance + $montoEfectivo;
+
+            DB::table('caja')
+                ->where('id', $caja->id)
+                ->update([
+                    'balance' => $nuevoBalance,
+                    'updated_at' => now()
+                ]);
+
+            Log::info("DEBUG Balance de caja actualizado", [
+                'caja_id' => $caja->id,
+                'balance_anterior' => $caja->balance,
+                'monto_agregado' => $montoEfectivo,
+                'balance_nuevo' => $nuevoBalance
+            ]);
+        } else {
+            Log::warning("No se encontró caja abierta para actualizar balance", [
+                'user_id' => $user->id
+            ]);
+        }
     }
 
     private function guardarProductoConDistribucionSecciones($facturaId, $producto, $indice)
