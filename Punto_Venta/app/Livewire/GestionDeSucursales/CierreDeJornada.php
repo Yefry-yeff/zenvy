@@ -85,7 +85,7 @@ class CierreDeJornada extends Component
                 ->where('c.estado_caja', 1)
                 ->where('u.tienda_id', $this->tiendaUsuario)
                 ->whereDate('c.created_at', $this->fechaCierre)
-                ->select('c.*')
+                ->select('c.*', 'u.name as nombre_usuario')
                 ->get()
                 ->toArray();
 
@@ -96,7 +96,13 @@ class CierreDeJornada extends Component
                 ->where('cc.diferencia_efectivo', '!=', 0)
                 ->where('u.tienda_id', $this->tiendaUsuario)
                 ->whereDate('cc.created_at', $this->fechaCierre)
-                ->select('c.id', 'c.users_id', 'cc.diferencia_efectivo', 'cc.created_at')
+                ->select(
+                    'c.id', 
+                    'c.users_id', 
+                    'u.name as nombre_usuario',
+                    'cc.diferencia_efectivo', 
+                    'cc.created_at'
+                )
                 ->get()
                 ->toArray();
 

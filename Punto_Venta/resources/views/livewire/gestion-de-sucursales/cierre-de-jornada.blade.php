@@ -53,8 +53,17 @@
                                 </h4>
                                 <div class="bg-red-50 border border-red-200 rounded p-3">
                                     @foreach($cajasAbiertas as $caja)
-                                        <div class="flex justify-between items-center py-1">
-                                            <span>Caja #{{ $caja->id }} - Usuario: {{ $caja->users_id }}</span>
+                                        <div class="flex justify-between items-center py-2 border-b border-red-200 last:border-b-0">
+                                            <div>
+                                                <div class="font-medium text-gray-800">
+                                                    <i class="fas fa-cash-register text-red-500 mr-1"></i>
+                                                    Caja #{{ $caja->id }}
+                                                </div>
+                                                <div class="text-sm text-gray-600">
+                                                    <i class="fas fa-user text-blue-500 mr-1"></i>
+                                                    Usuario: {{ $caja->nombre_usuario ?? 'Usuario ID: ' . $caja->users_id }}
+                                                </div>
+                                            </div>
                                             <span class="font-semibold text-red-600">L. {{ number_format($caja->balance, 2) }}</span>
                                         </div>
                                     @endforeach
@@ -75,17 +84,37 @@
                                 </h4>
                                 <div class="bg-orange-50 border border-orange-200 rounded p-3">
                                     @foreach($cajasConDiferencia as $caja)
-                                        <div class="flex justify-between items-center py-1">
-                                            <span>Caja #{{ $caja->id }} - Usuario: {{ $caja->users_id }}</span>
-                                            <span class="font-semibold {{ $caja->diferencia_efectivo > 0 ? 'text-green-600' : 'text-red-600' }}">
-                                                L. {{ number_format($caja->diferencia_efectivo, 2) }}
-                                            </span>
+                                        <div class="border-b border-orange-200 last:border-b-0 py-2 last:pb-0">
+                                            <div class="flex justify-between items-start">
+                                                <div class="flex-1">
+                                                    <div class="font-medium text-gray-800">
+                                                        <i class="fas fa-cash-register text-orange-500 mr-1"></i>
+                                                        Caja #{{ $caja->id }}
+                                                    </div>
+                                                    <div class="text-sm text-gray-600 mt-1">
+                                                        <i class="fas fa-user text-blue-500 mr-1"></i>
+                                                        <strong>Usuario:</strong> {{ $caja->nombre_usuario ?? 'Usuario ID: ' . $caja->users_id }}
+                                                    </div>
+                                                    <div class="text-sm text-gray-600">
+                                                        <i class="fas fa-calendar-alt text-green-500 mr-1"></i>
+                                                        <strong>Fecha del cierre:</strong> {{ \Carbon\Carbon::parse($caja->created_at)->format('d/m/Y H:i:s') }}
+                                                    </div>
+                                                </div>
+                                                <div class="text-right">
+                                                    <span class="font-bold text-lg {{ $caja->diferencia_efectivo > 0 ? 'text-green-600' : 'text-red-600' }}">
+                                                        {{ $caja->diferencia_efectivo > 0 ? '+' : '' }}L. {{ number_format($caja->diferencia_efectivo, 2) }}
+                                                    </span>
+                                                    <div class="text-xs text-gray-500">
+                                                        {{ $caja->diferencia_efectivo > 0 ? 'Sobrante' : 'Faltante' }}
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
                                     @endforeach
                                 </div>
                                 <p class="text-sm text-orange-600 mt-2">
                                     <i class="fas fa-info-circle mr-1"></i>
-                                    Estas cajas tuvieron diferencias en sus cierres del día.
+                                    Estas cajas tuvieron diferencias en sus cierres del día. Se muestra el usuario responsable y la fecha del cierre.
                                 </p>
                             </div>
                         @endif
