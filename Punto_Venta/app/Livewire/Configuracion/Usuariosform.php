@@ -14,6 +14,7 @@ class Usuariosform extends Component
     public $formOriginal = [];
     public $mostrarSinCambios = false;
     public $roles = [];
+    public $tiendas = [];
     public $usuarioId;
     public $mostrarMensaje = false;
     public $empresas = [];
@@ -32,6 +33,7 @@ class Usuariosform extends Component
         'estado_id' => 1,
         'email' => '',
         'rol_id' => '',
+        'tienda_id' => '',
         'password' => '',
         'txt_identificacion' => '',
     ];
@@ -60,6 +62,7 @@ class Usuariosform extends Component
     {
         $rules = [
             'form.rol_id' => 'required',
+            'form.tienda_id' => 'required|exists:tienda,id',
             'form.estado_id' => 'required',
             'form.primer_nombre' => 'required|string|max:100',
             'form.primer_apellido' => 'required|string|max:100',
@@ -83,6 +86,11 @@ class Usuariosform extends Component
     public function mount($id = null)
     {
         $this->roles = DB::table('roles')->select('id', 'txt_nombre')->get();
+        $this->tiendas = DB::table('tienda')
+            ->where('estado_id', 1) // Solo tiendas activas
+            ->select('id', 'denominacion_social')
+            ->orderBy('denominacion_social')
+            ->get();
 
         if (session()->has('usuario_editar_id')) {
             $this->usuarioId = session('usuario_editar_id');
@@ -110,6 +118,7 @@ class Usuariosform extends Component
             'estado_id' => $usuario->estado_id,
             'email' => $usuario->email,
             'rol_id' => $usuario->roles_id,
+            'tienda_id' => $usuario->tienda_id,
             'password' => '',
             'txt_identificacion' => $usuario->detalle->identidad,
         ];
@@ -137,6 +146,7 @@ class Usuariosform extends Component
                     'password' => Hash::make($this->form['password']),
                     'estado_id' => $this->form['estado_id'],
                     'roles_id' => $this->form['rol_id'],
+                    'tienda_id' => $this->form['tienda_id'],
                 ]);
 
                 UserDetalle::create([
@@ -158,6 +168,7 @@ class Usuariosform extends Component
                 $usuario->estado_id = $this->form['estado_id'];
                 $usuario->email = $this->form['email'];
                 $usuario->roles_id = $this->form['rol_id'];
+                $usuario->tienda_id = $this->form['tienda_id'];
 
                 if ($this->form['password']) {
                     $usuario->password = Hash::make($this->form['password']);

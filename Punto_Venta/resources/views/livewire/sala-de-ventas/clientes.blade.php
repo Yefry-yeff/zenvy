@@ -12,12 +12,12 @@
             }"
         >
             <h5 class="mb-0 text-lg">
-                <i class="fas fa-users me-2"></i>Gestión de Clientes
+                <i class="fas fa-users me-2"></i>Gestión de Actores
             </h5>
             <div class="flex gap-2">
                 <button wire:click="crearNuevoCliente"
                     class="inline-flex items-center gap-1 px-3 py-2 text-sm text-gray-800 bg-white rounded hover:bg-gray-100">
-                    <i class="fas fa-plus"></i> Nuevo Cliente
+                    <i class="fas fa-plus"></i> Nuevo Actor
                 </button>
             </div>
         </div>
@@ -31,11 +31,11 @@
                     <thead class="table-light">
                         <tr class="text-center align-middle">
                             <th>ID</th>
-                            <th>Cliente</th>
+                            <th>Actor</th>
                             <th>Identidad/RTN</th>
                             <th>Correo</th>
                             <th>Tipo Persona</th>
-                            <th>Tipo Cliente</th>
+                            <th>Tipo Actor</th>
                             <th>Dirección</th>
                             <th>Estado</th>
                         </tr>

@@ -66,15 +66,31 @@
                 @enderror
             </div>
             <div>
+                <label class="block text-sm font-medium text-gray-700">Tienda<span class="text-red-600">*</span></label>
+                <select wire:model.defer="form.tienda_id" class="w-full px-3 py-2 border rounded">
+                    <option value="">-- Seleccionar --</option>
+                    @foreach ($tiendas as $tienda)
+                        <option value="{{ $tienda->id }}">{{ $tienda->denominacion_social }}</option>
+                    @endforeach
+                </select>
+                @error('form.tienda_id')
+                    <span class="text-sm text-red-600">{{ $message }}</span>
+                @enderror
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div>
                 <label class="block text-sm font-medium text-gray-700">Estado<span class="text-red-600">*</span></label>
                 <select wire:model.defer="form.estado_id" class="w-full px-3 py-2 border rounded">
                     <option value="1">Activo</option>
                     <option value="2">Inactivo</option>
                 </select>
-                        @error('form.estado_id')
-                            <span class="text-sm text-red-600">{{ $message }}</span>
-                        @enderror
+                @error('form.estado_id')
+                    <span class="text-sm text-red-600">{{ $message }}</span>
+                @enderror
             </div>
+            <div></div> <!-- Espacio vacío para mantener el grid balanceado -->
         </div>
     </div>
 </div>
