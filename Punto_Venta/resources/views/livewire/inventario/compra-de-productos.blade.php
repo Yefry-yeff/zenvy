@@ -55,7 +55,10 @@
             <div class="p-4 bg-white border shadow rounded-xl">
                 <div class="mb-4 d-flex justify-content-between align-items-center">
                     <h2 class="text-lg font-semibold text-gray-700">📋 Compras Realizadas</h2>
-                    <small class="text-muted">Total: {{ $compras->total() }} compras</small>
+                    <div class="d-flex align-items-center gap-3">
+                        <small class="text-muted">Ordenadas por ID (más recientes primero)</small>
+                        <small class="text-muted">Total: {{ $compras->total() }} compras</small>
+                    </div>
                 </div>
 
                 <!-- Tabla de Compras -->
@@ -63,19 +66,26 @@
                     <table id="comprasTabla" class="table table-hover table-sm">
                         <thead class="table-light">
                             <tr>
-                                <th style="width: 18%;">N° Factura</th>
-                                <th style="width: 22%;">Proveedor</th>
-                                <th style="width: 14%;">Fecha Emisión</th>
-                                <th style="width: 14%;">Fecha Recepción</th>
-                                <th style="width: 12%;">Estado</th>
+                                <th style="width: 8%;" class="text-center">
+                                    <span class="fw-bold">ID</span>
+                                    <small class="d-block text-muted" style="font-size: 0.7rem;">DESC ↓</small>
+                                </th>
+                                <th style="width: 16%;">N° Factura</th>
+                                <th style="width: 20%;">Proveedor</th>
+                                <th style="width: 12%;">Fecha Emisión</th>
+                                <th style="width: 12%;">Fecha Recepción</th>
+                                <th style="width: 10%;">Estado</th>
                                 <th style="width: 8%;">Productos</th>
-                                <th style="width: 12%;" class="text-end">Total</th>
-                                <th style="width: 10%;" class="text-center">Acciones</th>
+                                <th style="width: 10%;" class="text-end">Total</th>
+                                <th style="width: 4%;" class="text-center">Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
                             @forelse($compras as $compra)
                                 <tr wire:click="verDetalle({{ $compra->id }})">
+                                    <td class="text-center">
+                                        <span class="badge bg-primary fs-6 px-2 py-1">{{ $compra->id }}</span>
+                                    </td>
                                     <td><strong>{{ $compra->numero_factura }}</strong></td>
                                     <td>{{ $compra->proveedor->nombre ?? 'N/A' }}</td>
                                     <td>{{ \Carbon\Carbon::parse($compra->fecha_emision)->format('d/m/Y') }}</td>
@@ -162,7 +172,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="8" class="py-4 text-center text-muted">
+                                    <td colspan="9" class="py-4 text-center text-muted">
                                         <div>
                                             <i style="font-size: 2rem;">📦</i>
                                             <p class="mt-2 mb-0">No se encontraron compras</p>

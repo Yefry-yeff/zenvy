@@ -11,6 +11,19 @@
     <!-- Tabla de Facturas -->
     <div class="row">
         <div class="col-12">
+            <!-- Información de filtro por usuario -->
+            @auth
+                <div class="mb-3 alert alert-info border-left-info">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <div>
+                            <strong>Vista personalizada:</strong> Solo se muestran las facturas que has creado.
+                            <small class="d-block text-muted">Usuario actual: {{ Auth::user()->name }}</small>
+                        </div>
+                    </div>
+                </div>
+            @endauth
+
             <div class="shadow card">
                 <div class="py-3 card-header">
                     <h6 class="m-0 font-weight-bold text-primary">Facturas Registradas</h6>

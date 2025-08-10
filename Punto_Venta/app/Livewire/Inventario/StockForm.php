@@ -194,7 +194,7 @@ class StockForm extends Component
                     $query->where('bodega_id', $bodegaId);
                 })
                 ->where('producto_id', $this->producto->id)
-                ->sum('cantidad_inicial_seccion');
+                ->sum('cantidad_compra_lote');
             } else {
                 $this->cantidadTotalBodega = 0;
             }

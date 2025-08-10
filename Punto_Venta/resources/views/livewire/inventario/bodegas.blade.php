@@ -43,6 +43,32 @@
 
         <!-- CONTENIDO -->
         <div class="px-4 py-3 pt-0 card-body">
+            <!-- Información de filtro por tienda del usuario -->
+            @auth
+                @if(Auth::user()->tienda_id)
+                    <div class="mb-3 alert alert-info border-left-info">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <div>
+                                <strong>Vista filtrada:</strong> Solo se muestran las bodegas de tu tienda asignada
+                                @if(Auth::user()->tienda)
+                                    <em>"{{ Auth::user()->tienda->denominacion_social }}"</em>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                @else
+                    <div class="mb-3 alert alert-warning">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <div>
+                                <strong>Sin tienda asignada:</strong> No tienes una tienda asignada. Contacta al administrador para asignar una tienda a tu usuario.
+                            </div>
+                        </div>
+                    </div>
+                @endif
+            @endauth
+
             <!-- Barra de búsqueda y filtros -->
             <div class="mb-4 row">
                 <div class="col-md-4">

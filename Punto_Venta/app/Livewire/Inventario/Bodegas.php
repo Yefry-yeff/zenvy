@@ -259,9 +259,18 @@ class Bodegas extends Component
 
     public function render()
     {
+        $user = Auth::user();
         $query = Bodega::with(['tienda', 'direccion', 'segmentos.secciones']);
 
-        // Aplicar filtros
+        // Filtrar por tienda del usuario (solo mostrar bodegas de su tienda asignada)
+        if ($user && $user->tienda_id) {
+            $query->where('tienda_id', $user->tienda_id);
+        } else {
+            // Si el usuario no tiene tienda asignada, no mostrar ninguna bodega
+            $query->where('id', '=', 0); // Query que no retorna resultados
+        }
+
+        // Aplicar filtros adicionales
         if ($this->busqueda) {
             $query->where('nombre', 'like', '%' . $this->busqueda . '%');
         }
@@ -280,7 +289,14 @@ class Bodegas extends Component
 
         $bodegas = $query->orderBy('nombre')->paginate(9);
 
-        $tiendas = Tiendas::where('estado_id', 1)->orderBy('denominacion_social')->get();
+        // Solo mostrar la tienda del usuario en el filtro de tiendas
+        $tiendas = collect();
+        if ($user && $user->tienda_id) {
+            $tiendaUsuario = Tiendas::where('id', $user->tienda_id)->where('estado_id', 1)->first();
+            if ($tiendaUsuario) {
+                $tiendas = collect([$tiendaUsuario]);
+            }
+        }
 
         return view('livewire.inventario.bodegas', compact('bodegas', 'tiendas'));
     }

@@ -338,7 +338,7 @@ class RecibirProductoCompra extends Component
                 'producto_id' => $this->detalleSeleccionado['producto_id'],
                 'seccion_id' => $this->seccionDistribucion,
                 'cantidad_compra_lote' => $cantidadDistribuir,
-                'cantidad_inicial_seccion' => 0,
+                'cantidad_inicial_seccion' => $cantidadDistribuir,
                 'cantidad_disponible' => $cantidadDistribuir,
                 'fecha_recibido' => $this->fechaDistribucion,
                 'fecha_expiracion' => $detalleCompra->fecha_expiracion,

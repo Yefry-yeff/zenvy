@@ -4,6 +4,7 @@ namespace App\Livewire\SalaDeVentas;
 
 use Livewire\Component;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 use App\Models\Factura;
 
 class ListaDeFacturas extends Component
@@ -74,7 +75,9 @@ class ListaDeFacturas extends Component
 
     public function render()
     {
-        $facturas = DB::table('factura as f')
+        $user = Auth::user();
+        
+        $query = DB::table('factura as f')
             ->select(
                 'f.id',
                 'f.numero_factura',
@@ -85,9 +88,17 @@ class ListaDeFacturas extends Component
                 'f.estado_factura_id',
                 'f.nombre_cliente',
                 'f.rtn'
-            )
-            ->orderBy('f.fecha_emision', 'desc')
-            ->get();
+            );
+
+        // Filtrar por usuario actual - solo mostrar facturas creadas por este usuario
+        if ($user) {
+            $query->where('f.users_id', $user->id);
+        } else {
+            // Si no hay usuario autenticado, no mostrar ninguna factura
+            $query->where('f.id', '=', 0);
+        }
+
+        $facturas = $query->orderBy('f.fecha_emision', 'desc')->get();
 
         return view('livewire.sala-de-ventas.lista-de-facturas', [
             'facturas' => $facturas

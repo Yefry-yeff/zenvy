@@ -246,7 +246,8 @@ class CompraDeProductos extends Component
             });
         }
 
-        $compras = $query->orderBy('created_at', 'desc')->paginate(10);
+        // Ordenar por ID descendente: el último ID creado (más alto) aparece primero
+        $compras = $query->orderBy('id', 'desc')->paginate(10);
 
         return view('livewire.inventario.compra-de-productos', [
             'compras' => $compras
