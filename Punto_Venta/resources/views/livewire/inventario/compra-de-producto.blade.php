@@ -268,16 +268,17 @@
                                     <div class="col-lg-2">
                                         <label class="form-label">&nbsp;</label>
                                         <button type="button"
-                                                class="btn w-100 d-flex align-items-center justify-content-center"
+                                                class="btn btn-sm d-flex align-items-center justify-content-center"
                                                 wire:click="agregarProducto"
                                                 @disabled(!$this->botonHabilitado)
+                                                style="width: 35px; height: 35px; padding: 0;"
                                                 :class="{
                                                     'btn-success': theme === 'verde' || !theme,
                                                     'btn-primary': theme === 'azul',
                                                     'btn-dark': theme === 'oscuro',
                                                     'btn-secondary': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro' && theme
                                                 }">
-                                            <span style="font-size: 16px;">➕</span>
+                                            <span style="font-size: 14px;">➕</span>
                                         </button>
                                     </div>
                                 </div>
@@ -398,17 +399,17 @@
                                 <div class="row">
                                     <div class="col-12 d-flex justify-content-center">
                                         <button type="button"
-                                                class="px-4 py-2 btn d-flex align-items-center"
+                                                class="btn btn-sm d-flex align-items-center justify-content-center"
                                                 wire:click="agregarProducto"
                                                 @disabled(!$this->botonHabilitado)
+                                                style="width: 40px; height: 40px; padding: 0;"
                                                 :class="{
                                                     'btn-success': theme === 'verde' || !theme,
                                                     'btn-primary': theme === 'azul',
                                                     'btn-dark': theme === 'oscuro',
                                                     'btn-secondary': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro' && theme
                                                 }">
-                                            <span style="font-size: 16px;" class="me-2">➕</span>
-                                            <span>Agregar Producto</span>
+                                            <span style="font-size: 16px;">➕</span>
                                         </button>
                                     </div>
                                 </div>
@@ -524,19 +525,19 @@
                                 </div>
 
                                 <!-- Botón Agregar -->
-                                <div class="mb-3">
+                                <div class="mb-3 d-flex justify-content-center">
                                     <button type="button"
-                                            class="btn w-100 d-flex align-items-center justify-content-center"
+                                            class="btn btn-sm d-flex align-items-center justify-content-center"
                                             wire:click="agregarProducto"
                                             @disabled(!$this->botonHabilitado)
+                                            style="width: 45px; height: 45px; padding: 0;"
                                             :class="{
                                                 'btn-success': theme === 'verde' || !theme,
                                                 'btn-primary': theme === 'azul',
                                                 'btn-dark': theme === 'oscuro',
                                                 'btn-secondary': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro' && theme
                                             }">
-                                        <span style="font-size: 16px;">➕</span>
-                                        <span class="ms-2">Agregar Producto</span>
+                                        <span style="font-size: 18px;">➕</span>
                                     </button>
                                 </div>
                             </div>
@@ -761,11 +762,29 @@
                                         <span class="fw-bold">L.{{ number_format($subtotal, 2) }}</span>
                                     </div>
 
-                                    <!-- ISV -->
-                                    <div class="py-2 d-flex justify-content-between align-items-center border-bottom">
-                                        <span class="fw-semibold">ISV (15%):</span>
-                                        <span class="fw-bold">L.{{ number_format($totalIsv, 2) }}</span>
-                                    </div>
+                                    <!-- ISV separado por porcentajes -->
+                                    @php
+                                        $isvPorcentajes = [];
+                                        foreach($productosCompra as $producto) {
+                                            $porcentaje = $producto['isv'];
+                                            if ($porcentaje > 0) {
+                                                if (!isset($isvPorcentajes[$porcentaje])) {
+                                                    $isvPorcentajes[$porcentaje] = 0;
+                                                }
+                                                $subtotalProducto = $producto['precio'] * $producto['cantidad_ingresada'];
+                                                $isvProducto = $subtotalProducto * ($porcentaje / 100);
+                                                $isvPorcentajes[$porcentaje] += $isvProducto;
+                                            }
+                                        }
+                                        ksort($isvPorcentajes);
+                                    @endphp
+
+                                    @foreach($isvPorcentajes as $porcentaje => $montoIsv)
+                                        <div class="py-2 d-flex justify-content-between align-items-center border-bottom">
+                                            <span class="fw-semibold">ISV ({{ $porcentaje }}%):</span>
+                                            <span class="fw-bold">L.{{ number_format($montoIsv, 2) }}</span>
+                                        </div>
+                                    @endforeach
 
                                     <!-- Total Final -->
                                     <div class="py-2 mt-2 d-flex justify-content-between align-items-center">
