@@ -158,11 +158,12 @@
 
                         <!-- Fila única de facturación -->
                         <div class="p-3 border rounded bg-gray-50">
-                            <!-- Vista Desktop Grande (lg y arriba) - Una sola fila -->
+                            <!-- Vista Desktop Grande (lg y arriba) - Distribución profesional -->
                             <div class="d-none d-lg-block">
-                                <div class="row g-2 align-items-end">
+                                <!-- Primera fila: Código de barras y precio -->
+                                <div class="mb-3 row g-3">
                                     <!-- Búsqueda/Selección de Producto -->
-                                    <div class="col-lg-2">
+                                    <div class="col-lg-6">
                                         <label for="busqueda_producto" class="form-label">
                                             <strong>Código de Barras</strong> <span class="text-red-600">*</span>
                                         </label>
@@ -172,7 +173,7 @@
                                                    class="form-control"
                                                    wire:model.live="busquedaProducto"
                                                    onkeydown="if(event.key==='Enter'){event.preventDefault(); return false;}"
-                                                   placeholder="Escanear código...">
+                                                   placeholder="Escanear código de barras...">
                                             @if($busquedaProducto && $productoTemporal['producto_id'])
                                                 <button type="button"
                                                         class="btn btn-sm btn-outline-secondary position-absolute"
@@ -185,8 +186,8 @@
                                     </div>
 
                                     <!-- Precio -->
-                                    <div class="col-lg-2">
-                                        <label for="precio" class="form-label"><strong>Precio</strong> <span class="text-red-600">*</span></label>
+                                    <div class="col-lg-6">
+                                        <label for="precio" class="form-label"><strong>Precio Unitario</strong> <span class="text-red-600">*</span></label>
                                         <div class="input-group">
                                             <span class="input-group-text">L.</span>
                                             <input type="number"
@@ -198,30 +199,33 @@
                                                    placeholder="0.00">
                                         </div>
                                     </div>
+                                </div>
 
+                                <!-- Segunda fila: Cantidad, Unidad, ISV -->
+                                <div class="mb-3 row g-3">
                                     <!-- Cantidad con botones +/- -->
-                                    <div class="col-lg-1">
-                                        <label for="cantidad" class="form-label"><strong>Cant.</strong> <span class="text-red-600">*</span></label>
-                                        <div class="d-flex align-items-center justify-content-center">
+                                    <div class="col-lg-4">
+                                        <label for="cantidad" class="form-label"><strong>Cantidad</strong> <span class="text-red-600">*</span></label>
+                                        <div class="d-flex align-items-center">
                                             <!-- Botones + y - verticales a la izquierda -->
                                             <div class="d-flex flex-column me-2">
                                                 <button type="button"
                                                         class="p-1 mb-1 btn btn-outline-secondary"
                                                         wire:click="incrementarCantidad"
-                                                        style="width: 20px; height: 20px; font-size: 10px; line-height: 1;">
+                                                        style="width: 24px; height: 24px; font-size: 12px; line-height: 1;">
                                                     +
                                                 </button>
                                                 <button type="button"
                                                         class="p-1 btn btn-outline-secondary"
                                                         wire:click="decrementarCantidad"
-                                                        style="width: 20px; height: 20px; font-size: 10px; line-height: 1;">
+                                                        style="width: 24px; height: 24px; font-size: 12px; line-height: 1;">
                                                     -
                                                 </button>
                                             </div>
                                             <!-- Input manual de cantidad -->
                                             <input type="number"
                                                    class="text-center form-control cantidad-input"
-                                                   style="width: 60px; font-size: 0.8rem;"
+                                                   style="width: 80px; font-size: 0.9rem;"
                                                    min="1"
                                                    wire:model.live="productoTemporal.cantidad_ingresada"
                                                    placeholder="1">
@@ -229,10 +233,10 @@
                                     </div>
 
                                     <!-- Unidad -->
-                                    <div class="col-lg-2">
-                                        <label for="unidad_compra" class="form-label"><strong>Unidad</strong> <span class="text-red-600">*</span></label>
+                                    <div class="col-lg-4">
+                                        <label for="unidad_compra" class="form-label"><strong>Unidad de Medida</strong> <span class="text-red-600">*</span></label>
                                         <select id="unidad_compra" name="unidad_compra_lg" class="form-select" wire:model.live="productoTemporal.unidad_compra_id">
-                                            <option value="">Seleccionar</option>
+                                            <option value="">Seleccionar unidad</option>
                                             @foreach($unidadesCompra as $unidad)
                                                 <option value="{{ $unidad['id'] }}">{{ $unidad['nombre'] }}</option>
                                             @endforeach
@@ -240,8 +244,8 @@
                                     </div>
 
                                     <!-- ISV -->
-                                    <div class="col-lg-1">
-                                        <label for="isv" class="form-label"><strong>ISV(%)</strong></label>
+                                    <div class="col-lg-4">
+                                        <label for="isv" class="form-label"><strong>ISV (%)</strong></label>
                                         <div class="input-group">
                                             <input type="number"
                                                    id="isv"
@@ -251,13 +255,17 @@
                                                    min="0"
                                                    max="100"
                                                    wire:model.live="productoTemporal.isv"
-                                                   placeholder="0">
+                                                   placeholder="0.00">
+                                            <span class="input-group-text">%</span>
                                         </div>
                                     </div>
+                                </div>
 
+                                <!-- Tercera fila: Fecha de expiración y botón agregar -->
+                                <div class="row g-3 align-items-end">
                                     <!-- Fecha de Expiración -->
-                                    <div class="col-lg-2">
-                                        <label for="fecha_expiracion" class="form-label"><strong>Exp.</strong></label>
+                                    <div class="col-lg-8">
+                                        <label for="fecha_expiracion" class="form-label"><strong>Fecha de Expiración</strong></label>
                                         <input type="date"
                                                id="fecha_expiracion"
                                                class="form-control"
@@ -265,20 +273,19 @@
                                     </div>
 
                                     <!-- Botón Agregar -->
-                                    <div class="col-lg-2">
-                                        <label class="form-label">&nbsp;</label>
+                                    <div class="col-lg-4 d-flex justify-content-center">
                                         <button type="button"
-                                                class="btn btn-sm d-flex align-items-center justify-content-center"
+                                                class="btn btn-lg d-flex align-items-center justify-content-center px-4 py-2"
                                                 wire:click="agregarProducto"
                                                 @disabled(!$this->botonHabilitado)
-                                                style="width: 35px; height: 35px; padding: 0;"
                                                 :class="{
                                                     'btn-success': theme === 'verde' || !theme,
                                                     'btn-primary': theme === 'azul',
                                                     'btn-dark': theme === 'oscuro',
                                                     'btn-secondary': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro' && theme
                                                 }">
-                                            <span style="font-size: 14px;">➕</span>
+                                            <span class="me-2" style="font-size: 16px;">➕</span>
+                                            <span class="fw-bold">Agregar Producto</span>
                                         </button>
                                     </div>
                                 </div>
@@ -594,13 +601,13 @@
                                     <thead class="table-light">
                                         <tr>
                                             <th style="width: 25%;">Producto</th>
-                                            <th style="width: 10%;" class="text-center">Cant.</th>
-                                            <th style="width: 10%;" class="text-center">Unidad</th>
+                                            <th style="width: 12%;" class="text-center">Unidad</th>
                                             <th style="width: 12%;" class="text-end">Precio</th>
+                                            <th style="width: 12%;" class="text-center">Cantidad</th>
                                             <th style="width: 12%;" class="text-end">Subtotal</th>
-                                            <th style="width: 8%;" class="text-center">ISV</th>
-                                            <th style="width: 13%;" class="text-end">Total</th>
-                                            <th style="width: 10%;" class="text-center">Acción</th>
+                                            <th style="width: 15%;" class="text-center">ISV</th>
+                                            <th style="width: 12%;" class="text-end">Total</th>
+                                            <th style="width: 8%;" class="text-center">Acción</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -609,8 +616,14 @@
                                                 <td class="text-start">
                                                     <strong>{{ $producto['producto_nombre'] }}</strong>
                                                     @if($producto['producto_codigo'])
-                                                        <br><small class="text-muted">{{ $producto['producto_codigo'] }}</small>
+                                                        <br><small class="text-muted">Código: {{ $producto['producto_codigo'] }}</small>
                                                     @endif
+                                                </td>
+                                                <td class="text-center">
+                                                    <span class="badge bg-secondary">{{ $producto['unidad_compra_nombre'] }}</span>
+                                                </td>
+                                                <td class="text-end">
+                                                    <span class="fw-semibold">L. {{ number_format($producto['precio'], 2) }}</span>
                                                 </td>
                                                 <td class="text-center">
                                                     <div class="d-flex align-items-center justify-content-center">
@@ -638,15 +651,29 @@
                                                                style="width: 60px;">
                                                     </div>
                                                 </td>
-                                                <td class="text-center">{{ $producto['unidad_compra_nombre'] }}</td>
-                                                <td class="text-end">L. {{ number_format($producto['precio'], 2) }}</td>
-                                                <td class="text-end">L. {{ number_format($producto['sub_total_producto'], 2) }}</td>
-                                                <td class="text-center">{{ $producto['isv'] }}%</td>
-                                                <td class="text-end"><strong>L. {{ number_format($producto['precio_total'], 2) }}</strong></td>
+                                                <td class="text-end">
+                                                    <span class="fw-semibold text-primary">L. {{ number_format($producto['sub_total_producto'], 2) }}</span>
+                                                </td>
+                                                <td class="text-center">
+                                                    @if($producto['isv'] > 0)
+                                                        <div class="d-flex flex-column align-items-center">
+                                                            <span class="badge bg-info">{{ $producto['isv'] }}%</span>
+                                                            <small class="text-muted mt-1">
+                                                                L. {{ number_format($producto['sub_total_producto'] * ($producto['isv'] / 100), 2) }}
+                                                            </small>
+                                                        </div>
+                                                    @else
+                                                        <span class="text-muted">Exento</span>
+                                                    @endif
+                                                </td>
+                                                <td class="text-end">
+                                                    <span class="fw-bold text-success fs-6">L. {{ number_format($producto['precio_total'], 2) }}</span>
+                                                </td>
                                                 <td class="text-center">
                                                     <button type="button"
                                                             class="btn btn-sm btn-outline-danger"
-                                                            wire:click="eliminarProducto({{ $index }})">
+                                                            wire:click="eliminarProducto({{ $index }})"
+                                                            title="Eliminar producto">
                                                         🗑️
                                                     </button>
                                                 </td>
@@ -679,7 +706,19 @@
 
                                         <!-- Información del producto -->
                                         <div class="mb-3 row g-2">
-                                            <div class="col-6">
+                                            <div class="col-4">
+                                                <div class="p-2 text-center border rounded">
+                                                    <small class="text-muted d-block">Unidad</small>
+                                                    <span class="fw-semibold">{{ $producto['unidad_compra_nombre'] }}</span>
+                                                </div>
+                                            </div>
+                                            <div class="col-4">
+                                                <div class="p-2 text-center border rounded">
+                                                    <small class="text-muted d-block">Precio Unit.</small>
+                                                    <span class="fw-semibold">L.{{ number_format($producto['precio'], 2) }}</span>
+                                                </div>
+                                            </div>
+                                            <div class="col-4">
                                                 <div class="p-2 text-center border rounded">
                                                     <small class="text-muted d-block">Cantidad</small>
                                                     <div class="mt-1 d-flex align-items-center justify-content-center">
@@ -708,39 +747,32 @@
                                                     </div>
                                                 </div>
                                             </div>
-                                            <div class="col-6">
-                                                <div class="p-2 text-center border rounded">
-                                                    <small class="text-muted d-block">Unidad</small>
-                                                    <span class="fw-semibold">{{ $producto['unidad_compra_nombre'] }}</span>
-                                                </div>
-                                            </div>
                                         </div>
 
-                                        <!-- Precios -->
+                                        <!-- Precios y totales -->
                                         <div class="mb-3 row g-2">
-                                            <div class="col-6">
-                                                <div class="p-2 text-center border rounded">
-                                                    <small class="text-muted d-block">Precio Unit.</small>
-                                                    <span class="fw-semibold">L.{{ number_format($producto['precio'], 2) }}</span>
-                                                </div>
-                                            </div>
-                                            <div class="col-6">
-                                                <div class="p-2 text-center border rounded">
-                                                    <small class="text-muted d-block">ISV</small>
-                                                    <span class="fw-semibold">{{ $producto['isv'] }}%</span>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <!-- Totales -->
-                                        <div class="row g-2">
-                                            <div class="col-6">
+                                            <div class="col-4">
                                                 <div class="p-2 text-center border rounded bg-light">
                                                     <small class="text-muted d-block">Subtotal</small>
                                                     <span class="fw-bold text-primary">L.{{ number_format($producto['sub_total_producto'], 2) }}</span>
                                                 </div>
                                             </div>
-                                            <div class="col-6">
+                                            <div class="col-4">
+                                                <div class="p-2 text-center border rounded">
+                                                    <small class="text-muted d-block">ISV</small>
+                                                    @if($producto['isv'] > 0)
+                                                        <div class="d-flex flex-column align-items-center">
+                                                            <span class="badge bg-info">{{ $producto['isv'] }}%</span>
+                                                            <small class="text-muted mt-1">
+                                                                L.{{ number_format($producto['sub_total_producto'] * ($producto['isv'] / 100), 2) }}
+                                                            </small>
+                                                        </div>
+                                                    @else
+                                                        <span class="text-muted">Exento</span>
+                                                    @endif
+                                                </div>
+                                            </div>
+                                            <div class="col-4">
                                                 <div class="p-2 text-center border rounded bg-success bg-opacity-10">
                                                     <small class="text-muted d-block">Total</small>
                                                     <span class="fw-bold text-success">L.{{ number_format($producto['precio_total'], 2) }}</span>
