@@ -1194,8 +1194,8 @@ class Ventas extends Component
 
     private function cargarDatosParaImpresion($facturaId)
     {
-        // Cargar la factura
-        $this->facturaParaImprimir = Factura::find($facturaId);
+        // Cargar la factura con la relación del usuario
+        $this->facturaParaImprimir = Factura::with('usuario')->find($facturaId);
 
         // Cargar información del CAI asociado a la factura
         $this->caiFacturaImpresa = DB::table('cai')

@@ -13,8 +13,8 @@ class FacturaPDFController extends Controller
     public function generarPDF($facturaId)
     {
         try {
-            // Cargar la factura usando el modelo (igual que en el componente Livewire)
-            $factura = \App\Models\Factura::find($facturaId);
+            // Cargar la factura usando el modelo con la relación del usuario
+            $factura = \App\Models\Factura::with('usuario')->find($facturaId);
             
             if (!$factura) {
                 abort(404, 'Factura no encontrada');
@@ -103,8 +103,8 @@ class FacturaPDFController extends Controller
     public function previsualizarPDF($facturaId)
     {
         try {
-            // Cargar la factura usando el modelo (igual que en el componente Livewire)
-            $factura = \App\Models\Factura::find($facturaId);
+            // Cargar la factura usando el modelo con la relación del usuario
+            $factura = \App\Models\Factura::with('usuario')->find($facturaId);
             
             if (!$factura) {
                 abort(404, 'Factura no encontrada');
