@@ -6,7 +6,7 @@
     <title>Factura {{ $factura->numero_factura }}</title>
     <style>
         @page {
-            size: 72.1mm auto;
+            size: 72.1mm 350mm;
             margin: 3mm;
         }
         
@@ -258,7 +258,7 @@
 
         <!-- FECHA Y USUARIO -->
         <div class="fecha-usuario">
-            {{ \Carbon\Carbon::parse($factura->fecha_emision)->format('d/m/Y H:i:s') }} Usuario: {{ $factura->usuario ? $factura->usuario->name : 'Sistema' }}
+            {{ \Carbon\Carbon::parse($factura->created_at)->format('d/m/Y H:i:s') }} Usuario: {{ $factura->usuario ? $factura->usuario->name : 'Sistema' }}
         </div>
 
         <div class="separator"></div>

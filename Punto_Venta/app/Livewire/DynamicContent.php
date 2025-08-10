@@ -12,7 +12,7 @@ class DynamicContent extends Component
 
     public function mount()
     {
-        $this->vista = 'dashboard';
+        $this->vista = 'DashboardDinamico';
         $this->componenteId = uniqid();
     }
 
@@ -21,7 +21,14 @@ class DynamicContent extends Component
     public function cambiarVista($ruta, $parametros = [])
     {
         logger()->info('[Livewire] cambiarVista recibió:', ['ruta' => $ruta, 'parametros' => $parametros]);
-        $this->vista = $ruta;
+
+        // Si la ruta es 'dashboard', usar el componente DashboardDinamico
+        if ($ruta === 'dashboard') {
+            $this->vista = 'DashboardDinamico';
+        } else {
+            $this->vista = $ruta;
+        }
+
         $this->parametros = $parametros;
         $this->componenteId = uniqid();
     }
