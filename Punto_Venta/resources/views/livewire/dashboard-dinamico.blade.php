@@ -37,18 +37,6 @@
                                 </span>
                             @endif
                         </div>
-                        @if($estadoJornada['usuario_apertura'])
-                        <div class="flex items-center space-x-2">
-                            <span class="text-sm text-gray-600">Aperturada por:</span>
-                            <span class="text-sm font-semibold text-purple-600">{{ $estadoJornada['usuario_apertura'] }}</span>
-                        </div>
-                        @endif
-                        @if($estadoJornada['usuario_cierre'])
-                        <div class="flex items-center space-x-2">
-                            <span class="text-sm text-gray-600">Cerrada por:</span>
-                            <span class="text-sm font-semibold text-red-600">{{ $estadoJornada['usuario_cierre'] }}</span>
-                        </div>
-                        @endif
                     </div>
                     @endif
                     

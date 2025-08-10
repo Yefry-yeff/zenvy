@@ -195,12 +195,12 @@
 
     <!-- Modal de Gestión de Diferencia -->
     @if($mostrarModal && $diferenciaSeleccionada)
-        <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div class="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-96 overflow-y-auto">
+        <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" wire:click="cerrarModal">
+            <div class="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-96 overflow-y-auto" wire:click.stop>
                 <div class="flex items-center justify-between mb-6">
                     <h3 class="text-xl font-bold text-gray-900 flex items-center">
                         <i class="fas fa-edit text-orange-500 mr-3"></i>
-                        Gestionar Diferencia
+                        Ajustar Diferencia
                     </h3>
                     <button wire:click="cerrarModal" class="text-gray-400 hover:text-gray-600">
                         <i class="fas fa-times text-xl"></i>
@@ -280,31 +280,34 @@
                         <div>
                             <label for="monto" class="block text-sm font-medium text-gray-700 mb-2">
                                 <i class="fas fa-dollar-sign text-green-500 mr-2"></i>
-                                Monto a Gestionar
+                                Monto del Ajuste
                             </label>
                             <input 
                                 type="number" 
                                 id="monto"
                                 wire:model="monto"
                                 step="0.01"
-                                min="0.01"
-                                max="{{ abs($diferenciaSeleccionada->diferencia_pendiente) }}"
                                 class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 @error('monto') border-red-500 @enderror"
-                                placeholder="0.00"
+                                placeholder="0.00 (positivo o negativo)"
                                 required
                             >
                             @error('monto') 
                                 <span class="text-red-500 text-sm mt-1">{{ $message }}</span> 
                             @enderror
-                            <p class="text-xs text-gray-500 mt-1">
-                                Máximo permitido: L. {{ number_format(abs($diferenciaSeleccionada->diferencia_pendiente), 2) }}
-                            </p>
+                            <div class="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                <h5 class="text-sm font-semibold text-blue-800 mb-2">💡 Tipos de Ajuste:</h5>
+                                <ul class="text-xs text-blue-700 space-y-1">
+                                    <li><strong>Monto positivo (+):</strong> Reduce la diferencia (ej: +50 reduce sobrante/faltante)</li>
+                                    <li><strong>Monto negativo (-):</strong> Aumenta la diferencia (ej: -30 aumenta sobrante/faltante)</li>
+                                    <li><strong>Múltiples ajustes:</strong> Puede realizar varios ajustes hasta cerrar la diferencia</li>
+                                </ul>
+                            </div>
                         </div>
 
                         <div>
                             <label for="descripcion" class="block text-sm font-medium text-gray-700 mb-2">
                                 <i class="fas fa-comment text-blue-500 mr-2"></i>
-                                Descripción / Justificación
+                                Descripción / Justificación del Ajuste
                             </label>
                             <textarea 
                                 id="descripcion"
@@ -312,14 +315,14 @@
                                 rows="4"
                                 maxlength="400"
                                 class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 @error('descripcion') border-red-500 @enderror"
-                                placeholder="Describa la justificación para gestionar esta diferencia..."
+                                placeholder="Describa la justificación para este ajuste en la diferencia. Explique si es un ajuste positivo (reduce diferencia) o negativo (aumenta diferencia) y el motivo..."
                                 required
                             ></textarea>
                             @error('descripcion') 
                                 <span class="text-red-500 text-sm mt-1">{{ $message }}</span> 
                             @enderror
                             <p class="text-xs text-gray-500 mt-1">
-                                Máximo 400 caracteres. Explique el motivo de la gestión.
+                                Máximo 400 caracteres. Explique claramente el motivo del ajuste y su tipo.
                             </p>
                         </div>
 
@@ -339,7 +342,7 @@
                                 wire:loading.attr="disabled"
                             >
                                 <i class="fas fa-save mr-2"></i>
-                                <span wire:loading.remove>Gestionar Diferencia</span>
+                                <span wire:loading.remove>Registrar Ajuste</span>
                                 <span wire:loading>Procesando...</span>
                             </button>
                         </div>
@@ -356,8 +359,8 @@
 
     <!-- Modal de Éxito -->
     @if($mostrarModalExito)
-        <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+        <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" wire:click="cerrarModalExito">
+            <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4" wire:click.stop>
                 <!-- Header del Modal -->
                 <div class="bg-gradient-to-r {{ $diferenciaTotalmenteResuelta ? 'from-green-600 to-green-700' : 'from-blue-600 to-blue-700' }} text-white p-6 rounded-t-lg">
                     <div class="flex items-center">

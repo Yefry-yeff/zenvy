@@ -31,14 +31,14 @@ class GestionDeDiferencias extends Component
     protected $listeners = ['limpiarMensaje' => 'limpiarMensaje'];
 
     protected $rules = [
-        'monto' => 'required|numeric|min:0.01',
+        'monto' => 'required|numeric|not_in:0',
         'descripcion' => 'required|string|max:400|min:3',
     ];
 
     protected $messages = [
         'monto.required' => 'El monto es obligatorio',
         'monto.numeric' => 'El monto debe ser un número válido',
-        'monto.min' => 'El monto debe ser mayor a 0',
+        'monto.not_in' => 'El monto no puede ser cero',
         'descripcion.required' => 'La descripción es obligatoria',
         'descripcion.min' => 'La descripción debe tener al menos 3 caracteres',
         'descripcion.max' => 'La descripción no puede exceder 400 caracteres',
@@ -105,22 +105,23 @@ class GestionDeDiferencias extends Component
             ->join('caja as c', 'cc.caja_id', '=', 'c.id')
             ->join('users as u', 'c.users_id', '=', 'u.id')
             ->leftJoin('gestion_diferencia as gd', 'cc.id', '=', 'gd.cierre_de_caja_id')
-            ->where('cc.diferencia_efectivo', '!=', 0)
             ->where('u.tienda_id', $this->tiendaUsuario)
+            ->whereRaw('ABS(cc.total_efectivo - cc.conteo_efectivo) > 0.01') // Usar diferencia calculada original
             ->select(
                 'cc.id as cierre_id',
                 'c.id as caja_id',
                 'c.users_id',
                 'u.name as nombre_usuario',
-                'cc.diferencia_efectivo',
+                DB::raw('(cc.total_efectivo - cc.conteo_efectivo) as diferencia_efectivo'), // Diferencia original calculada
                 'cc.total_efectivo',
                 'cc.conteo_efectivo',
                 'cc.created_at',
                 DB::raw('COALESCE(SUM(gd.monto), 0) as total_gestionado'),
-                DB::raw('(cc.diferencia_efectivo - COALESCE(SUM(gd.monto), 0)) as diferencia_pendiente'),
+                DB::raw('((cc.total_efectivo - cc.conteo_efectivo) - COALESCE(SUM(gd.monto), 0)) as diferencia_pendiente'),
                 DB::raw('COUNT(gd.id) as gestiones_realizadas')
             )
-            ->groupBy('cc.id', 'c.id', 'c.users_id', 'u.name', 'cc.diferencia_efectivo', 'cc.total_efectivo', 'cc.conteo_efectivo', 'cc.created_at')
+            ->groupBy('cc.id', 'c.id', 'c.users_id', 'u.name', 'cc.total_efectivo', 'cc.conteo_efectivo', 'cc.created_at')
+            ->havingRaw('ABS(((cc.total_efectivo - cc.conteo_efectivo) - COALESCE(SUM(gd.monto), 0))) >= 0.01') // Solo mostrar diferencias que aún tienen saldo pendiente
             ->orderBy('cc.created_at', 'desc')
             ->get()
             ->toArray();
@@ -164,19 +165,12 @@ class GestionDeDiferencias extends Component
             return;
         }
 
-        // Validar que el monto no exceda la diferencia pendiente
-        $diferenciaPendiente = abs($this->diferenciaSeleccionada->diferencia_pendiente);
-        if ($this->monto > $diferenciaPendiente) {
-            $this->addError('monto', 'El monto no puede ser mayor a la diferencia pendiente (L. ' . number_format($diferenciaPendiente, 2) . ')');
-            return;
-        }
-
         $this->procesoEnCurso = true;
 
         try {
             DB::beginTransaction();
 
-            // 1. Insertar en gestion_diferencia
+            // 1. Insertar en gestion_diferencia (permitir montos positivos y negativos)
             $gestionId = DB::table('gestion_diferencia')->insertGetId([
                 'monto' => $this->monto,
                 'descripcion' => $this->descripcion,
@@ -186,25 +180,19 @@ class GestionDeDiferencias extends Component
                 'updated_at' => now()
             ]);
 
-            // 2. Actualizar la diferencia en cierre_de_caja
-            $diferenciaTotalGestionada = DB::table('gestion_diferencia')
+            // 2. Calcular nueva diferencia basada en la suma algebraica de todas las gestiones
+            $totalGestiones = DB::table('gestion_diferencia')
                 ->where('cierre_de_caja_id', $this->diferenciaSeleccionada->cierre_id)
                 ->sum('monto');
 
-            $nuevaDiferencia = $this->diferenciaSeleccionada->diferencia_efectivo;
-            
-            // Si la diferencia es negativa (faltante), sumamos lo gestionado
-            // Si la diferencia es positiva (sobrante), restamos lo gestionado
-            if ($nuevaDiferencia < 0) {
-                $nuevaDiferencia = $nuevaDiferencia + $diferenciaTotalGestionada;
-            } else {
-                $nuevaDiferencia = $nuevaDiferencia - $diferenciaTotalGestionada;
-            }
+            // La nueva diferencia es: diferencia_original - suma_total_gestiones
+            $nuevaDiferencia = $this->diferenciaSeleccionada->diferencia_efectivo - $totalGestiones;
 
+            // 3. NO actualizar diferencia_efectivo - debe mantenerse como diferencia original
+            // Solo actualizar timestamp para auditoría
             DB::table('cierre_de_caja')
                 ->where('id', $this->diferenciaSeleccionada->cierre_id)
                 ->update([
-                    'diferencia_efectivo' => $nuevaDiferencia,
                     'updated_at' => now()
                 ]);
 
@@ -215,13 +203,21 @@ class GestionDeDiferencias extends Component
             $this->diferenciaTotalmenteResuelta = $diferenciaPendienteFinal < 0.01;
 
             // Preparar modal de éxito
+            $tipoMovimiento = $this->monto > 0 ? 'ajuste positivo' : 'ajuste negativo';
+            $impactoTexto = '';
+            
+            if ($this->monto > 0) {
+                $impactoTexto = $this->diferenciaSeleccionada->diferencia_efectivo > 0 ? 'reduciendo el sobrante' : 'reduciendo el faltante';
+            } else {
+                $impactoTexto = $this->diferenciaSeleccionada->diferencia_efectivo > 0 ? 'aumentando el sobrante' : 'aumentando el faltante';
+            }
+
             if ($this->diferenciaTotalmenteResuelta) {
                 $this->tituloExito = '¡Diferencia Completamente Resuelta!';
-                $this->mensajeExito = "La diferencia de la Caja #{$this->diferenciaSeleccionada->caja_id} ha sido completamente gestionada. El monto gestionado fue de L. " . number_format($this->monto, 2) . " y la transacción se ha cerrado exitosamente.";
+                $this->mensajeExito = "La diferencia de la Caja #{$this->diferenciaSeleccionada->caja_id} ha sido completamente gestionada con un {$tipoMovimiento} de L. " . number_format(abs($this->monto), 2) . ". La transacción se ha cerrado exitosamente.";
             } else {
-                $this->tituloExito = '¡Gestión Parcial Exitosa!';
-                $montoRestante = $diferenciaPendienteFinal;
-                $this->mensajeExito = "Se ha gestionado L. " . number_format($this->monto, 2) . " de la diferencia de la Caja #{$this->diferenciaSeleccionada->caja_id}. Queda pendiente L. " . number_format($montoRestante, 2) . " por gestionar. La transacción permanece abierta.";
+                $this->tituloExito = '¡Gestión Registrada Exitosamente!';
+                $this->mensajeExito = "Se registró un {$tipoMovimiento} de L. " . number_format(abs($this->monto), 2) . " en la Caja #{$this->diferenciaSeleccionada->caja_id}, {$impactoTexto}. Nueva diferencia: L. " . number_format(abs($nuevaDiferencia), 2) . ". La transacción permanece abierta.";
             }
 
             // Recargar datos, cerrar modal de gestión y mostrar modal de éxito
