@@ -21,7 +21,35 @@ class RecibidoDeEfectivo extends Component
 
     public function mount()
     {
+        $this->validarJornadaAbierta();
         $this->cargarCajaActual();
+    }
+
+    public function validarJornadaAbierta()
+    {
+        $usuario = Auth::user();
+        
+        if (!$usuario->tienda_id) {
+            $this->mensajeError = 'Usuario sin tienda asignada. No se pueden realizar operaciones de caja.';
+            return false;
+        }
+
+        $fechaActual = date('Y-m-d');
+        
+        // Verificar si existe una jornada aperturada para hoy
+        $jornadaAbierta = DB::table('jornada')
+            ->where('fecha', $fechaActual)
+            ->where('tienda_id', $usuario->tienda_id)
+            ->where('apertura', 1)
+            ->where('cierre', 0)
+            ->first();
+
+        if (!$jornadaAbierta) {
+            $this->mensajeError = 'No se pueden realizar operaciones de caja porque la jornada no está aperturada para hoy. Debe aperturar la jornada primero.';
+            return false;
+        }
+
+        return true;
     }
 
     public function cargarCajaActual()
@@ -37,6 +65,11 @@ class RecibidoDeEfectivo extends Component
 
     public function recibirEfectivo()
     {
+        // Validar que la jornada esté abierta antes de proceder
+        if (!$this->validarJornadaAbierta()) {
+            return;
+        }
+
         $this->validate();
 
         if (!$this->cajaActual) {

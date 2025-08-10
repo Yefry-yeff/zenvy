@@ -16,7 +16,37 @@ class SaldoInicial extends Component
 
     public function mount()
     {
+        $this->validarJornadaAbierta();
         $this->cargarCajaActual();
+    }
+
+    public function validarJornadaAbierta()
+    {
+        $usuario = Auth::user();
+        
+        if (!$usuario->tienda_id) {
+            $this->mensaje = 'Usuario sin tienda asignada. No se pueden realizar operaciones de caja.';
+            $this->tipoMensaje = 'error';
+            return false;
+        }
+
+        $fechaActual = date('Y-m-d');
+        
+        // Verificar si existe una jornada aperturada para hoy
+        $jornadaAbierta = DB::table('jornada')
+            ->where('fecha', $fechaActual)
+            ->where('tienda_id', $usuario->tienda_id)
+            ->where('apertura', 1)
+            ->where('cierre', 0)
+            ->first();
+
+        if (!$jornadaAbierta) {
+            $this->mensaje = 'No se pueden realizar operaciones de caja porque la jornada no está aperturada para hoy. Debe aperturar la jornada primero.';
+            $this->tipoMensaje = 'error';
+            return false;
+        }
+
+        return true;
     }
 
     public function cargarCajaActual()
@@ -31,6 +61,11 @@ class SaldoInicial extends Component
 
     public function establecerSaldoInicial()
     {
+        // Validar que la jornada esté abierta antes de proceder
+        if (!$this->validarJornadaAbierta()) {
+            return;
+        }
+
         $this->validate([
             'monto' => 'required|numeric|min:0.01',
             'descripcion' => 'nullable|string|max:255'

@@ -44,9 +44,35 @@ class CierreDeCaja extends Component
 
     public function mount()
     {
+        $this->validarJornadaAbierta();
         $this->cargarDatosCaja();
         $this->cargarTransaccionesDia();
         $this->calcularResumen();
+    }
+
+    public function validarJornadaAbierta()
+    {
+        $usuario = Auth::user();
+        
+        if (!$usuario->tienda_id) {
+            return false;
+        }
+
+        $fechaActual = date('Y-m-d');
+        
+        // Verificar si existe una jornada aperturada para hoy
+        $jornadaAbierta = DB::table('jornada')
+            ->where('fecha', $fechaActual)
+            ->where('tienda_id', $usuario->tienda_id)
+            ->where('apertura', 1)
+            ->where('cierre', 0)
+            ->first();
+
+        if (!$jornadaAbierta) {
+            return false;
+        }
+
+        return true;
     }
 
     public function cargarDatosCaja()
@@ -141,6 +167,12 @@ class CierreDeCaja extends Component
 
     public function procesarCierre()
     {
+        // Validar que la jornada esté abierta antes de proceder
+        if (!$this->validarJornadaAbierta()) {
+            $this->mensajeError = 'No se pueden realizar operaciones de caja porque la jornada no está aperturada para hoy. Debe aperturar la jornada primero.';
+            return;
+        }
+
         if (!$this->cajaActual) {
             $this->mensajeError = 'No hay una caja abierta para cerrar.';
             return;
