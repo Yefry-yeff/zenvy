@@ -21,6 +21,78 @@
         </div>
     </div>
 
+    <!-- Acciones rápidas basadas en rol -->
+    <div class="px-6 pb-4">
+        <div class="p-6 bg-white border border-gray-100 shadow-lg rounded-xl">
+            <h3 class="mb-4 text-lg font-semibold text-gray-800">🚀 Acciones Rápidas</h3>
+            <div class="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-6">
+                @if(in_array($datosUsuario['rol'], ['Facturador', 'Admin', 'Administrador', 'Inventario']))
+                <button
+                    x-on:click="window.Livewire.dispatch('cambiarVista', ['saladeventas.ventas'])"
+                    class="flex flex-col items-center justify-center p-4 text-white transition-all duration-200 transform bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl hover:from-blue-600 hover:to-blue-700 hover:scale-105">
+                    <span class="mb-2 text-2xl">🛒</span>
+                    <span class="text-sm font-medium">Nueva Venta</span>
+                </button>
+                @endif
+
+                @if(in_array($datosUsuario['rol'], ['Inventario', 'Admin', 'Administrador']))
+                <button
+                    x-on:click="window.Livewire.dispatch('cambiarVista', ['inventario.producto'])"
+                    class="flex flex-col items-center justify-center p-4 text-white transition-all duration-200 transform bg-gradient-to-br from-green-500 to-green-600 rounded-xl hover:from-green-600 hover:to-green-700 hover:scale-105">
+                    <span class="mb-2 text-2xl">📦</span>
+                    <span class="text-sm font-medium">Productos</span>
+                </button>
+
+                <button
+                    x-on:click="window.Livewire.dispatch('cambiarVista', ['inventario.compradeproductos'])"
+                    class="flex flex-col items-center justify-center p-4 text-white transition-all duration-200 transform bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl hover:from-purple-600 hover:to-purple-700 hover:scale-105">
+                    <span class="mb-2 text-2xl">🛍️</span>
+                    <span class="text-sm font-medium">Compras</span>
+                </button>
+
+                <button
+                    x-on:click="window.Livewire.dispatch('cambiarVista', ['inventario.bodegas'])"
+                    class="flex flex-col items-center justify-center p-4 text-white transition-all duration-200 transform bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl hover:from-orange-600 hover:to-orange-700 hover:scale-105">
+                    <span class="mb-2 text-2xl">🏭</span>
+                    <span class="text-sm font-medium">Bodegas</span>
+                </button>
+                @endif
+
+                @if(in_array($datosUsuario['rol'], ['Admin', 'Administrador', 'Roles']))
+                <button
+                    x-on:click="window.Livewire.dispatch('cambiarVista', ['configuracion.usuarios'])"
+                    class="flex flex-col items-center justify-center p-4 text-white transition-all duration-200 transform bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl hover:from-indigo-600 hover:to-indigo-700 hover:scale-105">
+                    <span class="mb-2 text-2xl">👥</span>
+                    <span class="text-sm font-medium">Usuarios</span>
+                </button>
+
+                <button
+                    x-on:click="window.Livewire.dispatch('cambiarVista', ['configuracion.roles'])"
+                    class="flex flex-col items-center justify-center p-4 text-white transition-all duration-200 transform bg-gradient-to-br from-pink-500 to-pink-600 rounded-xl hover:from-pink-600 hover:to-pink-700 hover:scale-105">
+                    <span class="mb-2 text-2xl">🔐</span>
+                    <span class="text-sm font-medium">Roles</span>
+                </button>
+                @endif
+
+                @if(in_array($datosUsuario['rol'], ['Cajero', 'Admin', 'Administrador', 'Facturador']))
+                <button
+                    x-on:click="window.Livewire.dispatch('cambiarVista', ['caja.RecibidoDeEfectivo'])"
+                    class="flex flex-col items-center justify-center p-4 text-white transition-all duration-200 transform bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl hover:from-emerald-600 hover:to-emerald-700 hover:scale-105">
+                    <span class="mb-2 text-2xl">💰</span>
+                    <span class="text-sm font-medium">Recibir Efectivo</span>
+                </button>
+
+                <button
+                    x-on:click="window.Livewire.dispatch('cambiarVista', ['caja.EntregaDeEfectivo'])"
+                    class="flex flex-col items-center justify-center p-4 text-white transition-all duration-200 transform bg-gradient-to-br from-red-500 to-red-600 rounded-xl hover:from-red-600 hover:to-red-700 hover:scale-105">
+                    <span class="mb-2 text-2xl">💸</span>
+                    <span class="text-sm font-medium">Entregar Efectivo</span>
+                </button>
+                @endif
+            </div>
+        </div>
+    </div>
+
     <div class="p-6 space-y-6">
         <!-- Tarjetas de estadísticas principales -->
         <div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
@@ -142,11 +214,11 @@
             <div class="p-6 text-white shadow-lg bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-emerald-100">Compras este Mes</p>
-                        <p class="text-3xl font-bold">{{ $estadisticas['compras_mes'] ?? 0 }}</p>
-                        <p class="mt-1 text-xs text-emerald-100">📋 Órdenes procesadas</p>
+                        <p class="text-emerald-100">Recepciones este Mes</p>
+                        <p class="text-3xl font-bold">{{ $estadisticas['recepciones_mes'] ?? 0 }}</p>
+                        <p class="mt-1 text-xs text-emerald-100">📋 Productos recibidos</p>
                     </div>
-                    <span class="text-3xl">🛒</span>
+                    <span class="text-3xl">�</span>
                 </div>
             </div>
         </div>
@@ -239,60 +311,6 @@
                 </div>
             </div>
             @endif
-        </div>
-
-        <!-- Acciones rápidas basadas en rol -->
-        <div class="p-6 bg-white border border-gray-100 shadow-lg rounded-xl">
-            <h3 class="mb-4 text-lg font-semibold text-gray-800">🚀 Acciones Rápidas</h3>
-            <div class="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-6">
-                @if(in_array($datosUsuario['rol'], ['Facturador', 'Admin', 'Administrador', 'Inventario']))
-                <button
-                    x-on:click="window.Livewire.dispatch('cambiarVista', ['saladeventas.ventas'])"
-                    class="flex flex-col items-center justify-center p-4 text-white transition-all duration-200 transform bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl hover:from-blue-600 hover:to-blue-700 hover:scale-105">
-                    <span class="mb-2 text-2xl">🛒</span>
-                    <span class="text-sm font-medium">Nueva Venta</span>
-                </button>
-                @endif
-
-                @if(in_array($datosUsuario['rol'], ['Inventario', 'Admin', 'Administrador']))
-                <button
-                    x-on:click="window.Livewire.dispatch('cambiarVista', ['inventario.producto'])"
-                    class="flex flex-col items-center justify-center p-4 text-white transition-all duration-200 transform bg-gradient-to-br from-green-500 to-green-600 rounded-xl hover:from-green-600 hover:to-green-700 hover:scale-105">
-                    <span class="mb-2 text-2xl">📦</span>
-                    <span class="text-sm font-medium">Productos</span>
-                </button>
-
-                <button
-                    x-on:click="window.Livewire.dispatch('cambiarVista', ['inventario.compradeproductos'])"
-                    class="flex flex-col items-center justify-center p-4 text-white transition-all duration-200 transform bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl hover:from-purple-600 hover:to-purple-700 hover:scale-105">
-                    <span class="mb-2 text-2xl">🛍️</span>
-                    <span class="text-sm font-medium">Compras</span>
-                </button>
-
-                <button
-                    x-on:click="window.Livewire.dispatch('cambiarVista', ['inventario.bodegas'])"
-                    class="flex flex-col items-center justify-center p-4 text-white transition-all duration-200 transform bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl hover:from-orange-600 hover:to-orange-700 hover:scale-105">
-                    <span class="mb-2 text-2xl">🏭</span>
-                    <span class="text-sm font-medium">Bodegas</span>
-                </button>
-                @endif
-
-                @if(in_array($datosUsuario['rol'], ['Admin', 'Administrador', 'Roles']))
-                <button
-                    x-on:click="window.Livewire.dispatch('cambiarVista', ['configuracion.usuarios'])"
-                    class="flex flex-col items-center justify-center p-4 text-white transition-all duration-200 transform bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl hover:from-indigo-600 hover:to-indigo-700 hover:scale-105">
-                    <span class="mb-2 text-2xl">👥</span>
-                    <span class="text-sm font-medium">Usuarios</span>
-                </button>
-
-                <button
-                    x-on:click="window.Livewire.dispatch('cambiarVista', ['configuracion.roles'])"
-                    class="flex flex-col items-center justify-center p-4 text-white transition-all duration-200 transform bg-gradient-to-br from-pink-500 to-pink-600 rounded-xl hover:from-pink-600 hover:to-pink-700 hover:scale-105">
-                    <span class="mb-2 text-2xl">🔐</span>
-                    <span class="text-sm font-medium">Roles</span>
-                </button>
-                @endif
-            </div>
         </div>
     </div>
 </div>

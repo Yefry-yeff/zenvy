@@ -75,15 +75,30 @@ class DashboardDinamico extends Component
         }
 
         if (in_array($rolNombre, ['Inventario', 'Admin', 'Administrador'])) {
+            // Para stock bajo, filtrar por bodegas de la tienda del usuario
+            $queryStockBajo = DB::table('recibido_bodega')
+                ->where('cantidad_disponible', '<', 10);
+            
+            // Si el usuario no es Admin, filtrar por su tienda
+            if (!in_array($rolNombre, ['Admin', 'Administrador']) && $usuario->tienda_id) {
+                $queryStockBajo->join('seccion as s', 'recibido_bodega.seccion_id', '=', 's.id')
+                    ->join('segmento as seg', 's.segmento_id', '=', 'seg.id')
+                    ->join('bodega as b', 'seg.bodega_id', '=', 'b.id')
+                    ->where('b.tienda_id', $usuario->tienda_id);
+            }
+            
+            // Para recepciones de productos del mes, filtrar por usuario actual si no es Admin
+            $queryRecepciones = DB::table('recibido_bodega')
+                ->whereMonth('created_at', now()->month)
+                ->whereYear('created_at', now()->year);
+            
+            if (!in_array($rolNombre, ['Admin', 'Administrador'])) {
+                $queryRecepciones->where('users_registro_id', $usuario->id);
+            }
+            
             $this->estadisticas = array_merge($this->estadisticas, [
-                'stock_bajo' => DB::table('recibido_bodega')
-                    ->where('cantidad_disponible', '<', 10)
-                    ->count(),
-                
-                'compras_mes' => DB::table('compra')
-                    ->whereMonth('created_at', now()->month)
-                    ->whereYear('created_at', now()->year)
-                    ->count(),
+                'stock_bajo' => $queryStockBajo->count(),
+                'recepciones_mes' => $queryRecepciones->count(),
             ]);
         }
     }
@@ -111,13 +126,20 @@ class DashboardDinamico extends Component
 
         // Productos con stock bajo (para inventario y admin)
         if (in_array($rolNombre, ['Inventario', 'Admin', 'Administrador'])) {
-            $this->productosStockBajo = DB::table('recibido_bodega as rb')
+            $queryProductosStockBajo = DB::table('recibido_bodega as rb')
                 ->join('producto as p', 'rb.producto_id', '=', 'p.id')
                 ->join('seccion as s', 'rb.seccion_id', '=', 's.id')
                 ->join('segmento as seg', 's.segmento_id', '=', 'seg.id')
                 ->join('bodega as b', 'seg.bodega_id', '=', 'b.id')
                 ->where('rb.cantidad_disponible', '<', 10)
-                ->where('rb.cantidad_disponible', '>', 0)
+                ->where('rb.cantidad_disponible', '>', 0);
+            
+            // Si el usuario no es Admin, filtrar por su tienda
+            if (!in_array($rolNombre, ['Admin', 'Administrador']) && $usuario->tienda_id) {
+                $queryProductosStockBajo->where('b.tienda_id', $usuario->tienda_id);
+            }
+            
+            $this->productosStockBajo = $queryProductosStockBajo
                 ->select(
                     'p.nombre as producto',
                     'rb.cantidad_disponible',
