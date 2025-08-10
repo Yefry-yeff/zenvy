@@ -88,6 +88,13 @@
                     <span class="mb-2 text-2xl">💸</span>
                     <span class="text-sm font-medium">Entregar Efectivo</span>
                 </button>
+
+                <button
+                    x-on:click="window.Livewire.dispatch('cambiarVista', ['caja.CierreDeCaja'])"
+                    class="flex flex-col items-center justify-center p-4 text-white transition-all duration-200 transform bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl hover:from-purple-600 hover:to-purple-700 hover:scale-105">
+                    <span class="mb-2 text-2xl">📋</span>
+                    <span class="text-sm font-medium">Cierre de Caja</span>
+                </button>
                 @endif
             </div>
         </div>
