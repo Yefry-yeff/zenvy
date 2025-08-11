@@ -217,6 +217,23 @@ class Ventas extends Component
         $this->direccionManual = '';
     }
 
+    public function cancelarFactura()
+    {
+        // Limpiar todos los datos de la factura
+        $this->cliente = null;
+        $this->modoClienteManual = false;
+        $this->limpiarCamposManual();
+        $this->productosFactura = [];
+        $this->descuentoTerceraEdad = false;
+        $this->descuentoCuartaEdad = false;
+        $this->totalDescuentos = 0;
+        $this->datosDescuentoAdulto = [];
+        $this->calcularTotales();
+        
+        // Redirigir al dashboard
+        return redirect()->route('dashboard');
+    }
+
     public function obtenerNombreCliente()
     {
         if ($this->cliente) {
