@@ -24,6 +24,14 @@ class Ventas extends Component
     public $mostrarModalClientesFlag = false;
     public $busquedaCliente = '';
     public $clientesModal;
+    
+    // Cliente manual - campos editables
+    public $rtnManual = '';
+    public $nombreCompletoManual = '';
+    public $telefonoManual = '';
+    public $correoManual = '';
+    public $direccionManual = '';
+    public $modoClienteManual = false;
 
     // Búsqueda de productos
     public $codigoBarras = '';
@@ -174,17 +182,61 @@ class Ventas extends Component
                 ) as direccion_completa")
             ])
             ->leftJoin('direccion', 'cliente.direccion_id', '=', 'direccion.id')
-            ->where('cliente.identidad', $identidad)
+            ->where(function($q) use ($identidad) {
+                $q->where('cliente.identidad', $identidad)
+                  ->orWhere('cliente.rtn', $identidad);
+            })
             ->first();
 
         if ($cliente) {
             $this->cliente = $cliente;
+            $this->modoClienteManual = false;
+            $this->limpiarCamposManual();
             session()->forget('cliente_no_encontrado');
         } else {
             $this->cliente = null;
             session()->flash('cliente_no_encontrado', 'No existe un cliente con esa identidad.');
         }
         $this->dispatch('cerrar-modal-busqueda');
+    }
+
+    public function activarModoClienteManual()
+    {
+        $this->cliente = null;
+        $this->modoClienteManual = true;
+        $this->limpiarCamposManual();
+        $this->dispatch('cerrar-modal-busqueda');
+    }
+
+    public function limpiarCamposManual()
+    {
+        $this->rtnManual = '';
+        $this->nombreCompletoManual = '';
+        $this->telefonoManual = '';
+        $this->correoManual = '';
+        $this->direccionManual = '';
+    }
+
+    public function obtenerNombreCliente()
+    {
+        if ($this->cliente) {
+            return $this->cliente->nombre_completo;
+        } elseif ($this->modoClienteManual && !empty($this->nombreCompletoManual)) {
+            return $this->nombreCompletoManual;
+        } else {
+            return 'Consumidor Final';
+        }
+    }
+
+    public function obtenerRtnCliente()
+    {
+        if ($this->cliente) {
+            return $this->cliente->rtn;
+        } elseif ($this->modoClienteManual && !empty($this->rtnManual)) {
+            return $this->rtnManual;
+        } else {
+            return null;
+        }
     }
 
     public function mostrarModalClientes()
@@ -248,6 +300,8 @@ class Ventas extends Component
 
         if ($cliente) {
             $this->cliente = $cliente;
+            $this->modoClienteManual = false;
+            $this->limpiarCamposManual();
             $this->cerrarModalClientes();
         }
     }
@@ -562,6 +616,8 @@ class Ventas extends Component
     public function resetearFactura()
     {
         $this->cliente = null;
+        $this->modoClienteManual = false;
+        $this->limpiarCamposManual();
         $this->productosFactura = [];
         $this->descuentoTerceraEdad = false;
         $this->descuentoCuartaEdad = false;
@@ -808,8 +864,8 @@ class Ventas extends Component
                 'numero_factura' => $this->generarNumeroFactura(),
                 'cai_id' => $this->caiActual ? $this->caiActual['cai_id'] : 1,
                 'tipo_facturacion_id' => 1,
-                'nombre_cliente' => $this->cliente ? $this->cliente->nombre_completo : 'Consumidor Final',
-                'rtn' => $this->cliente ? $this->cliente->rtn : null,
+                'nombre_cliente' => $this->obtenerNombreCliente(),
+                'rtn' => $this->obtenerRtnCliente(),
                 'sub_total' => $this->subtotal,
                 'sub_total_grabado' => $this->subtotal,
                 'sub_total_exento' => 0,
