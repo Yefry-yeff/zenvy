@@ -11,12 +11,9 @@ use Illuminate\Database\QueryException;
 use Illuminate\Validation\ValidationException;
 use App\Models\GestionCai;
 use Illuminate\Support\Facades\Auth;
-use Livewire\WithPagination;
 
 class Cai extends Component
 {
-
-    use WithPagination; // Usa el trait
 
      public $form = [
         'id' => null,
@@ -80,7 +77,9 @@ class Cai extends Component
                     'A.created_at',
                     'A.updated_at'
                 )
-                ->paginate(5);
+                ->orderBy('A.estado_id', 'ASC') // Activos (1) primero, luego inactivos (2)
+                ->orderBy('A.created_at', 'DESC') // Luego por fecha de creación más reciente
+                ->get();
 
             return view('livewire.gestion.cai', compact('cai'));
     }

@@ -1,4 +1,24 @@
 <div>
+    <style>
+        /* Estilos para tabla CAI */
+        .cai-row-active {
+            background-color: rgba(34, 197, 94, 0.05) !important;
+        }
+        .cai-row-inactive {
+            background-color: rgba(239, 68, 68, 0.05) !important;
+            opacity: 0.7;
+        }
+        .badge-active {
+            background-color: #22c55e !important;
+            color: white;
+            font-weight: 600;
+        }
+        .badge-inactive {
+            background-color: #ef4444 !important;
+            color: white;
+            font-weight: 600;
+        }
+    </style>
 
     @if (session()->has('mensaje'))
     <div x-data="{ show: true }" x-init="$nextTick(() => show = true)"
@@ -66,7 +86,7 @@
 
                     <tbody>
                         @forelse($cai as $item)
-                            <tr class="text-center align-middle hover:bg-gray-50">
+                            <tr class="text-center align-middle hover:bg-gray-50 {{ $item->estado_id == 1 ? 'cai-row-active' : 'cai-row-inactive' }}">
                                 <td class="fw-semibold">{{ $item->id }}</td>
                                 <td class="text-start">{{ $item->tipo_documento_fiscal }}</td>
                                 <td class="text-start">{{ $item->denominacion_social }}</td>
@@ -80,7 +100,7 @@
                                 <td class="text-start">{{ $item->cantidad_otorgada }}</td>
                                 <td class="text-start">{{ $item->users_registro }}</td>
                                 <td class="text-start">
-                                    <span class="badge {{ $item->estado_id == 1 ? 'bg-success' : 'bg-danger' }}">
+                                    <span class="badge {{ $item->estado_id == 1 ? 'badge-active' : 'badge-inactive' }}">
                                         {{ $item->estado_id == 1 ? 'Activo' : 'Inactivo' }}
                                     </span>
                                 </td>
@@ -97,9 +117,6 @@
                     </tbody>
                 </table>
             </div>
-                <div class="mt-3">
-                    {{ $cai->links() }}
-                </div>
         </div>
 
     </div>
