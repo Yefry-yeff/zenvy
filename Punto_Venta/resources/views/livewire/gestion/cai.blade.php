@@ -8,8 +8,8 @@
     >
         <div class="modal fade show d-block" tabindex="-1" role="dialog" @click.away="show = false">
             <div class="modal-dialog modal-dialog-centered" @click.stop>
-                <div class="modal-content border-success shadow">
-                    <div class="modal-header bg-success text-white">
+                <div class="shadow modal-content border-success">
+                    <div class="text-white modal-header bg-success">
                         <h5 class="modal-title">Éxito</h5>
                         <button type="button" class="btn-close" @click="show = false"></button>
                     </div>
@@ -133,7 +133,7 @@
                                     <label for="nuevoCai" class="form-label">CAI</label>
                                     <input type="text" id="nuevoCai" class="form-control" wire:model.defer="nuevoCai"  title="El CAI debe tener el formato ####-####-####-####-####-####" maxlength="39">
                                     @error('nuevoCai')
-                                        <div class="text-danger mt-1 text-sm">{{ $message }}</div>
+                                        <div class="mt-1 text-sm text-danger">{{ $message }}</div>
                                     @enderror
                                 </div>
 
@@ -141,7 +141,7 @@
                                     <label for="nuevoFechaLimite" class="form-label">Fecha límite</label>
                                     <input type="date" id="nuevoFechaLimite" class="form-control" wire:model.defer="nuevoFechaLimite" title="Debe seleccionar una fecha límite de vigencia de este CAI.">
                                     @error('nuevoFechaLimite')
-                                        <div class="text-danger mt-1 text-sm">{{ $message }}</div>
+                                        <div class="mt-1 text-sm text-danger">{{ $message }}</div>
                                     @enderror
                                 </div>
 
@@ -150,7 +150,7 @@
                                     <label for="nuevoFechaSolicitud" class="form-label">Fecha de Solicitud</label>
                                     <input type="date" id="nuevoFechaSolicitud" class="form-control" wire:model.defer="nuevoFechaSolicitud" title="Debe seleccionar una fecha límite de vigencia de este CAI.">
                                     @error('nuevoFechaSolicitud')
-                                        <div class="text-danger mt-1 text-sm">{{ $message }}</div>
+                                        <div class="mt-1 text-sm text-danger">{{ $message }}</div>
                                     @enderror
                                 </div>
 
@@ -159,7 +159,7 @@
                                     <label for="nuevoPuntoEmision" class="form-label">Punto de Emisión</label>
                                     <input type="text" id="nuevoPuntoEmision" class="form-control" wire:model.defer="nuevoPuntoEmision" title="Debe seleccionar una fecha límite de vigencia de este CAI.">
                                     @error('nuevoPuntoEmision')
-                                        <div class="text-danger mt-1 text-sm">{{ $message }}</div>
+                                        <div class="mt-1 text-sm text-danger">{{ $message }}</div>
                                     @enderror
                                 </div>
 
@@ -172,7 +172,7 @@
                                         @endforeach
                                     </select>
                                     @error('tipoDocumentoSeleccionado')
-                                        <div class="text-danger mt-1 text-sm">{{ $message }}</div>
+                                        <div class="mt-1 text-sm text-danger">{{ $message }}</div>
                                     @enderror
                                 </div>
 
@@ -217,7 +217,7 @@
 
                                     <input type="text"
                                         placeholder="Buscar..."
-                                        class="form-control mb-1"
+                                        class="mb-1 form-control"
                                         x-model="search"
                                         @focus="open = true; clearSearch()"
                                         @input="open = true"
@@ -233,7 +233,7 @@
                                     </ul>
 
                                     @error('tiendaSeleccionado')
-                                        <div class="text-danger mt-1 text-sm">{{ $message }}</div>
+                                        <div class="mt-1 text-sm text-danger">{{ $message }}</div>
                                     @enderror
                                 </div>
 
@@ -241,7 +241,7 @@
                                     <label for="nuevoCantidadSolicitada" class="form-label">Cantidad Solicitada</label>
                                     <input type="number" id="nuevoCantidadSolicitada" step="1" min="0" oninput="this.value = this.value.replace(/[^0-9]/g, '')" class="form-control" wire:model.defer="nuevoCantidadSolicitada" title="Debe ingresar un numero entero.">
                                     @error('nuevoCantidadSolicitada')
-                                        <div class="text-danger mt-1 text-sm">{{ $message }}</div>
+                                        <div class="mt-1 text-sm text-danger">{{ $message }}</div>
                                     @enderror
                                 </div>
 
@@ -249,7 +249,7 @@
                                     <label for="nuevoCantidadOtorgada" class="form-label">Cantidad Otorgada</label>
                                     <input type="number" id="nuevoCantidadOtorgada" step="1" min="0" oninput="this.value = this.value.replace(/[^0-9]/g, '')" class="form-control" wire:model.defer="nuevoCantidadOtorgada" title="Debe ingresar un numero entero.">
                                     @error('nuevoCantidadOtorgada')
-                                        <div class="text-danger mt-1 text-sm">{{ $message }}</div>
+                                        <div class="mt-1 text-sm text-danger">{{ $message }}</div>
                                     @enderror
                                 </div>
 
@@ -257,7 +257,7 @@
                                     <label for="nuevoRangoInicial" class="form-label">Rango Inicial</label>
                                     <input type="text" id="nuevoRangoInicial" step="1" class="form-control" wire:model.defer="nuevoRangoInicial" title="Debe contener el formato correcto.">
                                     @error('nuevoRangoInicial')
-                                        <div class="text-danger mt-1 text-sm">{{ $message }}</div>
+                                        <div class="mt-1 text-sm text-danger">{{ $message }}</div>
                                     @enderror
                                 </div>
 
@@ -265,7 +265,7 @@
                                     <label for="nuevoRangoFinal" class="form-label">Rando Final</label>
                                     <input type="text" id="nuevoRangoFinal" class="form-control" wire:model.defer="nuevoRangoFinal" title="Debe contener el formato correcto.">
                                     @error('nuevoRangoFinal')
-                                        <div class="text-danger mt-1 text-sm">{{ $message }}</div>
+                                        <div class="mt-1 text-sm text-danger">{{ $message }}</div>
                                     @enderror
                                 </div>
 
@@ -325,7 +325,7 @@
                                 <input type="text" id="marcaNombre" class="form-control"
                                        wire:model.defer="form.nombre">
                                 @error('form.nombre')
-                                    <div class="text-danger mt-1 text-sm">{{ $message }}</div>
+                                    <div class="mt-1 text-sm text-danger">{{ $message }}</div>
                                 @enderror
                             </div>
                             <div class="flex justify-end mt-4">
@@ -360,7 +360,7 @@
         >
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content">
-                    <div class="modal-header bg-danger text-white">
+                    <div class="text-white modal-header bg-danger">
                         <h5 class="modal-title">¿Eliminar marca?</h5>
                     </div>
                     <div class="modal-body">
