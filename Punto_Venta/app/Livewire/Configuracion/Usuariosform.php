@@ -4,6 +4,7 @@ namespace App\Livewire\Configuracion;
 use Livewire\Component;
 use App\Models\User;
 use App\Models\UserDetalle;
+use App\Models\Caja;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
@@ -163,8 +164,22 @@ class Usuariosform extends Component
                     'estado_id' => $this->form['estado_id'],
                 ]);
 
+                // Si el rol es cajero (ID 8), crear registro de caja
+                if ($this->form['rol_id'] == 8) {
+                    Caja::create([
+                        'tienda_id' => $this->form['tienda_id'],
+                        'users_id' => $usuario->id,
+                        'balance' => 0.00,
+                        'fecha_apertura' => null,
+                        'fecha_cierre' => null,
+                        'estado_caja' => 2, // Cerrada por defecto
+                    ]);
+                }
+
             } else {
                 $usuario = User::findOrFail($this->usuarioId);
+                $rolAnterior = $usuario->roles_id;
+
                 $usuario->estado_id = $this->form['estado_id'];
                 $usuario->email = $this->form['email'];
                 $usuario->roles_id = $this->form['rol_id'];
@@ -188,6 +203,21 @@ class Usuariosform extends Component
                     'identidad' => $this->form['txt_identificacion'],
                     'estado_id' => $this->form['estado_id'],
                 ]);
+
+                // Si cambió a rol cajero (ID 8) y no tenía registro de caja, crearlo
+                if ($this->form['rol_id'] == 8 && $rolAnterior != 8) {
+                    $cajaExistente = Caja::where('users_id', $usuario->id)->first();
+                    if (!$cajaExistente) {
+                        Caja::create([
+                            'tienda_id' => $this->form['tienda_id'],
+                            'users_id' => $usuario->id,
+                            'balance' => 0.00,
+                            'fecha_apertura' => null,
+                            'fecha_cierre' => null,
+                            'estado_caja' => 2, // Cerrada por defecto
+                        ]);
+                    }
+                }
 
                 if (!empty($this->permisosEliminados)) {
                     foreach ($this->permisosEliminados as $permisoId) {

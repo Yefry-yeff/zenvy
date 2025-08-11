@@ -119,18 +119,27 @@ class Ventas extends Component
                 Log::info("CAIs vencidos desactivados: $caisDesactivados");
             }
 
-            // Verificar disponibilidad
-            if (!$caiService->verificarDisponibilidadCAI()) {
-                $this->alertaCAI = "¡CRÍTICO! No hay CAI activos disponibles para facturar. Contacte al administrador.";
+            // Verificar disponibilidad específica para la tienda del usuario
+            $validacionTienda = $caiService->validarCAIParaTienda($this->tiendaUsuario);
+            
+            if (!$validacionTienda['valido']) {
+                $this->alertaCAI = "¡CRÍTICO! " . $validacionTienda['mensaje'] . " - " . $validacionTienda['detalle'];
+                $this->caiActual = null;
             } else {
-                // Obtener información de CAIs
-                $this->informacionCAI = $caiService->obtenerInformacionCAIs();
+                // Verificar disponibilidad general (método anterior como respaldo)
+                if (!$caiService->verificarDisponibilidadCAI($this->tiendaUsuario)) {
+                    $this->alertaCAI = "¡CRÍTICO! No hay CAI activos disponibles para facturar en su tienda. Contacte al administrador.";
+                    $this->caiActual = null;
+                } else {
+                    // Obtener información de CAIs de la tienda
+                    $this->informacionCAI = $caiService->obtenerInformacionCAIs();
+                    $this->caiActual = $validacionTienda['cai_info'];
 
-                // Verificar si algún CAI está por agotarse
-                foreach ($this->informacionCAI as $cai) {
-                    if ($cai->cantidad_no_utilizada <= 10 && $cai->cantidad_no_utilizada > 0) {
-                        $this->alertaCAI = "¡AVISO! El CAI {$cai->numero_base} tiene solo {$cai->cantidad_no_utilizada} facturas restantes.";
-                        break;
+                    // Verificar si algún CAI está por agotarse
+                    if ($validacionTienda['cai_info']['cantidad_disponible'] <= 10) {
+                        $this->alertaCAI = "¡AVISO! Su CAI tiene solo {$validacionTienda['cai_info']['cantidad_disponible']} facturas restantes.";
+                    } else {
+                        $this->alertaCAI = null; // Todo está bien
                     }
                 }
             }
@@ -138,6 +147,7 @@ class Ventas extends Component
         } catch (\Exception $e) {
             Log::error("Error al verificar CAI: " . $e->getMessage());
             $this->alertaCAI = "Error al verificar CAI: " . $e->getMessage();
+            $this->caiActual = null;
         }
     }
 
@@ -771,6 +781,24 @@ class Ventas extends Component
         Log::info("DEBUG finalizarVentaConDistribucion INICIO");
 
         try {
+            // VALIDACIÓN CAI ANTES DE FACTURAR
+            $caiService = new CAIService();
+            $validacionCAI = $caiService->validarCAIParaTienda($this->tiendaUsuario);
+            
+            if (!$validacionCAI['valido']) {
+                $this->procesandoVenta = false;
+                session()->flash('error', '❌ No se puede facturar: ' . $validacionCAI['mensaje']);
+                $this->dispatch('mostrar-error-cai', [
+                    'titulo' => 'Error de CAI',
+                    'mensaje' => $validacionCAI['mensaje'],
+                    'detalle' => $validacionCAI['detalle']
+                ]);
+                return;
+            }
+
+            // Actualizar información de CAI actual
+            $this->caiActual = $validacionCAI['cai_info'];
+            
             DB::beginTransaction();
 
             Log::info("DEBUG Transacción iniciada");
@@ -1820,19 +1848,21 @@ class Ventas extends Component
         $caiService = new CAIService();
 
         try {
-            $resultadoCAI = $caiService->obtenerSiguienteNumeroFactura();
+            // Usar CAI específico de la tienda del usuario
+            $resultadoCAI = $caiService->obtenerSiguienteNumeroFactura($this->tiendaUsuario);
 
             // Guardar información para usar en la factura
             $this->caiActual = $resultadoCAI;
 
             // Si el CAI se agotó, mostrar alerta
             if ($resultadoCAI['cai_agotado']) {
-                $this->alertaCAI = "¡ATENCIÓN! El CAI se ha agotado. Esta es la última factura disponible para este CAI.";
+                $this->alertaCAI = "¡ATENCIÓN! El CAI de su tienda se ha agotado. Esta es la última factura disponible para este CAI.";
             } elseif ($resultadoCAI['cantidad_restante'] <= 10) {
-                $this->alertaCAI = "¡AVISO! Quedan solo {$resultadoCAI['cantidad_restante']} facturas disponibles en el CAI actual.";
+                $this->alertaCAI = "¡AVISO! Quedan solo {$resultadoCAI['cantidad_restante']} facturas disponibles en el CAI de su tienda.";
             }
 
-            Log::info("DEBUG CAI generado", [
+            Log::info("DEBUG CAI generado para tienda", [
+                'tienda_id' => $this->tiendaUsuario,
                 'numero_factura' => $resultadoCAI['numero_factura'],
                 'cai_id' => $resultadoCAI['cai_id'],
                 'cantidad_restante' => $resultadoCAI['cantidad_restante']

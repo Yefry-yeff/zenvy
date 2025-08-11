@@ -561,10 +561,12 @@
                 <div class="flex justify-end">
                     @php
                         $tieneErrores = count($productosFactura) == 0;
+                        $tieneErrorCAI = $alertaCAI && (str_contains($alertaCAI, 'CRÍTICO') || str_contains($alertaCAI, 'ERROR'));
+                        $noPermiteFacturar = $tieneErrores || $tieneErrorCAI;
                     @endphp
                     <button wire:click="mostrarModalPago"
-                        class="px-6 py-2 text-white rounded-lg transition-colors {{ $tieneErrores ? 'opacity-50 cursor-not-allowed bg-gray-400' : '' }}"
-                        @if(!$tieneErrores)
+                        class="px-6 py-2 text-white rounded-lg transition-colors {{ $noPermiteFacturar ? 'opacity-50 cursor-not-allowed bg-gray-400' : '' }}"
+                        @if(!$noPermiteFacturar)
                         :class="{
                             'bg-emerald-600 hover:bg-emerald-700': theme === 'verde',
                             'bg-blue-600 hover:bg-blue-700': theme === 'azul',
@@ -572,8 +574,11 @@
                             'bg-slate-700 hover:bg-slate-800': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
                         }"
                         @endif
-                        @if($tieneErrores) disabled @endif
-                        title="{{ count($productosFactura) == 0 ? 'Agregue productos para procesar' : 'Procesar pago' }}">
+                        @if($noPermiteFacturar) disabled @endif
+                        title="{{ 
+                            count($productosFactura) == 0 ? 'Agregue productos para procesar' : 
+                            ($tieneErrorCAI ? 'Error de CAI: No se puede facturar' : 'Procesar pago') 
+                        }}">
                         <i class="fas fa-credit-card me-1"></i>
                         Procesar Pago
                     </button>

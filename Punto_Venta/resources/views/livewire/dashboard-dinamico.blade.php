@@ -12,6 +12,62 @@
                         Tienda: <span class="font-medium">{{ $datosUsuario['tienda'] }}</span> |
                         Último acceso: {{ $datosUsuario['ultimo_acceso'] }}
                     </p>
+
+                    <!-- Estado de la Jornada -->
+                    @if($estadoJornada && is_array($estadoJornada))
+                    <div class="flex items-center mt-2 space-x-4">
+                        <div class="flex items-center space-x-2">
+                            <i class="text-purple-500 fas fa-calendar-day"></i>
+                            <span class="text-sm text-gray-600">Estado de Jornada:</span>
+                            @if(isset($estadoJornada['estado']) && $estadoJornada['estado'] == 'abierta')
+                                <span class="px-2 py-1 text-xs font-medium text-green-800 bg-green-100 rounded-full">
+                                    🟢 {{ $estadoJornada['estado_texto'] ?? 'Abierta' }}
+                                </span>
+                            @elseif(isset($estadoJornada['estado']) && $estadoJornada['estado'] == 'cerrada')
+                                <span class="px-2 py-1 text-xs font-medium text-red-800 bg-red-100 rounded-full">
+                                    🔴 {{ $estadoJornada['estado_texto'] ?? 'Cerrada' }}
+                                </span>
+                            @elseif(isset($estadoJornada['estado']) && $estadoJornada['estado'] == 'sin_aperturar')
+                                <span class="px-2 py-1 text-xs font-medium text-yellow-800 bg-yellow-100 rounded-full">
+                                    🟡 Sin aperturar
+                                </span>
+                            @else
+                                <span class="px-2 py-1 text-xs font-medium text-gray-800 bg-gray-100 rounded-full">
+                                    ⚪ {{ $estadoJornada['estado_texto'] ?? 'Desconocido' }}
+                                </span>
+                            @endif
+                        </div>
+                    </div>
+                    @endif
+
+                    <!-- Estado de la Caja -->
+                    @if($estadoCaja && is_array($estadoCaja))
+                    <div class="flex items-center mt-2 space-x-4">
+                        <div class="flex items-center space-x-2">
+                            <i class="text-blue-500 fas fa-cash-register"></i>
+                            <span class="text-sm text-gray-600">Estado de Caja:</span>
+                            @if(isset($estadoCaja['estado']) && $estadoCaja['estado'] == 1)
+                                <span class="px-2 py-1 text-xs font-medium text-green-800 bg-green-100 rounded-full">
+                                    ✅ {{ $estadoCaja['estado_texto'] ?? 'Abierta' }}
+                                </span>
+                            @elseif(isset($estadoCaja['estado']) && $estadoCaja['estado'] == 2)
+                                <span class="px-2 py-1 text-xs font-medium text-red-800 bg-red-100 rounded-full">
+                                    🔒 {{ $estadoCaja['estado_texto'] ?? 'Cerrada' }}
+                                </span>
+                            @else
+                                <span class="px-2 py-1 text-xs font-medium text-yellow-800 bg-yellow-100 rounded-full">
+                                    ⚠️ {{ $estadoCaja['estado_texto'] ?? 'Sin usar' }}
+                                </span>
+                            @endif
+                        </div>
+                        @if(isset($estadoCaja['balance']))
+                        <div class="flex items-center space-x-2">
+                            <span class="text-sm text-gray-600">Balance:</span>
+                            <span class="text-sm font-semibold text-gray-800">L. {{ number_format($estadoCaja['balance'], 2) }}</span>
+                        </div>
+                        @endif
+                    </div>
+                    @endif
                 </div>
 
                 <div class="text-right">
@@ -98,10 +154,10 @@
                 </button>
 
                 <button
-                    x-on:click="window.Livewire.dispatch('cambiarVista', ['caja.GestionDeDiferencias'])"
+                    x-on:click="window.Livewire.dispatch('cambiarVista', ['SalaDeVentas.Ventas'])"
                     class="flex flex-col items-center justify-center p-4 text-white transition-all duration-200 transform bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-xl hover:from-yellow-600 hover:to-yellow-700 hover:scale-105">
-                    <span class="mb-2 text-2xl">⚖️</span>
-                    <span class="text-sm font-medium">Gestión Diferencias</span>
+                    <span class="mb-2 text-2xl">💵</span>
+                    <span class="text-sm font-medium">Facturación</span>
                 </button>
                 @endif
 
