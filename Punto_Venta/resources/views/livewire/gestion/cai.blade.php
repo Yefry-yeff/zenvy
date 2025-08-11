@@ -48,7 +48,7 @@
                         <tr class="text-center align-middle">
                             <th>Cod</th>
                             <th>Doc. Fiscal</th>
-                            <th>Nombre Comercial</th>
+                            <th>Tienda</th>
                             <th>Cai</th>
                             <th>Rango Inicial</th>
                             <th>Rango Final</th>
@@ -61,46 +61,36 @@
                             <th>Estado</th>
                             <th>Registro</th>
                             <th>Ult. Modificación</th>
-                            <th >Acciones</th>
                         </tr>
                     </thead>
 
                     <tbody>
                         @forelse($cai as $item)
                             <tr class="text-center align-middle hover:bg-gray-50">
-                                <td class="fw-semibold cursor-pointer" wire:click="editar({{ $item->id }})">{{ $item->id }}</td>
-                                <td class="text-start cursor-pointer" wire:click="editar({{ $item->id }})">{{ $item->tipo_documento_fiscal }}</td>
-                                <td class="text-start cursor-pointer" wire:click="editar({{ $item->id }})">{{ $item->denominacion_social }}</td>
-                                <td class="text-start cursor-pointer" wire:click="editar({{ $item->id }})">{{ $item->cai }}</td>
-                                <td class="text-start cursor-pointer" wire:click="editar({{ $item->id }})">{{ $item->rango_inicio }}</td>
-                                <td class="text-start cursor-pointer" wire:click="editar({{ $item->id }})">{{ $item->rango_final }}</td>
-                                <td class="text-start cursor-pointer" wire:click="editar({{ $item->id }})">{{ $item->fecha_limite_emision }}</td>
-                                <td class="text-start cursor-pointer" wire:click="editar({{ $item->id }})">{{ $item->fecha_solicitud }}</td>
-                                <td class="text-start cursor-pointer" wire:click="editar({{ $item->id }})">{{ $item->punto_emision }}</td>
-                                <td class="text-start cursor-pointer" wire:click="editar({{ $item->id }})">{{ $item->cantidad_solicitada }}</td>
-                                <td class="text-start cursor-pointer" wire:click="editar({{ $item->id }})">{{ $item->cantidad_otorgada }}</td>
-                                <td class="text-start cursor-pointer" wire:click="editar({{ $item->id }})">{{ $item->users_registro }}</td>
-                                <td class="text-start cursor-pointer" wire:click="editar({{ $item->id }})">
+                                <td class="fw-semibold">{{ $item->id }}</td>
+                                <td class="text-start">{{ $item->tipo_documento_fiscal }}</td>
+                                <td class="text-start">{{ $item->denominacion_social }} ({{ $item->numero_sucursal }})</td>
+                                <td class="text-start">{{ $item->cai }}</td>
+                                <td class="text-start">{{ $item->rango_inicio }}</td>
+                                <td class="text-start">{{ $item->rango_final }}</td>
+                                <td class="text-start">{{ $item->fecha_limite_emision }}</td>
+                                <td class="text-start">{{ $item->fecha_solicitud }}</td>
+                                <td class="text-start">{{ $item->punto_emision }}</td>
+                                <td class="text-start">{{ $item->cantidad_solicitada }}</td>
+                                <td class="text-start">{{ $item->cantidad_otorgada }}</td>
+                                <td class="text-start">{{ $item->users_registro }}</td>
+                                <td class="text-start">
                                     <span class="badge {{ $item->estado_id == 1 ? 'bg-success' : 'bg-danger' }}">
                                         {{ $item->estado_id == 1 ? 'Activo' : 'Inactivo' }}
                                     </span>
                                 </td>
 
-                                <td class="text-start cursor-pointer" wire:click="editar({{ $item->id }})">{{ $item->created_at }}</td>
-                                <td class="text-start cursor-pointer" wire:click="editar({{ $item->id }})">{{ $item->updated_at }}</td>
-                                <td>
-                                    <button type="button" class="btn btn-link p-0" wire:click="confirmarEliminar({{ $item->id }})" title="Eliminar" onclick="event.stopPropagation();">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 7v12a2 2 0 002 2h8a2 2 0 002-2V7M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2m-7 0h10" style="color:#e3342f;" />
-                                            <line x1="10" y1="11" x2="10" y2="17" stroke="#e3342f" stroke-width="2"/>
-                                            <line x1="14" y1="11" x2="14" y2="17" stroke="#e3342f" stroke-width="2"/>
-                                        </svg>
-                                    </button>
-                                </td>
+                                <td class="text-start">{{ $item->created_at }}</td>
+                                <td class="text-start">{{ $item->updated_at }}</td>
                             </tr>
                         @empty
                             <tr>
-                                 <td colspan="16" class="text-center">No hay registros disponibles.</td>
+                                 <td colspan="14" class="text-center">No hay registros disponibles.</td>
                             </tr>
                         @endforelse
 

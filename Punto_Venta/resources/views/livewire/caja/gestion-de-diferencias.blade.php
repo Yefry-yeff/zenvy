@@ -328,19 +328,39 @@
                                 wire:model="monto"
                                 step="0.01"
                                 class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 @error('monto') border-red-500 @enderror"
-                                placeholder="0.00 (positivo o negativo)"
+                                placeholder="{{ $diferenciaSeleccionada->diferencia_efectivo > 0 ? 'Para reducir sobrante: -50' : 'Para reducir faltante: +100' }}"
                                 required
                             >
                             @error('monto') 
                                 <span class="text-red-500 text-sm mt-1">{{ $message }}</span> 
                             @enderror
-                            <div class="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                                <h5 class="text-sm font-semibold text-blue-800 mb-2">💡 Tipos de Ajuste:</h5>
-                                <ul class="text-xs text-blue-700 space-y-1">
-                                    <li><strong>Monto positivo (+):</strong> Reduce la diferencia (ej: +50 reduce sobrante/faltante)</li>
-                                    <li><strong>Monto negativo (-):</strong> Aumenta la diferencia (ej: -30 aumenta sobrante/faltante)</li>
-                                    <li><strong>Múltiples ajustes:</strong> Puede realizar varios ajustes hasta cerrar la diferencia</li>
-                                </ul>
+                            <div class="mt-2 p-3 border rounded-lg {{ $diferenciaSeleccionada->diferencia_efectivo > 0 ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200' }}">
+                                @if($diferenciaSeleccionada->diferencia_efectivo > 0)
+                                    <!-- SOBRANTE -->
+                                    <h5 class="text-sm font-semibold text-green-800 mb-2">
+                                        <i class="fas fa-arrow-up mr-1"></i>
+                                        SOBRANTE de L. {{ number_format(abs($diferenciaSeleccionada->diferencia_efectivo), 2) }}
+                                    </h5>
+                                    <ul class="text-xs text-green-700 space-y-1">
+                                        <li><strong>Para REDUCIR el sobrante:</strong> Ingrese valor negativo (ej: <code>-50</code> para reducir L. 50.00)</li>
+                                        <li><strong>Para AUMENTAR el sobrante:</strong> Ingrese valor positivo (ej: <code>+25</code> para aumentar L. 25.00)</li>
+                                        <li><em>💡 Ejemplo: Si tiene L. 100 de sobrante y aplica -100, la diferencia queda en L. 0.00</em></li>
+                                    </ul>
+                                @else
+                                    <!-- FALTANTE -->
+                                    <h5 class="text-sm font-semibold text-red-800 mb-2">
+                                        <i class="fas fa-arrow-down mr-1"></i>
+                                        FALTANTE de L. {{ number_format(abs($diferenciaSeleccionada->diferencia_efectivo), 2) }}
+                                    </h5>
+                                    <ul class="text-xs text-red-700 space-y-1">
+                                        <li><strong>Para REDUCIR el faltante:</strong> Ingrese valor positivo (ej: <code>+100</code> para reducir L. 100.00)</li>
+                                        <li><strong>Para AUMENTAR el faltante:</strong> Ingrese valor negativo (ej: <code>-50</code> para aumentar L. 50.00)</li>
+                                        <li><em>💡 Ejemplo: Si faltan L. 100 y aplica +100, la diferencia queda en L. 0.00</em></li>
+                                    </ul>
+                                @endif
+                                <div class="mt-2 pt-2 border-t border-gray-200">
+                                    <p class="text-xs text-gray-600">🔄 Puede realizar múltiples ajustes hasta cerrar completamente la diferencia</p>
+                                </div>
                             </div>
                         </div>
 
