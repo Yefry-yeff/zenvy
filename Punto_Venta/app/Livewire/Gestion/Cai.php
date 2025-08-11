@@ -75,14 +75,12 @@ class Cai extends Component
                     'A.rango_inicio',
                     'A.rango_final',
                     'D.denominacion_social',
-                    'D.numero_sucursal',
                     'C.name as users_registro',
                     'A.estado_id',
                     'A.created_at',
                     'A.updated_at'
                 )
-                ->orderBy('A.created_at', 'desc')
-                ->paginate(10);
+                ->paginate(5);
 
             return view('livewire.gestion.cai', compact('cai'));
     }
@@ -95,6 +93,7 @@ class Cai extends Component
 
     public function crearCai()
     {
+        //dd("entra");
         try {
             $this->validate([
                 'nuevoCai'             => 'required|string',
@@ -104,107 +103,96 @@ class Cai extends Component
                 'tipoDocumentoSeleccionado' => 'required|exists:tipo_documento_fiscal,id',
                 'tiendaSeleccionado'   => 'required|exists:tienda,id',
                 'nuevoCantidadOtorgada' => 'required|integer|min:1',
-                'nuevoCantidadSolicitada' => 'required|integer|min:1',
+                'nuevoCantidadOtorgada' => 'required|integer|min:1',
                 'nuevoRangoInicial'  => 'required|string',
                 'nuevoRangoFinal'  => 'required|string',
+
             ]);
 
-            // Verificar si existe un CAI activo para esta tienda
-            $caiAnterior = caiModel::where('tienda_id', $this->tiendaSeleccionado)
+            $docFiscal = caiModel::where('tipo_documento_fiscal_id', $this->tipoDocumentoSeleccionado)
+                        ->where('tienda_id',$this->tiendaSeleccionado)
+                        ->where('estado_id', 1)
+                        ->exists();
+
+            if ($docFiscal) {
+                //Se recupera el cai para darle en la nuca
+                $cai = caiModel::where('tipo_documento_fiscal_id', $this->tipoDocumentoSeleccionado)
+                        ->where('tienda_id',$this->tiendaSeleccionado)
                         ->where('estado_id', 1)
                         ->first();
 
-            if ($caiAnterior) {
-                // Inactivar el CAI anterior
-                caiModel::where('id', $caiAnterior->id)
-                    ->update(['estado_id' => 2]);
+                //Inactivando el cai actual
+                caiModel::where('id', $cai->id)
+                ->update(['estado_id' => 2]);
 
-                // Inactivar la gestión CAI anterior
-                GestionCai::where('cai_id', $caiAnterior->id)
-                    ->where('estado_id', 1)
-                    ->update(['estado_id' => 2]);
+                //Inactivando la secuencia Actuál activa para ese cai dekeu
+
+                GestionCai::where('cai_id', $cai->id)
+                ->update(['estado_id' => 2]);
+
+                /* Creación de registros en ambas tablas, cai como principal y gestion_cai
+                como la tabla donde se registrara y actualizará cada vez que se facture
+                o se mueva el correlativo */
+                //dd("llega");
+                $nuevoCai = new caiModel();
+                    $nuevoCai->cai = $this->nuevoCai;
+                    $nuevoCai->fecha_limite_emision = $this->nuevoFechaLimite;
+                    $nuevoCai->fecha_solicitud = $this->nuevoFechaSolicitud;
+                    $nuevoCai->punto_emision = $this->nuevoPuntoEmision;
+                    $nuevoCai->tipo_documento_fiscal_id = $this->tipoDocumentoSeleccionado;
+                    $nuevoCai->cantidad_solicitada = $this->nuevoCantidadSolicitada;
+                    $nuevoCai->cantidad_otorgada = $this->nuevoCantidadOtorgada;
+                    $nuevoCai->rango_inicio = $this->nuevoRangoInicial;
+                    $nuevoCai->rango_final = $this->nuevoRangoFinal;
+                    $nuevoCai->tienda_id = $this->tiendaSeleccionado;
+                    $nuevoCai->users_registro_id = Auth::user()->id;
+                    $nuevoCai->estado_id = 1;
+                $nuevoCai->save();
+
+            }else{
+                 $nuevoCai = new caiModel();
+                    $nuevoCai->cai = $this->nuevoCai;
+                    $nuevoCai->fecha_limite_emision = $this->nuevoFechaLimite;
+                    $nuevoCai->fecha_solicitud = $this->nuevoFechaSolicitud;
+                    $nuevoCai->punto_emision = $this->nuevoPuntoEmision;
+                    $nuevoCai->tipo_documento_fiscal_id = $this->tipoDocumentoSeleccionado;
+                    $nuevoCai->cantidad_solicitada = $this->nuevoCantidadSolicitada;
+                    $nuevoCai->cantidad_otorgada = $this->nuevoCantidadOtorgada;
+                    $nuevoCai->rango_inicio = $this->nuevoRangoInicial;
+                    $nuevoCai->rango_final = $this->nuevoRangoFinal;
+                    $nuevoCai->tienda_id = $this->tiendaSeleccionado;
+                    $nuevoCai->users_registro_id = Auth::user()->id;
+                    $nuevoCai->estado_id = 1;
+                $nuevoCai->save();
             }
 
-            // Crear el nuevo CAI
-            $nuevoCai = new caiModel();
-            $nuevoCai->cai = $this->nuevoCai;
-            $nuevoCai->fecha_limite_emision = $this->nuevoFechaLimite;
-            $nuevoCai->fecha_solicitud = $this->nuevoFechaSolicitud;
-            $nuevoCai->punto_emision = $this->nuevoPuntoEmision;
-            $nuevoCai->tipo_documento_fiscal_id = $this->tipoDocumentoSeleccionado;
-            $nuevoCai->cantidad_solicitada = $this->nuevoCantidadSolicitada;
-            $nuevoCai->cantidad_otorgada = $this->nuevoCantidadOtorgada;
-            $nuevoCai->rango_inicio = $this->nuevoRangoInicial;
-            $nuevoCai->rango_final = $this->nuevoRangoFinal;
-            $nuevoCai->tienda_id = $this->tiendaSeleccionado;
-            $nuevoCai->users_registro_id = Auth::user()->id;
-            $nuevoCai->estado_id = 1;
-            $nuevoCai->save();
-
-            // Crear el registro en gestion_cai con la lógica especificada
-            $this->crearGestionCai($nuevoCai);
-
-            // Limpiar campos
-            $this->limpiarCampos();
-            
             $this->modalCrearAbierto = false;
-            session()->flash('mensaje', 'CAI registrado exitosamente.');
+            session()->flash('mensaje', 'Cai registrado exitosamente.');
+
 
         } catch (ValidationException $e) {
-            session()->flash('error', 'Error de validación: ' . $e->getMessage());
+            dd($e);
         } catch (QueryException $e) {
-            session()->flash('error', 'Error en la base de datos: ' . $e->getMessage());
+            dd($e);
         } catch (\Throwable $e) {
-            session()->flash('error', 'Error inesperado: ' . $e->getMessage());
+            dd($e);
         }
-    }
-
-    private function crearGestionCai($cai)
-    {
-        // Extraer número actual del rango_inicio
-        // Formato esperado: XXX-XXX-XX-00000001
-        $rangoInicioParts = explode('-', $cai->rango_inicio);
-        $numeroInicialStr = end($rangoInicioParts); // Obtener la última parte
-        $numeroActual = (int) ltrim($numeroInicialStr, '0'); // Quitar ceros a la izquierda y convertir a entero
-
-        // Extraer cantidad no utilizada del rango_final
-        $rangoFinalParts = explode('-', $cai->rango_final);
-        $numeroFinalStr = end($rangoFinalParts); // Obtener la última parte
-        $cantidadNoUtilizada = (int) ltrim($numeroFinalStr, '0'); // Quitar ceros a la izquierda y convertir a entero
-
-        // Crear número base (todo antes del último guion, incluyendo el guion)
-        $numeroBase = substr($cai->rango_inicio, 0, strrpos($cai->rango_inicio, '-') + 1);
-
-        // Crear registro en gestion_cai
-        $gestionCai = new GestionCai();
-        $gestionCai->numero_actual = $numeroActual;
-        $gestionCai->numero_base = $numeroBase;
-        $gestionCai->serie = null; // Puedes ajustar esto según tus necesidades
-        $gestionCai->cantidad_no_utilizada = $cantidadNoUtilizada;
-        $gestionCai->cai_id = $cai->id;
-        $gestionCai->estado_id = 1; // Activo
-        $gestionCai->save();
-    }
-
-    private function limpiarCampos()
-    {
-        $this->nuevoCai = '';
-        $this->nuevoFechaLimite = '';
-        $this->nuevoFechaSolicitud = '';
-        $this->nuevoPuntoEmision = '';
-        $this->tipoDocumentoSeleccionado = '';
-        $this->tiendaSeleccionado = '';
-        $this->nuevoCantidadSolicitada = '';
-        $this->nuevoCantidadOtorgada = '';
-        $this->nuevoRangoInicial = '';
-        $this->nuevoRangoFinal = '';
     }
 
 
     public function abrirModalCrear()
     {
         $this->modalCrearAbierto = true;
-        $this->limpiarCampos();
+        $this->nuevoCai = '';
+        $this->nuevoFechaLimite = '';
+        $this->nuevoFechaSolicitud = '';
+        $this->nuevoPuntoEmision = '';
+        $this->nuevotipoFiscal = '';
+        $this->nuevoCantidadSolicitada = '';
+        $this->nuevoCantidadOrtorgada = '';
+        $this->nuevoRangoInicio = '';
+        $this->nuevoRangoFinal = '';
+        $this->nuevoTiendaId = '';
     }
 
     public function cerrarModalCrear()

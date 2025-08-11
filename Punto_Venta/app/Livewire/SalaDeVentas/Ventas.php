@@ -1820,31 +1820,22 @@ class Ventas extends Component
         $caiService = new CAIService();
 
         try {
-            // Pasar el tienda_id del usuario autenticado
-            $resultadoCAI = $caiService->obtenerSiguienteNumeroFactura($this->tiendaUsuario);
+            $resultadoCAI = $caiService->obtenerSiguienteNumeroFactura();
 
             // Guardar información para usar en la factura
             $this->caiActual = $resultadoCAI;
 
-            // Mostrar alerta de vencimiento si existe
-            if ($resultadoCAI['alerta_vencimiento']) {
-                $this->alertaCAI = $resultadoCAI['alerta_vencimiento'];
-            }
             // Si el CAI se agotó, mostrar alerta
-            elseif ($resultadoCAI['cai_agotado']) {
+            if ($resultadoCAI['cai_agotado']) {
                 $this->alertaCAI = "¡ATENCIÓN! El CAI se ha agotado. Esta es la última factura disponible para este CAI.";
-            } 
-            // Alerta de cantidad baja
-            elseif ($resultadoCAI['cantidad_restante'] <= 10) {
+            } elseif ($resultadoCAI['cantidad_restante'] <= 10) {
                 $this->alertaCAI = "¡AVISO! Quedan solo {$resultadoCAI['cantidad_restante']} facturas disponibles en el CAI actual.";
             }
 
-            Log::info("DEBUG CAI generado para tienda", [
+            Log::info("DEBUG CAI generado", [
                 'numero_factura' => $resultadoCAI['numero_factura'],
                 'cai_id' => $resultadoCAI['cai_id'],
-                'tienda_id' => $resultadoCAI['tienda_id'],
-                'cantidad_restante' => $resultadoCAI['cantidad_restante'],
-                'dias_restantes_vencimiento' => $resultadoCAI['dias_restantes_vencimiento']
+                'cantidad_restante' => $resultadoCAI['cantidad_restante']
             ]);
 
             return $resultadoCAI['numero_factura'];
