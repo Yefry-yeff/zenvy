@@ -9,7 +9,7 @@
             size: 72.1mm 350mm;
             margin: 3mm;
         }
-        
+
         body {
             margin: 0;
             padding: 0;
@@ -18,170 +18,170 @@
             line-height: 1.4;
             color: #000;
         }
-        
+
         .container {
             width: 100%;
             max-width: 66mm; /* 72.1mm - 6mm margin */
         }
-        
+
         .text-center {
             text-align: center;
         }
-        
+
         .text-left {
             text-align: left;
         }
-        
+
         .text-right {
             text-align: right;
         }
-        
+
         .separator {
             border-top: 1px dashed #000;
             margin: 8px 0;
         }
-        
+
         .company-name {
             font-weight: bold;
             font-size: 22px;
             text-transform: uppercase;
             margin-bottom: 3px;
         }
-        
+
         .business-name {
             font-weight: bold;
             font-size: 19px;
             margin: 2px 0;
         }
-        
+
         .company-info {
             font-size: 17px;
             margin: 1px 0;
         }
-        
+
         .factura-title {
             font-weight: bold;
             font-size: 20px;
             text-align: center;
             margin: 8px 0;
         }
-        
+
         .factura-number {
             font-size: 18px;
             text-align: center;
             margin: 4px 0;
         }
-        
+
         .duplicado-rango {
             font-size: 16px;
             text-align: center;
             margin: 4px 0;
         }
-        
+
         .fecha-usuario {
             font-size: 16px;
             margin: 6px 0;
         }
-        
+
         .consumidor-final {
             font-weight: bold;
             font-size: 18px;
             margin: 8px 0;
         }
-        
+
         .table-header {
             font-weight: bold;
             font-size: 16px;
             margin-bottom: 4px;
         }
-        
+
         .product-row {
             font-size: 15px;
             margin-bottom: 3px;
         }
-        
+
         .totals-section {
             font-size: 16px;
             margin: 8px 0;
         }
-        
+
         .total-final {
             font-weight: bold;
             font-size: 18px;
             margin: 4px 0;
         }
-        
+
         .valor-letras {
             font-size: 14px;
             margin: 8px 0;
             text-align: center;
         }
-        
+
         .forma-pago {
             font-size: 16px;
             margin: 6px 0;
         }
-        
+
         .cai-info {
             font-size: 14px;
             margin: 8px 0;
         }
-        
+
         .footer-info {
             font-size: 13px;
             margin-top: 10px;
         }
-        
+
         .table-layout {
             display: table;
             width: 100%;
         }
-        
+
         .table-row {
             display: table-row;
         }
-        
+
         .table-cell-left {
             display: table-cell;
             width: 60%;
             padding-right: 5px;
         }
-        
+
         .table-cell-right {
             display: table-cell;
             width: 40%;
             text-align: right;
         }
-        
+
         .table-cell-center {
             display: table-cell;
             width: 33.33%;
             text-align: center;
         }
-        
+
         .product-table {
             width: 100%;
             margin: 6px 0;
         }
-        
+
         .product-table-row {
             display: table;
             width: 100%;
             margin-bottom: 2px;
         }
-        
+
         .col-uds {
             display: table-cell;
             width: 15%;
             text-align: center;
         }
-        
+
         .col-descripcion {
             display: table-cell;
             width: 55%;
             padding: 0 2px;
         }
-        
+
         .col-importe {
             display: table-cell;
             width: 30%;
@@ -256,6 +256,21 @@
             </div>
         @endif
 
+        <!-- INFORMACIÓN DEL CLIENTE -->
+        @if($factura->rtn || ($factura->nombre_cliente && $factura->nombre_cliente != 'Consumidor Final'))
+            <div class="duplicado-rango" style="margin-top: 4px;">
+                @if($factura->rtn)
+                    RTN: {{ $factura->rtn }}
+                    @if($factura->nombre_cliente && $factura->nombre_cliente != 'Consumidor Final')
+                        <br>
+                    @endif
+                @endif
+                @if($factura->nombre_cliente && $factura->nombre_cliente != 'Consumidor Final')
+                    {{ $factura->nombre_cliente }}
+                @endif
+            </div>
+        @endif
+
         <!-- FECHA Y USUARIO -->
         <div class="fecha-usuario">
             {{ \Carbon\Carbon::parse($factura->created_at)->format('d/m/Y H:i:s') }} Usuario: {{ $factura->usuario ? $factura->usuario->name : 'Sistema' }}
@@ -267,7 +282,6 @@
         <div class="consumidor-final">
             <strong>CONSUMIDOR FINAL</strong>
             @if($factura->nombre_cliente && $factura->nombre_cliente != 'CONSUMIDOR FINAL')
-                <br>{{ $factura->nombre_cliente }}
             @endif
         </div>
 
@@ -340,7 +354,7 @@
                     // Calcular importes por tasa de ISV
                     $importe15 = collect($productos)->where('tasa_isv', 15)->sum('subtotal');
                     $importe18 = collect($productos)->where('tasa_isv', 18)->sum('subtotal');
-                    
+
                     // Calcular impuestos por tasa (usar campo 'isv' que siempre tiene el monto calculado)
                     $impuesto15 = collect($productos)->where('tasa_isv', 15)->sum('isv');
                     $impuesto18 = collect($productos)->where('tasa_isv', 18)->sum('isv');
@@ -370,7 +384,7 @@
                     <div class="table-cell-right">L. {{ number_format($factura->isv, 2) }}</div>
                 </div>
             </div>
-            
+
             <div class="total-final">
                 <div class="table-layout">
                     <div class="table-row">
@@ -390,12 +404,12 @@
                 $total = $factura->total;
                 $entero = floor($total);
                 $centavos = round(($total - $entero) * 100);
-                
+
                 $unidades = ['', 'UN', 'DOS', 'TRES', 'CUATRO', 'CINCO', 'SEIS', 'SIETE', 'OCHO', 'NUEVE'];
                 $decenas = ['', '', 'VEINTE', 'TREINTA', 'CUARENTA', 'CINCUENTA', 'SESENTA', 'SETENTA', 'OCHENTA', 'NOVENTA'];
                 $especiales = ['DIEZ', 'ONCE', 'DOCE', 'TRECE', 'CATORCE', 'QUINCE', 'DIECISÉIS', 'DIECISIETE', 'DIECIOCHO', 'DIECINUEVE'];
                 $centenas = ['', 'CIENTO', 'DOSCIENTOS', 'TRESCIENTOS', 'CUATROCIENTOS', 'QUINIENTOS', 'SEISCIENTOS', 'SETECIENTOS', 'OCHOCIENTOS', 'NOVECIENTOS'];
-                
+
                 // Convertir parte entera
                 $letrasEntero = '';
                 if ($entero == 0) {
@@ -410,7 +424,7 @@
                         }
                         $entero %= 1000;
                     }
-                    
+
                     if ($entero >= 100) {
                         $c = floor($entero / 100);
                         if ($entero == 100) {
@@ -420,7 +434,7 @@
                         }
                         $entero %= 100;
                     }
-                    
+
                     if ($entero >= 20) {
                         $d = floor($entero / 10);
                         $letrasEntero .= $decenas[$d];
@@ -432,9 +446,9 @@
                         $letrasEntero .= $unidades[$entero];
                     }
                 }
-                
+
                 $resultado = trim($letrasEntero) . ' LEMPIRAS';
-                
+
                 // Agregar centavos si existen
                 if ($centavos > 0) {
                     $letrasCentavos = '';
