@@ -48,7 +48,7 @@
                         <tr class="text-center align-middle">
                             <th>Cod</th>
                             <th>Doc. Fiscal</th>
-                            <th>Nombre Comercial</th>
+                            <th>Tienda</th>
                             <th>Cai</th>
                             <th>Rango Inicial</th>
                             <th>Rango Final</th>
@@ -69,7 +69,7 @@
                             <tr class="text-center align-middle hover:bg-gray-50">
                                 <td class="fw-semibold">{{ $item->id }}</td>
                                 <td class="text-start">{{ $item->tipo_documento_fiscal }}</td>
-                                <td class="text-start">{{ $item->denominacion_social }}</td>
+                                <td class="text-start">{{ $item->denominacion_social }} ({{ $item->numero_sucursal }})</td>
                                 <td class="text-start">{{ $item->cai }}</td>
                                 <td class="text-start">{{ $item->rango_inicio }}</td>
                                 <td class="text-start">{{ $item->rango_final }}</td>
