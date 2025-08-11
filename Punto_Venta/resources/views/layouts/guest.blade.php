@@ -15,6 +15,7 @@
 
     <!-- Vite -->
     <link rel="stylesheet" href="{{ asset('build/assets/app-lSBa4py6.css') }}">
+
 <script type="module" src="{{ asset('build/assets/app-Ck2gzFIp.js') }}"></script>
 </head>
 <body class="font-sans antialiased bg-gray-100">
