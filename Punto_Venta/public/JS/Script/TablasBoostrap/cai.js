@@ -27,18 +27,7 @@ function initCaiTable() {
                             }
                         ],
                         initComplete: function() {
-                            // Agregar filtro por estado
-                            var column = this.api().column(12);
-                            var select = $('<select class="form-select form-select-sm ms-2"><option value="">Todos los estados</option></select>')
-                                .appendTo($('#tbl_cai_wrapper .dataTables_filter label'))
-                                .on('change', function() {
-                                    var val = $.fn.dataTable.util.escapeRegex($(this).val());
-                                    column.search(val ? '^' + val + '$' : '', true, false).draw();
-                                });
-                            
-                            // Agregar opciones al select
-                            select.append('<option value="Activo">Solo Activos</option>');
-                            select.append('<option value="Inactivo">Solo Inactivos</option>');
+                            // Tabla inicializada correctamente
                         }
                     });
                     // Fixed: Set childList to true for proper MutationObserver options
