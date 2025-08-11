@@ -433,7 +433,7 @@ class RecibirProductoCompra extends Component
 
     public function volver()
     {
-        $this->dispatch('cambiarVista', ruta: 'Inventario.compradeproductos');
+        $this->dispatch('cambiarVista', ruta: 'Inventario.CompraDeProductos');
     }
 
     public function render()

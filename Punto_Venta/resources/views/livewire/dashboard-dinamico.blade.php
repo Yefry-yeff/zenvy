@@ -85,14 +85,14 @@
             <div class="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-6">
                 @if(in_array($datosUsuario['rol'], ['Facturador', 'Admin', 'Administrador']))
                 <button
-                    x-on:click="window.Livewire.dispatch('cambiarVista', ['facturacion.facturar'])"
+                    x-on:click="window.Livewire.dispatch('cambiarVista', ['SalaDeVentas.Ventas'])"
                     class="flex flex-col items-center justify-center p-4 text-white transition-all duration-200 transform bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl hover:from-blue-600 hover:to-blue-700 hover:scale-105">
                     <span class="mb-2 text-2xl">🧾</span>
                     <span class="text-sm font-medium">Facturar</span>
                 </button>
 
                 <button
-                    x-on:click="window.Livewire.dispatch('cambiarVista', ['inventario.productos'])"
+                    x-on:click="window.Livewire.dispatch('cambiarVista', ['Inventario.Producto'])"
                     class="flex flex-col items-center justify-center p-4 text-white transition-all duration-200 transform bg-gradient-to-br from-green-500 to-green-600 rounded-xl hover:from-green-600 hover:to-green-700 hover:scale-105">
                     <span class="mb-2 text-2xl">📦</span>
                     <span class="text-sm font-medium">Productos</span>
@@ -101,14 +101,14 @@
 
                 @if(in_array($datosUsuario['rol'], ['Inventario', 'Admin', 'Administrador']))
                 <button
-                    x-on:click="window.Livewire.dispatch('cambiarVista', ['inventario.compradeproductos'])"
+                    x-on:click="window.Livewire.dispatch('cambiarVista', ['Inventario.CompraDeProductos'])"
                     class="flex flex-col items-center justify-center p-4 text-white transition-all duration-200 transform bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl hover:from-purple-600 hover:to-purple-700 hover:scale-105">
                     <span class="mb-2 text-2xl">🛍️</span>
                     <span class="text-sm font-medium">Compras</span>
                 </button>
 
                 <button
-                    x-on:click="window.Livewire.dispatch('cambiarVista', ['inventario.bodegas'])"
+                    x-on:click="window.Livewire.dispatch('cambiarVista', ['Inventario.Bodegas'])"
                     class="flex flex-col items-center justify-center p-4 text-white transition-all duration-200 transform bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl hover:from-orange-600 hover:to-orange-700 hover:scale-105">
                     <span class="mb-2 text-2xl">🏭</span>
                     <span class="text-sm font-medium">Bodegas</span>
@@ -117,14 +117,14 @@
 
                 @if(in_array($datosUsuario['rol'], ['Admin', 'Administrador', 'Roles']))
                 <button
-                    x-on:click="window.Livewire.dispatch('cambiarVista', ['configuracion.usuarios'])"
+                    x-on:click="window.Livewire.dispatch('cambiarVista', ['Configuracion.Usuarios'])"
                     class="flex flex-col items-center justify-center p-4 text-white transition-all duration-200 transform bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl hover:from-indigo-600 hover:to-indigo-700 hover:scale-105">
                     <span class="mb-2 text-2xl">👥</span>
                     <span class="text-sm font-medium">Usuarios</span>
                 </button>
 
                 <button
-                    x-on:click="window.Livewire.dispatch('cambiarVista', ['configuracion.roles'])"
+                    x-on:click="window.Livewire.dispatch('cambiarVista', ['Configuracion.Roles'])"
                     class="flex flex-col items-center justify-center p-4 text-white transition-all duration-200 transform bg-gradient-to-br from-pink-500 to-pink-600 rounded-xl hover:from-pink-600 hover:to-pink-700 hover:scale-105">
                     <span class="mb-2 text-2xl">🔐</span>
                     <span class="text-sm font-medium">Roles</span>
@@ -133,21 +133,21 @@
 
                 @if(in_array($datosUsuario['rol'], ['Cajero', 'Admin', 'Administrador', 'Facturador']))
                 <button
-                    x-on:click="window.Livewire.dispatch('cambiarVista', ['caja.RecibidoDeEfectivo'])"
+                    x-on:click="window.Livewire.dispatch('cambiarVista', ['Caja.RecibidoDeEfectivo'])"
                     class="flex flex-col items-center justify-center p-4 text-white transition-all duration-200 transform bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl hover:from-emerald-600 hover:to-emerald-700 hover:scale-105">
                     <span class="mb-2 text-2xl">💰</span>
                     <span class="text-sm font-medium">Recibir Efectivo</span>
                 </button>
 
                 <button
-                    x-on:click="window.Livewire.dispatch('cambiarVista', ['caja.EntregaDeEfectivo'])"
+                    x-on:click="window.Livewire.dispatch('cambiarVista', ['Caja.EntregaDeEfectivo'])"
                     class="flex flex-col items-center justify-center p-4 text-white transition-all duration-200 transform bg-gradient-to-br from-red-500 to-red-600 rounded-xl hover:from-red-600 hover:to-red-700 hover:scale-105">
                     <span class="mb-2 text-2xl">💸</span>
                     <span class="text-sm font-medium">Entregar Efectivo</span>
                 </button>
 
                 <button
-                    x-on:click="window.Livewire.dispatch('cambiarVista', ['caja.CierreDeCaja'])"
+                    x-on:click="window.Livewire.dispatch('cambiarVista', ['Caja.CierreDeCaja'])"
                     class="flex flex-col items-center justify-center p-4 text-white transition-all duration-200 transform bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl hover:from-purple-600 hover:to-purple-700 hover:scale-105">
                     <span class="mb-2 text-2xl">📋</span>
                     <span class="text-sm font-medium">Cierre de Caja</span>
@@ -163,7 +163,7 @@
 
                 @if(in_array($datosUsuario['rol'], ['Admin', 'Administrador']))
                 <button
-                    x-on:click="window.Livewire.dispatch('cambiarVista', ['gestion.cai'])"
+                    x-on:click="window.Livewire.dispatch('cambiarVista', ['Gestion.Cai'])"
                     class="flex flex-col items-center justify-center p-4 text-white transition-all duration-200 transform bg-gradient-to-br from-teal-500 to-teal-600 rounded-xl hover:from-teal-600 hover:to-teal-700 hover:scale-105">
                     <span class="mb-2 text-2xl">📄</span>
                     <span class="text-sm font-medium">CAI</span>

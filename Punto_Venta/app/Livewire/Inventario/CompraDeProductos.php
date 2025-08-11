@@ -72,7 +72,7 @@ class CompraDeProductos extends Component
         $compra = Compra::with(['estado'])->find($compraId);
         if ($compra && $compra->estado && strtolower($compra->estado->nombre) === 'activo') {
             // Redirigir a la vista de recibir producto con el ID de la compra
-            $this->dispatch('cambiarVista', ruta: 'Inventario.recibirproductocompra', parametros: ['compraId' => $compraId]);
+            $this->dispatch('cambiarVista', ruta: 'Inventario.RecibirProductoCompra', parametros: ['compraId' => $compraId]);
         } else {
             $this->mostrarAlerta = true;
             $this->mensajeAlerta = 'Solo se pueden recibir productos de compras en estado "activo".';
@@ -105,7 +105,7 @@ class CompraDeProductos extends Component
     // Método para agregar nueva compra
     public function agregarCompra()
     {
-        $this->dispatch('cambiarVista', ruta: 'Inventario.compradeproducto');
+        $this->dispatch('cambiarVista', ruta: 'Inventario.CompraDeProducto');
     }
 
     // Método para cerrar alerta

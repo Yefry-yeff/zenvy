@@ -19,12 +19,12 @@ class Categoria extends Component
 
     public function editar($id)
     {
-        $this->dispatch('cambiarVista', ruta: 'Inventario.categoriaform', parametros: ['id' => $id]);
+        $this->dispatch('cambiarVista', ruta: 'Inventario.CategoriaForm', parametros: ['id' => $id]);
     }
 
     public function abrirModalCrear()
     {
-        $this->dispatch('cambiarVista', ruta: 'Inventario.categoriaform');
+        $this->dispatch('cambiarVista', ruta: 'Inventario.CategoriaForm');
     }
 
     public function cerrarModalCrear()

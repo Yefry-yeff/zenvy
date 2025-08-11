@@ -353,7 +353,7 @@ class SucursalForm extends Component
 
     public function cancelar()
     {
-        $this->dispatch('cambiarVista', ruta: 'GestionDeSucursales.sucursales');
+        $this->dispatch('cambiarVista', ruta: 'GestionDeSucursales.Sucursales');
     }
 
     // ===== MÉTODOS DE VALIDACIÓN EN TIEMPO REAL =====
@@ -636,7 +636,7 @@ class SucursalForm extends Component
         $this->mensajeModalExito = '';
 
         // Redirigir a la lista después de cerrar el modal
-        return $this->dispatch('cambiarVista', ruta: 'GestionDeSucursales.sucursales');
+        return $this->dispatch('cambiarVista', ruta: 'GestionDeSucursales.Sucursales');
     }
 
     public function cerrarModalError()

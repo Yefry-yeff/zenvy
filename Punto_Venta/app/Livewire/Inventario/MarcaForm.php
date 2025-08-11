@@ -26,7 +26,7 @@ class MarcaForm extends Component
 
     public function volver()
     {
-        $this->dispatch('cambiarVista', ruta: 'Inventario.marca');
+        $this->dispatch('cambiarVista', ruta: 'Inventario.Marca');
     }
 
     public function guardar()

@@ -268,7 +268,7 @@ class ProductoForm extends Component
 
     public function volverALista()
     {
-        $this->dispatch('cambiarVista', ruta: 'Inventario.producto');
+        $this->dispatch('cambiarVista', ruta: 'Inventario.Producto');
     }
 
     // ===== MÉTODOS DE VALIDACIÓN EN TIEMPO REAL =====
@@ -426,7 +426,7 @@ class ProductoForm extends Component
         $this->mensajeModalExito = '';
 
         // Redirigir a la tabla de productos después de cerrar el modal
-        $this->dispatch('cambiarVista', ruta: 'Inventario.producto');
+        $this->dispatch('cambiarVista', ruta: 'Inventario.Producto');
     }
 
     public function cerrarModalError()

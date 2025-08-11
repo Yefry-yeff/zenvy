@@ -25,7 +25,7 @@ DELIMITER $$
 --
 -- Procedimientos
 --
-CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_crud_producto` (IN `p_accion` INT, IN `p_id` INT, IN `p_nombre` VARCHAR(80), IN `p_descripcion` VARCHAR(45), IN `p_isv_id` INT, IN `p_precio_base` DOUBLE, IN `p_ultimo_costo_compra` DOUBLE, IN `p_costo_promedio` DOUBLE, IN `p_codigo_barra` VARCHAR(100), IN `p_codigo_estatal` VARCHAR(45), IN `p_estado_id` INT, IN `p_subcategoria_id` INT, IN `p_marca_id` INT, IN `p_unidad_medida_venta_id` INT, IN `p_precio1` DECIMAL(16,2), IN `p_precio2` DECIMAL(16,2), IN `p_precio3` DECIMAL(16,2), IN `p_precio4` DECIMAL(16,2), IN `p_users_id` BIGINT, IN `p_descuento_unitario` DECIMAL(16,2), IN `p_descuento_tercera` TINYINT, IN `p_descuento_cuarta` TINYINT)   BEGIN
+CREATE  PROCEDURE `sp_crud_producto` (IN `p_accion` INT, IN `p_id` INT, IN `p_nombre` VARCHAR(80), IN `p_descripcion` VARCHAR(45), IN `p_isv_id` INT, IN `p_precio_base` DOUBLE, IN `p_ultimo_costo_compra` DOUBLE, IN `p_costo_promedio` DOUBLE, IN `p_codigo_barra` VARCHAR(100), IN `p_codigo_estatal` VARCHAR(45), IN `p_estado_id` INT, IN `p_subcategoria_id` INT, IN `p_marca_id` INT, IN `p_unidad_medida_venta_id` INT, IN `p_precio1` DECIMAL(16,2), IN `p_precio2` DECIMAL(16,2), IN `p_precio3` DECIMAL(16,2), IN `p_precio4` DECIMAL(16,2), IN `p_users_id` BIGINT, IN `p_descuento_unitario` DECIMAL(16,2), IN `p_descuento_tercera` TINYINT, IN `p_descuento_cuarta` TINYINT)   BEGIN
     -- Normalizar banderas a 0/1
     DECLARE v_desc_tercera TINYINT(1);
     DECLARE v_desc_cuarta  TINYINT(1);
@@ -135,7 +135,7 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_crud_producto` (IN `p_accion` IN
     END IF;
 END$$
 
-CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_gestion_menu_sidebar` (IN `accion` INT, IN `p_id` INT, IN `p_menu_nombre` VARCHAR(100), IN `p_icono` VARCHAR(191) CHARSET utf8mb4, IN `p_submenu` VARCHAR(100), IN `p_orden` INT, IN `p_estado_id` INT)   BEGIN
+CREATE  PROCEDURE `sp_gestion_menu_sidebar` (IN `accion` INT, IN `p_id` INT, IN `p_menu_nombre` VARCHAR(100), IN `p_icono` VARCHAR(191) CHARSET utf8mb4, IN `p_submenu` VARCHAR(100), IN `p_orden` INT, IN `p_estado_id` INT)   BEGIN
     DECLARE v_menu_grupo_id INT;
     DECLARE v_route VARCHAR(255);
 
@@ -207,7 +207,7 @@ END$$
 --
 -- Funciones
 --
-CREATE DEFINER=`root`@`localhost` FUNCTION `fn_clean_studly` (`input` VARCHAR(255)) RETURNS VARCHAR(255) CHARSET latin1 DETERMINISTIC BEGIN
+CREATE  FUNCTION `fn_clean_studly` (`input` VARCHAR(255)) RETURNS VARCHAR(255) CHARSET latin1 DETERMINISTIC BEGIN
   DECLARE cleaned VARCHAR(255);
   
   -- Reemplazar acentos manualmente

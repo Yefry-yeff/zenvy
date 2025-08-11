@@ -22,12 +22,12 @@ class Producto extends Component
 
     public function editar($id)
     {
-        $this->dispatch('cambiarVista', ruta: 'Inventario.productoform', parametros: ['id' => $id]);
+        $this->dispatch('cambiarVista', ruta: 'Inventario.ProductoForm', parametros: ['id' => $id]);
     }
 
     public function abrirModalCrear()
     {
-        $this->dispatch('cambiarVista', ruta: 'Inventario.productoform');
+        $this->dispatch('cambiarVista', ruta: 'Inventario.ProductoForm');
     }
 
     public function confirmarEliminar($id)

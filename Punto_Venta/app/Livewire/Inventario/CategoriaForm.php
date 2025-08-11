@@ -51,7 +51,7 @@ class CategoriaForm extends Component
 
     public function volver()
     {
-        $this->dispatch('cambiarVista', ruta: 'Inventario.categoria');
+        $this->dispatch('cambiarVista', ruta: 'Inventario.Categoria');
     }
 
     public function guardar()
