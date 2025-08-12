@@ -116,15 +116,15 @@
         x-data="{ show: true }"
         x-show="show"
         class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
-        @click.outside="show = false; Livewire.dispatch('cambiarVista', { ruta: 'Inventario.categoria' })"
-        @keydown.window.escape="show = false; Livewire.dispatch('cambiarVista', { ruta: 'Inventario.categoria' })"
+        @click.outside="show = false; Livewire.dispatch('cambiarVista', { ruta: 'Inventario.Categoria' })"
+        @keydown.window.escape="show = false; Livewire.dispatch('cambiarVista', { ruta: 'Inventario.Categoria' })"
     >
         <div class="w-full max-w-sm p-6 text-center bg-white rounded-lg shadow-lg">
             <h2 class="mb-2 text-lg font-semibold text-green-700">✅ Categoría guardada correctamente</h2>
             <p class="text-sm text-gray-600">Los cambios se han guardado exitosamente.</p>
             <button
                 class="px-4 py-2 mt-4 text-sm text-white rounded bg-emerald-600 hover:bg-emerald-700"
-                @click="show = false; Livewire.dispatch('cambiarVista', { ruta: 'Inventario.categoria' })"
+                @click="show = false; Livewire.dispatch('cambiarVista', { ruta: 'Inventario.Categoria' })"
             >
                 Cerrar
             </button>

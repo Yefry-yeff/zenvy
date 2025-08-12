@@ -145,7 +145,7 @@ class CompraDeProductos extends Component
     // Método para abrir modal de detalle
     public function verDetalle($compraId)
     {
-        $compra = Compra::with(['proveedor', 'estado', 'detallesCompra.producto', 'detallesCompra.unidadCompra'])->find($compraId);
+        $compra = Compra::with(['proveedor', 'estado', 'detallesCompra.producto', 'detallesCompra.unidadMedida'])->find($compraId);
         if ($compra) {
             $this->compraDetalle = [
                 'id' => $compra->id,
@@ -163,7 +163,7 @@ class CompraDeProductos extends Component
                         'subtotal' => $detalle->sub_total_producto,
                         'isv' => $detalle->isv,
                         'precio_total' => $detalle->precio_total,
-                        'unidad' => $detalle->unidadCompra->nombre ?? 'N/A',
+                        'unidad' => $detalle->unidadMedida->nombre ?? 'N/A',
                         'fecha_expiracion' => $detalle->fecha_expiracion
                     ];
                 })->toArray(),
