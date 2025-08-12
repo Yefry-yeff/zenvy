@@ -38,7 +38,7 @@ class RecibirEnBodega extends Component
     public $fechaExpiracion = '';
     public $comentario = '';
     public $unidadesCompra = '';
-    public $unidadCompraId = null;
+    public $unidadMedidaId = null;
 
     // Secciones y bodegas
     public $seccionSeleccionada = null;
@@ -457,7 +457,7 @@ class RecibirEnBodega extends Component
             $this->codigoBarraProducto = $producto->codigo_barra ?? 'N/A';
             $this->marcaProducto = $producto->marca ? $producto->marca->nombre : 'Sin marca';
             $this->unidadMedidaProducto = $producto->unidadMedidaVenta ? $producto->unidadMedidaVenta->nombre : 'N/A';
-            $this->unidadCompraId = $producto->unidad_medida_venta_id;
+            $this->unidadMedidaId = $producto->unidad_medida_venta_id;
 
             $this->mostrarSugerenciasProductos = false;
             $this->productosSugeridos = [];
@@ -479,7 +479,7 @@ class RecibirEnBodega extends Component
         $this->codigoBarraProducto = '';
         $this->marcaProducto = '';
         $this->unidadMedidaProducto = '';
-        $this->unidadCompraId = null;
+        $this->unidadMedidaId = null;
     }
 
     public function confirmarRecibido()
@@ -528,7 +528,7 @@ class RecibirEnBodega extends Component
                 'fecha_expiracion' => $this->fechaExpiracion,
                 'comentario' => $this->comentario,
                 'unidades_compra' => $this->unidadesCompra,
-                'unidad_compra_id' => $this->unidadCompraId,
+                'unidad_medida_id' => $this->unidadMedidaId,
                 'users_registro_id' => Auth::id(),
                 'estado_id' => 1
             ]);
@@ -619,7 +619,7 @@ class RecibirEnBodega extends Component
             // Cargar compras con productos que tengan cantidad sin asignar
             $compras = \App\Models\Compra::with([
                 'detallesCompra.producto.marca',
-                'detallesCompra.unidadCompra',
+                'detallesCompra.unidadMedida',
                 'estado',
                 'cliente.tipoCliente'
             ])
@@ -676,7 +676,7 @@ class RecibirEnBodega extends Component
                                 'cantidad_comprada' => $detalle->cantidad_ingresada, // Agregar esta clave
                                 'cantidad_pendiente' => $detalle->cantidad_sin_asignar,
                                 'cantidad_distribuida' => $detalle->cantidad_ingresada - $detalle->cantidad_sin_asignar,
-                                'unidad' => $detalle->unidadCompra->nombre ?? 'Unidad',
+                                'unidad' => $detalle->unidadMedida->nombre ?? 'Unidad',
                                 'precio_unitario' => $detalle->precio,
                                 'estado_distribucion' => $this->determinarEstadoDistribucion($detalle),
                                 'fecha_expiracion' => $detalle->fecha_expiracion,
@@ -793,7 +793,7 @@ class RecibirEnBodega extends Component
                 ];
             } else {
                 // Si no se encuentra en la lista actual, buscar en la base de datos
-                $detalle = CompraHasProducto::with(['compra.cliente', 'producto', 'unidadCompra'])
+                $detalle = CompraHasProducto::with(['compra.cliente', 'producto', 'unidadMedida'])
                     ->where('compra_id', $compraId)
                     ->where('producto_id', $productoId)
                     ->first();
@@ -806,7 +806,7 @@ class RecibirEnBodega extends Component
                         'numero_factura' => $detalle->compra->numero_factura,
                         'nombre' => $detalle->producto->nombre, // Cambiar producto_nombre por nombre
                         'cantidad_pendiente' => $detalle->cantidad_sin_asignar,
-                        'unidad' => $detalle->unidadCompra->nombre ?? 'Unidad',
+                        'unidad' => $detalle->unidadMedida->nombre ?? 'Unidad',
                         'proveedor' => $detalle->compra->cliente->nombre ?? 'Sin proveedor'
                     ];
                 } else {
@@ -912,7 +912,7 @@ class RecibirEnBodega extends Component
     {
         if ($this->productoParaDistribuir && isset($this->productoParaDistribuir['detalle_id'])) {
             try {
-                $detalle = CompraHasProducto::with(['compra.cliente', 'producto', 'unidadCompra'])
+                $detalle = CompraHasProducto::with(['compra.cliente', 'producto', 'unidadMedida'])
                     ->find($this->productoParaDistribuir['detalle_id']);
 
                 if ($detalle) {
@@ -970,6 +970,14 @@ class RecibirEnBodega extends Component
                 throw new \Exception('No se encontró el detalle de compra.');
             }
 
+            // Debug: Verificar el valor de unidad_medida_id
+            Log::info('Debug unidad_medida_id', [
+                'detalle_compra_id' => $detalleCompra->id,
+                'unidad_medida_id' => $detalleCompra->unidad_medida_id,
+                'producto_id' => $detalleCompra->producto_id,
+                'compra_id' => $detalleCompra->compra_id
+            ]);
+
             // Verificar que la cantidad aún esté disponible
             if ($detalleCompra->cantidad_sin_asignar < $cantidadDistribuir) {
                 // Si la cantidad cambió, actualizar los datos del modal
@@ -993,7 +1001,7 @@ class RecibirEnBodega extends Component
                 'fecha_expiracion' => $detalleCompra->fecha_expiracion,
                 'comentario' => $this->comentarioDistribucion,
                 'unidades_compra' => $cantidadDistribuir,
-                'unidad_compra_id' => $detalleCompra->unidad_compra_id,
+                'unidad_medida_id' => $detalleCompra->unidad_medida_id ?: 1, // Valor por defecto si es null
                 'users_registro_id' => Auth::id(),
                 'estado_id' => 1 // Estado activo
             ]);
