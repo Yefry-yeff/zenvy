@@ -4,7 +4,11 @@
                 var $table = $('#clientesTable');
                 if ($table.length) {
                     $table.css('border', ''); // Quita el borde de depuración
-                    if (!$.fn.DataTable.isDataTable($table)) {
+                    // Verificar si la tabla tiene datos reales (no solo el mensaje de "no hay datos")
+                    var $dataRows = $table.find('tbody tr').not(':contains("No hay clientes disponibles")').not(':contains("No hay")').not('.text-muted');
+                    var hasData = $dataRows.length > 0 && $dataRows.find('td').length >= 3;
+
+                    if (hasData && !$.fn.DataTable.isDataTable($table)) {
                         if (clientesTableObserver) clientesTableObserver.disconnect();
                         $table.DataTable({
                             responsive: true,

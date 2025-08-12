@@ -5,7 +5,11 @@ function initCaiTable() {
             var $table = $('#tbl_cai');
             if ($table.length) {
                 $table.css('border', '');
-                if (!$.fn.DataTable.isDataTable($table)) {
+                // Verificar si la tabla tiene datos reales (no solo el mensaje de "no hay datos")
+                var $dataRows = $table.find('tbody tr').not(':contains("No hay")').not('.text-muted').not(':contains("disponibles")');
+                var hasData = $dataRows.length > 0 && $dataRows.find('td').length >= 3;
+                
+                if (hasData && !$.fn.DataTable.isDataTable($table)) {
                     if (CaiTableObserver) CaiTableObserver.disconnect();
                     $table.DataTable({
                         responsive: true,
@@ -30,7 +34,6 @@ function initCaiTable() {
                             // Tabla inicializada correctamente
                         }
                     });
-                    // Fixed: Set childList to true for proper MutationObserver options
                     if (CaiTableObserver && document.querySelector('main')) {
                         CaiTableObserver.observe(document.querySelector('main'), { childList: true, subtree: true });
                     }
