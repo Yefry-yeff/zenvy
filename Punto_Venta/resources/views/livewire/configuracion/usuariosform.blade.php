@@ -218,15 +218,15 @@
     x-data="{ show: true }"
     x-show="show"
     class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
-    @click.outside="show = false; Livewire.dispatch('cambiarVista', { ruta: 'Configuracion.usuarios' })"
-    @keydown.window.escape="show = false; Livewire.dispatch('cambiarVista', { ruta: 'Configuracion.usuarios' })"
+    @click.outside="show = false; Livewire.dispatch('cambiarVista', { ruta: 'configuracion.usuarios' })"
+    @keydown.window.escape="show = false; Livewire.dispatch('cambiarVista', { ruta: 'configuracion.usuarios' })"
 >
     <div class="w-full max-w-sm p-6 text-center bg-white rounded-lg shadow-lg">
         <h2 class="mb-2 text-lg font-semibold text-green-700">✅ Usuario actualizado correctamente</h2>
         <p class="text-sm text-gray-600">Puedes continuar usando el sistema.</p>
         <button
             class="px-4 py-2 mt-4 text-sm text-white rounded bg-emerald-600 hover:bg-emerald-700"
-            @click="show = false; Livewire.dispatch('cambiarVista', { ruta: 'Configuracion.usuarios' })"
+            @click="show = false; Livewire.dispatch('cambiarVista', { ruta: 'configuracion.usuarios' })"
         >
             Cerrar
         </button>

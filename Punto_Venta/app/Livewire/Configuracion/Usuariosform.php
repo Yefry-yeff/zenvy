@@ -243,11 +243,11 @@ class Usuariosform extends Component
 
     public function volver()
     {
-        $this->dispatch('cambiarVista', 'Configuracion.usuarios');
+        $this->dispatch('cambiarVista', 'Configuracion.Usuarios');
     }
 
     public function render()
     {
-        return view('livewire.Configuracion.usuariosform');
+        return view('livewire.configuracion.usuariosform');
     }
 }
