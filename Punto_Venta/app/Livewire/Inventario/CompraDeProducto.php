@@ -5,7 +5,7 @@ namespace App\Livewire\Inventario;
 use Livewire\Component;
 use App\Models\Compra;
 use App\Models\CompraHasProducto;
-use App\Models\UnidadCompra;
+use App\Models\UnidadMedida;
 use App\Models\Producto;
 use App\Models\Cliente;
 use App\Models\TipoCliente;
@@ -26,7 +26,7 @@ class CompraDeProducto extends Component
     // Datos para los selectores
     public $proveedores = [];
     public $productos = [];
-    public $unidadesCompra = [];
+    public $unidadesMedida = [];
     public $proveedorSeleccionado = null;
 
     // Productos en la compra
@@ -38,7 +38,7 @@ class CompraDeProducto extends Component
         'precio' => 0,
         'cantidad_ingresada' => 1,
         'fecha_expiracion' => '',
-        'unidad_compra_id' => null,
+        'unidad_medida_id' => null,
         'isv' => 0,
     ];
 
@@ -72,7 +72,7 @@ class CompraDeProducto extends Component
         'productosCompra.*.producto_id' => 'required|exists:producto,id',
         'productosCompra.*.precio' => 'required|numeric|min:0.01',
         'productosCompra.*.cantidad_ingresada' => 'required|integer|min:1',
-        'productosCompra.*.unidad_compra_id' => 'required|exists:unidad_compra,id',
+        'productosCompra.*.unidad_medida_id' => 'required|exists:unidad_medida,id',
     ];
 
     protected $messages = [
@@ -162,8 +162,8 @@ class CompraDeProducto extends Component
             })
             ->toArray();
 
-        // Cargar unidades de compra
-        $this->unidadesCompra = UnidadCompra::orderBy('nombre')
+        // Cargar unidades de medida
+        $this->unidadesMedida = UnidadMedida::orderBy('nombre')
             ->get()
             ->map(function($unidad) {
                 return [
@@ -249,7 +249,7 @@ class CompraDeProducto extends Component
         return !empty($this->productoTemporal['producto_id']) &&
                !empty($this->productoTemporal['precio']) &&
                $this->productoTemporal['precio'] > 0 &&
-               !empty($this->productoTemporal['unidad_compra_id']) &&
+               !empty($this->productoTemporal['unidad_medida_id']) &&
                $this->productoTemporal['cantidad_ingresada'] > 0;
     }
 
@@ -327,8 +327,8 @@ class CompraDeProducto extends Component
             return;
         }
 
-        if (!$this->productoTemporal['unidad_compra_id']) {
-            $this->mostrarAlertaError('Debe seleccionar una unidad de compra');
+        if (!$this->productoTemporal['unidad_medida_id']) {
+            $this->mostrarAlertaError('Debe seleccionar una unidad de medida');
             return;
         }
 
@@ -346,7 +346,7 @@ class CompraDeProducto extends Component
 
         // Obtener información del producto
         $producto = collect($this->productos)->firstWhere('id', $this->productoTemporal['producto_id']);
-        $unidadCompra = collect($this->unidadesCompra)->firstWhere('id', $this->productoTemporal['unidad_compra_id']);
+        $unidadMedida = collect($this->unidadesMedida)->firstWhere('id', $this->productoTemporal['unidad_medida_id']);
 
         // Agregar producto a la lista
         $this->productosCompra[] = [
@@ -357,8 +357,8 @@ class CompraDeProducto extends Component
             'cantidad_ingresada' => $cantidad,
             'cantidad_sin_asignar' => $cantidad, // Inicialmente toda la cantidad sin asignar
             'fecha_expiracion' => $this->productoTemporal['fecha_expiracion'] ?: null,
-            'unidad_compra_id' => $this->productoTemporal['unidad_compra_id'],
-            'unidad_compra_nombre' => $unidadCompra['nombre'] ?? '',
+            'unidad_medida_id' => $this->productoTemporal['unidad_medida_id'],
+            'unidad_medida_nombre' => $unidadMedida['nombre'] ?? '',
             'isv' => $isv,
             'sub_total_producto' => $subtotalProducto,
             'precio_total' => $totalProducto,
@@ -428,7 +428,7 @@ class CompraDeProducto extends Component
             'precio' => 0,
             'cantidad_ingresada' => 1,
             'fecha_expiracion' => '',
-            'unidad_compra_id' => null,
+            'unidad_medida_id' => null,
             'isv' => 0,
         ];
         $this->busquedaProducto = '';
@@ -468,7 +468,7 @@ class CompraDeProducto extends Component
                     'sub_total_producto' => $producto['sub_total_producto'],
                     'isv' => $producto['sub_total_producto'] * ($producto['isv'] / 100),
                     'precio_total' => $producto['precio_total'],
-                    'unidad_compra_id' => $producto['unidad_compra_id'],
+                    'unidad_medida_id' => $producto['unidad_medida_id'],
                 ]);
             }
 
