@@ -63,7 +63,7 @@ class RecibirProductoCompra extends Component
             $this->detallesCompra = CompraHasProducto::with([
                 'producto.marca',
                 'producto.unidadMedidaCompra',
-                'unidadCompra'
+                'unidadMedida'
             ])
             ->where('compra_id', $this->compraId)
             ->get()
@@ -73,7 +73,7 @@ class RecibirProductoCompra extends Component
                     'codigo_producto' => $detalle->producto->codigo ?? 'N/A',
                     'nombre_producto' => $detalle->producto->nombre ?? 'N/A',
                     'marca' => $detalle->producto->marca->nombre ?? 'Sin marca',
-                    'unidad_medida' => $detalle->unidadCompra->nombre ?? 'N/A',
+                    'unidad_medida' => $detalle->unidadMedida->nombre ?? 'N/A',
                     'precio_unitario' => $detalle->precio,
                     'cantidad_comprada' => $detalle->cantidad_ingresada,
                     'cantidad_sin_asignar' => $detalle->cantidad_sin_asignar,
@@ -82,7 +82,7 @@ class RecibirProductoCompra extends Component
                     'total' => $detalle->precio_total,
                     'fecha_vencimiento' => $detalle->fecha_expiracion,
                     'producto_id' => $detalle->producto_id,
-                    'unidad_compra_id' => $detalle->unidad_compra_id
+                    'unidad_medida_id' => $detalle->unidad_medida_id
                 ];
             })->toArray();
 
@@ -344,7 +344,7 @@ class RecibirProductoCompra extends Component
                 'fecha_expiracion' => $detalleCompra->fecha_expiracion,
                 'comentario' => $this->comentarioDistribucion,
                 'unidades_compra' => $cantidadDistribuir,
-                'unidad_compra_id' => $detalleCompra->unidad_compra_id,
+                'unidad_medida_id' => $detalleCompra->unidad_medida_id,
                 'users_registro_id' => Auth::id(),
                 'estado_id' => 1 // Estado activo
             ]);
