@@ -83,14 +83,16 @@
         <div class="p-6 bg-white border border-gray-100 shadow-lg rounded-xl">
             <h2 class="mb-4 text-lg font-semibold text-gray-800">🚀 Acceso Rápido</h2>
             <div class="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-6">
-                @if(in_array($datosUsuario['rol'], ['Facturador', 'Admin', 'Administrador']))
+                @if($this->tienePermiso('SalaDeVentas.Ventas'))
                 <button
                     x-on:click="window.Livewire.dispatch('cambiarVista', ['SalaDeVentas.Ventas'])"
                     class="flex flex-col items-center justify-center p-4 text-white transition-all duration-200 transform bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl hover:from-blue-600 hover:to-blue-700 hover:scale-105">
                     <span class="mb-2 text-2xl">🧾</span>
                     <span class="text-sm font-medium">Facturar</span>
                 </button>
+                @endif
 
+                @if($this->tienePermiso('Inventario.Producto'))
                 <button
                     x-on:click="window.Livewire.dispatch('cambiarVista', ['Inventario.Producto'])"
                     class="flex flex-col items-center justify-center p-4 text-white transition-all duration-200 transform bg-gradient-to-br from-green-500 to-green-600 rounded-xl hover:from-green-600 hover:to-green-700 hover:scale-105">
@@ -99,14 +101,16 @@
                 </button>
                 @endif
 
-                @if(in_array($datosUsuario['rol'], ['Inventario', 'Admin', 'Administrador']))
+                @if($this->tienePermiso('Inventario.CompraDeProductos'))
                 <button
                     x-on:click="window.Livewire.dispatch('cambiarVista', ['Inventario.CompraDeProductos'])"
                     class="flex flex-col items-center justify-center p-4 text-white transition-all duration-200 transform bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl hover:from-purple-600 hover:to-purple-700 hover:scale-105">
                     <span class="mb-2 text-2xl">🛍️</span>
                     <span class="text-sm font-medium">Compras</span>
                 </button>
+                @endif
 
+                @if($this->tienePermiso('Inventario.Bodegas'))
                 <button
                     x-on:click="window.Livewire.dispatch('cambiarVista', ['Inventario.Bodegas'])"
                     class="flex flex-col items-center justify-center p-4 text-white transition-all duration-200 transform bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl hover:from-orange-600 hover:to-orange-700 hover:scale-105">
@@ -115,14 +119,16 @@
                 </button>
                 @endif
 
-                @if(in_array($datosUsuario['rol'], ['Admin', 'Administrador', 'Roles']))
+                @if($this->tienePermiso('Configuracion.Usuarios'))
                 <button
                     x-on:click="window.Livewire.dispatch('cambiarVista', ['Configuracion.Usuarios'])"
                     class="flex flex-col items-center justify-center p-4 text-white transition-all duration-200 transform bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl hover:from-indigo-600 hover:to-indigo-700 hover:scale-105">
                     <span class="mb-2 text-2xl">👥</span>
                     <span class="text-sm font-medium">Usuarios</span>
                 </button>
+                @endif
 
+                @if($this->tienePermiso('Configuracion.Roles'))
                 <button
                     x-on:click="window.Livewire.dispatch('cambiarVista', ['Configuracion.Roles'])"
                     class="flex flex-col items-center justify-center p-4 text-white transition-all duration-200 transform bg-gradient-to-br from-pink-500 to-pink-600 rounded-xl hover:from-pink-600 hover:to-pink-700 hover:scale-105">
@@ -131,28 +137,35 @@
                 </button>
                 @endif
 
-                @if(in_array($datosUsuario['rol'], ['Cajero', 'Admin', 'Administrador', 'Facturador']))
+                @if($this->tienePermiso(['SalaDeVentas.Ventas', 'Caja.RecibidoDeEfectivo', 'Caja.EntregaDeEfectivo', 'Caja.SaldoInicial', 'Caja.CierreDeCaja']))
+                @if($this->tienePermiso('Caja.RecibidoDeEfectivo'))
                 <button
                     x-on:click="window.Livewire.dispatch('cambiarVista', ['Caja.RecibidoDeEfectivo'])"
                     class="flex flex-col items-center justify-center p-4 text-white transition-all duration-200 transform bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl hover:from-emerald-600 hover:to-emerald-700 hover:scale-105">
                     <span class="mb-2 text-2xl">💰</span>
                     <span class="text-sm font-medium">Recibir Efectivo</span>
                 </button>
+                @endif
 
+                @if($this->tienePermiso('Caja.EntregaDeEfectivo'))
                 <button
                     x-on:click="window.Livewire.dispatch('cambiarVista', ['Caja.EntregaDeEfectivo'])"
                     class="flex flex-col items-center justify-center p-4 text-white transition-all duration-200 transform bg-gradient-to-br from-red-500 to-red-600 rounded-xl hover:from-red-600 hover:to-red-700 hover:scale-105">
                     <span class="mb-2 text-2xl">💸</span>
                     <span class="text-sm font-medium">Entregar Efectivo</span>
                 </button>
+                @endif
 
+                @if($this->tienePermiso('Caja.CierreDeCaja'))
                 <button
                     x-on:click="window.Livewire.dispatch('cambiarVista', ['Caja.CierreDeCaja'])"
                     class="flex flex-col items-center justify-center p-4 text-white transition-all duration-200 transform bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl hover:from-purple-600 hover:to-purple-700 hover:scale-105">
                     <span class="mb-2 text-2xl">📋</span>
                     <span class="text-sm font-medium">Cierre de Caja</span>
                 </button>
+                @endif
 
+                @if($this->tienePermiso('SalaDeVentas.Ventas'))
                 <button
                     x-on:click="window.Livewire.dispatch('cambiarVista', ['SalaDeVentas.Ventas'])"
                     class="flex flex-col items-center justify-center p-4 text-white transition-all duration-200 transform bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-xl hover:from-yellow-600 hover:to-yellow-700 hover:scale-105">
@@ -160,8 +173,9 @@
                     <span class="text-sm font-medium">Facturación</span>
                 </button>
                 @endif
+                @endif
 
-                @if(in_array($datosUsuario['rol'], ['Admin', 'Administrador']))
+                @if($this->tienePermiso('Gestion.Cai'))
                 <button
                     x-on:click="window.Livewire.dispatch('cambiarVista', ['Gestion.Cai'])"
                     class="flex flex-col items-center justify-center p-4 text-white transition-all duration-200 transform bg-gradient-to-br from-teal-500 to-teal-600 rounded-xl hover:from-teal-600 hover:to-teal-700 hover:scale-105">
@@ -235,7 +249,7 @@
         </div>
 
         <!-- Estadísticas específicas por rol -->
-        @if(in_array($datosUsuario['rol'], ['Admin', 'Administrador']))
+        @if($this->tienePermiso(['Configuracion.Usuarios', 'Configuracion.Roles']))
         <div class="grid grid-cols-1 gap-6 md:grid-cols-3">
             <div class="p-6 text-white shadow-lg bg-gradient-to-br from-pink-500 to-pink-600 rounded-xl">
                 <div class="flex items-center justify-between">
@@ -249,7 +263,7 @@
         </div>
         @endif
 
-        @if(in_array($datosUsuario['rol'], ['Inventario', 'Admin', 'Administrador']))
+        @if($this->tienePermiso(['Inventario.Producto', 'Inventario.CompraDeProductos', 'Inventario.Bodegas']))
         <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
             <div class="p-6 text-white shadow-lg bg-gradient-to-br from-red-500 to-red-600 rounded-xl">
                 <div class="flex items-center justify-between">
@@ -267,7 +281,7 @@
         <!-- Sección de contenido dinámico -->
         <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
             <!-- Ventas Recientes -->
-            @if(in_array($datosUsuario['rol'], ['Facturador', 'Admin', 'Administrador', 'Inventario']))
+            @if($this->tienePermiso(['SalaDeVentas.Ventas', 'Inventario.Producto']))
             <div class="p-6 bg-white border border-gray-100 shadow-lg lg:col-span-2 rounded-xl">
                 <h3 class="flex items-center mb-4 text-lg font-semibold text-gray-800">
                     📊 Ventas Recientes
@@ -299,7 +313,7 @@
             @endif
 
             <!-- Productos con Stock Bajo -->
-            @if(in_array($datosUsuario['rol'], ['Inventario', 'Admin', 'Administrador']))
+            @if($this->tienePermiso(['Inventario.Producto', 'Inventario.CompraDeProductos', 'Inventario.Bodegas']))
             <div class="p-6 bg-white border border-gray-100 shadow-lg rounded-xl">
                 <h3 class="flex items-center mb-4 text-lg font-semibold text-gray-800">
                     ⚠️ Stock Bajo

@@ -42,7 +42,6 @@ class DashboardDinamico extends Component
     public function cargarEstadisticas()
     {
         $usuario = Auth::user();
-        $rolNombre = $usuario->rol->txt_nombre ?? '';
 
         // Estadísticas básicas para todos
         $this->estadisticas = [
@@ -68,8 +67,8 @@ class DashboardDinamico extends Component
                 ->count(),
         ];
 
-        // Estadísticas específicas por rol
-        if (in_array($rolNombre, ['Admin', 'Administrador'])) {
+        // Estadísticas específicas por permisos
+        if ($this->usuarioTienePermisos(['Configuracion.Usuarios', 'Configuracion.Roles'])) {
             $this->estadisticas = array_merge($this->estadisticas, [
                 'tiendas_activas' => DB::table('tienda')->where('estado_id', 1)->count(),
                 'bodegas_activas' => DB::table('bodega')->where('estado_id', 1)->count(),
@@ -78,13 +77,13 @@ class DashboardDinamico extends Component
             ]);
         }
 
-        if (in_array($rolNombre, ['Inventario', 'Admin', 'Administrador'])) {
+        if ($this->usuarioTienePermisos(['Inventario.Producto', 'Inventario.CompraDeProductos', 'Inventario.Bodegas'])) {
             // Para stock bajo, filtrar por bodegas de la tienda del usuario
             $queryStockBajo = DB::table('recibido_bodega')
                 ->where('cantidad_disponible', '<', 10);
             
             // Si el usuario no es Admin, filtrar por su tienda
-            if (!in_array($rolNombre, ['Admin', 'Administrador']) && $usuario->tienda_id) {
+            if (!$this->usuarioTienePermisos(['Configuracion.Usuarios', 'Configuracion.Roles']) && $usuario->tienda_id) {
                 $queryStockBajo->join('seccion as s', 'recibido_bodega.seccion_id', '=', 's.id')
                     ->join('segmento as seg', 's.segmento_id', '=', 'seg.id')
                     ->join('bodega as b', 'seg.bodega_id', '=', 'b.id')
@@ -96,7 +95,7 @@ class DashboardDinamico extends Component
                 ->whereMonth('created_at', now()->month)
                 ->whereYear('created_at', now()->year);
             
-            if (!in_array($rolNombre, ['Admin', 'Administrador'])) {
+            if (!$this->usuarioTienePermisos(['Configuracion.Usuarios', 'Configuracion.Roles'])) {
                 $queryRecepciones->where('users_registro_id', $usuario->id);
             }
             
@@ -110,10 +109,9 @@ class DashboardDinamico extends Component
     public function cargarDatosPorRol()
     {
         $usuario = Auth::user();
-        $rolNombre = $usuario->rol->txt_nombre ?? '';
 
-        // Ventas recientes (para roles de ventas y admin)
-        if (in_array($rolNombre, ['Facturador', 'Admin', 'Administrador', 'Inventario'])) {
+        // Ventas recientes (para usuarios con permisos de ventas y admin)
+        if ($this->usuarioTienePermisos(['SalaDeVentas.Ventas', 'Inventario.Producto'])) {
             $this->ventasRecientes = DB::table('factura as f')
                 ->join('users as u', 'f.users_id', '=', 'u.id')
                 ->select(
@@ -128,8 +126,8 @@ class DashboardDinamico extends Component
                 ->get();
         }
 
-        // Productos con stock bajo (para inventario y admin)
-        if (in_array($rolNombre, ['Inventario', 'Admin', 'Administrador'])) {
+        // Productos con stock bajo (para usuarios con permisos de inventario y admin)
+        if ($this->usuarioTienePermisos(['Inventario.Producto', 'Inventario.CompraDeProductos', 'Inventario.Bodegas'])) {
             $queryProductosStockBajo = DB::table('recibido_bodega as rb')
                 ->join('producto as p', 'rb.producto_id', '=', 'p.id')
                 ->join('seccion as s', 'rb.seccion_id', '=', 's.id')
@@ -138,8 +136,8 @@ class DashboardDinamico extends Component
                 ->where('rb.cantidad_disponible', '<', 10)
                 ->where('rb.cantidad_disponible', '>', 0);
             
-            // Si el usuario no es Admin, filtrar por su tienda
-            if (!in_array($rolNombre, ['Admin', 'Administrador']) && $usuario->tienda_id) {
+            // Si el usuario no tiene permisos administrativos, filtrar por su tienda
+            if (!$this->usuarioTienePermisos(['Configuracion.Usuarios', 'Configuracion.Roles']) && $usuario->tienda_id) {
                 $queryProductosStockBajo->where('b.tienda_id', $usuario->tienda_id);
             }
             
@@ -156,7 +154,7 @@ class DashboardDinamico extends Component
         }
 
         // Actividad reciente del sistema (para admin)
-        if (in_array($rolNombre, ['Admin', 'Administrador'])) {
+        if ($this->usuarioTienePermisos(['Configuracion.Usuarios', 'Configuracion.Roles'])) {
             $this->actividad = collect([
                 [
                     'tipo' => 'factura',
@@ -280,13 +278,17 @@ class DashboardDinamico extends Component
     public function cargarEstadoCaja()
     {
         $usuario = Auth::user();
-        $rolNombre = $usuario->rol->txt_nombre ?? '';
 
-        // Solo cargar estado de caja si el usuario tiene permisos de caja
-        // Verificar si el rol tiene permisos relacionados con caja
-        $rolesCaja = ['Cajero', 'Facturador', 'Admin', 'Administrador'];
+        // Verificar si el usuario tiene permisos específicos para ver estado de caja
+        $tienePermisosCaja = $this->usuarioTienePermisos([
+            'SalaDeVentas.Ventas',
+            'Caja.RecibidoDeEfectivo',
+            'Caja.EntregaDeEfectivo', 
+            'Caja.SaldoInicial',
+            'Caja.CierreDeCaja'
+        ]);
         
-        if (in_array($rolNombre, $rolesCaja)) {
+        if ($tienePermisosCaja) {
             // Obtener la tienda actual del usuario
             $tiendaId = $usuario->tienda_id;
             
@@ -318,6 +320,53 @@ class DashboardDinamico extends Component
                 ];
             }
         }
+    }
+
+    /**
+     * Verifica si el usuario tiene alguno de los permisos especificados
+     * @param array $permisos Array de routes/permisos a verificar
+     * @return bool
+     */
+    private function usuarioTienePermisos($permisos)
+    {
+        $usuario = Auth::user();
+        
+        if (!$usuario || !$usuario->roles_id) {
+            return false;
+        }
+
+        // Verificar si es admin (tiene acceso a todo)
+        $rolNombre = $usuario->rol->txt_nombre ?? '';
+        $esAdmin = in_array($rolNombre, ['Admin', 'Administrador']);
+        
+        if ($esAdmin) {
+            return true;
+        }
+
+        // Verificar permisos específicos a través de la tabla rol_permiso y menu
+        $tienePermiso = DB::table('menu')
+            ->join('rol_permiso', 'menu.id', '=', 'rol_permiso.menu_id')
+            ->where('rol_permiso.rol_id', $usuario->roles_id)
+            ->where('rol_permiso.estado', 1)
+            ->where('menu.estado_id', 1)
+            ->whereIn('menu.route', $permisos)
+            ->exists();
+
+        return $tienePermiso;
+    }
+
+    /**
+     * Método público para verificar permisos desde la vista Blade
+     * @param array|string $permisos Permiso o array de permisos a verificar
+     * @return bool
+     */
+    public function tienePermiso($permisos)
+    {
+        if (is_string($permisos)) {
+            $permisos = [$permisos];
+        }
+        
+        return $this->usuarioTienePermisos($permisos);
     }
 
     private function obtenerTextoEstado($estado)
