@@ -252,7 +252,7 @@
         <!-- DUPLICADO Y RANGOS (solo últimos 8 dígitos) -->
         @if($caiFacturaImpresa)
             <div class="duplicado-rango">
-                (DUPLICADO) {{ substr(str_pad($caiFacturaImpresa->rango_inicio, 8, '0', STR_PAD_LEFT), -8) }} - {{ substr(str_pad($caiFacturaImpresa->rango_final, 8, '0', STR_PAD_LEFT), -8) }}
+                (DUPLICADO) {{ substr(str_pad($caiFacturaImpresa['rango_inicio'], 8, '0', STR_PAD_LEFT), -8) }} - {{ substr(str_pad($caiFacturaImpresa['rango_final'], 8, '0', STR_PAD_LEFT), -8) }}
             </div>
         @endif
 
@@ -295,33 +295,60 @@
         </div>
 
         @foreach($productos as $producto)
+            @php
+                // Calcular importe del producto SIN descuentos (cantidad × precio unitario)
+                $importeProducto = $producto['cantidad'] * $producto['precio_unidad'];
+                
+                // Descuento unitario desde tabla descuentos
+                $descuentoUnitario = $producto['descuento_unitario'] ?? 0;
+                
+                // Descuento de adulto mayor (el descuento actual menos el descuento unitario)
+                $descuentoAdultoMayor = ($producto['descuento'] ?? 0) - $descuentoUnitario;
+                if ($descuentoAdultoMayor < 0) $descuentoAdultoMayor = $producto['descuento'] ?? 0;
+                
+                // Calcular porcentaje si hay descuento de adulto mayor
+                $porcentajeDescuentoAdulto = 0;
+                $tipoDescuento = "";
+                if ($descuentoAdultoMayor > 0 && $importeProducto > 0) {
+                    $porcentajeDescuentoAdulto = ($descuentoAdultoMayor / $importeProducto) * 100;
+                    $tipoDescuento = $porcentajeDescuentoAdulto >= 30 ? "4ta edad" : "3ra edad";
+                }
+            @endphp
             <div class="product-row">
                 <div class="product-table-row">
                     <div class="col-uds">
-                        @if($producto->isv > 0)
-                            {{ $producto->cantidad }}(G)
+                        @if($producto['isv'] > 0)
+                            {{ $producto['cantidad'] }}(G)
                         @else
-                            {{ $producto->cantidad }}(E)
+                            {{ $producto['cantidad'] }}(E)
                         @endif
                     </div>
                     <div class="col-descripcion">
-                        {{ $producto->nombre }}<br>
-                        <span style="font-size: 13px;">{{ $producto->cantidad }} x L. {{ number_format($producto->precio_unidad, 2) }}</span>
-                        @if($producto->descuento > 0)
+                        {{ $producto['nombre'] }}<br>
+                        <span style="font-size: 13px;">{{ $producto['cantidad'] }} x L. {{ number_format($producto['precio_unidad'], 2) }}</span>
+                        
+                        @if($descuentoUnitario > 0)
                             <br><span style="font-size: 15px;">
-                                @php
-                                    $subtotalOriginal = $producto->cantidad * $producto->precio_unidad;
-                                    $porcentajeDescuento = ($producto->descuento / $subtotalOriginal) * 100;
-                                    $tipoDescuento = $porcentajeDescuento >= 30 ? "4ta edad" : "3ra edad";
-                                @endphp
-                                Descuento - {{ number_format($porcentajeDescuento, 0) }}% {{ $tipoDescuento }}
+                                Descuento de producto: L. {{ number_format($descuentoUnitario, 2) }}
+                            </span>
+                        @endif
+                        
+                        @if($descuentoAdultoMayor > 0)
+                            <br><span style="font-size: 15px;">
+                                Descuento - {{ number_format($porcentajeDescuentoAdulto, 0) }}% {{ $tipoDescuento }}
                             </span>
                         @endif
                     </div>
                     <div class="col-importe">
-                        L. {{ number_format($producto->subtotal, 2) }}
-                        @if($producto->descuento > 0)
-                            <br><span style="font-size: 15px;">-L. {{ number_format($producto->descuento, 2) }}</span>
+                        <!-- Importe del producto SIN descuentos -->
+                        L. {{ number_format($importeProducto, 2) }}
+                        
+                        @if($descuentoUnitario > 0)
+                            <br><span style="font-size: 15px;">-L. {{ number_format($descuentoUnitario, 2) }}</span>
+                        @endif
+                        
+                        @if($descuentoAdultoMayor > 0)
+                            <br><span style="font-size: 15px;">-L. {{ number_format($descuentoAdultoMayor, 2) }}</span>
                         @endif
                     </div>
                 </div>
@@ -338,7 +365,9 @@
                     <div class="table-cell-right">L. {{ number_format($factura->sub_total, 2) }}</div>
                 </div>
                 @php
-                    $totalDescuentos = collect($productos)->sum('descuento');
+                    $totalDescuentos = collect($productos)->sum(function($producto) {
+                        return $producto['descuento'] ?? 0;
+                    });
                 @endphp
                 @if($totalDescuentos > 0)
                 <div class="table-row">
@@ -348,16 +377,38 @@
                 @endif
                 <div class="table-row">
                     <div class="table-cell-left">IMPORTE EXONERADO</div>
-                    <div class="table-cell-right">L. {{ number_format(collect($productos)->where('tasa_isv', 0)->sum('subtotal'), 2) }}</div>
+                    <div class="table-cell-right">L. {{ number_format(collect($productos)->filter(function($producto) {
+                        return ($producto['tasa_isv'] ?? 0) == 0;
+                    })->sum(function($producto) {
+                        return $producto['subtotal'] ?? 0;
+                    }), 2) }}</div>
                 </div>
                 @php
                     // Calcular importes por tasa de ISV
-                    $importe15 = collect($productos)->where('tasa_isv', 15)->sum('subtotal');
-                    $importe18 = collect($productos)->where('tasa_isv', 18)->sum('subtotal');
+                    $importe15 = collect($productos)->filter(function($producto) {
+                        return ($producto['tasa_isv'] ?? 0) == 15;
+                    })->sum(function($producto) {
+                        return $producto['subtotal'] ?? 0;
+                    });
+                    
+                    $importe18 = collect($productos)->filter(function($producto) {
+                        return ($producto['tasa_isv'] ?? 0) == 18;
+                    })->sum(function($producto) {
+                        return $producto['subtotal'] ?? 0;
+                    });
 
                     // Calcular impuestos por tasa (usar campo 'isv' que siempre tiene el monto calculado)
-                    $impuesto15 = collect($productos)->where('tasa_isv', 15)->sum('isv');
-                    $impuesto18 = collect($productos)->where('tasa_isv', 18)->sum('isv');
+                    $impuesto15 = collect($productos)->filter(function($producto) {
+                        return ($producto['tasa_isv'] ?? 0) == 15;
+                    })->sum(function($producto) {
+                        return $producto['isv'] ?? 0;
+                    });
+                    
+                    $impuesto18 = collect($productos)->filter(function($producto) {
+                        return ($producto['tasa_isv'] ?? 0) == 18;
+                    })->sum(function($producto) {
+                        return $producto['isv'] ?? 0;
+                    });
                 @endphp
                 <div class="table-row">
                     <div class="table-cell-left">IMPORTE 15%</div>
@@ -475,10 +526,12 @@
             <div class="forma-pago">
                 <strong>FORMA DE PAGO:</strong><br>
                 @foreach($pagos as $pago)
-                    {{ $pago->metodo }}: L. {{ number_format($pago->pago_recibido, 2) }}<br>
+                    {{ $pago['metodo'] }}: L. {{ number_format($pago['pago_recibido'], 2) }}<br>
                 @endforeach
                 @php
-                    $totalPagado = collect($pagos)->sum('pago_recibido');
+                    $totalPagado = collect($pagos)->sum(function($pago) {
+                        return $pago['pago_recibido'] ?? 0;
+                    });
                     $cambio = $totalPagado - $factura->total;
                 @endphp
                 @if($cambio > 0)
@@ -492,9 +545,9 @@
         <!-- DATOS DEL CAI -->
         @if($caiFacturaImpresa)
             <div class="cai-info">
-                <strong>CAI:</strong> {{ $caiFacturaImpresa->cai }}<br>
-                <strong>FECHA LIMITE:</strong> {{ \Carbon\Carbon::parse($caiFacturaImpresa->fecha_limite_emision)->format('d/m/Y') }}<br>
-                <strong>RANGO AUTORIZADO:</strong> {{ str_pad($caiFacturaImpresa->rango_inicio, 8, '0', STR_PAD_LEFT) }} - {{ str_pad($caiFacturaImpresa->rango_final, 8, '0', STR_PAD_LEFT) }}
+                <strong>CAI:</strong> {{ $caiFacturaImpresa['cai'] }}<br>
+                <strong>FECHA LIMITE:</strong> {{ \Carbon\Carbon::parse($caiFacturaImpresa['fecha_limite_emision'])->format('d/m/Y') }}<br>
+                <strong>RANGO AUTORIZADO:</strong> {{ str_pad($caiFacturaImpresa['rango_inicio'], 8, '0', STR_PAD_LEFT) }} - {{ str_pad($caiFacturaImpresa['rango_final'], 8, '0', STR_PAD_LEFT) }}
             </div>
         @endif
 

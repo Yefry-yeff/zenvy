@@ -21,16 +21,22 @@ class FacturaPDFController extends Controller
             }
             
             // Cargar información del CAI asociado a la factura
-            $caiFacturaImpresa = DB::table('cai')
+            $cai = DB::table('cai')
                 ->where('id', $factura->cai_id)
                 ->first();
+            $caiFacturaImpresa = $cai ? (array) $cai : null;
             
-            // Cargar productos
+            // Cargar productos con descuentos
             $productos = DB::table('factura_has_producto as fp')
                 ->join('producto as p', 'fp.producto_id', '=', 'p.id')
                 ->join('isv as i', 'p.isv_id', '=', 'i.id')
+                ->leftJoin('descuentos as d', function($join) use ($facturaId) {
+                    $join->on('d.producto_id', '=', 'p.id')
+                         ->where('d.factura_id', '=', $facturaId);
+                })
                 ->where('fp.factura_id', $facturaId)
                 ->select(
+                    'p.id as producto_id',
                     'p.nombre',
                     'p.codigo_barra',
                     'i.cantidad as tasa_isv',
@@ -40,16 +46,25 @@ class FacturaPDFController extends Controller
                     'fp.descuento',
                     'fp.isv_aplicado',
                     'fp.isv',
-                    'fp.total'
+                    'fp.total',
+                    'd.monto_total as descuento_unitario'
                 )
-                ->get();
+                ->get()
+                ->map(function($item) {
+                    return (array) $item;
+                })
+                ->toArray();
                 
             // Cargar métodos de pago
             $pagos = DB::table('factura_has_pago as fp')
                 ->join('tipo_pago as tp', 'fp.tipo_pago_id', '=', 'tp.id')
                 ->where('fp.factura_id', $facturaId)
                 ->select('tp.nombre as metodo', 'fp.pago_recibido')
-                ->get();
+                ->get()
+                ->map(function($item) {
+                    return (array) $item;
+                })
+                ->toArray();
             
             // Cargar datos de empresa
             $empresa = DB::table('empresa')->first();
@@ -111,16 +126,22 @@ class FacturaPDFController extends Controller
             }
             
             // Cargar información del CAI asociado a la factura
-            $caiFacturaImpresa = DB::table('cai')
+            $cai = DB::table('cai')
                 ->where('id', $factura->cai_id)
                 ->first();
+            $caiFacturaImpresa = $cai ? (array) $cai : null;
             
-            // Cargar productos
+            // Cargar productos con descuentos
             $productos = DB::table('factura_has_producto as fp')
                 ->join('producto as p', 'fp.producto_id', '=', 'p.id')
                 ->join('isv as i', 'p.isv_id', '=', 'i.id')
+                ->leftJoin('descuentos as d', function($join) use ($facturaId) {
+                    $join->on('d.producto_id', '=', 'p.id')
+                         ->where('d.factura_id', '=', $facturaId);
+                })
                 ->where('fp.factura_id', $facturaId)
                 ->select(
+                    'p.id as producto_id',
                     'p.nombre',
                     'p.codigo_barra',
                     'i.cantidad as tasa_isv',
@@ -130,16 +151,25 @@ class FacturaPDFController extends Controller
                     'fp.descuento',
                     'fp.isv_aplicado',
                     'fp.isv',
-                    'fp.total'
+                    'fp.total',
+                    'd.monto_total as descuento_unitario'
                 )
-                ->get();
+                ->get()
+                ->map(function($item) {
+                    return (array) $item;
+                })
+                ->toArray();
                 
             // Cargar métodos de pago
             $pagos = DB::table('factura_has_pago as fp')
                 ->join('tipo_pago as tp', 'fp.tipo_pago_id', '=', 'tp.id')
                 ->where('fp.factura_id', $facturaId)
                 ->select('tp.nombre as metodo', 'fp.pago_recibido')
-                ->get();
+                ->get()
+                ->map(function($item) {
+                    return (array) $item;
+                })
+                ->toArray();
             
             // Cargar datos de empresa
             $empresa = DB::table('empresa')->first();

@@ -1661,16 +1661,23 @@ class Ventas extends Component
         $this->facturaParaImprimir = Factura::with('usuario')->find($facturaId);
 
         // Cargar información del CAI asociado a la factura
-        $this->caiFacturaImpresa = DB::table('cai')
+        $cai = DB::table('cai')
             ->where('id', $this->facturaParaImprimir->cai_id)
             ->first();
+        
+        $this->caiFacturaImpresa = $cai ? (array) $cai : null;
 
         // Cargar productos
         $this->productosFacturaImpresa = DB::table('factura_has_producto as fp')
             ->join('producto as p', 'fp.producto_id', '=', 'p.id')
             ->join('isv as i', 'p.isv_id', '=', 'i.id')
+            ->leftJoin('descuentos as d', function($join) use ($facturaId) {
+                $join->on('d.producto_id', '=', 'p.id')
+                     ->where('d.factura_id', '=', $facturaId);
+            })
             ->where('fp.factura_id', $facturaId)
             ->select(
+                'p.id as producto_id',
                 'p.nombre',
                 'p.codigo_barra',
                 'i.cantidad as tasa_isv',
@@ -1680,11 +1687,14 @@ class Ventas extends Component
                 'fp.descuento',
                 'fp.isv_aplicado',
                 'fp.isv',
-                'fp.total'
+                'fp.total',
+                'd.monto_total as descuento_unitario'
             )
-            ->get()->map(function($item) {
+            ->get()
+            ->map(function($item) {
                 return (array) $item;
-            })->toArray();
+            })
+            ->toArray();
 
         // Cargar métodos de pago
         $this->pagosFacturaImpresa = DB::table('factura_has_pago as fp')
