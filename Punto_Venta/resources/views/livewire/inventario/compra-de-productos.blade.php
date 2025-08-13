@@ -110,7 +110,7 @@
                                     <td class="text-center">{{ $compra->detallesCompra->count() }}</td>
                                     <td class="text-end"><strong>L. {{ number_format($compra->detallesCompra->sum('precio_total'), 2) }}</strong></td>
                                     <td class="text-center" onclick="event.stopPropagation()">
-                                        @if($compra->estado && strtolower($compra->estado->nombre) === 'activo' && $compra->estado_id != 5)
+                                        @if($compra->estado && (strtolower($compra->estado->nombre) === 'activo' || $compra->estado_id == 5))
                                             <div class="position-relative" x-data="{ open: false }">
                                                 <button @click="open = !open"
                                                         class="btn btn-sm btn-outline-primary d-flex align-items-center gap-1"
@@ -135,23 +135,32 @@
                                                      style="top: 100%; right: 0; z-index: 1050; min-width: 180px; margin-top: 0.25rem; border: 1px solid rgba(0,0,0,0.125); box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.15);">
 
                                                     <div class="p-1">
-                                                        <button type="button"
-                                                                class="btn btn-link text-start w-100 d-flex align-items-center text-danger border-0 p-2"
-                                                                wire:click="abrirModalAnular({{ $compra->id }})"
-                                                                @click="open = false"
-                                                                style="font-size: 0.875rem; text-decoration: none; border-radius: 0.375rem;"
-                                                                onmouseover="this.style.backgroundColor='#fef2f2'"
-                                                                onmouseout="this.style.backgroundColor='transparent'">
-                                                            <i class="fas fa-times-circle me-2" style="font-size: 0.9rem; color: #dc3545;"></i>
-                                                            <div>
-                                                                <div class="fw-medium">Anular Compra</div>
-                                                                <small class="text-muted d-block" style="font-size: 0.7rem;">Cancelar esta compra</small>
+                                                    <div class="p-1">
+                                                        @if($compra->estado_id != 5)
+                                                            <button type="button"
+                                                                    class="btn btn-link text-start w-100 d-flex align-items-center text-danger border-0 p-2"
+                                                                    wire:click="abrirModalAnular({{ $compra->id }})"
+                                                                    @click="open = false"
+                                                                    style="font-size: 0.875rem; text-decoration: none; border-radius: 0.375rem;"
+                                                                    onmouseover="this.style.backgroundColor='#fef2f2'"
+                                                                    onmouseout="this.style.backgroundColor='transparent'">
+                                                                <i class="fas fa-times-circle me-2" style="font-size: 0.9rem; color: #dc3545;"></i>
+                                                                <div>
+                                                                    <div class="fw-medium">Anular Compra</div>
+                                                                    <small class="text-muted d-block" style="font-size: 0.7rem;">Cancelar esta compra</small>
+                                                                </div>
+                                                            </button>
+
+                                                            <hr class="my-1" style="margin: 0.25rem 0; opacity: 0.1;">
+                                                        @else
+                                                            <div class="p-2 text-center">
+                                                                <small class="text-muted">
+                                                                    <i class="fas fa-info-circle me-1"></i>
+                                                                    No se puede anular en estado Pendiente
+                                                                </small>
                                                             </div>
-                                                        </button>
-
-                                                        <hr class="my-1" style="margin: 0.25rem 0; opacity: 0.1;">
-
-                                                        <button type="button"
+                                                            <hr class="my-1" style="margin: 0.25rem 0; opacity: 0.1;">
+                                                        @endif                                                        <button type="button"
                                                                 class="btn btn-link text-start w-100 d-flex align-items-center text-primary border-0 p-2"
                                                                 wire:click="irARecibirProducto({{ $compra->id }})"
                                                                 @click="open = false"
