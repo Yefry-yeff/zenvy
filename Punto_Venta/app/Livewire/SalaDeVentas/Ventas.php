@@ -370,6 +370,15 @@ class Ventas extends Component
             // Obtener el valor de ISV desde la relación
             $valorIsv = $producto->isv ? $producto->isv->cantidad : 0;
             
+            // Calcular descuento unitario automático si existe (valor monetario directo)
+            $subtotalOriginal = $producto->precio_base * $this->cantidad;
+            $descuentoUnitarioAplicado = 0;
+            
+            if (($producto->descuento_unitario ?? 0) > 0) {
+                // El descuento es un valor monetario que se aplica por cantidad
+                $descuentoUnitarioAplicado = $producto->descuento_unitario * $this->cantidad;
+            }
+            
             $this->productosFactura[] = [
                 'id' => $producto->id,
                 'nombre' => $producto->nombre,
@@ -379,9 +388,16 @@ class Ventas extends Component
                 'cantidad' => $this->cantidad,
                 'descuento_tercera' => $producto->descuento_tercera ?? 0,
                 'descuento_cuarta' => $producto->descuento_cuarta ?? 0,
+                'descuento_unitario_producto' => $producto->descuento_unitario ?? 0,
+                'descuento_unitario_aplicado' => $descuentoUnitarioAplicado,
                 'descuento_aplicado' => 0,
-                'subtotal_con_descuento' => 0
+                'subtotal_con_descuento' => $subtotalOriginal - $descuentoUnitarioAplicado
             ];
+            
+            // Mostrar mensaje si se aplicó descuento automático
+            if (($producto->descuento_unitario ?? 0) > 0) {
+                session()->flash('success', 'Producto aplicado con descuento');
+            }
         }
 
         // Limpiar campos y mantener el foco en el input
@@ -446,24 +462,39 @@ class Ventas extends Component
         foreach ($this->productosFactura as $index => $producto) {
             $subtotalProducto = $producto['precio'] * $producto['cantidad'];
             
-            // Aplicar descuentos por edad al subtotal del producto
+            // Aplicar descuento unitario automático del producto primero (valor monetario)
+            $descuentoUnitario = $producto['descuento_unitario_aplicado'] ?? 0;
+            
+            // Si el producto cambió de cantidad, recalcular el descuento unitario automático
+            if (($producto['descuento_unitario_producto'] ?? 0) > 0) {
+                // El descuento es un valor monetario que se multiplica por la cantidad
+                $descuentoUnitario = ($producto['descuento_unitario_producto'] ?? 0) * $producto['cantidad'];
+                $this->productosFactura[$index]['descuento_unitario_aplicado'] = $descuentoUnitario;
+            }
+            
+            // Aplicar el descuento unitario al subtotal
+            $subtotalConDescuentoUnitario = $subtotalProducto - $descuentoUnitario;
+            
+            // Aplicar descuentos por edad al subtotal ya con descuento unitario
             $descuentoProducto = 0;
             
             // Verificar descuento de tercera edad (25%) - solo si el producto lo permite
             if ($this->descuentoTerceraEdad && ($producto['descuento_tercera'] ?? 0) == 1) {
-                $descuentoProducto = $subtotalProducto * 0.25; // 25%
+                $descuentoProducto = $subtotalConDescuentoUnitario * 0.25; // 25%
             }
             // Verificar descuento de cuarta edad (35%) - solo si el producto lo permite y no hay descuento de tercera edad
             elseif ($this->descuentoCuartaEdad && ($producto['descuento_cuarta'] ?? 0) == 1) {
-                $descuentoProducto = $subtotalProducto * 0.35; // 35%
+                $descuentoProducto = $subtotalConDescuentoUnitario * 0.35; // 35%
             }
             
-            // Calcular subtotal con descuento aplicado
-            $subtotalConDescuento = $subtotalProducto - $descuentoProducto;
+            // Calcular subtotal final con ambos descuentos
+            $subtotalConDescuento = $subtotalConDescuentoUnitario - $descuentoProducto;
             $this->subtotal += $subtotalConDescuento;
-            $this->totalDescuentos += $descuentoProducto;
             
-            // Actualizar el producto con la información del descuento aplicado
+            // Sumar ambos tipos de descuentos al total de descuentos
+            $this->totalDescuentos += ($descuentoUnitario + $descuentoProducto);
+            
+            // Actualizar el producto con la información de los descuentos aplicados
             $this->productosFactura[$index]['descuento_aplicado'] = $descuentoProducto;
             $this->productosFactura[$index]['subtotal_con_descuento'] = $subtotalConDescuento;
 

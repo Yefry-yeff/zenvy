@@ -479,7 +479,8 @@
                         @forelse($productosFactura as $item)
                         @php
                             $subtotalOriginal = $item['precio'] * $item['cantidad'];
-                            $descuentoAplicado = $item['descuento_aplicado'] ?? 0;
+                            $descuentoAplicado = $item['descuento_aplicado'] ?? 0; // Descuento por edad
+                            $descuentoUnitario = $item['descuento_unitario_aplicado'] ?? 0; // Descuento automático del producto
                             $subtotalConDescuento = $item['subtotal_con_descuento'] ?? $subtotalOriginal;
                             $isv = $subtotalConDescuento * ($item['isv']/100);
                             $total = $subtotalConDescuento + $isv;
@@ -488,10 +489,16 @@
                         <tr>
                             <td>
                                 {{ $item['nombre'] }}
-                                @if($descuentoAplicado > 0)
+                                @if($descuentoUnitario > 0)
                                     <br><small class="text-success">
+                                        <i class="fas fa-tag"></i>
+                                        Descuento de producto: L. {{ number_format($descuentoUnitario, 2) }}
+                                    </small>
+                                @endif
+                                @if($descuentoAplicado > 0)
+                                    <br><small class="text-primary">
                                         <i class="fas fa-percentage"></i>
-                                        Descuento aplicado: L. {{ number_format($descuentoAplicado, 2) }}
+                                        Descuento por edad: L. {{ number_format($descuentoAplicado, 2) }}
                                     </small>
                                 @endif
                                 <br>
@@ -512,8 +519,14 @@
                                     title="Stock disponible: {{ $stockDisponible }}">
                             </td>
                             <td>
-                                @if($descuentoAplicado > 0)
+                                @if($descuentoUnitario > 0 || $descuentoAplicado > 0)
                                     <div class="text-decoration-line-through text-muted small">L. {{ number_format($subtotalOriginal, 2) }}</div>
+                                    @if($descuentoUnitario > 0)
+                                        <div class="text-success small">-L. {{ number_format($descuentoUnitario, 2) }} (producto)</div>
+                                    @endif
+                                    @if($descuentoAplicado > 0)
+                                        <div class="text-primary small">-L. {{ number_format($descuentoAplicado, 2) }} (edad)</div>
+                                    @endif
                                     <div class="text-success fw-bold">L. {{ number_format($subtotalConDescuento, 2) }}</div>
                                 @else
                                     L. {{ number_format($subtotalConDescuento, 2) }}
