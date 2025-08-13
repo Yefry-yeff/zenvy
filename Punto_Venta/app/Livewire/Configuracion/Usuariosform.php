@@ -63,10 +63,19 @@ class UsuariosForm extends Component
 
     public function mount($usuarioId = null)
     {
+        // Verificar si hay un usuario a editar desde sesión
+        $usuarioEnSesion = session('usuario_editar_id');
+        
         if ($usuarioId) {
             $this->modo = 'editar';
             $this->usuarioId = $usuarioId;
             $this->cargarUsuario();
+        } elseif ($usuarioEnSesion) {
+            $this->modo = 'editar';
+            $this->usuarioId = $usuarioEnSesion;
+            $this->cargarUsuario();
+            // Limpiar la sesión después de usar el valor
+            session()->forget('usuario_editar_id');
         }
 
         $this->cargarDatos();
