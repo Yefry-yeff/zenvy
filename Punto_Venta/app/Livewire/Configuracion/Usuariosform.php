@@ -3,10 +3,10 @@ namespace App\Livewire\Configuracion;
 
 use Livewire\Component;
 use App\Models\User;
-use App\Models\Actor;
+use App\Models\UserDetalle;
 use App\Models\Rol;
 use App\Models\Tienda;
-use App\Models\Permiso;
+use App\Models\Menu;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -50,9 +50,15 @@ class UsuariosForm extends Component
         'form.rol_id' => 'required|exists:roles,id',
         'form.tienda_id' => 'required|exists:tienda,id',
         'form.estado_id' => 'required|in:1,2',
-        'form.txt_identificacion' => 'required|unique:actor,txt_identificacion',
+        'form.txt_identificacion' => 'required|unique:user_detalle,identidad',
         'form.primer_nombre' => 'required|string|max:50',
+        'form.segundo_nombre' => 'nullable|string|max:50',
         'form.primer_apellido' => 'required|string|max:50',
+        'form.segundo_apellido' => 'nullable|string|max:50',
+        'form.telefono' => 'nullable|string|max:20',
+        'form.fecha_nacimiento' => 'nullable|date',
+        'form.genero' => 'nullable|in:M,F',
+        'form.direccion' => 'nullable|string|max:255',
     ];
 
     public function mount($usuarioId = null)
@@ -86,24 +92,24 @@ class UsuariosForm extends Component
 
     public function cargarUsuario()
     {
-        $usuario = User::with('actor')->find($this->usuarioId);
+        $usuario = User::with('detalle')->find($this->usuarioId);
 
         if ($usuario) {
             $this->form['email'] = $usuario->email;
-            $this->form['rol_id'] = $usuario->rol_id;
+            $this->form['rol_id'] = $usuario->roles_id;
             $this->form['tienda_id'] = $usuario->tienda_id;
             $this->form['estado_id'] = $usuario->estado_id ?? 1;
 
-            if ($usuario->actor) {
-                $this->form['txt_identificacion'] = $usuario->actor->txt_identificacion;
-                $this->form['primer_nombre'] = $usuario->actor->primer_nombre;
-                $this->form['segundo_nombre'] = $usuario->actor->segundo_nombre;
-                $this->form['primer_apellido'] = $usuario->actor->primer_apellido;
-                $this->form['segundo_apellido'] = $usuario->actor->segundo_apellido;
-                $this->form['telefono'] = $usuario->actor->telefono;
-                $this->form['fecha_nacimiento'] = $usuario->actor->fecha_nacimiento;
-                $this->form['genero'] = $usuario->actor->genero;
-                $this->form['direccion'] = $usuario->actor->direccion;
+            if ($usuario->detalle) {
+                $this->form['txt_identificacion'] = $usuario->detalle->identidad;
+                $this->form['primer_nombre'] = $usuario->detalle->primer_nombre;
+                $this->form['segundo_nombre'] = $usuario->detalle->segundo_nombre;
+                $this->form['primer_apellido'] = $usuario->detalle->primer_apellido;
+                $this->form['segundo_apellido'] = $usuario->detalle->segundo_apellido;
+                $this->form['telefono'] = $usuario->detalle->telefono;
+                $this->form['fecha_nacimiento'] = $usuario->detalle->fecha_nacimiento;
+                $this->form['genero'] = $usuario->detalle->genero;
+                $this->form['direccion'] = $usuario->detalle->direccion;
             }
         }
     }
@@ -116,17 +122,49 @@ class UsuariosForm extends Component
     public function cargarPermisos()
     {
         if (!empty($this->form['rol_id'])) {
-            $this->permisos = Permiso::whereHas('roles', function($query) {
-                $query->where('roles.id', $this->form['rol_id']);
-            })->get();
+            // Obtener los menús asignados al rol desde la tabla rol_permiso
+            $this->permisos = DB::table('menu')
+                ->join('rol_permiso', 'menu.id', '=', 'rol_permiso.menu_id')
+                ->where('rol_permiso.rol_id', $this->form['rol_id'])
+                ->where('rol_permiso.estado', 1)
+                ->select('menu.*')
+                ->get();
         } else {
             $this->permisos = collect();
         }
     }
 
+    protected function getRulesForValidation()
+    {
+        $rules = [
+            'form.email' => 'required|email|unique:users,email' . ($this->usuarioId ? ',' . $this->usuarioId : ''),
+            'form.rol_id' => 'required|exists:roles,id',
+            'form.tienda_id' => 'required|exists:tienda,id',
+            'form.estado_id' => 'required|in:1,2',
+            'form.txt_identificacion' => 'required|unique:user_detalle,identidad' . ($this->usuarioId ? ',' . $this->usuarioId . ',users_id' : ''),
+            'form.primer_nombre' => 'required|string|max:50',
+            'form.segundo_nombre' => 'nullable|string|max:50',
+            'form.primer_apellido' => 'required|string|max:50',
+            'form.segundo_apellido' => 'nullable|string|max:50',
+            'form.telefono' => 'nullable|string|max:20',
+            'form.fecha_nacimiento' => 'nullable|date',
+            'form.genero' => 'nullable|in:M,F',
+            'form.direccion' => 'nullable|string|max:255',
+        ];
+
+        // En modo editar, el password es opcional
+        if ($this->modo === 'editar') {
+            $rules['form.password'] = 'nullable|min:6';
+        } else {
+            $rules['form.password'] = 'required|min:6';
+        }
+
+        return $rules;
+    }
+
     public function guardar()
     {
-        $this->validate();
+        $this->validate($this->getRulesForValidation());
 
         try {
             DB::beginTransaction();
@@ -149,30 +187,32 @@ class UsuariosForm extends Component
 
     private function crearUsuario()
     {
-        // Crear actor
-        $actor = Actor::create([
-            'txt_identificacion' => $this->form['txt_identificacion'],
+        // Crear usuario primero
+        $usuario = User::create([
+            'name' => $this->form['primer_nombre'] . ' ' . $this->form['primer_apellido'],
+            'email' => $this->form['email'],
+            'password' => Hash::make($this->form['password']),
+            'roles_id' => $this->form['rol_id'],
+            'tienda_id' => $this->form['tienda_id'],
+            'estado_id' => $this->form['estado_id'],
+        ]);
+
+        // Crear detalle del usuario
+        UserDetalle::create([
+            'users_id' => $usuario->id,
+            'identidad' => $this->form['txt_identificacion'],
             'primer_nombre' => $this->form['primer_nombre'],
-            'segundo_nombre' => $this->form['segundo_nombre'],
+            'segundo_nombre' => !empty($this->form['segundo_nombre']) ? $this->form['segundo_nombre'] : null,
             'primer_apellido' => $this->form['primer_apellido'],
-            'segundo_apellido' => $this->form['segundo_apellido'],
-            'telefono' => $this->form['telefono'],
-            'fecha_nacimiento' => $this->form['fecha_nacimiento'],
-            'genero' => $this->form['genero'],
-            'direccion' => $this->form['direccion'],
+            'segundo_apellido' => !empty($this->form['segundo_apellido']) ? $this->form['segundo_apellido'] : null,
+            'telefono' => !empty($this->form['telefono']) ? $this->form['telefono'] : null,
+            'fecha_nacimiento' => !empty($this->form['fecha_nacimiento']) ? $this->form['fecha_nacimiento'] : null,
+            'genero' => !empty($this->form['genero']) ? $this->form['genero'] : null,
+            'direccion' => !empty($this->form['direccion']) ? $this->form['direccion'] : null,
             'estado_id' => 1,
         ]);
 
-        // Crear usuario
-        $usuario = User::create([
-            'name' => trim($this->form['primer_nombre'] . ' ' . $this->form['primer_apellido']),
-            'email' => $this->form['email'],
-            'password' => Hash::make($this->form['password']),
-            'rol_id' => $this->form['rol_id'],
-            'tienda_id' => $this->form['tienda_id'],
-            'actor_id' => $actor->id,
-            'estado_id' => $this->form['estado_id'],
-        ]);
+        return $usuario;
     }
 
     private function actualizarUsuario()
@@ -182,7 +222,7 @@ class UsuariosForm extends Component
         // Actualizar usuario
         $usuario->update([
             'name' => trim($this->form['primer_nombre'] . ' ' . $this->form['primer_apellido']),
-            'rol_id' => $this->form['rol_id'],
+            'roles_id' => $this->form['rol_id'],
             'tienda_id' => $this->form['tienda_id'],
             'estado_id' => $this->form['estado_id'],
         ]);
@@ -192,17 +232,18 @@ class UsuariosForm extends Component
             $usuario->update(['password' => Hash::make($this->form['password'])]);
         }
 
-        // Actualizar actor
-        if ($usuario->actor) {
-            $usuario->actor->update([
+        // Actualizar detalle del usuario
+        if ($usuario->detalle) {
+            $usuario->detalle->update([
+                'identidad' => $this->form['txt_identificacion'],
                 'primer_nombre' => $this->form['primer_nombre'],
-                'segundo_nombre' => $this->form['segundo_nombre'],
+                'segundo_nombre' => !empty($this->form['segundo_nombre']) ? $this->form['segundo_nombre'] : null,
                 'primer_apellido' => $this->form['primer_apellido'],
-                'segundo_apellido' => $this->form['segundo_apellido'],
-                'telefono' => $this->form['telefono'],
-                'fecha_nacimiento' => $this->form['fecha_nacimiento'],
-                'genero' => $this->form['genero'],
-                'direccion' => $this->form['direccion'],
+                'segundo_apellido' => !empty($this->form['segundo_apellido']) ? $this->form['segundo_apellido'] : null,
+                'telefono' => !empty($this->form['telefono']) ? $this->form['telefono'] : null,
+                'fecha_nacimiento' => !empty($this->form['fecha_nacimiento']) ? $this->form['fecha_nacimiento'] : null,
+                'genero' => !empty($this->form['genero']) ? $this->form['genero'] : null,
+                'direccion' => !empty($this->form['direccion']) ? $this->form['direccion'] : null,
             ]);
         }
     }

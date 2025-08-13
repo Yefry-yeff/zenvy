@@ -207,7 +207,7 @@
             <tbody>
                 @foreach ($permisos as $permiso)
                     <tr>
-                        <td class="px-3 py-2 border">{{ $permiso->nombre }}</td>
+                        <td class="px-3 py-2 border">{{ $permiso->txt_comentario }}</td>
                     </tr>
                 @endforeach
             </tbody>
