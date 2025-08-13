@@ -16,6 +16,10 @@ class CategoriaForm extends Component
     public $nuevaSubcategoria = '';
     public $mostrarMensaje = false;
 
+    // Propiedades para el flujo de creación
+    public $mostrarSeccionSubcategorias = false;
+    public $subcategoriasTemporales = [];
+
     // Propiedades para modal de eliminar subcategoría
     public $modalEliminarSubcategoriaAbierto = false;
     public $subcategoriaAEliminar = null;
@@ -54,6 +58,44 @@ class CategoriaForm extends Component
         $this->dispatch('cambiarVista', ruta: 'Inventario.Categoria');
     }
 
+    public function procederASubcategorias()
+    {
+        $this->validate([
+            'form.nombre' => 'required|string|max:255|unique:categoria,nombre,' . $this->categoriaId,
+        ], [
+            'form.nombre.required' => 'El nombre de la categoría es obligatorio.',
+            'form.nombre.unique' => 'Ya existe una categoría con ese nombre.'
+        ]);
+
+        $this->mostrarSeccionSubcategorias = true;
+        session()->flash('mensaje', 'Nombre válido. Ahora puedes agregar subcategorías o guardar directamente.');
+    }
+
+    public function agregarSubcategoriaTemporal()
+    {
+        $this->validate([
+            'nuevaSubcategoria' => 'required|string|max:255',
+        ], [
+            'nuevaSubcategoria.required' => 'El nombre de la subcategoría es obligatorio.',
+        ]);
+
+        // Verificar que no esté duplicada
+        if (in_array($this->nuevaSubcategoria, $this->subcategoriasTemporales)) {
+            session()->flash('error', 'Ya agregaste una subcategoría con ese nombre.');
+            return;
+        }
+
+        $this->subcategoriasTemporales[] = $this->nuevaSubcategoria;
+        $this->nuevaSubcategoria = '';
+        session()->flash('mensaje', 'Subcategoría agregada a la lista.');
+    }
+
+    public function eliminarSubcategoriaTemporal($index)
+    {
+        unset($this->subcategoriasTemporales[$index]);
+        $this->subcategoriasTemporales = array_values($this->subcategoriasTemporales); // Reindexar
+    }
+
     public function guardar()
     {
         $this->validate([
@@ -71,10 +113,23 @@ class CategoriaForm extends Component
             // Crear nueva categoría
             $categoria = Categoria::create($this->form);
             $this->categoriaId = $categoria->id;
+            
+            // Crear subcategorías temporales si las hay
+            foreach ($this->subcategoriasTemporales as $nombreSubcategoria) {
+                Subcategoria::create([
+                    'nombre' => $nombreSubcategoria,
+                    'categoria_id' => $categoria->id,
+                ]);
+            }
+            
             $this->cargarSubcategorias();
         }
 
         $this->mostrarMensaje = true;
+        session()->flash('mensaje', 'Categoría guardada correctamente.');
+        
+        // Redirigir a la lista de categorías
+        $this->dispatch('cambiarVista', ruta: 'Inventario.Categoria');
     }
 
     public function agregarSubcategoria()
