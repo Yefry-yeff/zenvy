@@ -98,6 +98,8 @@
                                                 <span class="badge bg-warning">Distribuido</span>
                                             @elseif(strtolower($compra->estado->nombre) === 'anulado')
                                                 <span class="badge bg-danger">Anulado</span>
+                                            @elseif($compra->estado_id == 5)
+                                                <span class="badge bg-info">Pendiente</span>
                                             @else
                                                 <span class="badge bg-secondary">{{ ucfirst($compra->estado->nombre) }}</span>
                                             @endif
@@ -108,7 +110,7 @@
                                     <td class="text-center">{{ $compra->detallesCompra->count() }}</td>
                                     <td class="text-end"><strong>L. {{ number_format($compra->detallesCompra->sum('precio_total'), 2) }}</strong></td>
                                     <td class="text-center" onclick="event.stopPropagation()">
-                                        @if($compra->estado && strtolower($compra->estado->nombre) === 'activo')
+                                        @if($compra->estado && strtolower($compra->estado->nombre) === 'activo' && $compra->estado_id != 5)
                                             <div class="position-relative" x-data="{ open: false }">
                                                 <button @click="open = !open"
                                                         class="btn btn-sm btn-outline-primary d-flex align-items-center gap-1"
@@ -244,6 +246,8 @@
                                         <span class="inline-flex items-center px-2 py-1 text-xs text-yellow-800 bg-yellow-100 rounded-full">{{ $compraDetalle['estado'] }}</span>
                                     @elseif(strtolower($compraDetalle['estado']) === 'anulado')
                                         <span class="inline-flex items-center px-2 py-1 text-xs text-red-800 bg-red-100 rounded-full">{{ $compraDetalle['estado'] }}</span>
+                                    @elseif(strtolower($compraDetalle['estado']) === 'pendiente')
+                                        <span class="inline-flex items-center px-2 py-1 text-xs text-blue-800 bg-blue-100 rounded-full">{{ $compraDetalle['estado'] }}</span>
                                     @else
                                         <span class="inline-flex items-center px-2 py-1 text-xs text-gray-800 bg-gray-100 rounded-full">{{ $compraDetalle['estado'] }}</span>
                                     @endif

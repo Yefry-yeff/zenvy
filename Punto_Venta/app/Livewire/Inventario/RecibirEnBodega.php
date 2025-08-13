@@ -1016,16 +1016,23 @@ class RecibirEnBodega extends Component
                 ->where('cantidad_sin_asignar', '>', 0)
                 ->count();
 
+            // Verificar si hay productos con distribución parcial (cantidad original > cantidad sin asignar > 0)
+            $productosConDistribucionParcial = $compra->detallesCompra()
+                ->whereRaw('cantidad_sin_asignar > 0 AND cantidad_sin_asignar < cantidad_ingresada')
+                ->count();
+
             // Log para debugging
             Log::info('Verificando estado de distribución', [
                 'compra_id' => $compra->id,
                 'numero_factura' => $compra->numero_factura,
                 'productos_con_cantidad_pendiente' => $productosConCantidadPendiente,
+                'productos_con_distribucion_parcial' => $productosConDistribucionParcial,
                 'total_productos' => $compra->detallesCompra()->count()
             ]);
 
-            // Si no hay productos con cantidad pendiente, cambiar estado a "Distribuido"
+            // Actualizar estado según la distribución
             if ($productosConCantidadPendiente == 0) {
+                // Todos los productos están completamente distribuidos
                 $estadoAnterior = $compra->estado_id;
                 $compra->estado_id = 3; // Estado "Distribuido"
                 $compra->save();
@@ -1036,8 +1043,23 @@ class RecibirEnBodega extends Component
                     'nuevo_estado_id' => 3,
                     'estado_anterior' => $estadoAnterior
                 ]);
+            } elseif ($productosConDistribucionParcial > 0 && $compra->estado_id == 1) {
+                // Hay productos con distribución parcial y la compra está en estado "Activo"
+                $estadoAnterior = $compra->estado_id;
+                $compra->estado_id = 5; // Estado "Pendiente"
+                $compra->save();
 
-                // Emitir eventos globales para notificar a otros componentes
+                Log::info('Compra marcada como pendiente por distribución parcial', [
+                    'compra_id' => $compra->id,
+                    'numero_factura' => $compra->numero_factura,
+                    'productos_con_distribucion_parcial' => $productosConDistribucionParcial,
+                    'nuevo_estado_id' => 5,
+                    'estado_anterior' => $estadoAnterior
+                ]);
+            }
+
+            // Si se actualizó el estado, emitir eventos globales
+            if ($productosConCantidadPendiente == 0 || ($productosConDistribucionParcial > 0 && $compra->estado_id == 5)) {
                 $this->dispatch('compra-distribuida', $compra->id);
                 $this->dispatch('estado-compra-actualizado', $compra->id, 'distribuido');
                 $this->dispatch('compra-actualizada', $compra->id);

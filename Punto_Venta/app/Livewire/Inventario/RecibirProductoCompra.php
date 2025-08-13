@@ -359,8 +359,14 @@ class RecibirProductoCompra extends Component
                 ->where('cantidad_sin_asignar', '>', 0)
                 ->count();
 
-            // Si no hay productos con cantidad pendiente, cambiar estado a "Distribuido"
+            // Verificar si hay productos con distribución parcial (cantidad original > cantidad sin asignar > 0)
+            $productosConDistribucionParcial = $compra->detallesCompra()
+                ->whereRaw('cantidad_sin_asignar > 0 AND cantidad_sin_asignar < cantidad_ingresada')
+                ->count();
+
+            // Actualizar estado según la distribución
             if ($productosConCantidadPendiente == 0) {
+                // Todos los productos están completamente distribuidos
                 $compra->estado_id = 3; // Estado "Distribuido"
                 $compra->save();
 
@@ -373,6 +379,21 @@ class RecibirProductoCompra extends Component
                 // Emitir eventos para notificar a otros componentes
                 $this->dispatch('compra-distribuida', $compra->id);
                 $this->dispatch('estado-compra-actualizado', $compra->id, 'distribuido');
+                $this->dispatch('compra-actualizada', $compra->id);
+            } elseif ($productosConDistribucionParcial > 0 && $compra->estado_id == 1) {
+                // Hay productos con distribución parcial y la compra está en estado "Activo"
+                $compra->estado_id = 5; // Estado "Pendiente"
+                $compra->save();
+
+                Log::info('Compra marcada como pendiente por distribución parcial', [
+                    'compra_id' => $compra->id,
+                    'numero_factura' => $compra->numero_factura,
+                    'productos_con_distribucion_parcial' => $productosConDistribucionParcial,
+                    'nuevo_estado_id' => 5
+                ]);
+
+                // Emitir eventos para notificar a otros componentes
+                $this->dispatch('estado-compra-actualizado', $compra->id, 'pendiente');
                 $this->dispatch('compra-actualizada', $compra->id);
             }
 
