@@ -8,6 +8,7 @@ use App\Models\Producto;
 use App\Models\TipoPago;
 use App\Models\Factura;
 use App\Models\Bodega;
+use App\Models\Descuento;
 use App\Models\DescuentoAdulto;
 use App\Services\CAIService;
 use Livewire\Attributes\On;
@@ -51,6 +52,9 @@ class Ventas extends Component
     public $descuentoTerceraEdad = false;
     public $descuentoCuartaEdad = false;
     public $totalDescuentos = 0;
+    
+    // Descuentos guardados en BD (para mostrar en facturas guardadas)
+    public $descuentosGuardados = [];
 
     // Variables para procesamiento de pagos
     public $mostrarModalPagoFlag = false;
@@ -114,6 +118,40 @@ class Ventas extends Component
 
         $this->cargarTiposPago();
         $this->verificarCAI();
+        
+        // Cargar descuentos guardados si hay una factura específica
+        $this->cargarDescuentosGuardados();
+    }
+
+    /**
+     * Función para depurar productos con descuento unitario
+     */
+    public function verificarProductosConDescuento()
+    {
+        $productos = DB::table('producto')
+            ->where('descuento_unitario', '>', 0)
+            ->where('estado_id', 1)
+            ->get();
+            
+        Log::info("Productos con descuento unitario en BD", [
+            'cantidad' => $productos->count(),
+            'productos' => $productos->toArray()
+        ]);
+        
+        session()->flash('info', 'Verificación completada. Revisa los logs.');
+    }
+
+    /**
+     * Cargar descuentos guardados de la base de datos para una factura específica
+     */
+    public function cargarDescuentosGuardados($facturaId = null)
+    {
+        if ($facturaId) {
+            $descuentos = Descuento::where('factura_id', $facturaId)->get();
+            $this->descuentosGuardados = $descuentos->keyBy('producto_id')->toArray();
+        } else {
+            $this->descuentosGuardados = [];
+        }
     }
 
     public function verificarCAI()
@@ -703,13 +741,84 @@ class Ventas extends Component
         }
 
         try {
-            // Aquí implementaremos la lógica para guardar la factura
-            // Por ahora solo mostraremos un mensaje de éxito
+            DB::beginTransaction();
+
+            // 1. Crear la factura
+            $factura = Factura::create([
+                'cai_id' => 1, // Ajustar según tu lógica
+                'tipo_facturacion_id' => 1, // Ajustar según tu lógica
+                'numero_factura' => $this->generarNumeroFactura(),
+                'numero_secuencia_cai' => $this->generarSecuenciaCAI(),
+                'nombre_cliente' => $this->clienteSeleccionado ? $this->clienteSeleccionado['nombre'] : 'Cliente General',
+                'rtn' => $this->clienteSeleccionado ? $this->clienteSeleccionado['rtn'] : null,
+                'sub_total' => $this->subtotal,
+                'sub_total_grabado' => $this->subtotal,
+                'sub_total_exento' => 0,
+                'isv' => $this->totalIsv,
+                'total' => $this->total,
+                'credito' => 0,
+                'dias_credito' => 0,
+                'fecha_emision' => now(),
+                'fecha_vencimiento' => now(),
+                'comentario' => null,
+                'porc_descuento' => 0,
+                'monto_descuento' => $this->totalDescuentos,
+                'precio_dolar' => 1,
+                'estado_factura_id' => 1,
+                'users_id' => Auth::id(),
+                'factura_imagen' => null
+            ]);
+
+            // 2. Guardar los productos y crear registros de descuentos
+            foreach ($this->productosFactura as $item) {
+                // Crear detalle de factura (asumiendo que existe tabla detalle_factura)
+                // Aquí deberías implementar la lógica según tu estructura
+
+                // Log para debug
+                Log::info("DEBUG Producto en factura", [
+                    'producto_id' => $item['id'],
+                    'nombre' => $item['nombre'],
+                    'descuento_unitario_aplicado' => $item['descuento_unitario_aplicado'] ?? 0,
+                    'descuento_unitario_producto' => $item['descuento_unitario_producto'] ?? 0,
+                    'producto_completo' => $item
+                ]);
+
+                // 3. Si el producto tiene descuento unitario, crear registro en tabla descuentos
+                $descuentoUnitario = $item['descuento_unitario_aplicado'] ?? 0;
+                if ($descuentoUnitario > 0) {
+                    Log::info("DEBUG Creando descuento", [
+                        'factura_id' => $factura->id,
+                        'producto_id' => $item['id'],
+                        'monto_unidad' => $item['descuento_unitario_producto'] ?? 0,
+                        'monto_total' => $descuentoUnitario,
+                        'users_id' => Auth::id()
+                    ]);
+
+                    Descuento::create([
+                        'factura_id' => $factura->id,
+                        'producto_id' => $item['id'],
+                        'monto_unidad' => $item['descuento_unitario_producto'] ?? 0,
+                        'monto_total' => $descuentoUnitario,
+                        'users_id' => Auth::id(),
+                        'created_at' => now()
+                    ]);
+                    
+                    Log::info("DEBUG Descuento creado exitosamente");
+                } else {
+                    Log::info("DEBUG No se creó descuento porque descuentoUnitario es 0 o null");
+                }
+            }
+
+            DB::commit();
+            
             session()->flash('success', 'Factura guardada exitosamente');
 
             // Limpiar el estado
             $this->resetearFactura();
+
         } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error al guardar factura: ' . $e->getMessage());
             session()->flash('error', 'Error al guardar la factura: ' . $e->getMessage());
         }
     }
@@ -922,8 +1031,7 @@ class Ventas extends Component
                 'credito' => 0,
                 'fecha_emision' => now()->format('Y-m-d'),
                 'estado_factura_id' => 1,
-                'users_id' => Auth::id(),
-                'descuentos_id' => 1
+                'users_id' => Auth::id()
             ]);
 
             Log::info("DEBUG Datos de factura preparados", [
@@ -939,6 +1047,40 @@ class Ventas extends Component
             $indice = 1;
             foreach ($this->productosFactura as $producto) {
                 $this->guardarProductoConDistribucionSecciones($factura->id, $producto, $indice);
+                
+                // Log para debug del producto
+                Log::info("DEBUG Producto en factura", [
+                    'producto_id' => $producto['id'],
+                    'nombre' => $producto['nombre'],
+                    'descuento_unitario_aplicado' => $producto['descuento_unitario_aplicado'] ?? 0,
+                    'descuento_unitario_producto' => $producto['descuento_unitario_producto'] ?? 0
+                ]);
+
+                // Guardar descuento unitario si existe
+                $descuentoUnitario = $producto['descuento_unitario_aplicado'] ?? 0;
+                if ($descuentoUnitario > 0) {
+                    Log::info("DEBUG Creando descuento", [
+                        'factura_id' => $factura->id,
+                        'producto_id' => $producto['id'],
+                        'monto_unidad' => $producto['descuento_unitario_producto'] ?? 0,
+                        'monto_total' => $descuentoUnitario,
+                        'users_id' => Auth::id()
+                    ]);
+
+                    Descuento::create([
+                        'factura_id' => $factura->id,
+                        'producto_id' => $producto['id'],
+                        'monto_unidad' => $producto['descuento_unitario_producto'] ?? 0,
+                        'monto_total' => $descuentoUnitario,
+                        'users_id' => Auth::id(),
+                        'created_at' => now()
+                    ]);
+                    
+                    Log::info("DEBUG Descuento creado exitosamente");
+                } else {
+                    Log::info("DEBUG No se creó descuento porque descuentoUnitario es 0 o null");
+                }
+                
                 $indice++;
             }
 

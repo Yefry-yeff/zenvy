@@ -519,19 +519,24 @@
                                     title="Stock disponible: {{ $stockDisponible }}">
                             </td>
                             <td>
-                                <!-- Mostrar importe original (subtotal = precio × cantidad) -->
-                                <div>L. {{ number_format($subtotalOriginal, 2) }}</div>
+                                <!-- Mostrar importe original (precio × cantidad SIN descuentos) -->
+                                <div class="fw-bold">L. {{ number_format($subtotalOriginal, 2) }}</div>
                                 
-                                <!-- Mostrar descuentos en orden: primero producto, luego edad -->
-                                @if($descuentoUnitario > 0)
+                                <!-- Mostrar descuentos de productos guardados primero (si existen) -->
+                                @if(isset($descuentosGuardados[$item['id']]))
+                                    <div class="text-success small">-L. {{ number_format($descuentosGuardados[$item['id']]['monto_total'], 2) }} (producto)</div>
+                                @elseif($descuentoUnitario > 0)
+                                    <!-- Si no hay descuentos guardados, mostrar descuento temporal -->
                                     <div class="text-success small">-L. {{ number_format($descuentoUnitario, 2) }} (producto)</div>
                                 @endif
+                                
+                                <!-- Mostrar descuento de tercera/cuarta edad después -->
                                 @if($descuentoAplicado > 0)
                                     <div class="text-primary small">-L. {{ number_format($descuentoAplicado, 2) }} (edad)</div>
                                 @endif
                                 
                                 <!-- Mostrar subtotal final con descuentos aplicados si hay descuentos -->
-                                @if($descuentoUnitario > 0 || $descuentoAplicado > 0)
+                                @if($descuentoUnitario > 0 || $descuentoAplicado > 0 || isset($descuentosGuardados[$item['id']]))
                                     <div class="text-success fw-bold border-top pt-1 mt-1">L. {{ number_format($subtotalConDescuento, 2) }}</div>
                                 @endif
                             </td>
@@ -637,7 +642,14 @@
                 </div>
 
                 <!-- Procesar Pago -->
-                <div class="flex justify-end">
+                <div class="flex justify-end gap-3">
+                    <!-- Botón temporal de debug -->
+                    <button wire:click="verificarProductosConDescuento"
+                        class="px-4 py-2 text-white bg-yellow-600 hover:bg-yellow-700 rounded-lg transition-colors">
+                        <i class="fas fa-bug me-1"></i>
+                        Debug Descuentos
+                    </button>
+                    
                     @php
                         $tieneErrores = count($productosFactura) == 0;
                         $tieneErrorCAI = $alertaCAI && (str_contains($alertaCAI, 'CRÍTICO') || str_contains($alertaCAI, 'ERROR'));
