@@ -299,20 +299,14 @@
                 // Calcular importe del producto SIN descuentos (cantidad × precio unitario)
                 $importeProducto = $producto['cantidad'] * $producto['precio_unidad'];
 
-                // Descuento unitario desde tabla descuentos
-                $descuentoUnitario = $producto['descuento_unitario'] ?? 0;
-
-                // Descuento de adulto mayor (el descuento actual menos el descuento unitario)
-                $descuentoAdultoMayor = ($producto['descuento'] ?? 0) - $descuentoUnitario;
-                if ($descuentoAdultoMayor < 0) $descuentoAdultoMayor = $producto['descuento'] ?? 0;
-
-                // Calcular porcentaje si hay descuento de adulto mayor
-                $porcentajeDescuentoAdulto = 0;
-                $tipoDescuento = "";
-                if ($descuentoAdultoMayor > 0 && $importeProducto > 0) {
-                    $porcentajeDescuentoAdulto = ($descuentoAdultoMayor / $importeProducto) * 100;
-                    $tipoDescuento = $porcentajeDescuentoAdulto >= 30 ? "4ta edad" : "3ra edad";
-                }
+                // Obtener descuentos desde la nueva estructura agrupada
+                $descuentos = $producto['descuentos'] ?? [];
+                $descuentoUnitario = $descuentos['Producto'] ?? 0;
+                $descuentoTerceraEdad = $descuentos['3ra edad'] ?? 0;
+                $descuentoCuartaEdad = $descuentos['4ta edad'] ?? 0;
+                
+                // Calcular total de descuentos de adulto mayor
+                $descuentoAdultoMayor = $descuentoTerceraEdad + $descuentoCuartaEdad;
             @endphp
             <div class="product-row">
                 <div class="product-table-row">
@@ -333,9 +327,15 @@
                             </span>
                         @endif
 
-                        @if($descuentoAdultoMayor > 0)
+                        @if($descuentoTerceraEdad > 0)
                             <br><span style="font-size: 15px;">
-                                Descuento - {{ number_format($porcentajeDescuentoAdulto, 0) }}% {{ $tipoDescuento }}
+                                Descuento - 25% 3ra edad
+                            </span>
+                        @endif
+
+                        @if($descuentoCuartaEdad > 0)
+                            <br><span style="font-size: 15px;">
+                                Descuento - 35% 4ta edad
                             </span>
                         @endif
                     </div>
@@ -347,8 +347,12 @@
                             <br><span style="font-size: 15px;">-L. {{ number_format($descuentoUnitario, 2) }}</span>
                         @endif
 
-                        @if($descuentoAdultoMayor > 0)
-                            <br><span style="font-size: 15px;">-L. {{ number_format($descuentoAdultoMayor, 2) }}</span>
+                        @if($descuentoTerceraEdad > 0)
+                            <br><span style="font-size: 15px;">-L. {{ number_format($descuentoTerceraEdad, 2) }}</span>
+                        @endif
+
+                        @if($descuentoCuartaEdad > 0)
+                            <br><span style="font-size: 15px;">-L. {{ number_format($descuentoCuartaEdad, 2) }}</span>
                         @endif
                     </div>
                 </div>
@@ -366,11 +370,9 @@
                         return ($producto['cantidad'] ?? 0) * ($producto['precio_unidad'] ?? 0);
                     });
 
-                    // Calcular total de TODOS los descuentos (descuento_unitario + descuento_adulto_mayor)
+                    // Calcular total de TODOS los descuentos desde la tabla descuentos agrupados
                     $totalDescuentos = collect($productos)->sum(function($producto) {
-                        $descuentoUnitario = $producto['descuento_unitario'] ?? 0;
-                        $descuentoTotal = $producto['descuento'] ?? 0;
-                        return $descuentoTotal; // Este ya incluye ambos descuentos
+                        return $producto['total_descuentos'] ?? 0;
                     });
                 @endphp
                 <div class="table-row">

@@ -26,14 +26,10 @@ class FacturaPDFController extends Controller
                 ->first();
             $caiFacturaImpresa = $cai ? (array) $cai : null;
             
-            // Cargar productos con descuentos
+            // Cargar productos SIN los descuentos (los cargaremos por separado)
             $productos = DB::table('factura_has_producto as fp')
                 ->join('producto as p', 'fp.producto_id', '=', 'p.id')
                 ->join('isv as i', 'p.isv_id', '=', 'i.id')
-                ->leftJoin('descuentos as d', function($join) use ($facturaId) {
-                    $join->on('d.producto_id', '=', 'p.id')
-                         ->where('d.factura_id', '=', $facturaId);
-                })
                 ->where('fp.factura_id', $facturaId)
                 ->select(
                     'p.id as producto_id',
@@ -46,14 +42,36 @@ class FacturaPDFController extends Controller
                     'fp.descuento',
                     'fp.isv_aplicado',
                     'fp.isv',
-                    'fp.total',
-                    'd.monto_total as descuento_unitario'
+                    'fp.total'
                 )
                 ->get()
                 ->map(function($item) {
                     return (array) $item;
                 })
                 ->toArray();
+
+            // Cargar TODOS los descuentos de la factura agrupados por producto y tipo
+            $descuentos = DB::table('descuentos')
+                ->where('factura_id', $facturaId)
+                ->select('producto_id', 'Tipo_descuento', DB::raw('SUM(monto_total) as total_descuento'))
+                ->groupBy('producto_id', 'Tipo_descuento')
+                ->get()
+                ->groupBy('producto_id')
+                ->map(function($descuentosProducto) {
+                    return $descuentosProducto->mapWithKeys(function($item) {
+                        return [$item->Tipo_descuento => $item->total_descuento];
+                    });
+                })
+                ->toArray();
+
+            // Agregar los descuentos agrupados a cada producto
+            foreach ($productos as &$producto) {
+                $productoId = $producto['producto_id'];
+                $producto['descuentos'] = $descuentos[$productoId] ?? [];
+                
+                // Calcular el total de descuentos para este producto
+                $producto['total_descuentos'] = array_sum($producto['descuentos']);
+            }
                 
             // Cargar métodos de pago
             $pagos = DB::table('factura_has_pago as fp')
@@ -131,14 +149,10 @@ class FacturaPDFController extends Controller
                 ->first();
             $caiFacturaImpresa = $cai ? (array) $cai : null;
             
-            // Cargar productos con descuentos
+            // Cargar productos SIN los descuentos (los cargaremos por separado)
             $productos = DB::table('factura_has_producto as fp')
                 ->join('producto as p', 'fp.producto_id', '=', 'p.id')
                 ->join('isv as i', 'p.isv_id', '=', 'i.id')
-                ->leftJoin('descuentos as d', function($join) use ($facturaId) {
-                    $join->on('d.producto_id', '=', 'p.id')
-                         ->where('d.factura_id', '=', $facturaId);
-                })
                 ->where('fp.factura_id', $facturaId)
                 ->select(
                     'p.id as producto_id',
@@ -151,14 +165,36 @@ class FacturaPDFController extends Controller
                     'fp.descuento',
                     'fp.isv_aplicado',
                     'fp.isv',
-                    'fp.total',
-                    'd.monto_total as descuento_unitario'
+                    'fp.total'
                 )
                 ->get()
                 ->map(function($item) {
                     return (array) $item;
                 })
                 ->toArray();
+
+            // Cargar TODOS los descuentos de la factura agrupados por producto y tipo
+            $descuentos = DB::table('descuentos')
+                ->where('factura_id', $facturaId)
+                ->select('producto_id', 'Tipo_descuento', DB::raw('SUM(monto_total) as total_descuento'))
+                ->groupBy('producto_id', 'Tipo_descuento')
+                ->get()
+                ->groupBy('producto_id')
+                ->map(function($descuentosProducto) {
+                    return $descuentosProducto->mapWithKeys(function($item) {
+                        return [$item->Tipo_descuento => $item->total_descuento];
+                    });
+                })
+                ->toArray();
+
+            // Agregar los descuentos agrupados a cada producto
+            foreach ($productos as &$producto) {
+                $productoId = $producto['producto_id'];
+                $producto['descuentos'] = $descuentos[$productoId] ?? [];
+                
+                // Calcular el total de descuentos para este producto
+                $producto['total_descuentos'] = array_sum($producto['descuentos']);
+            }
                 
             // Cargar métodos de pago
             $pagos = DB::table('factura_has_pago as fp')

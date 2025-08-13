@@ -513,20 +513,20 @@ class Ventas extends Component
             // Aplicar el descuento unitario al subtotal
             $subtotalConDescuentoUnitario = $subtotalProducto - $descuentoUnitario;
             
-            // Aplicar descuentos por edad al subtotal ya con descuento unitario
+            // Aplicar descuentos por edad al subtotal ORIGINAL (sin descuento unitario aplicado)
             $descuentoProducto = 0;
             
             // Verificar descuento de tercera edad (25%) - solo si el producto lo permite
             if ($this->descuentoTerceraEdad && ($producto['descuento_tercera'] ?? 0) == 1) {
-                $descuentoProducto = $subtotalConDescuentoUnitario * 0.25; // 25%
+                $descuentoProducto = $subtotalProducto * 0.25; // 25% sobre precio original
             }
             // Verificar descuento de cuarta edad (35%) - solo si el producto lo permite y no hay descuento de tercera edad
             elseif ($this->descuentoCuartaEdad && ($producto['descuento_cuarta'] ?? 0) == 1) {
-                $descuentoProducto = $subtotalConDescuentoUnitario * 0.35; // 35%
+                $descuentoProducto = $subtotalProducto * 0.35; // 35% sobre precio original
             }
             
-            // Calcular subtotal final con ambos descuentos
-            $subtotalConDescuento = $subtotalConDescuentoUnitario - $descuentoProducto;
+            // Calcular subtotal final restando ambos descuentos del subtotal original
+            $subtotalConDescuento = $subtotalProducto - $descuentoUnitario - $descuentoProducto;
             $this->subtotal += $subtotalConDescuento;
             
             // Sumar ambos tipos de descuentos al total de descuentos
@@ -797,6 +797,7 @@ class Ventas extends Component
                     Descuento::create([
                         'factura_id' => $factura->id,
                         'producto_id' => $item['id'],
+                        'Tipo_descuento' => 'Producto',
                         'monto_unidad' => $item['descuento_unitario_producto'] ?? 0,
                         'monto_total' => $descuentoUnitario,
                         'users_id' => Auth::id(),
@@ -806,6 +807,40 @@ class Ventas extends Component
                     Log::info("DEBUG Descuento creado exitosamente");
                 } else {
                     Log::info("DEBUG No se creó descuento porque descuentoUnitario es 0 o null");
+                }
+                
+                // 4. Si el producto tiene descuento de adulto mayor, crear registro en tabla descuentos
+                $descuentoAdultoMayor = $item['descuento_aplicado'] ?? 0;
+                if ($descuentoAdultoMayor > 0) {
+                    // Determinar tipo de descuento basado en los flags activos
+                    $tipoDescuentoAdultoMayor = '';
+                    if ($this->descuentoTerceraEdad) {
+                        $tipoDescuentoAdultoMayor = '3ra edad';
+                    } elseif ($this->descuentoCuartaEdad) {
+                        $tipoDescuentoAdultoMayor = '4ta edad';
+                    }
+                    
+                    if ($tipoDescuentoAdultoMayor) {
+                        Log::info("DEBUG Creando descuento de adulto mayor", [
+                            'factura_id' => $factura->id,
+                            'producto_id' => $item['id'],
+                            'tipo_descuento' => $tipoDescuentoAdultoMayor,
+                            'monto_total' => $descuentoAdultoMayor,
+                            'users_id' => Auth::id()
+                        ]);
+
+                        Descuento::create([
+                            'factura_id' => $factura->id,
+                            'producto_id' => $item['id'],
+                            'Tipo_descuento' => $tipoDescuentoAdultoMayor,
+                            'monto_unidad' => 0, // Los descuentos de adulto mayor no tienen monto_unidad
+                            'monto_total' => $descuentoAdultoMayor,
+                            'users_id' => Auth::id(),
+                            'created_at' => now()
+                        ]);
+                        
+                        Log::info("DEBUG Descuento de adulto mayor creado exitosamente");
+                    }
                 }
             }
 
@@ -1070,6 +1105,7 @@ class Ventas extends Component
                     Descuento::create([
                         'factura_id' => $factura->id,
                         'producto_id' => $producto['id'],
+                        'Tipo_descuento' => 'Producto',
                         'monto_unidad' => $producto['descuento_unitario_producto'] ?? 0,
                         'monto_total' => $descuentoUnitario,
                         'users_id' => Auth::id(),
@@ -1079,6 +1115,40 @@ class Ventas extends Component
                     Log::info("DEBUG Descuento creado exitosamente");
                 } else {
                     Log::info("DEBUG No se creó descuento porque descuentoUnitario es 0 o null");
+                }
+                
+                // Guardar descuento de adulto mayor si existe
+                $descuentoAdultoMayor = $producto['descuento_aplicado'] ?? 0;
+                if ($descuentoAdultoMayor > 0) {
+                    // Determinar tipo de descuento basado en los flags activos
+                    $tipoDescuentoAdultoMayor = '';
+                    if ($this->descuentoTerceraEdad) {
+                        $tipoDescuentoAdultoMayor = '3ra edad';
+                    } elseif ($this->descuentoCuartaEdad) {
+                        $tipoDescuentoAdultoMayor = '4ta edad';
+                    }
+                    
+                    if ($tipoDescuentoAdultoMayor) {
+                        Log::info("DEBUG Creando descuento de adulto mayor", [
+                            'factura_id' => $factura->id,
+                            'producto_id' => $producto['id'],
+                            'tipo_descuento' => $tipoDescuentoAdultoMayor,
+                            'monto_total' => $descuentoAdultoMayor,
+                            'users_id' => Auth::id()
+                        ]);
+
+                        Descuento::create([
+                            'factura_id' => $factura->id,
+                            'producto_id' => $producto['id'],
+                            'Tipo_descuento' => $tipoDescuentoAdultoMayor,
+                            'monto_unidad' => 0, // Los descuentos de adulto mayor no tienen monto_unidad
+                            'monto_total' => $descuentoAdultoMayor,
+                            'users_id' => Auth::id(),
+                            'created_at' => now()
+                        ]);
+                        
+                        Log::info("DEBUG Descuento de adulto mayor creado exitosamente");
+                    }
                 }
                 
                 $indice++;

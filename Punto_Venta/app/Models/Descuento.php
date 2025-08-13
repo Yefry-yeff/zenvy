@@ -14,6 +14,7 @@ class Descuento extends Model
     protected $fillable = [
         'factura_id',
         'producto_id',
+        'Tipo_descuento',
         'monto_unidad',
         'monto_total',
         'users_id'
