@@ -298,14 +298,14 @@
             @php
                 // Calcular importe del producto SIN descuentos (cantidad × precio unitario)
                 $importeProducto = $producto['cantidad'] * $producto['precio_unidad'];
-                
+
                 // Descuento unitario desde tabla descuentos
                 $descuentoUnitario = $producto['descuento_unitario'] ?? 0;
-                
+
                 // Descuento de adulto mayor (el descuento actual menos el descuento unitario)
                 $descuentoAdultoMayor = ($producto['descuento'] ?? 0) - $descuentoUnitario;
                 if ($descuentoAdultoMayor < 0) $descuentoAdultoMayor = $producto['descuento'] ?? 0;
-                
+
                 // Calcular porcentaje si hay descuento de adulto mayor
                 $porcentajeDescuentoAdulto = 0;
                 $tipoDescuento = "";
@@ -326,13 +326,13 @@
                     <div class="col-descripcion">
                         {{ $producto['nombre'] }}<br>
                         <span style="font-size: 13px;">{{ $producto['cantidad'] }} x L. {{ number_format($producto['precio_unidad'], 2) }}</span>
-                        
+
                         @if($descuentoUnitario > 0)
                             <br><span style="font-size: 15px;">
                                 Descuento de producto: L. {{ number_format($descuentoUnitario, 2) }}
                             </span>
                         @endif
-                        
+
                         @if($descuentoAdultoMayor > 0)
                             <br><span style="font-size: 15px;">
                                 Descuento - {{ number_format($porcentajeDescuentoAdulto, 0) }}% {{ $tipoDescuento }}
@@ -342,11 +342,11 @@
                     <div class="col-importe">
                         <!-- Importe del producto SIN descuentos -->
                         L. {{ number_format($importeProducto, 2) }}
-                        
+
                         @if($descuentoUnitario > 0)
                             <br><span style="font-size: 15px;">-L. {{ number_format($descuentoUnitario, 2) }}</span>
                         @endif
-                        
+
                         @if($descuentoAdultoMayor > 0)
                             <br><span style="font-size: 15px;">-L. {{ number_format($descuentoAdultoMayor, 2) }}</span>
                         @endif
@@ -360,15 +360,23 @@
         <!-- DETALLE DE TOTALES -->
         <div class="totals-section">
             <div class="table-layout">
-                <div class="table-row">
-                    <div class="table-cell-left">SUB-TOTAL</div>
-                    <div class="table-cell-right">L. {{ number_format($factura->sub_total, 2) }}</div>
-                </div>
                 @php
+                    // Calcular subtotal como suma de importes SIN descuentos (cantidad × precio_unidad)
+                    $subtotalSinDescuentos = collect($productos)->sum(function($producto) {
+                        return ($producto['cantidad'] ?? 0) * ($producto['precio_unidad'] ?? 0);
+                    });
+
+                    // Calcular total de TODOS los descuentos (descuento_unitario + descuento_adulto_mayor)
                     $totalDescuentos = collect($productos)->sum(function($producto) {
-                        return $producto['descuento'] ?? 0;
+                        $descuentoUnitario = $producto['descuento_unitario'] ?? 0;
+                        $descuentoTotal = $producto['descuento'] ?? 0;
+                        return $descuentoTotal; // Este ya incluye ambos descuentos
                     });
                 @endphp
+                <div class="table-row">
+                    <div class="table-cell-left">SUB-TOTAL</div>
+                    <div class="table-cell-right">L. {{ number_format($subtotalSinDescuentos, 2) }}</div>
+                </div>
                 @if($totalDescuentos > 0)
                 <div class="table-row">
                     <div class="table-cell-left">DESCUENTOS Y REBAJAS</div>
@@ -390,7 +398,7 @@
                     })->sum(function($producto) {
                         return $producto['subtotal'] ?? 0;
                     });
-                    
+
                     $importe18 = collect($productos)->filter(function($producto) {
                         return ($producto['tasa_isv'] ?? 0) == 18;
                     })->sum(function($producto) {
@@ -403,7 +411,7 @@
                     })->sum(function($producto) {
                         return $producto['isv'] ?? 0;
                     });
-                    
+
                     $impuesto18 = collect($productos)->filter(function($producto) {
                         return ($producto['tasa_isv'] ?? 0) == 18;
                     })->sum(function($producto) {
