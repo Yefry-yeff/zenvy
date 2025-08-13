@@ -25,7 +25,6 @@
                 <table id="unidadesTable" class="table mb-0 align-middle table-sm table-hover table-bordered">
                     <thead class="table-light">
                         <tr class="text-center align-middle">
-                            <th style="width: 100px;">Unidad</th>
                             <th>Nombre</th>
                             <th style="width: 100px;">Símbolo</th>
                             <th style="width: 150px;">Fecha Creación</th>
@@ -35,7 +34,6 @@
                     <tbody>
                         @forelse($unidades as $unidad)
                             <tr class="text-center align-middle hover:bg-gray-50">
-                                <td class="cursor-pointer" wire:click="editar({{ $unidad->id }})">{{ $unidad->unidad }}</td>
                                 <td class="text-start cursor-pointer" wire:click="editar({{ $unidad->id }})">{{ $unidad->nombre }}</td>
                                 <td class="cursor-pointer" wire:click="editar({{ $unidad->id }})">{{ $unidad->simbolo }}</td>
                                 <td class="cursor-pointer" wire:click="editar({{ $unidad->id }})">{{ $unidad->created_at ? $unidad->created_at->format('d/m/Y') : 'N/A' }}</td>
@@ -51,7 +49,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="5" class="py-4 text-center text-muted">No hay unidades de medida disponibles.</td>
+                                <td colspan="4" class="py-4 text-center text-muted">No hay unidades de medida disponibles.</td>
                             </tr>
                         @endforelse
                     </tbody>
@@ -84,11 +82,11 @@
                     </div>
                     <div class="modal-body">
                         <form wire:submit.prevent="guardar">
-                            <div class="mb-3">
+                            <div class="mb-3" style="display: none;">
                                 <label for="unidadId" class="form-label">ID</label>
                                 <input type="text" id="unidadId" class="form-control" wire:model="form.id" readonly>
                             </div>
-                            <div class="mb-3">
+                            <div class="mb-3" style="display: none;">
                                 <label for="unidadCantidad" class="form-label">Unidad</label>
                                 <input type="number" id="unidadCantidad" class="form-control" wire:model.defer="form.unidad">
                                 @error('form.unidad')
@@ -153,7 +151,7 @@
                     </div>
                     <div class="modal-body">
                         <form wire:submit.prevent="crearUnidad">
-                            <div class="mb-3">
+                            <div class="mb-3" style="display: none;">
                                 <label for="nuevaUnidadCantidad" class="form-label">Unidad</label>
                                 <input type="number" id="nuevaUnidadCantidad" class="form-control" wire:model.defer="nuevaUnidad">
                                 @error('nuevaUnidad')
