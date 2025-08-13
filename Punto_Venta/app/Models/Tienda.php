@@ -13,51 +13,27 @@ class Tienda extends Model
 
     protected $fillable = [
         'denominacion_social',
-        'descripcion',
+        'nombre_comercial',
+        'rtn',
         'telefono',
-        'celular',
         'correo',
-        'tipo_tienda_id',
         'estado_id',
-        'empresa_id',
-        'users_creador_id',
-        'numero_sucursal',
-        'identificador_legal',
         'direccion_sucursal_id',
     ];
 
-    protected $casts = [
-        'created_at' => 'datetime',
-        'updated_at' => 'datetime',
-    ];
-
-    // Relación con el usuario creador
-    public function userCreador()
+    /**
+     * Relación con usuarios
+     */
+    public function usuarios()
     {
-        return $this->belongsTo(User::class, 'users_creador_id');
+        return $this->hasMany(User::class, 'tienda_id');
     }
 
-    // Relación con tipo de tienda
-    public function tipoTienda()
+    /**
+     * Scope para tiendas activas
+     */
+    public function scopeActivas($query)
     {
-        return $this->belongsTo(TipoTienda::class, 'tipo_tienda_id');
-    }
-
-    // Relación con estado
-    public function estado()
-    {
-        return $this->belongsTo(Estado::class, 'estado_id');
-    }
-
-    // Relación con empresa
-    public function empresa()
-    {
-        return $this->belongsTo(Empresa::class, 'empresa_id');
-    }
-
-    // Relación con dirección
-    public function direccion()
-    {
-        return $this->belongsTo(Direccion::class, 'direccion_sucursal_id');
+        return $query->where('estado_id', 1);
     }
 }

@@ -57,9 +57,15 @@
                 <label class="block text-sm font-medium text-gray-700">Rol<span class="text-red-600">*</span></label>
                 <select wire:model.lazy="form.rol_id" class="w-full px-3 py-2 border rounded">
                     <option value="">-- Seleccionar --</option>
-                    @foreach ($roles as $rol)
-                        <option value="{{ $rol->id }}">{{ $rol->txt_nombre }}</option>
-                    @endforeach
+                    @if($roles && $roles->count() > 0)
+                        @foreach ($roles as $rol)
+                            @if($rol->estado == 1)
+                                <option value="{{ $rol->id }}">{{ $rol->txt_nombre }}</option>
+                            @endif
+                        @endforeach
+                    @else
+                        <option value="" disabled>No hay roles disponibles</option>
+                    @endif
                 </select>
                 @error('form.rol_id')
                     <span class="text-sm text-red-600">{{ $message }}</span>
