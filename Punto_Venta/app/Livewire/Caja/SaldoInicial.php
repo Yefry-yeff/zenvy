@@ -5,6 +5,7 @@ namespace App\Livewire\Caja;
 use Livewire\Component;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class SaldoInicial extends Component
 {
@@ -17,6 +18,7 @@ class SaldoInicial extends Component
     public function mount()
     {
         $this->validarJornadaAbierta();
+        $this->verificarOCrearRegistroCaja();
         $this->cargarCajaActual();
     }
 
@@ -47,6 +49,40 @@ class SaldoInicial extends Component
         }
 
         return true;
+    }
+
+    public function verificarOCrearRegistroCaja()
+    {
+        $usuario = Auth::user();
+        
+        // Verificar que el usuario tenga tienda asignada
+        if (!$usuario || !$usuario->tienda_id) {
+            return;
+        }
+
+        // Verificar si existe un registro de caja para este usuario y tienda
+        $cajaExistente = DB::table('caja')
+            ->where('users_id', $usuario->id)
+            ->where('tienda_id', $usuario->tienda_id)
+            ->first();
+
+        // Si no existe registro de caja, crear uno con estado 2 (cerrado)
+        if (!$cajaExistente) {
+            try {
+                DB::table('caja')->insert([
+                    'users_id' => $usuario->id,
+                    'tienda_id' => $usuario->tienda_id,
+                    'balance' => 0.00,
+                    'estado_caja' => 2, // Cerrado
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ]);
+                
+                Log::info("Registro de caja creado automáticamente para usuario {$usuario->id} en tienda {$usuario->tienda_id}");
+            } catch (\Exception $e) {
+                Log::error("Error al crear registro de caja: " . $e->getMessage());
+            }
+        }
     }
 
     public function cargarCajaActual()
