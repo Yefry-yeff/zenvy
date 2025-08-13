@@ -519,17 +519,20 @@
                                     title="Stock disponible: {{ $stockDisponible }}">
                             </td>
                             <td>
+                                <!-- Mostrar importe original (subtotal = precio × cantidad) -->
+                                <div>L. {{ number_format($subtotalOriginal, 2) }}</div>
+                                
+                                <!-- Mostrar descuentos en orden: primero producto, luego edad -->
+                                @if($descuentoUnitario > 0)
+                                    <div class="text-success small">-L. {{ number_format($descuentoUnitario, 2) }} (producto)</div>
+                                @endif
+                                @if($descuentoAplicado > 0)
+                                    <div class="text-primary small">-L. {{ number_format($descuentoAplicado, 2) }} (edad)</div>
+                                @endif
+                                
+                                <!-- Mostrar subtotal final con descuentos aplicados si hay descuentos -->
                                 @if($descuentoUnitario > 0 || $descuentoAplicado > 0)
-                                    <div class="text-decoration-line-through text-muted small">L. {{ number_format($subtotalOriginal, 2) }}</div>
-                                    @if($descuentoUnitario > 0)
-                                        <div class="text-success small">-L. {{ number_format($descuentoUnitario, 2) }} (producto)</div>
-                                    @endif
-                                    @if($descuentoAplicado > 0)
-                                        <div class="text-primary small">-L. {{ number_format($descuentoAplicado, 2) }} (edad)</div>
-                                    @endif
-                                    <div class="text-success fw-bold">L. {{ number_format($subtotalConDescuento, 2) }}</div>
-                                @else
-                                    L. {{ number_format($subtotalConDescuento, 2) }}
+                                    <div class="text-success fw-bold border-top pt-1 mt-1">L. {{ number_format($subtotalConDescuento, 2) }}</div>
                                 @endif
                             </td>
                             <td>L. {{ number_format($isv, 2) }}
