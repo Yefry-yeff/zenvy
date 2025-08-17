@@ -21,6 +21,7 @@ class Presentaciones extends Component
 
     public $modalEliminarAbierto = false;
     public $unidadAEliminar = null;
+    public $productosVinculados = [];
 
     public function render()
     {
@@ -102,6 +103,19 @@ class Presentaciones extends Component
     public function confirmarEliminar($id)
     {
         $this->unidadAEliminar = $id;
+        
+        // Obtener los productos que usan esta unidad de medida
+        $unidad = \App\Models\UnidadMedida::find($id);
+        $productos = \App\Models\Producto::where('unidad_medida_venta_id', $id)->get();
+        
+        $this->productosVinculados = $productos->map(function($producto) {
+            return [
+                'id' => $producto->id,
+                'codigo_barra' => $producto->codigo_barra ?? 'Sin código',
+                'nombre' => $producto->nombre
+            ];
+        })->toArray();
+        
         $this->modalEliminarAbierto = true;
     }
 
@@ -109,10 +123,20 @@ class Presentaciones extends Component
     {
         $this->modalEliminarAbierto = false;
         $this->unidadAEliminar = null;
+        $this->productosVinculados = [];
     }
 
     public function eliminarUnidad()
     {
+        // Verificar si hay productos vinculados antes de eliminar
+        $productos = \App\Models\Producto::where('unidad_medida_venta_id', $this->unidadAEliminar)->count();
+        
+        if ($productos > 0) {
+            session()->flash('error', 'No se puede eliminar la unidad de medida porque tiene productos vinculados. Primero elimine o cambie la unidad de medida de estos productos.');
+            $this->cerrarModalEliminar();
+            return;
+        }
+        
         $unidad = \App\Models\UnidadMedida::find($this->unidadAEliminar);
         if ($unidad) {
             $unidad->delete();

@@ -202,17 +202,70 @@
              role="dialog"
              @click.self="@this.cerrarModalEliminar()"
         >
-            <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-dialog modal-dialog-centered modal-lg">
                 <div class="modal-content">
                     <div class="modal-header bg-danger text-white">
-                        <h5 class="modal-title">¿Eliminar unidad de medida?</h5>
+                        <h5 class="modal-title">⚠️ ¿Eliminar unidad de medida?</h5>
                     </div>
                     <div class="modal-body">
-                        <p>¿Estás seguro que deseas eliminar esta unidad de medida? Esta acción no se puede deshacer.</p>
-                        <div class="flex justify-end gap-2 mt-4">
-                            <button type="button" class="btn btn-secondary" wire:click="cerrarModalEliminar">No</button>
-                            <button type="button" class="btn btn-danger" wire:click="eliminarUnidad">Sí, eliminar</button>
-                        </div>
+                        @if(count($productosVinculados) > 0)
+                            <div class="alert alert-warning">
+                                <h6><strong>⚠️ No se puede eliminar esta unidad de medida</strong></h6>
+                                <p>Esta unidad de medida tiene <strong>{{ count($productosVinculados) }} producto(s)</strong> vinculado(s). 
+                                   Primero debe eliminar o cambiar la unidad de medida de estos productos:</p>
+                            </div>
+                            
+                            <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
+                                <table class="table table-sm table-striped">
+                                    <thead class="table-light sticky-top">
+                                        <tr>
+                                            <th style="width: 150px;">Código de Barras</th>
+                                            <th>Nombre del Producto</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach($productosVinculados as $producto)
+                                            <tr>
+                                                <td class="text-center">
+                                                    <code class="bg-light px-2 py-1 rounded">{{ $producto['codigo_barra'] }}</code>
+                                                </td>
+                                                <td>{{ $producto['nombre'] }}</td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <div class="alert alert-info mt-3">
+                                <small>
+                                    <strong>💡 Sugerencia:</strong> 
+                                    Vaya al módulo de <strong>Productos</strong> y edite cada producto para cambiar su unidad de medida o elimínelos.
+                                </small>
+                            </div>
+                            
+                            <div class="flex justify-end gap-2 mt-4">
+                                <button type="button" class="btn btn-secondary" wire:click="cerrarModalEliminar">
+                                    <i class="fas fa-times me-1"></i> Cerrar
+                                </button>
+                            </div>
+                        @else
+                            <div class="alert alert-success">
+                                <h6><strong>✅ Esta unidad de medida se puede eliminar</strong></h6>
+                                <p>No hay productos vinculados a esta unidad de medida.</p>
+                            </div>
+                            
+                            <p><strong>¿Estás seguro que deseas eliminar esta unidad de medida?</strong></p>
+                            <p class="text-muted">Esta acción no se puede deshacer.</p>
+                            
+                            <div class="flex justify-end gap-2 mt-4">
+                                <button type="button" class="btn btn-secondary" wire:click="cerrarModalEliminar">
+                                    <i class="fas fa-times me-1"></i> No, cancelar
+                                </button>
+                                <button type="button" class="btn btn-danger" wire:click="eliminarUnidad">
+                                    <i class="fas fa-trash me-1"></i> Sí, eliminar
+                                </button>
+                            </div>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -226,6 +279,16 @@
              @mousemove.window="show = false"
              class="alert alert-success mt-3 mb-0 transition-opacity duration-300">
             {{ session('mensaje') }}
+        </div>
+    @endif
+
+    @if (session()->has('error'))
+        <div x-data="{ show: true }" x-show="show"
+             @click.window="show = false"
+             @keydown.window="show = false"
+             @mousemove.window="show = false"
+             class="alert alert-danger mt-3 mb-0 transition-opacity duration-300">
+            {{ session('error') }}
         </div>
     @endif
 

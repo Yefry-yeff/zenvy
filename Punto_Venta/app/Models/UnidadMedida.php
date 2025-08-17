@@ -13,4 +13,10 @@ class UnidadMedida extends Model
         'nombre',
         'simbolo'
     ];
+
+    // Relationships
+    public function productos()
+    {
+        return $this->hasMany(Producto::class, 'unidad_medida_venta_id');
+    }
 }
