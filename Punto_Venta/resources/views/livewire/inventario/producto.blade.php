@@ -37,14 +37,14 @@
                     <tbody>
                         @forelse($productos as $producto)
                             <tr class="text-center align-middle hover:bg-gray-50">
-                                <td class="text-start cursor-pointer" wire:click="editar({{ $producto->id }})">{{ $producto->nombre }}</td>
-                                <td class="text-start cursor-pointer" wire:click="editar({{ $producto->id }})">{{ $producto->descripcion ?? 'N/A' }}</td>
+                                <td class="cursor-pointer text-start" wire:click="editar({{ $producto->id }})">{{ $producto->nombre }}</td>
+                                <td class="cursor-pointer text-start" wire:click="editar({{ $producto->id }})">{{ $producto->descripcion ?? 'N/A' }}</td>
                                 <td class="cursor-pointer" wire:click="editar({{ $producto->id }})">{{ $producto->subcategoria->categoria->nombre ?? 'N/A' }}</td>
                                 <td class="cursor-pointer" wire:click="editar({{ $producto->id }})">{{ $producto->subcategoria->nombre ?? 'N/A' }}</td>
                                 <td class="cursor-pointer" wire:click="editar({{ $producto->id }})">{{ $producto->marca->nombre ?? 'N/A' }}</td>
                                 <td class="cursor-pointer" wire:click="editar({{ $producto->id }})">{{ $producto->created_at ? $producto->created_at->format('d/m/Y') : 'N/A' }}</td>
                                 <td>
-                                    <button type="button" class="btn btn-link p-0" wire:click="confirmarEliminar({{ $producto->id }})" title="Eliminar" onclick="event.stopPropagation();">
+                                    <button type="button" class="p-0 btn btn-link" wire:click="confirmarEliminar({{ $producto->id }})" title="Eliminar" onclick="event.stopPropagation();">
                                         <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M6 7v12a2 2 0 002 2h8a2 2 0 002-2V7M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2m-7 0h10" style="color:#e3342f;" />
                                             <line x1="10" y1="11" x2="10" y2="17" stroke="#e3342f" stroke-width="2"/>
@@ -74,17 +74,97 @@
              role="dialog"
              @click.self="@this.cerrarModalEliminar()"
         >
-            <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-dialog modal-dialog-centered modal-lg">
                 <div class="modal-content">
-                    <div class="modal-header bg-danger text-white">
-                        <h5 class="modal-title">¿Eliminar producto?</h5>
+                    <div class="text-white modal-header bg-danger">
+                        <h5 class="modal-title">⚠️ ¿Eliminar producto?</h5>
                     </div>
                     <div class="modal-body">
-                        <p>¿Estás seguro que deseas eliminar este producto? Esta acción no se puede deshacer.</p>
-                        <div class="flex justify-end gap-2 mt-4">
-                            <button type="button" class="btn btn-secondary" wire:click="cerrarModalEliminar">No</button>
-                            <button type="button" class="btn btn-danger" wire:click="eliminarProducto">Sí, eliminar</button>
-                        </div>
+                        @if($productoSeleccionado)
+                            <!-- Información del producto -->
+                            <div class="mb-3 alert alert-info">
+                                <h6><strong>📦 Información del Producto</strong></h6>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <small><strong>Nombre:</strong></small><br>
+                                        <span>{{ $productoSeleccionado['nombre'] }}</span>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <small><strong>Código de Barras:</strong></small><br>
+                                        <span>{{ $productoSeleccionado['codigo_barra'] ?: 'Sin código' }}</span>
+                                    </div>
+                                    <div class="mt-2 col-md-4">
+                                        <small><strong>Marca:</strong></small><br>
+                                        <span>{{ $productoSeleccionado['marca'] }}</span>
+                                    </div>
+                                    <div class="mt-2 col-md-4">
+                                        <small><strong>Categoría:</strong></small><br>
+                                        <span>{{ $productoSeleccionado['categoria'] }}</span>
+                                    </div>
+                                    <div class="mt-2 col-md-4">
+                                        <small><strong>Subcategoría:</strong></small><br>
+                                        <span>{{ $productoSeleccionado['subcategoria'] }}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            @if(!$puedeEliminar)
+                                <div class="alert alert-warning">
+                                    <h6><strong>⚠️ No se puede eliminar este producto</strong></h6>
+                                    <p>El producto no cumple con los requisitos para ser eliminado:</p>
+                                    <ul class="mb-2">
+                                        @if($tieneCodigoBarras)
+                                            <li><strong>Código de barras asignado:</strong> El producto tiene el código "{{ $productoSeleccionado['codigo_barra'] }}" asignado.</li>
+                                        @endif
+                                        @if($stockDisponible > 0)
+                                            <li><strong>Stock disponible:</strong> El producto tiene {{ $stockDisponible }} unidades disponibles en stock.</li>
+                                        @endif
+                                    </ul>
+                                </div>
+
+                                <div class="alert alert-info">
+                                    <small>
+                                        <strong>💡 Para poder eliminar este producto debe:</strong><br>
+                                        @if($tieneCodigoBarras)
+                                            • Ir al módulo de <strong>Editar Producto</strong> y eliminar el código de barras<br>
+                                        @endif
+                                        @if($stockDisponible > 0)
+                                            • Agotar el stock disponible mediante ventas o ajustes de inventario<br>
+                                        @endif
+                                        •No debe tener Codigo de Barras asignado
+                                    </small>
+                                </div>
+
+                                <div class="flex justify-end gap-2 mt-4">
+                                    <button type="button" class="btn btn-secondary" wire:click="cerrarModalEliminar">
+                                        <i class="fas fa-times me-1"></i> Cerrar
+                                    </button>
+                                </div>
+                            @else
+                                <div class="alert alert-success">
+                                    <h6><strong>✅ Este producto se puede eliminar</strong></h6>
+                                    <p>El producto cumple con todos los requisitos:</p>
+                                    <ul class="mb-2">
+                                        <li>✅ No tiene código de barras asignado</li>
+                                        <li>✅ No tiene stock disponible</li>
+                                    </ul>
+                                </div>
+
+                                <p><strong>¿Estás seguro que deseas eliminar este producto?</strong></p>
+                                <p class="text-muted">Esta acción cambiará el estado del producto a inactivo y no se puede deshacer.</p>
+
+                                <div class="flex justify-end gap-2 mt-4">
+                                    <button type="button" class="btn btn-secondary" wire:click="cerrarModalEliminar">
+                                        <i class="fas fa-times me-1"></i> No, cancelar
+                                    </button>
+                                    <button type="button" class="btn btn-danger" wire:click="eliminarProducto">
+                                        <i class="fas fa-trash me-1"></i> Sí, eliminar
+                                    </button>
+                                </div>
+                            @endif
+                        @else
+                            <p>Cargando información del producto...</p>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -96,7 +176,7 @@
              @click.window="show = false"
              @keydown.window="show = false"
              @mousemove.window="show = false"
-             class="alert alert-success mt-3 mb-0 transition-opacity duration-300">
+             class="mt-3 mb-0 transition-opacity duration-300 alert alert-success">
             {{ session('mensaje') }}
         </div>
     @endif
@@ -106,7 +186,7 @@
              @click.window="show = false"
              @keydown.window="show = false"
              @mousemove.window="show = false"
-             class="alert alert-danger mt-3 mb-0 transition-opacity duration-300">
+             class="mt-3 mb-0 transition-opacity duration-300 alert alert-danger">
             {{ session('error') }}
         </div>
     @endif
