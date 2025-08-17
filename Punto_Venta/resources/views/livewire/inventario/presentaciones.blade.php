@@ -28,7 +28,6 @@
                             <th>Nombre</th>
                             <th style="width: 100px;">Símbolo</th>
                             <th style="width: 150px;">Fecha Creación</th>
-                            <th style="width: 60px;">Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -37,19 +36,10 @@
                                 <td class="text-start cursor-pointer" wire:click="editar({{ $unidad->id }})">{{ $unidad->nombre }}</td>
                                 <td class="cursor-pointer" wire:click="editar({{ $unidad->id }})">{{ $unidad->simbolo }}</td>
                                 <td class="cursor-pointer" wire:click="editar({{ $unidad->id }})">{{ $unidad->created_at ? $unidad->created_at->format('d/m/Y') : 'N/A' }}</td>
-                                <td>
-                                    <button type="button" class="btn btn-link p-0" wire:click="confirmarEliminar({{ $unidad->id }})" title="Eliminar" onclick="event.stopPropagation();">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 7v12a2 2 0 002 2h8a2 2 0 002-2V7M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2m-7 0h10" style="color:#e3342f;" />
-                                            <line x1="10" y1="11" x2="10" y2="17" stroke="#e3342f" stroke-width="2"/>
-                                            <line x1="14" y1="11" x2="14" y2="17" stroke="#e3342f" stroke-width="2"/>
-                                        </svg>
-                                    </button>
-                                </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="4" class="py-4 text-center text-muted">No hay unidades de medida disponibles.</td>
+                                <td colspan="3" class="py-4 text-center text-muted">No hay unidades de medida disponibles.</td>
                             </tr>
                         @endforelse
                     </tbody>
@@ -95,7 +85,8 @@
                             </div>
                             <div class="mb-3">
                                 <label for="unidadNombre" class="form-label">Nombre</label>
-                                <input type="text" id="unidadNombre" class="form-control" wire:model.defer="form.nombre">
+                                <input type="text" id="unidadNombre" class="form-control bg-gray-100" wire:model.defer="form.nombre" readonly>
+                                <small class="text-muted">El nombre no se puede modificar</small>
                                 @error('form.nombre')
                                     <div class="text-danger mt-1 text-sm">{{ $message }}</div>
                                 @enderror
@@ -187,85 +178,6 @@
                                 </button>
                             </div>
                         </form>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal Confirmar Eliminación -->
-    <div wire:key="modal-confirmar-eliminar">
-        <div class="modal fade show"
-             tabindex="-1"
-             style="display: @if($modalEliminarAbierto) block @else none @endif; background: rgba(0,0,0,0.5); z-index: 1000;"
-             aria-modal="true"
-             role="dialog"
-             @click.self="@this.cerrarModalEliminar()"
-        >
-            <div class="modal-dialog modal-dialog-centered modal-lg">
-                <div class="modal-content">
-                    <div class="modal-header bg-danger text-white">
-                        <h5 class="modal-title">⚠️ ¿Eliminar unidad de medida?</h5>
-                    </div>
-                    <div class="modal-body">
-                        @if(count($productosVinculados) > 0)
-                            <div class="alert alert-warning">
-                                <h6><strong>⚠️ No se puede eliminar esta unidad de medida</strong></h6>
-                                <p>Esta unidad de medida tiene <strong>{{ count($productosVinculados) }} producto(s)</strong> vinculado(s). 
-                                   Primero debe eliminar o cambiar la unidad de medida de estos productos:</p>
-                            </div>
-                            
-                            <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
-                                <table class="table table-sm table-striped">
-                                    <thead class="table-light sticky-top">
-                                        <tr>
-                                            <th style="width: 150px;">Código de Barras</th>
-                                            <th>Nombre del Producto</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @foreach($productosVinculados as $producto)
-                                            <tr>
-                                                <td class="text-center">
-                                                    <code class="bg-light px-2 py-1 rounded">{{ $producto['codigo_barra'] }}</code>
-                                                </td>
-                                                <td>{{ $producto['nombre'] }}</td>
-                                            </tr>
-                                        @endforeach
-                                    </tbody>
-                                </table>
-                            </div>
-                            
-                            <div class="alert alert-info mt-3">
-                                <small>
-                                    <strong>💡 Sugerencia:</strong> 
-                                    Vaya al módulo de <strong>Productos</strong> y edite cada producto para cambiar su unidad de medida o elimínelos.
-                                </small>
-                            </div>
-                            
-                            <div class="flex justify-end gap-2 mt-4">
-                                <button type="button" class="btn btn-secondary" wire:click="cerrarModalEliminar">
-                                    <i class="fas fa-times me-1"></i> Cerrar
-                                </button>
-                            </div>
-                        @else
-                            <div class="alert alert-success">
-                                <h6><strong>✅ Esta unidad de medida se puede eliminar</strong></h6>
-                                <p>No hay productos vinculados a esta unidad de medida.</p>
-                            </div>
-                            
-                            <p><strong>¿Estás seguro que deseas eliminar esta unidad de medida?</strong></p>
-                            <p class="text-muted">Esta acción no se puede deshacer.</p>
-                            
-                            <div class="flex justify-end gap-2 mt-4">
-                                <button type="button" class="btn btn-secondary" wire:click="cerrarModalEliminar">
-                                    <i class="fas fa-times me-1"></i> No, cancelar
-                                </button>
-                                <button type="button" class="btn btn-danger" wire:click="eliminarUnidad">
-                                    <i class="fas fa-trash me-1"></i> Sí, eliminar
-                                </button>
-                            </div>
-                        @endif
                     </div>
                 </div>
             </div>

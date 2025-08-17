@@ -19,10 +19,6 @@ class Presentaciones extends Component
     public $nuevoNombre = '';
     public $nuevoSimbolo = '';
 
-    public $modalEliminarAbierto = false;
-    public $unidadAEliminar = null;
-    public $productosVinculados = [];
-
     public function render()
     {
         $unidades = \App\Models\UnidadMedida::all(['id', 'unidad', 'nombre', 'simbolo', 'created_at']);
@@ -42,18 +38,15 @@ class Presentaciones extends Component
     public function guardar()
     {
         $this->validate([
-            'form.nombre' => 'required|string|max:255|unique:unidad_medida,nombre,' . $this->form['id'],
             'form.simbolo' => 'required|string|max:10|unique:unidad_medida,simbolo,' . $this->form['id'],
         ], [
-            'form.nombre.required' => 'El nombre es obligatorio.',
-            'form.nombre.unique' => 'Ya existe una unidad de medida con ese nombre.',
             'form.simbolo.required' => 'El símbolo es obligatorio.',
             'form.simbolo.unique' => 'Ya existe una unidad de medida con ese símbolo.',
         ]);
 
         $unidad = \App\Models\UnidadMedida::findOrFail($this->form['id']);
         $unidad->unidad = 1; // Mandar null como solicitado
-        $unidad->nombre = $this->form['nombre'];
+        // No actualizamos el nombre porque está readonly
         $unidad->simbolo = $this->form['simbolo'];
         $unidad->save();
         $this->modalAbierto = false;
@@ -98,50 +91,5 @@ class Presentaciones extends Component
         ]);
         $this->cerrarModalCrear();
         session()->flash('mensaje', 'Unidad de medida creada exitosamente.');
-    }
-
-    public function confirmarEliminar($id)
-    {
-        $this->unidadAEliminar = $id;
-        
-        // Obtener los productos que usan esta unidad de medida
-        $unidad = \App\Models\UnidadMedida::find($id);
-        $productos = \App\Models\Producto::where('unidad_medida_venta_id', $id)->get();
-        
-        $this->productosVinculados = $productos->map(function($producto) {
-            return [
-                'id' => $producto->id,
-                'codigo_barra' => $producto->codigo_barra ?? 'Sin código',
-                'nombre' => $producto->nombre
-            ];
-        })->toArray();
-        
-        $this->modalEliminarAbierto = true;
-    }
-
-    public function cerrarModalEliminar()
-    {
-        $this->modalEliminarAbierto = false;
-        $this->unidadAEliminar = null;
-        $this->productosVinculados = [];
-    }
-
-    public function eliminarUnidad()
-    {
-        // Verificar si hay productos vinculados antes de eliminar
-        $productos = \App\Models\Producto::where('unidad_medida_venta_id', $this->unidadAEliminar)->count();
-        
-        if ($productos > 0) {
-            session()->flash('error', 'No se puede eliminar la unidad de medida porque tiene productos vinculados. Primero elimine o cambie la unidad de medida de estos productos.');
-            $this->cerrarModalEliminar();
-            return;
-        }
-        
-        $unidad = \App\Models\UnidadMedida::find($this->unidadAEliminar);
-        if ($unidad) {
-            $unidad->delete();
-            session()->flash('mensaje', 'Unidad de medida eliminada exitosamente.');
-        }
-        $this->cerrarModalEliminar();
     }
 }
