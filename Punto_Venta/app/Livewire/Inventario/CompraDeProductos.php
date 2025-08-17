@@ -70,12 +70,12 @@ class CompraDeProductos extends Component
     public function irARecibirProducto($compraId)
     {
         $compra = Compra::with(['estado'])->find($compraId);
-        if ($compra && $compra->estado && strtolower($compra->estado->nombre) === 'activo') {
+        if ($compra && $compra->estado && (strtolower($compra->estado->nombre) === 'activo' || strtolower($compra->estado->nombre) === 'pendiente' || $compra->estado_id == 5)) {
             // Redirigir a la vista de recibir producto con el ID de la compra
             $this->dispatch('cambiarVista', ruta: 'Inventario.RecibirProductoCompra', parametros: ['compraId' => $compraId]);
         } else {
             $this->mostrarAlerta = true;
-            $this->mensajeAlerta = 'Solo se pueden recibir productos de compras en estado "activo".';
+            $this->mensajeAlerta = 'Solo se pueden recibir productos de compras en estado "activo" o "pendiente".';
         }
     }
 

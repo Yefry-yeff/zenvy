@@ -98,7 +98,7 @@
                                                 <span class="badge bg-warning">Distribuido</span>
                                             @elseif(strtolower($compra->estado->nombre) === 'anulado')
                                                 <span class="badge bg-danger">Anulado</span>
-                                            @elseif($compra->estado_id == 5)
+                                            @elseif(strtolower($compra->estado->nombre) === 'pendiente' || $compra->estado_id == 5)
                                                 <span class="badge bg-info">Pendiente</span>
                                             @else
                                                 <span class="badge bg-secondary">{{ ucfirst($compra->estado->nombre) }}</span>
@@ -110,7 +110,7 @@
                                     <td class="text-center">{{ $compra->detallesCompra->count() }}</td>
                                     <td class="text-end"><strong>L. {{ number_format($compra->detallesCompra->sum('precio_total'), 2) }}</strong></td>
                                     <td class="text-center" onclick="event.stopPropagation()">
-                                        @if($compra->estado && (strtolower($compra->estado->nombre) === 'activo' || $compra->estado_id == 5))
+                                        @if($compra->estado && (strtolower($compra->estado->nombre) === 'activo' || strtolower($compra->estado->nombre) === 'pendiente' || $compra->estado_id == 5))
                                             <div class="position-relative" x-data="{ open: false }">
                                                 <button @click="open = !open"
                                                         class="btn btn-sm btn-outline-primary d-flex align-items-center gap-1"
