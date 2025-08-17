@@ -14,6 +14,7 @@ class Producto extends Component
     public $stockDisponible = 0;
     public $tieneCodigoBarras = false;
     public $puedeEliminar = false;
+    public $tieneComprasActivas = false;
 
     public function render()
     {
@@ -60,8 +61,11 @@ class Producto extends Component
             // Obtener stock disponible
             $this->stockDisponible = $this->obtenerStockProducto($id);
             
+            // Verificar compras activas o pendientes con cantidad sin asignar
+            $this->tieneComprasActivas = $this->verificarComprasActivas($id);
+            
             // Determinar si se puede eliminar
-            $this->puedeEliminar = !$this->tieneCodigoBarras && $this->stockDisponible == 0;
+            $this->puedeEliminar = !$this->tieneCodigoBarras && $this->stockDisponible == 0 && !$this->tieneComprasActivas;
         }
         
         $this->modalEliminarAbierto = true;
@@ -74,6 +78,7 @@ class Producto extends Component
         $this->productoSeleccionado = null;
         $this->stockDisponible = 0;
         $this->tieneCodigoBarras = false;
+        $this->tieneComprasActivas = false;
         $this->puedeEliminar = false;
     }
 
@@ -119,6 +124,30 @@ class Producto extends Component
         } catch (\Exception $e) {
             // En caso de error, retornar 0 para no bloquear innecesariamente
             return 0;
+        }
+    }
+
+    /**
+     * Verifica si el producto tiene compras activas o pendientes con cantidad sin asignar
+     */
+    private function verificarComprasActivas($productoId)
+    {
+        try {
+            // Verificar si existe en compra_has_producto con compras en estado activo (1) o pendiente (5)
+            // y que tengan cantidad_sin_asignar diferente de 0
+            $comprasActivas = \Illuminate\Support\Facades\DB::table('compra_has_producto as chp')
+                ->join('compra as c', 'chp.compra_id', '=', 'c.id')
+                ->join('estado as e', 'c.estado_id', '=', 'e.id')
+                ->where('chp.producto_id', $productoId)
+                ->whereIn('c.estado_id', [1, 5]) // Estados: Activo (1) y Pendiente (5)
+                ->where('chp.cantidad_sin_asignar', '>', 0)
+                ->exists();
+
+            return $comprasActivas;
+
+        } catch (\Exception $e) {
+            // En caso de error, retornar true para prevenir eliminación accidental
+            return true;
         }
     }
 }

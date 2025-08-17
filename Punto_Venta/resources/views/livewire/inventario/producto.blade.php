@@ -119,6 +119,9 @@
                                         @if($stockDisponible > 0)
                                             <li><strong>Stock disponible:</strong> El producto tiene {{ $stockDisponible }} unidades disponibles en stock.</li>
                                         @endif
+                                        @if($tieneComprasActivas)
+                                            <li><strong>Compras pendientes:</strong> El producto tiene compras activas o pendientes con cantidad sin asignar.</li>
+                                        @endif
                                     </ul>
                                 </div>
 
@@ -130,6 +133,9 @@
                                         @endif
                                         @if($stockDisponible > 0)
                                             • Agotar el stock disponible mediante ventas o ajustes de inventario<br>
+                                        @endif
+                                        @if($tieneComprasActivas)
+                                            • Recibir o anular todas las compras pendientes del producto<br>
                                         @endif
                                         •No debe tener Codigo de Barras asignado
                                     </small>
@@ -147,6 +153,7 @@
                                     <ul class="mb-2">
                                         <li>✅ No tiene código de barras asignado</li>
                                         <li>✅ No tiene stock disponible</li>
+                                        <li>✅ No tiene compras activas o pendientes</li>
                                     </ul>
                                 </div>
 
