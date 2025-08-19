@@ -494,8 +494,11 @@
                                 <div class="mb-3 col-md-4">
                                     <div class="border card h-100">
                                         <!-- Imagen del servicio -->
-                                        @if($servicio->imagen)
-                                            <img src="data:image/jpeg;base64,{{ $servicio->imagen_base64 }}" 
+                                        @php
+                                            $imagenBase64 = $this->getServicioImagen($servicio->id);
+                                        @endphp
+                                        @if($imagenBase64)
+                                            <img src="data:image/jpeg;base64,{{ $imagenBase64 }}" 
                                                  class="card-img-top" 
                                                  style="height: 120px; object-fit: cover;"
                                                  alt="{{ $servicio->nombre }}">

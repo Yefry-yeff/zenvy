@@ -54,7 +54,7 @@ class ProductoForm extends Component
 
     // Propiedades para manejo de imagen
     public $imagen;
-    public $imagenAnterior = null;
+    public $tieneImagenAnterior = false; // Solo flag para saber si existe
     public $camposConError = [];
     public $erroresValidacion = [];
 
@@ -155,8 +155,8 @@ class ProductoForm extends Component
                 }
             }
 
-            // Cargar imagen anterior si existe
-            $this->imagenAnterior = $producto->imagen;
+            // Marcar si tiene imagen anterior (sin cargar los datos BLOB)
+            $this->tieneImagenAnterior = $producto->imagen !== null;
         }
     }
 
@@ -231,9 +231,10 @@ class ProductoForm extends Component
             // Procesar imagen si se subió una nueva
             if ($this->imagen) {
                 $datos['imagen'] = file_get_contents($this->imagen->getRealPath());
-            } elseif ($this->isEditing && $this->imagenAnterior) {
-                // Si estamos editando y no hay nueva imagen, mantener la anterior
-                $datos['imagen'] = $this->imagenAnterior;
+            } elseif ($this->isEditing && $this->tieneImagenAnterior) {
+                // Si estamos editando y no hay nueva imagen, obtener la anterior de la BD
+                $productoAnterior = ProductoModel::select('imagen')->find($this->productoId);
+                $datos['imagen'] = $productoAnterior ? $productoAnterior->imagen : null;
             } else {
                 // No hay imagen
                 $datos['imagen'] = null;
@@ -536,7 +537,7 @@ class ProductoForm extends Component
     public function removerImagen()
     {
         $this->imagen = null;
-        $this->imagenAnterior = null;
+        $this->tieneImagenAnterior = false;
     }
 
     /**
@@ -546,8 +547,12 @@ class ProductoForm extends Component
     {
         if ($this->imagen) {
             return 'data:image/*;base64,' . base64_encode(file_get_contents($this->imagen->getRealPath()));
-        } elseif ($this->imagenAnterior) {
-            return 'data:image/*;base64,' . base64_encode($this->imagenAnterior);
+        } elseif ($this->isEditing && $this->tieneImagenAnterior) {
+            // Obtener imagen anterior de la base de datos
+            $producto = ProductoModel::select('imagen')->find($this->productoId);
+            if ($producto && $producto->imagen) {
+                return 'data:image/*;base64,' . base64_encode($producto->imagen);
+            }
         }
         return null;
     }

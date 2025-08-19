@@ -45,7 +45,7 @@ class Ventas extends Component
     // Servicios
     public $servicios = [];
     public $busquedaServicios = '';
-    public $mostrarServicios = true;
+    public $mostrarServicios = false; // Cambiado a false para evitar carga inicial
 
     // Totales
     public $subtotal = 0;
@@ -124,7 +124,7 @@ class Ventas extends Component
 
         $this->cargarTiposPago();
         $this->verificarCAI();
-        $this->cargarServicios();
+        // Servicios se cargarán solo cuando el usuario los solicite
         
         // Cargar descuentos guardados si hay una factura específica
         $this->cargarDescuentosGuardados();
@@ -212,6 +212,8 @@ class Ventas extends Component
     public function cargarServicios()
     {
         $this->servicios = Servicio::with(['isv', 'estado'])
+            ->select('id', 'nombre', 'descripcion', 'precio_base', 'estado_id', 'isv_id', 
+                    'descuento_unitario', 'descuento_tercera', 'descuento_cuarta') // Excluir 'imagen'
             ->where('estado_id', 1) // Solo servicios activos
             ->when($this->busquedaServicios, function ($query) {
                 $query->where('nombre', 'like', '%' . $this->busquedaServicios . '%')
@@ -224,6 +226,15 @@ class Ventas extends Component
     public function updatedBusquedaServicios()
     {
         $this->cargarServicios();
+    }
+
+    /**
+     * Obtener la imagen de un servicio específico como base64
+     */
+    public function getServicioImagen($servicioId)
+    {
+        $servicio = Servicio::select('imagen')->find($servicioId);
+        return $servicio && $servicio->imagen ? base64_encode($servicio->imagen) : null;
     }
 
     public function agregarServicio($servicioId)
