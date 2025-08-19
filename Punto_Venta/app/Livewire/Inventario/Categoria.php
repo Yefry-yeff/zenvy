@@ -10,6 +10,7 @@ class Categoria extends Component
     public $modalEliminarAbierto = false;
     public $nuevaCategoriaNombre = '';
     public $categoriaAEliminar = null;
+    public $productosVinculados = [];
 
     public function render()
     {
@@ -19,12 +20,12 @@ class Categoria extends Component
 
     public function editar($id)
     {
-        $this->dispatch('cambiarVista', ruta: 'Inventario.categoriaform', parametros: ['id' => $id]);
+        $this->dispatch('cambiarVista', ruta: 'Inventario.CategoriaForm', parametros: ['id' => $id]);
     }
 
     public function abrirModalCrear()
     {
-        $this->dispatch('cambiarVista', ruta: 'Inventario.categoriaform');
+        $this->dispatch('cambiarVista', ruta: 'Inventario.CategoriaForm');
     }
 
     public function cerrarModalCrear()
@@ -35,6 +36,24 @@ class Categoria extends Component
     public function confirmarEliminar($id)
     {
         $this->categoriaAEliminar = $id;
+        
+        // Obtener todos los productos que pertenecen a subcategorías de esta categoría
+        $categoria = \App\Models\Categoria::with(['subcategorias.productos'])->find($id);
+        $this->productosVinculados = [];
+        
+        if ($categoria && $categoria->subcategorias) {
+            foreach ($categoria->subcategorias as $subcategoria) {
+                foreach ($subcategoria->productos as $producto) {
+                    $this->productosVinculados[] = [
+                        'id' => $producto->id,
+                        'codigo_barra' => $producto->codigo_barra ?? 'Sin código',
+                        'nombre' => $producto->nombre,
+                        'subcategoria' => $subcategoria->nombre
+                    ];
+                }
+            }
+        }
+        
         $this->modalEliminarAbierto = true;
     }
 
@@ -42,16 +61,31 @@ class Categoria extends Component
     {
         $this->modalEliminarAbierto = false;
         $this->categoriaAEliminar = null;
+        $this->productosVinculados = [];
     }
 
     public function eliminarCategoria()
     {
-        $categoria = \App\Models\Categoria::find($this->categoriaAEliminar);
+        // Verificar si hay productos vinculados antes de eliminar
+        $categoria = \App\Models\Categoria::with(['subcategorias.productos'])->find($this->categoriaAEliminar);
+        
         if ($categoria) {
-            // Primero eliminar todas las subcategorías
+            $tieneProductos = false;
+            foreach ($categoria->subcategorias as $subcategoria) {
+                if ($subcategoria->productos->count() > 0) {
+                    $tieneProductos = true;
+                    break;
+                }
+            }
+            
+            if ($tieneProductos) {
+                session()->flash('error', 'No se puede eliminar la categoría porque tiene productos vinculados en sus subcategorías. Primero elimine o cambie la subcategoría de estos productos.');
+                $this->cerrarModalEliminar();
+                return;
+            }
+            
+            // Si no tiene productos, eliminar subcategorías y luego la categoría
             $categoria->subcategorias()->delete();
-
-            // Luego eliminar la categoría
             $categoria->delete();
             session()->flash('mensaje', 'Categoría y sus subcategorías eliminadas exitosamente.');
         }

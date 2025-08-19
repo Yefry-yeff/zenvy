@@ -48,6 +48,12 @@
                             class="px-4 py-2 text-gray-700 transition-colors bg-gray-200 rounded-lg hover:bg-gray-300">
                             Cancelar
                         </button>
+                        <button type="button"
+                            wire:click="activarModoClienteManual"
+                            class="px-4 py-2 text-white transition-colors bg-orange-600 rounded-lg hover:bg-orange-700">
+                            <i class="fas fa-edit me-1"></i>
+                            RTN
+                        </button>
                         <button type="submit"
                             class="px-4 py-2 text-white transition-colors rounded-lg"
                             :class="{
@@ -221,7 +227,7 @@
     @endif
 
     <!-- Vista de datos del cliente y facturación -->
-    @if(isset($cliente))
+    @if(isset($cliente) || $modoClienteManual)
         <!-- Información de bodega y alertas de stock -->
         @if($bodegaPrincipal)
             <div class="p-3 mb-4 border border-blue-200 rounded-lg bg-blue-50">
@@ -278,17 +284,24 @@
                 @endif
 
                 <div class="grid grid-cols-1 gap-4">
-                    <!-- Primera fila: Identidad (bloqueado) y Nombre (bloqueado) -->
+                    <!-- Primera fila: RTN/Identidad y Nombre -->
                     <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
                         <div class="space-y-1">
                             <label class="block text-sm font-medium text-gray-700">
-                                Número de Identidad
+                                @if($modoClienteManual) RTN / Número de Identidad @else Número de Identidad @endif
                             </label>
                             <div class="relative">
-                                <input type="text"
-                                    class="w-full px-3 py-2 pr-10 text-gray-700 border border-gray-200 rounded cursor-not-allowed bg-gray-50"
-                                    value="{{ !empty($cliente->identidad) ? $cliente->identidad : 'No especificado' }}"
-                                    readonly>
+                                @if($modoClienteManual)
+                                    <input type="text"
+                                        wire:model="rtnManual"
+                                        class="w-full px-3 py-2 pr-10 border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-200"
+                                        placeholder="Ingrese RTN o número de identidad">
+                                @else
+                                    <input type="text"
+                                        class="w-full px-3 py-2 pr-10 text-gray-700 border border-gray-200 rounded cursor-not-allowed bg-gray-50"
+                                        value="{{ !empty($cliente->identidad) ? $cliente->identidad : 'No especificado' }}"
+                                        readonly>
+                                @endif
                                 <button type="button"
                                     wire:click="mostrarModalClientes"
                                     class="absolute inset-y-0 right-0 flex items-center px-3 text-gray-400 transition-colors hover:text-blue-600">
@@ -303,45 +316,95 @@
                             <label class="block text-sm font-medium text-gray-700">
                                 Nombre Completo
                             </label>
-                            <input type="text"
-                                class="w-full px-3 py-2 text-gray-700 border border-gray-200 rounded cursor-not-allowed bg-gray-50"
-                                value="{{ !empty($cliente->nombre) ? $cliente->nombre : 'No especificado' }}"
-                                readonly>
+                            @if($modoClienteManual)
+                                <input type="text"
+                                    wire:model="nombreCompletoManual"
+                                    class="w-full px-3 py-2 border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-200"
+                                    placeholder="Ingrese nombre completo">
+                            @else
+                                <input type="text"
+                                    class="w-full px-3 py-2 text-gray-700 border border-gray-200 rounded cursor-not-allowed bg-gray-50"
+                                    value="{{ !empty($cliente->nombre) ? $cliente->nombre : 'No especificado' }}"
+                                    readonly>
+                            @endif
                         </div>
                     </div>
 
-                    <!-- Segunda fila: Teléfono y Correo (bloqueados) -->
+                    <!-- Segunda fila: Teléfono y Correo -->
                     <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
                         <div class="space-y-1">
                             <label class="block text-sm font-medium text-gray-700">
                                 Teléfono
                             </label>
-                            <input type="text"
-                                class="w-full px-3 py-2 text-gray-700 border border-gray-200 rounded cursor-not-allowed bg-gray-50"
-                                value="{{ !empty($cliente->telefono) ? $cliente->telefono : 'No especificado' }}"
-                                readonly>
+                            @if($modoClienteManual)
+                                <input type="text"
+                                    wire:model="telefonoManual"
+                                    class="w-full px-3 py-2 border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-200"
+                                    placeholder="Ingrese teléfono">
+                            @else
+                                <input type="text"
+                                    class="w-full px-3 py-2 text-gray-700 border border-gray-200 rounded cursor-not-allowed bg-gray-50"
+                                    value="{{ !empty($cliente->telefono) ? $cliente->telefono : 'No especificado' }}"
+                                    readonly>
+                            @endif
                         </div>
 
                         <div class="space-y-1">
                             <label class="block text-sm font-medium text-gray-700">
                                 Correo Electrónico
                             </label>
-                            <input type="text"
-                                class="w-full px-3 py-2 text-gray-700 border border-gray-200 rounded cursor-not-allowed bg-gray-50"
-                                value="{{ !empty($cliente->correo) ? $cliente->correo : 'No especificado' }}"
-                                readonly>
+                            @if($modoClienteManual)
+                                <input type="email"
+                                    wire:model="correoManual"
+                                    class="w-full px-3 py-2 border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-200"
+                                    placeholder="Ingrese correo electrónico">
+                            @else
+                                <input type="text"
+                                    class="w-full px-3 py-2 text-gray-700 border border-gray-200 rounded cursor-not-allowed bg-gray-50"
+                                    value="{{ !empty($cliente->correo) ? $cliente->correo : 'No especificado' }}"
+                                    readonly>
+                            @endif
                         </div>
                     </div>
 
-                    <!-- Tercera fila: Dirección completa (bloqueada) -->
+                    <!-- Tercera fila: Dirección completa -->
                     <div class="space-y-1">
                         <label class="block text-sm font-medium text-gray-700">
                             Dirección Completa
                         </label>
-                        <textarea
-                            class="w-full px-3 py-2 text-gray-700 border border-gray-200 rounded cursor-not-allowed resize-none bg-gray-50"
-                            rows="2"
-                            readonly>{{ !empty($cliente->direccion_completa) ? $cliente->direccion_completa : 'No especificado' }}</textarea>
+                        @if($modoClienteManual)
+                            <textarea
+                                wire:model="direccionManual"
+                                class="w-full px-3 py-2 border border-gray-300 rounded resize-none focus:border-blue-500 focus:ring-1 focus:ring-blue-200"
+                                rows="2"
+                                placeholder="Ingrese dirección completa"></textarea>
+                        @else
+                            <textarea
+                                class="w-full px-3 py-2 text-gray-700 border border-gray-200 rounded cursor-not-allowed resize-none bg-gray-50"
+                                rows="2"
+                                readonly>{{ !empty($cliente->direccion_completa) ? $cliente->direccion_completa : 'No especificado' }}</textarea>
+                        @endif
+                    </div>
+                    
+                    <!-- Botón para limpiar y cambiar modo -->
+                    <div class="pt-3 border-t border-gray-200">
+                        <div class="flex gap-3 justify-end">
+                            @if($modoClienteManual)
+                                <button type="button"
+                                    wire:click="cancelarFactura"
+                                    class="inline-flex items-center px-4 py-2 text-sm font-medium text-red-700 bg-red-50 border border-red-300 rounded-lg hover:bg-red-100 focus:ring-4 focus:ring-red-200">
+                                    <i class="w-4 h-4 mr-2 fas fa-times"></i>
+                                    Cancelar Factura
+                                </button>
+                            @else
+                                <button type="button"
+                                    wire:click="activarModoClienteManual"
+                                    class="inline-flex items-center px-4 py-2 text-sm font-medium text-orange-700 bg-orange-50 border border-orange-300 rounded-lg hover:bg-orange-100 focus:ring-4 focus:ring-orange-200">
+                                    <i class="w-4 h-4 mr-2 fas fa-edit"></i>
+                                    Activar Modo Manual
+                                </button>
+                            @endif
+                        </div>
                     </div>
                 </div>
             </div>
@@ -416,7 +479,8 @@
                         @forelse($productosFactura as $item)
                         @php
                             $subtotalOriginal = $item['precio'] * $item['cantidad'];
-                            $descuentoAplicado = $item['descuento_aplicado'] ?? 0;
+                            $descuentoAplicado = $item['descuento_aplicado'] ?? 0; // Descuento por edad
+                            $descuentoUnitario = $item['descuento_unitario_aplicado'] ?? 0; // Descuento automático del producto
                             $subtotalConDescuento = $item['subtotal_con_descuento'] ?? $subtotalOriginal;
                             $isv = $subtotalConDescuento * ($item['isv']/100);
                             $total = $subtotalConDescuento + $isv;
@@ -425,10 +489,16 @@
                         <tr>
                             <td>
                                 {{ $item['nombre'] }}
-                                @if($descuentoAplicado > 0)
+                                @if($descuentoUnitario > 0)
                                     <br><small class="text-success">
+                                        <i class="fas fa-tag"></i>
+                                        Descuento de producto: L. {{ number_format($descuentoUnitario, 2) }}
+                                    </small>
+                                @endif
+                                @if($descuentoAplicado > 0)
+                                    <br><small class="text-primary">
                                         <i class="fas fa-percentage"></i>
-                                        Descuento aplicado: L. {{ number_format($descuentoAplicado, 2) }}
+                                        Descuento por edad: L. {{ number_format($descuentoAplicado, 2) }}
                                     </small>
                                 @endif
                                 <br>
@@ -449,11 +519,25 @@
                                     title="Stock disponible: {{ $stockDisponible }}">
                             </td>
                             <td>
+                                <!-- Mostrar importe original (precio × cantidad SIN descuentos) -->
+                                <div class="fw-bold">L. {{ number_format($subtotalOriginal, 2) }}</div>
+                                
+                                <!-- Mostrar descuentos de productos guardados primero (si existen) -->
+                                @if(isset($descuentosGuardados[$item['id']]))
+                                    <div class="text-success small">-L. {{ number_format($descuentosGuardados[$item['id']]['monto_total'], 2) }} (producto)</div>
+                                @elseif($descuentoUnitario > 0)
+                                    <!-- Si no hay descuentos guardados, mostrar descuento temporal -->
+                                    <div class="text-success small">-L. {{ number_format($descuentoUnitario, 2) }} (producto)</div>
+                                @endif
+                                
+                                <!-- Mostrar descuento de tercera/cuarta edad después -->
                                 @if($descuentoAplicado > 0)
-                                    <div class="text-decoration-line-through text-muted small">L. {{ number_format($subtotalOriginal, 2) }}</div>
-                                    <div class="text-success fw-bold">L. {{ number_format($subtotalConDescuento, 2) }}</div>
-                                @else
-                                    L. {{ number_format($subtotalConDescuento, 2) }}
+                                    <div class="text-primary small">-L. {{ number_format($descuentoAplicado, 2) }} (edad)</div>
+                                @endif
+                                
+                                <!-- Mostrar subtotal final con descuentos aplicados si hay descuentos -->
+                                @if($descuentoUnitario > 0 || $descuentoAplicado > 0 || isset($descuentosGuardados[$item['id']]))
+                                    <div class="text-success fw-bold border-top pt-1 mt-1">L. {{ number_format($subtotalConDescuento, 2) }}</div>
                                 @endif
                             </td>
                             <td>L. {{ number_format($isv, 2) }}
@@ -558,13 +642,22 @@
                 </div>
 
                 <!-- Procesar Pago -->
-                <div class="flex justify-end">
+                <div class="flex justify-end gap-3">
+                    <!-- Botón temporal de debug -->
+                    <button wire:click="verificarProductosConDescuento"
+                        class="px-4 py-2 text-white bg-yellow-600 hover:bg-yellow-700 rounded-lg transition-colors">
+                        <i class="fas fa-bug me-1"></i>
+                        Debug Descuentos
+                    </button>
+                    
                     @php
                         $tieneErrores = count($productosFactura) == 0;
+                        $tieneErrorCAI = $alertaCAI && (str_contains($alertaCAI, 'CRÍTICO') || str_contains($alertaCAI, 'ERROR'));
+                        $noPermiteFacturar = $tieneErrores || $tieneErrorCAI;
                     @endphp
                     <button wire:click="mostrarModalPago"
-                        class="px-6 py-2 text-white rounded-lg transition-colors {{ $tieneErrores ? 'opacity-50 cursor-not-allowed bg-gray-400' : '' }}"
-                        @if(!$tieneErrores)
+                        class="px-6 py-2 text-white rounded-lg transition-colors {{ $noPermiteFacturar ? 'opacity-50 cursor-not-allowed bg-gray-400' : '' }}"
+                        @if(!$noPermiteFacturar)
                         :class="{
                             'bg-emerald-600 hover:bg-emerald-700': theme === 'verde',
                             'bg-blue-600 hover:bg-blue-700': theme === 'azul',
@@ -572,8 +665,11 @@
                             'bg-slate-700 hover:bg-slate-800': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
                         }"
                         @endif
-                        @if($tieneErrores) disabled @endif
-                        title="{{ count($productosFactura) == 0 ? 'Agregue productos para procesar' : 'Procesar pago' }}">
+                        @if($noPermiteFacturar) disabled @endif
+                        title="{{ 
+                            count($productosFactura) == 0 ? 'Agregue productos para procesar' : 
+                            ($tieneErrorCAI ? 'Error de CAI: No se puede facturar' : 'Procesar pago') 
+                        }}">
                         <i class="fas fa-credit-card me-1"></i>
                         Procesar Pago
                     </button>

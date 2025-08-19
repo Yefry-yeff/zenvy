@@ -6,6 +6,7 @@ use Livewire\Component;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
+use Log;
 
 class CierreDeCaja extends Component
 {
@@ -254,6 +255,12 @@ class CierreDeCaja extends Component
     {
         $this->mensajeExito = '';
         $this->mensajeError = '';
+    }
+
+    public function volverDashboard()
+    {
+        // Emitir evento al componente padre
+        $this->dispatch('cambiarVista', ['vista' => 'dashboard']);
     }
 
     public function render()

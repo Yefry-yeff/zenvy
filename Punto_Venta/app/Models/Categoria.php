@@ -17,4 +17,10 @@ class Categoria extends Model
     {
         return $this->hasMany(Subcategoria::class, 'categoria_id');
     }
+
+    // Relación para obtener todos los productos de todas las subcategorías de esta categoría
+    public function productos()
+    {
+        return $this->hasManyThrough(Producto::class, Subcategoria::class, 'categoria_id', 'subcategoria_id');
+    }
 }

@@ -17,6 +17,7 @@ class Marca extends Component
 
     public $modalEliminarAbierto = false;
     public $marcaAEliminar = null;
+    public $productosVinculados = [];
 
     public function render()
     {
@@ -80,6 +81,18 @@ class Marca extends Component
     public function confirmarEliminar($id)
     {
         $this->marcaAEliminar = $id;
+        
+        // Obtener los productos vinculados a esta marca
+        $marca = \App\Models\Marca::with('productos')->find($id);
+        $this->productosVinculados = $marca->productos->map(function($producto) {
+            return [
+                'id' => $producto->id,
+                'codigo_barra' => $producto->codigo_barra ?? 'Sin código',
+                'nombre' => $producto->nombre,
+                'precio' => $producto->precio ?? 0
+            ];
+        })->toArray();
+        
         $this->modalEliminarAbierto = true;
     }
 
@@ -87,11 +100,20 @@ class Marca extends Component
     {
         $this->modalEliminarAbierto = false;
         $this->marcaAEliminar = null;
+        $this->productosVinculados = [];
     }
 
     public function eliminarMarca()
     {
-        $marca = \App\Models\Marca::find($this->marcaAEliminar);
+        // Verificar si hay productos vinculados antes de eliminar
+        $marca = \App\Models\Marca::with('productos')->find($this->marcaAEliminar);
+        
+        if ($marca && $marca->productos->count() > 0) {
+            session()->flash('error', 'No se puede eliminar la marca porque tiene productos vinculados. Primero elimine o cambie la marca de estos productos.');
+            $this->cerrarModalEliminar();
+            return;
+        }
+        
         if ($marca) {
             $marca->delete();
             session()->flash('mensaje', 'Marca eliminada exitosamente.');

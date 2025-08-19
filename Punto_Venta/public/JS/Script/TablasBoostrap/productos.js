@@ -4,7 +4,11 @@
                 var $table = $('#productosTable');
                 if ($table.length) {
                     $table.css('border', ''); // Quita el borde de depuración
-                    if (!$.fn.DataTable.isDataTable($table)) {
+                    // Verificar si la tabla tiene datos reales (no solo el mensaje de "no hay datos")
+                    var $dataRows = $table.find('tbody tr').not(':contains("No hay productos disponibles")');
+                    var hasData = $dataRows.length > 0;
+
+                    if (hasData && !$.fn.DataTable.isDataTable($table)) {
                         if (productosTableObserver) productosTableObserver.disconnect();
                         $table.DataTable({
                             responsive: true,

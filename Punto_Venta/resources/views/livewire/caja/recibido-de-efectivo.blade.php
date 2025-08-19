@@ -15,13 +15,7 @@
                         <p class="text-gray-600">Registrar entrada de dinero en caja</p>
                     </div>
                 </div>
-                <button wire:click="$dispatch('cambiarVista', 'caja.index')"
-                        class="flex items-center px-4 py-2 space-x-2 font-semibold text-white transition-colors duration-200 bg-gray-500 rounded-lg hover:bg-gray-600">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-                    </svg>
-                    <span>Volver</span>
-                </button>
+
             </div>
         </div>
 

@@ -25,7 +25,7 @@ DELIMITER $$
 --
 -- Procedimientos
 --
-CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_gestion_menu_sidebar` (IN `accion` INT, IN `p_id` INT, IN `p_menu_nombre` VARCHAR(100), IN `p_icono` VARCHAR(191) CHARSET utf8mb4, IN `p_submenu` VARCHAR(100), IN `p_orden` INT, IN `p_estado_id` INT)   BEGIN
+CREATE  PROCEDURE `sp_gestion_menu_sidebar` (IN `accion` INT, IN `p_id` INT, IN `p_menu_nombre` VARCHAR(100), IN `p_icono` VARCHAR(191) CHARSET utf8mb4, IN `p_submenu` VARCHAR(100), IN `p_orden` INT, IN `p_estado_id` INT)   BEGIN
     DECLARE v_menu_grupo_id INT;
     DECLARE v_route VARCHAR(255);
 
@@ -97,7 +97,7 @@ END$$
 --
 -- Funciones
 --
-CREATE DEFINER=`root`@`localhost` FUNCTION `fn_clean_studly` (`input` VARCHAR(255)) RETURNS VARCHAR(255) CHARSET latin1 DETERMINISTIC BEGIN
+CREATE  FUNCTION `fn_clean_studly` (`input` VARCHAR(255)) RETURNS VARCHAR(255) CHARSET latin1 DETERMINISTIC BEGIN
   DECLARE cleaned VARCHAR(255);
   
   -- Reemplazar acentos manualmente

@@ -97,9 +97,22 @@
 
                             <div class="mb-3 col-md-6">
                                 <label for="estado_id" class="form-label">Estado <span class="text-red-600">*</span></label>
-                                <input type="text" id="estado_display" class="form-control" value="Activo" readonly disabled style="background-color: #f8f9fa; cursor: not-allowed;">
-                                <input type="hidden" wire:model="form.estado_id" value="1">
-                                <small class="text-muted">El estado se establece automáticamente como Activo</small>
+                                
+                                @if($isEditing)
+                                    {{-- Campo editable cuando está en modo edición --}}
+                                    <select id="estado_id" class="form-control {{ $this->getClaseCampo('form.estado_id') }}" wire:model="form.estado_id">
+                                        <option value="">Seleccionar estado</option>
+                                        <option value="1">Activo</option>
+                                        <option value="2">Inactivo</option>
+                                    </select>
+                                    <small class="text-muted">Puede cambiar el estado de la sucursal</small>
+                                @else
+                                    {{-- Campo bloqueado solo cuando está creando (siempre activo) --}}
+                                    <input type="text" id="estado_display" class="form-control" value="Activo" readonly disabled style="background-color: #f8f9fa; cursor: not-allowed;">
+                                    <input type="hidden" wire:model="form.estado_id" value="1">
+                                    <small class="text-muted">El estado se establece automáticamente como Activo</small>
+                                @endif
+                                
                                 @error('form.estado_id')
                                     <div class="mt-1 text-sm text-danger">{{ $message }}</div>
                                 @enderror

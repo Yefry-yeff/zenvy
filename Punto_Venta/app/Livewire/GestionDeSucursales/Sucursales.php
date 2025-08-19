@@ -28,13 +28,13 @@ class Sucursales extends Component
     // Función para crear nueva sucursal
     public function abrirModalCrear()
     {
-        $this->dispatch('cambiarVista', ruta: 'GestionDeSucursales.sucursalform');
+        $this->dispatch('cambiarVista', ruta: 'GestionDeSucursales.SucursalForm');
     }
 
     // Función para editar sucursal
     public function editar($id)
     {
-        $this->dispatch('cambiarVista', ruta: 'GestionDeSucursales.sucursalform', parametros: ['id' => $id]);
+        $this->dispatch('cambiarVista', ruta: 'GestionDeSucursales.SucursalForm', parametros: ['id' => $id]);
     }
 
     // Función para cerrar alerta

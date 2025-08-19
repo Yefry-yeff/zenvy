@@ -70,12 +70,12 @@ class CompraDeProductos extends Component
     public function irARecibirProducto($compraId)
     {
         $compra = Compra::with(['estado'])->find($compraId);
-        if ($compra && $compra->estado && strtolower($compra->estado->nombre) === 'activo') {
+        if ($compra && $compra->estado && (strtolower($compra->estado->nombre) === 'activo' || strtolower($compra->estado->nombre) === 'pendiente' || $compra->estado_id == 5)) {
             // Redirigir a la vista de recibir producto con el ID de la compra
-            $this->dispatch('cambiarVista', ruta: 'Inventario.recibirproductocompra', parametros: ['compraId' => $compraId]);
+            $this->dispatch('cambiarVista', ruta: 'Inventario.RecibirProductoCompra', parametros: ['compraId' => $compraId]);
         } else {
             $this->mostrarAlerta = true;
-            $this->mensajeAlerta = 'Solo se pueden recibir productos de compras en estado "activo".';
+            $this->mensajeAlerta = 'Solo se pueden recibir productos de compras en estado "activo" o "pendiente".';
         }
     }
 
@@ -105,7 +105,7 @@ class CompraDeProductos extends Component
     // Método para agregar nueva compra
     public function agregarCompra()
     {
-        $this->dispatch('cambiarVista', ruta: 'Inventario.compradeproducto');
+        $this->dispatch('cambiarVista', ruta: 'Inventario.CompraDeProducto');
     }
 
     // Método para cerrar alerta
@@ -119,18 +119,32 @@ class CompraDeProductos extends Component
     public function abrirModalAnular($compraId)
     {
         $compra = Compra::with(['proveedor', 'estado'])->find($compraId);
-        if ($compra && $compra->estado && strtolower($compra->estado->nombre) === 'activo') {
-            $this->compraSeleccionada = [
-                'id' => $compra->id,
-                'numero_factura' => $compra->numero_factura,
-                'proveedor_nombre' => $compra->proveedor->nombre ?? 'N/A',
-                'total' => $compra->detallesCompra->sum('precio_total') ?? 0
-            ];
-            $this->motivoAnulacion = '';
-            $this->mostrarModalAnular = true;
+        if ($compra && $compra->estado) {
+            $estadoNombre = strtolower($compra->estado->nombre);
+            $estadoId = $compra->estado_id;
+            
+            // Solo permitir anular si está en estado "activo" (1)
+            // No permitir anular si está en estado "pendiente" (5) por distribución parcial
+            if ($estadoNombre === 'activo' && $estadoId != 5) {
+                $this->compraSeleccionada = [
+                    'id' => $compra->id,
+                    'numero_factura' => $compra->numero_factura,
+                    'proveedor_nombre' => $compra->proveedor->nombre ?? 'N/A',
+                    'total' => $compra->detallesCompra->sum('precio_total') ?? 0
+                ];
+                $this->motivoAnulacion = '';
+                $this->mostrarModalAnular = true;
+            } else {
+                $this->mostrarAlerta = true;
+                if ($estadoId == 5) {
+                    $this->mensajeAlerta = 'No se puede anular esta compra porque tiene productos distribuidos parcialmente (estado Pendiente).';
+                } else {
+                    $this->mensajeAlerta = 'Solo se pueden anular compras en estado "activo".';
+                }
+            }
         } else {
             $this->mostrarAlerta = true;
-            $this->mensajeAlerta = 'Solo se pueden anular compras en estado "activo".';
+            $this->mensajeAlerta = 'Compra no encontrada.';
         }
     }
 
@@ -145,7 +159,7 @@ class CompraDeProductos extends Component
     // Método para abrir modal de detalle
     public function verDetalle($compraId)
     {
-        $compra = Compra::with(['proveedor', 'estado', 'detallesCompra.producto', 'detallesCompra.unidadCompra'])->find($compraId);
+        $compra = Compra::with(['proveedor', 'estado', 'detallesCompra.producto', 'detallesCompra.unidadMedida'])->find($compraId);
         if ($compra) {
             $this->compraDetalle = [
                 'id' => $compra->id,
@@ -163,7 +177,7 @@ class CompraDeProductos extends Component
                         'subtotal' => $detalle->sub_total_producto,
                         'isv' => $detalle->isv,
                         'precio_total' => $detalle->precio_total,
-                        'unidad' => $detalle->unidadCompra->nombre ?? 'N/A',
+                        'unidad' => $detalle->unidadMedida->nombre ?? 'N/A',
                         'fecha_expiracion' => $detalle->fecha_expiracion
                     ];
                 })->toArray(),
@@ -196,22 +210,36 @@ class CompraDeProductos extends Component
 
         try {
             $compra = Compra::with('estado')->find($this->compraSeleccionada['id']);
-            if ($compra && $compra->estado && strtolower($compra->estado->nombre) === 'activo') {
-                // Buscar el estado "anulado"
-                $estadoAnulado = Estado::whereRaw('LOWER(nombre) = ?', ['anulado'])->first();
-                if ($estadoAnulado) {
-                    $compra->estado_id = $estadoAnulado->id;
-                    $compra->save();
+            if ($compra && $compra->estado) {
+                $estadoNombre = strtolower($compra->estado->nombre);
+                $estadoId = $compra->estado_id;
+                
+                // Solo permitir anular si está en estado "activo" (1)
+                // No permitir anular si está en estado "pendiente" (5) por distribución parcial
+                if ($estadoNombre === 'activo' && $estadoId != 5) {
+                    // Buscar el estado "anulado"
+                    $estadoAnulado = Estado::whereRaw('LOWER(nombre) = ?', ['anulado'])->first();
+                    if ($estadoAnulado) {
+                        $compra->estado_id = $estadoAnulado->id;
+                        $compra->save();
 
-                    session()->flash('success', 'Compra anulada exitosamente.');
-                    $this->cerrarModalAnular();
+                        session()->flash('success', 'Compra anulada exitosamente.');
+                        $this->cerrarModalAnular();
+                    } else {
+                        $this->mostrarAlerta = true;
+                        $this->mensajeAlerta = 'No se encontró el estado "anulado" en el sistema.';
+                    }
                 } else {
                     $this->mostrarAlerta = true;
-                    $this->mensajeAlerta = 'No se encontró el estado "anulado" en el sistema.';
+                    if ($estadoId == 5) {
+                        $this->mensajeAlerta = 'No se puede anular esta compra porque tiene productos distribuidos parcialmente (estado Pendiente).';
+                    } else {
+                        $this->mensajeAlerta = 'Solo se pueden anular compras en estado "activo".';
+                    }
                 }
             } else {
                 $this->mostrarAlerta = true;
-                $this->mensajeAlerta = 'Solo se pueden anular compras en estado "activo".';
+                $this->mensajeAlerta = 'Compra no encontrada.';
             }
         } catch (\Exception $e) {
             $this->mostrarAlerta = true;

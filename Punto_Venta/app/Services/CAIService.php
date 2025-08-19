@@ -3,74 +3,50 @@
 namespace App\Services;
 
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Auth;
-use Carbon\Carbon;
 use Exception;
 
 class CAIService
 {
     /**
      * Obtener el siguiente número de factura usando el sistema CAI
-     * @param int $tiendaId ID de la tienda para validar CAI específico
+     * @param int|null $tiendaId ID de la tienda para filtrar CAIs específicos
      */
     public function obtenerSiguienteNumeroFactura($tiendaId = null)
     {
         try {
             DB::beginTransaction();
 
-            // Si no se proporciona tienda_id, usar la del usuario autenticado
-            if (!$tiendaId) {
-                $user = Auth::user();
-                $tiendaId = $user->tienda_id ?? null;
-                
-                if (!$tiendaId) {
-                    throw new Exception('No se puede determinar la tienda del usuario para generar la factura');
-                }
+            // Construir query base
+            $query = DB::table('gestion_cai as gc')
+                ->join('cai as c', 'gc.cai_id', '=', 'c.id')
+                ->where('gc.estado_id', 1) // Estado activo
+                ->where('gc.cantidad_no_utilizada', '>', 0)
+                ->where('c.estado_id', 1) // CAI activo
+                ->select('gc.*', 'c.cai', 'c.fecha_limite_emision', 'c.tienda_id')
+                ->orderBy('gc.id', 'asc'); // FIFO: primer CAI registrado primero
+
+            // Filtrar por tienda si se proporciona
+            if ($tiendaId) {
+                $query->where('c.tienda_id', $tiendaId);
             }
 
-            // Buscar el CAI activo para la tienda específica
-            $gestionCai = DB::table('gestion_cai as gc')
-                ->join('cai as c', 'gc.cai_id', '=', 'c.id')
-                ->where('gc.estado_id', 1) // Estado activo en gestión
-                ->where('c.estado_id', 1)  // Estado activo en CAI
-                ->where('c.tienda_id', $tiendaId) // CAI específico de la tienda
-                ->where('gc.cantidad_no_utilizada', '>', 0)
-                ->select(
-                    'gc.*', 
-                    'c.cai', 
-                    'c.fecha_limite_emision',
-                    'c.tienda_id',
-                    'c.estado_id as cai_estado_id'
-                )
-                ->orderBy('gc.id', 'asc') // FIFO: primer CAI registrado primero
-                ->first();
+            $gestionCai = $query->first();
 
             if (!$gestionCai) {
-                throw new Exception("No hay CAI activos disponibles para facturar en esta tienda (ID: {$tiendaId})");
+                $mensaje = $tiendaId 
+                    ? "No hay CAI activos disponibles para facturar en la tienda especificada (ID: $tiendaId)"
+                    : 'No hay CAI activos disponibles para facturar';
+                throw new Exception($mensaje);
             }
 
-            // Verificar que el CAI no haya vencido
-            $fechaActual = now()->format('Y-m-d');
-            if ($gestionCai->fecha_limite_emision && $gestionCai->fecha_limite_emision < $fechaActual) {
+            // Verificar que no haya vencido
+            if ($gestionCai->fecha_limite_emision && $gestionCai->fecha_limite_emision < now()->format('Y-m-d')) {
                 // Desactivar CAI vencido
-                DB::table('cai')
-                    ->where('id', $gestionCai->cai_id)
-                    ->update(['estado_id' => 2]); // Inactivo
-                    
                 DB::table('gestion_cai')
                     ->where('id', $gestionCai->id)
                     ->update(['estado_id' => 2]); // Inactivo
 
-                throw new Exception('El CAI disponible ha vencido (Fecha límite: ' . $gestionCai->fecha_limite_emision . '). Se ha desactivado automáticamente.');
-            }
-
-            // Verificar si está próximo a vencer (menos de 7 días)
-            $fechaLimite = Carbon::parse($gestionCai->fecha_limite_emision);
-            $diasRestantes = now()->diffInDays($fechaLimite, false);
-            
-            $alertaVencimiento = null;
-            if ($diasRestantes <= 7 && $diasRestantes >= 0) {
-                $alertaVencimiento = "¡ATENCIÓN! El CAI vence en {$diasRestantes} día(s) (Fecha límite: {$gestionCai->fecha_limite_emision})";
+                throw new Exception('El CAI disponible ha vencido. Se ha desactivado automáticamente.');
             }
 
             // Generar el número de factura
@@ -93,13 +69,6 @@ class CAIService
                     'updated_at' => now()
                 ]);
 
-            // Si se agotó también desactivar el CAI principal
-            if ($nuevoEstado == 2) {
-                DB::table('cai')
-                    ->where('id', $gestionCai->cai_id)
-                    ->update(['estado_id' => 2]);
-            }
-
             DB::commit();
 
             return [
@@ -109,11 +78,7 @@ class CAIService
                 'cai' => $gestionCai->cai,
                 'cantidad_restante' => $nuevaCantidadNoUtilizada,
                 'numero_secuencia' => $gestionCai->numero_actual, // El número antes de incrementar
-                'cai_agotado' => $nuevoEstado == 2,
-                'fecha_limite_emision' => $gestionCai->fecha_limite_emision,
-                'dias_restantes_vencimiento' => $diasRestantes,
-                'alerta_vencimiento' => $alertaVencimiento,
-                'tienda_id' => $gestionCai->tienda_id
+                'cai_agotado' => $nuevoEstado == 2
             ];
 
         } catch (Exception $e) {
@@ -130,19 +95,74 @@ class CAIService
         return str_pad($numero, 8, '0', STR_PAD_LEFT);
     }
 
-    /**
-     * Verificar disponibilidad de CAI
+        /**
+     * Verificar si hay CAIs disponibles para facturar
+     * @param int|null $tiendaId ID de la tienda para filtrar CAIs específicos
      */
-    public function verificarDisponibilidadCAI()
+    public function verificarDisponibilidadCAI($tiendaId = null)
     {
-        $caisActivos = DB::table('gestion_cai as gc')
+        $query = DB::table('gestion_cai as gc')
             ->join('cai as c', 'gc.cai_id', '=', 'c.id')
             ->where('gc.estado_id', 1)
             ->where('gc.cantidad_no_utilizada', '>', 0)
-            ->where('c.fecha_limite_emision', '>=', now()->format('Y-m-d'))
-            ->count();
+            ->where('c.estado_id', 1)
+            ->where('c.fecha_limite_emision', '>=', now()->format('Y-m-d'));
 
-        return $caisActivos > 0;
+        // Filtrar por tienda si se proporciona
+        if ($tiendaId) {
+            $query->where('c.tienda_id', $tiendaId);
+        }
+
+        return $query->exists();
+    }
+
+    /**
+     * Validar CAI disponible para una tienda específica antes de facturar
+     * @param int $tiendaId ID de la tienda
+     * @return array Resultado de la validación
+     */
+    public function validarCAIParaTienda($tiendaId)
+    {
+        // Verificar CAI en tabla CAI
+        $caiActivo = DB::table('cai')
+            ->where('tienda_id', $tiendaId)
+            ->where('estado_id', 1)
+            ->where('fecha_limite_emision', '>=', now()->format('Y-m-d'))
+            ->first();
+
+        if (!$caiActivo) {
+            return [
+                'valido' => false,
+                'mensaje' => 'No hay CAI activo válido para esta tienda en la tabla CAI',
+                'detalle' => 'La tienda no tiene un CAI activo o el CAI está vencido'
+            ];
+        }
+
+        // Verificar en gestion_cai que haya cantidad disponible
+        $gestionCAI = DB::table('gestion_cai')
+            ->where('cai_id', $caiActivo->id)
+            ->where('estado_id', 1)
+            ->where('cantidad_no_utilizada', '>', 0)
+            ->first();
+
+        if (!$gestionCAI) {
+            return [
+                'valido' => false,
+                'mensaje' => 'No hay CAI con cantidad disponible para facturar en esta tienda',
+                'detalle' => 'El CAI de la tienda no tiene cantidad disponible en gestion_cai'
+            ];
+        }
+
+        return [
+            'valido' => true,
+            'mensaje' => 'CAI válido y disponible para facturar',
+            'cai_info' => [
+                'cai_id' => $caiActivo->id,
+                'cai' => $caiActivo->cai,
+                'cantidad_disponible' => $gestionCAI->cantidad_no_utilizada,
+                'fecha_limite' => $caiActivo->fecha_limite_emision
+            ]
+        ];
     }
 
     /**

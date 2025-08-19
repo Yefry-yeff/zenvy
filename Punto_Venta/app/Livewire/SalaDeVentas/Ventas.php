@@ -8,6 +8,7 @@ use App\Models\Producto;
 use App\Models\TipoPago;
 use App\Models\Factura;
 use App\Models\Bodega;
+use App\Models\Descuento;
 use App\Models\DescuentoAdulto;
 use App\Services\CAIService;
 use Livewire\Attributes\On;
@@ -24,6 +25,14 @@ class Ventas extends Component
     public $mostrarModalClientesFlag = false;
     public $busquedaCliente = '';
     public $clientesModal;
+    
+    // Cliente manual - campos editables
+    public $rtnManual = '';
+    public $nombreCompletoManual = '';
+    public $telefonoManual = '';
+    public $correoManual = '';
+    public $direccionManual = '';
+    public $modoClienteManual = false;
 
     // Búsqueda de productos
     public $codigoBarras = '';
@@ -43,6 +52,9 @@ class Ventas extends Component
     public $descuentoTerceraEdad = false;
     public $descuentoCuartaEdad = false;
     public $totalDescuentos = 0;
+    
+    // Descuentos guardados en BD (para mostrar en facturas guardadas)
+    public $descuentosGuardados = [];
 
     // Variables para procesamiento de pagos
     public $mostrarModalPagoFlag = false;
@@ -106,6 +118,40 @@ class Ventas extends Component
 
         $this->cargarTiposPago();
         $this->verificarCAI();
+        
+        // Cargar descuentos guardados si hay una factura específica
+        $this->cargarDescuentosGuardados();
+    }
+
+    /**
+     * Función para depurar productos con descuento unitario
+     */
+    public function verificarProductosConDescuento()
+    {
+        $productos = DB::table('producto')
+            ->where('descuento_unitario', '>', 0)
+            ->where('estado_id', 1)
+            ->get();
+            
+        Log::info("Productos con descuento unitario en BD", [
+            'cantidad' => $productos->count(),
+            'productos' => $productos->toArray()
+        ]);
+        
+        session()->flash('info', 'Verificación completada. Revisa los logs.');
+    }
+
+    /**
+     * Cargar descuentos guardados de la base de datos para una factura específica
+     */
+    public function cargarDescuentosGuardados($facturaId = null)
+    {
+        if ($facturaId) {
+            $descuentos = Descuento::where('factura_id', $facturaId)->get();
+            $this->descuentosGuardados = $descuentos->keyBy('producto_id')->toArray();
+        } else {
+            $this->descuentosGuardados = [];
+        }
     }
 
     public function verificarCAI()
@@ -119,18 +165,27 @@ class Ventas extends Component
                 Log::info("CAIs vencidos desactivados: $caisDesactivados");
             }
 
-            // Verificar disponibilidad
-            if (!$caiService->verificarDisponibilidadCAI()) {
-                $this->alertaCAI = "¡CRÍTICO! No hay CAI activos disponibles para facturar. Contacte al administrador.";
+            // Verificar disponibilidad específica para la tienda del usuario
+            $validacionTienda = $caiService->validarCAIParaTienda($this->tiendaUsuario);
+            
+            if (!$validacionTienda['valido']) {
+                $this->alertaCAI = "¡CRÍTICO! " . $validacionTienda['mensaje'] . " - " . $validacionTienda['detalle'];
+                $this->caiActual = null;
             } else {
-                // Obtener información de CAIs
-                $this->informacionCAI = $caiService->obtenerInformacionCAIs();
+                // Verificar disponibilidad general (método anterior como respaldo)
+                if (!$caiService->verificarDisponibilidadCAI($this->tiendaUsuario)) {
+                    $this->alertaCAI = "¡CRÍTICO! No hay CAI activos disponibles para facturar en su tienda. Contacte al administrador.";
+                    $this->caiActual = null;
+                } else {
+                    // Obtener información de CAIs de la tienda
+                    $this->informacionCAI = $caiService->obtenerInformacionCAIs();
+                    $this->caiActual = $validacionTienda['cai_info'];
 
-                // Verificar si algún CAI está por agotarse
-                foreach ($this->informacionCAI as $cai) {
-                    if ($cai->cantidad_no_utilizada <= 10 && $cai->cantidad_no_utilizada > 0) {
-                        $this->alertaCAI = "¡AVISO! El CAI {$cai->numero_base} tiene solo {$cai->cantidad_no_utilizada} facturas restantes.";
-                        break;
+                    // Verificar si algún CAI está por agotarse
+                    if ($validacionTienda['cai_info']['cantidad_disponible'] <= 10) {
+                        $this->alertaCAI = "¡AVISO! Su CAI tiene solo {$validacionTienda['cai_info']['cantidad_disponible']} facturas restantes.";
+                    } else {
+                        $this->alertaCAI = null; // Todo está bien
                     }
                 }
             }
@@ -138,6 +193,7 @@ class Ventas extends Component
         } catch (\Exception $e) {
             Log::error("Error al verificar CAI: " . $e->getMessage());
             $this->alertaCAI = "Error al verificar CAI: " . $e->getMessage();
+            $this->caiActual = null;
         }
     }
 
@@ -164,17 +220,78 @@ class Ventas extends Component
                 ) as direccion_completa")
             ])
             ->leftJoin('direccion', 'cliente.direccion_id', '=', 'direccion.id')
-            ->where('cliente.identidad', $identidad)
+            ->where(function($q) use ($identidad) {
+                $q->where('cliente.identidad', $identidad)
+                  ->orWhere('cliente.rtn', $identidad);
+            })
             ->first();
 
         if ($cliente) {
             $this->cliente = $cliente;
+            $this->modoClienteManual = false;
+            $this->limpiarCamposManual();
             session()->forget('cliente_no_encontrado');
         } else {
             $this->cliente = null;
             session()->flash('cliente_no_encontrado', 'No existe un cliente con esa identidad.');
         }
         $this->dispatch('cerrar-modal-busqueda');
+    }
+
+    public function activarModoClienteManual()
+    {
+        $this->cliente = null;
+        $this->modoClienteManual = true;
+        $this->limpiarCamposManual();
+        $this->dispatch('cerrar-modal-busqueda');
+    }
+
+    public function limpiarCamposManual()
+    {
+        $this->rtnManual = '';
+        $this->nombreCompletoManual = '';
+        $this->telefonoManual = '';
+        $this->correoManual = '';
+        $this->direccionManual = '';
+    }
+
+    public function cancelarFactura()
+    {
+        // Limpiar todos los datos de la factura
+        $this->cliente = null;
+        $this->modoClienteManual = false;
+        $this->limpiarCamposManual();
+        $this->productosFactura = [];
+        $this->descuentoTerceraEdad = false;
+        $this->descuentoCuartaEdad = false;
+        $this->totalDescuentos = 0;
+        $this->datosDescuentoAdulto = [];
+        $this->calcularTotales();
+        
+        // Redirigir al dashboard
+        return redirect()->route('dashboard');
+    }
+
+    public function obtenerNombreCliente()
+    {
+        if ($this->cliente) {
+            return $this->cliente->nombre_completo;
+        } elseif ($this->modoClienteManual && !empty($this->nombreCompletoManual)) {
+            return $this->nombreCompletoManual;
+        } else {
+            return 'Consumidor Final';
+        }
+    }
+
+    public function obtenerRtnCliente()
+    {
+        if ($this->cliente) {
+            return $this->cliente->rtn;
+        } elseif ($this->modoClienteManual && !empty($this->rtnManual)) {
+            return $this->rtnManual;
+        } else {
+            return null;
+        }
     }
 
     public function mostrarModalClientes()
@@ -238,6 +355,8 @@ class Ventas extends Component
 
         if ($cliente) {
             $this->cliente = $cliente;
+            $this->modoClienteManual = false;
+            $this->limpiarCamposManual();
             $this->cerrarModalClientes();
         }
     }
@@ -289,6 +408,15 @@ class Ventas extends Component
             // Obtener el valor de ISV desde la relación
             $valorIsv = $producto->isv ? $producto->isv->cantidad : 0;
             
+            // Calcular descuento unitario automático si existe (valor monetario directo)
+            $subtotalOriginal = $producto->precio_base * $this->cantidad;
+            $descuentoUnitarioAplicado = 0;
+            
+            if (($producto->descuento_unitario ?? 0) > 0) {
+                // El descuento es un valor monetario que se aplica por cantidad
+                $descuentoUnitarioAplicado = $producto->descuento_unitario * $this->cantidad;
+            }
+            
             $this->productosFactura[] = [
                 'id' => $producto->id,
                 'nombre' => $producto->nombre,
@@ -298,9 +426,16 @@ class Ventas extends Component
                 'cantidad' => $this->cantidad,
                 'descuento_tercera' => $producto->descuento_tercera ?? 0,
                 'descuento_cuarta' => $producto->descuento_cuarta ?? 0,
+                'descuento_unitario_producto' => $producto->descuento_unitario ?? 0,
+                'descuento_unitario_aplicado' => $descuentoUnitarioAplicado,
                 'descuento_aplicado' => 0,
-                'subtotal_con_descuento' => 0
+                'subtotal_con_descuento' => $subtotalOriginal - $descuentoUnitarioAplicado
             ];
+            
+            // Mostrar mensaje si se aplicó descuento automático
+            if (($producto->descuento_unitario ?? 0) > 0) {
+                session()->flash('success', 'Producto aplicado con descuento');
+            }
         }
 
         // Limpiar campos y mantener el foco en el input
@@ -365,24 +500,39 @@ class Ventas extends Component
         foreach ($this->productosFactura as $index => $producto) {
             $subtotalProducto = $producto['precio'] * $producto['cantidad'];
             
-            // Aplicar descuentos por edad al subtotal del producto
+            // Aplicar descuento unitario automático del producto primero (valor monetario)
+            $descuentoUnitario = $producto['descuento_unitario_aplicado'] ?? 0;
+            
+            // Si el producto cambió de cantidad, recalcular el descuento unitario automático
+            if (($producto['descuento_unitario_producto'] ?? 0) > 0) {
+                // El descuento es un valor monetario que se multiplica por la cantidad
+                $descuentoUnitario = ($producto['descuento_unitario_producto'] ?? 0) * $producto['cantidad'];
+                $this->productosFactura[$index]['descuento_unitario_aplicado'] = $descuentoUnitario;
+            }
+            
+            // Aplicar el descuento unitario al subtotal
+            $subtotalConDescuentoUnitario = $subtotalProducto - $descuentoUnitario;
+            
+            // Aplicar descuentos por edad al subtotal ORIGINAL (sin descuento unitario aplicado)
             $descuentoProducto = 0;
             
             // Verificar descuento de tercera edad (25%) - solo si el producto lo permite
             if ($this->descuentoTerceraEdad && ($producto['descuento_tercera'] ?? 0) == 1) {
-                $descuentoProducto = $subtotalProducto * 0.25; // 25%
+                $descuentoProducto = $subtotalProducto * 0.25; // 25% sobre precio original
             }
             // Verificar descuento de cuarta edad (35%) - solo si el producto lo permite y no hay descuento de tercera edad
             elseif ($this->descuentoCuartaEdad && ($producto['descuento_cuarta'] ?? 0) == 1) {
-                $descuentoProducto = $subtotalProducto * 0.35; // 35%
+                $descuentoProducto = $subtotalProducto * 0.35; // 35% sobre precio original
             }
             
-            // Calcular subtotal con descuento aplicado
-            $subtotalConDescuento = $subtotalProducto - $descuentoProducto;
+            // Calcular subtotal final restando ambos descuentos del subtotal original
+            $subtotalConDescuento = $subtotalProducto - $descuentoUnitario - $descuentoProducto;
             $this->subtotal += $subtotalConDescuento;
-            $this->totalDescuentos += $descuentoProducto;
             
-            // Actualizar el producto con la información del descuento aplicado
+            // Sumar ambos tipos de descuentos al total de descuentos
+            $this->totalDescuentos += ($descuentoUnitario + $descuentoProducto);
+            
+            // Actualizar el producto con la información de los descuentos aplicados
             $this->productosFactura[$index]['descuento_aplicado'] = $descuentoProducto;
             $this->productosFactura[$index]['subtotal_con_descuento'] = $subtotalConDescuento;
 
@@ -552,6 +702,8 @@ class Ventas extends Component
     public function resetearFactura()
     {
         $this->cliente = null;
+        $this->modoClienteManual = false;
+        $this->limpiarCamposManual();
         $this->productosFactura = [];
         $this->descuentoTerceraEdad = false;
         $this->descuentoCuartaEdad = false;
@@ -589,13 +741,119 @@ class Ventas extends Component
         }
 
         try {
-            // Aquí implementaremos la lógica para guardar la factura
-            // Por ahora solo mostraremos un mensaje de éxito
+            DB::beginTransaction();
+
+            // 1. Crear la factura
+            $factura = Factura::create([
+                'cai_id' => 1, // Ajustar según tu lógica
+                'tipo_facturacion_id' => 1, // Ajustar según tu lógica
+                'numero_factura' => $this->generarNumeroFactura(),
+                'numero_secuencia_cai' => $this->generarSecuenciaCAI(),
+                'nombre_cliente' => $this->clienteSeleccionado ? $this->clienteSeleccionado['nombre'] : 'Cliente General',
+                'rtn' => $this->clienteSeleccionado ? $this->clienteSeleccionado['rtn'] : null,
+                'sub_total' => $this->subtotal,
+                'sub_total_grabado' => $this->subtotal,
+                'sub_total_exento' => 0,
+                'isv' => $this->totalIsv,
+                'total' => $this->total,
+                'credito' => 0,
+                'dias_credito' => 0,
+                'fecha_emision' => now(),
+                'fecha_vencimiento' => now(),
+                'comentario' => null,
+                'porc_descuento' => 0,
+                'monto_descuento' => $this->totalDescuentos,
+                'precio_dolar' => 1,
+                'estado_factura_id' => 1,
+                'users_id' => Auth::id(),
+                'factura_imagen' => null
+            ]);
+
+            // 2. Guardar los productos y crear registros de descuentos
+            foreach ($this->productosFactura as $item) {
+                // Crear detalle de factura (asumiendo que existe tabla detalle_factura)
+                // Aquí deberías implementar la lógica según tu estructura
+
+                // Log para debug
+                Log::info("DEBUG Producto en factura", [
+                    'producto_id' => $item['id'],
+                    'nombre' => $item['nombre'],
+                    'descuento_unitario_aplicado' => $item['descuento_unitario_aplicado'] ?? 0,
+                    'descuento_unitario_producto' => $item['descuento_unitario_producto'] ?? 0,
+                    'producto_completo' => $item
+                ]);
+
+                // 3. Si el producto tiene descuento unitario, crear registro en tabla descuentos
+                $descuentoUnitario = $item['descuento_unitario_aplicado'] ?? 0;
+                if ($descuentoUnitario > 0) {
+                    Log::info("DEBUG Creando descuento", [
+                        'factura_id' => $factura->id,
+                        'producto_id' => $item['id'],
+                        'monto_unidad' => $item['descuento_unitario_producto'] ?? 0,
+                        'monto_total' => $descuentoUnitario,
+                        'users_id' => Auth::id()
+                    ]);
+
+                    Descuento::create([
+                        'factura_id' => $factura->id,
+                        'producto_id' => $item['id'],
+                        'Tipo_descuento' => 'Producto',
+                        'monto_unidad' => $item['descuento_unitario_producto'] ?? 0,
+                        'monto_total' => $descuentoUnitario,
+                        'users_id' => Auth::id(),
+                        'created_at' => now()
+                    ]);
+                    
+                    Log::info("DEBUG Descuento creado exitosamente");
+                } else {
+                    Log::info("DEBUG No se creó descuento porque descuentoUnitario es 0 o null");
+                }
+                
+                // 4. Si el producto tiene descuento de adulto mayor, crear registro en tabla descuentos
+                $descuentoAdultoMayor = $item['descuento_aplicado'] ?? 0;
+                if ($descuentoAdultoMayor > 0) {
+                    // Determinar tipo de descuento basado en los flags activos
+                    $tipoDescuentoAdultoMayor = '';
+                    if ($this->descuentoTerceraEdad) {
+                        $tipoDescuentoAdultoMayor = '3ra edad';
+                    } elseif ($this->descuentoCuartaEdad) {
+                        $tipoDescuentoAdultoMayor = '4ta edad';
+                    }
+                    
+                    if ($tipoDescuentoAdultoMayor) {
+                        Log::info("DEBUG Creando descuento de adulto mayor", [
+                            'factura_id' => $factura->id,
+                            'producto_id' => $item['id'],
+                            'tipo_descuento' => $tipoDescuentoAdultoMayor,
+                            'monto_total' => $descuentoAdultoMayor,
+                            'users_id' => Auth::id()
+                        ]);
+
+                        Descuento::create([
+                            'factura_id' => $factura->id,
+                            'producto_id' => $item['id'],
+                            'Tipo_descuento' => $tipoDescuentoAdultoMayor,
+                            'monto_unidad' => 0, // Los descuentos de adulto mayor no tienen monto_unidad
+                            'monto_total' => $descuentoAdultoMayor,
+                            'users_id' => Auth::id(),
+                            'created_at' => now()
+                        ]);
+                        
+                        Log::info("DEBUG Descuento de adulto mayor creado exitosamente");
+                    }
+                }
+            }
+
+            DB::commit();
+            
             session()->flash('success', 'Factura guardada exitosamente');
 
             // Limpiar el estado
             $this->resetearFactura();
+
         } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error al guardar factura: ' . $e->getMessage());
             session()->flash('error', 'Error al guardar la factura: ' . $e->getMessage());
         }
     }
@@ -771,6 +1029,24 @@ class Ventas extends Component
         Log::info("DEBUG finalizarVentaConDistribucion INICIO");
 
         try {
+            // VALIDACIÓN CAI ANTES DE FACTURAR
+            $caiService = new CAIService();
+            $validacionCAI = $caiService->validarCAIParaTienda($this->tiendaUsuario);
+            
+            if (!$validacionCAI['valido']) {
+                $this->procesandoVenta = false;
+                session()->flash('error', '❌ No se puede facturar: ' . $validacionCAI['mensaje']);
+                $this->dispatch('mostrar-error-cai', [
+                    'titulo' => 'Error de CAI',
+                    'mensaje' => $validacionCAI['mensaje'],
+                    'detalle' => $validacionCAI['detalle']
+                ]);
+                return;
+            }
+
+            // Actualizar información de CAI actual
+            $this->caiActual = $validacionCAI['cai_info'];
+            
             DB::beginTransaction();
 
             Log::info("DEBUG Transacción iniciada");
@@ -780,8 +1056,8 @@ class Ventas extends Component
                 'numero_factura' => $this->generarNumeroFactura(),
                 'cai_id' => $this->caiActual ? $this->caiActual['cai_id'] : 1,
                 'tipo_facturacion_id' => 1,
-                'nombre_cliente' => $this->cliente ? $this->cliente->nombre_completo : 'Consumidor Final',
-                'rtn' => $this->cliente ? $this->cliente->rtn : null,
+                'nombre_cliente' => $this->obtenerNombreCliente(),
+                'rtn' => $this->obtenerRtnCliente(),
                 'sub_total' => $this->subtotal,
                 'sub_total_grabado' => $this->subtotal,
                 'sub_total_exento' => 0,
@@ -790,8 +1066,7 @@ class Ventas extends Component
                 'credito' => 0,
                 'fecha_emision' => now()->format('Y-m-d'),
                 'estado_factura_id' => 1,
-                'users_id' => Auth::id(),
-                'descuentos_id' => 1
+                'users_id' => Auth::id()
             ]);
 
             Log::info("DEBUG Datos de factura preparados", [
@@ -807,6 +1082,75 @@ class Ventas extends Component
             $indice = 1;
             foreach ($this->productosFactura as $producto) {
                 $this->guardarProductoConDistribucionSecciones($factura->id, $producto, $indice);
+                
+                // Log para debug del producto
+                Log::info("DEBUG Producto en factura", [
+                    'producto_id' => $producto['id'],
+                    'nombre' => $producto['nombre'],
+                    'descuento_unitario_aplicado' => $producto['descuento_unitario_aplicado'] ?? 0,
+                    'descuento_unitario_producto' => $producto['descuento_unitario_producto'] ?? 0
+                ]);
+
+                // Guardar descuento unitario si existe
+                $descuentoUnitario = $producto['descuento_unitario_aplicado'] ?? 0;
+                if ($descuentoUnitario > 0) {
+                    Log::info("DEBUG Creando descuento", [
+                        'factura_id' => $factura->id,
+                        'producto_id' => $producto['id'],
+                        'monto_unidad' => $producto['descuento_unitario_producto'] ?? 0,
+                        'monto_total' => $descuentoUnitario,
+                        'users_id' => Auth::id()
+                    ]);
+
+                    Descuento::create([
+                        'factura_id' => $factura->id,
+                        'producto_id' => $producto['id'],
+                        'Tipo_descuento' => 'Producto',
+                        'monto_unidad' => $producto['descuento_unitario_producto'] ?? 0,
+                        'monto_total' => $descuentoUnitario,
+                        'users_id' => Auth::id(),
+                        'created_at' => now()
+                    ]);
+                    
+                    Log::info("DEBUG Descuento creado exitosamente");
+                } else {
+                    Log::info("DEBUG No se creó descuento porque descuentoUnitario es 0 o null");
+                }
+                
+                // Guardar descuento de adulto mayor si existe
+                $descuentoAdultoMayor = $producto['descuento_aplicado'] ?? 0;
+                if ($descuentoAdultoMayor > 0) {
+                    // Determinar tipo de descuento basado en los flags activos
+                    $tipoDescuentoAdultoMayor = '';
+                    if ($this->descuentoTerceraEdad) {
+                        $tipoDescuentoAdultoMayor = '3ra edad';
+                    } elseif ($this->descuentoCuartaEdad) {
+                        $tipoDescuentoAdultoMayor = '4ta edad';
+                    }
+                    
+                    if ($tipoDescuentoAdultoMayor) {
+                        Log::info("DEBUG Creando descuento de adulto mayor", [
+                            'factura_id' => $factura->id,
+                            'producto_id' => $producto['id'],
+                            'tipo_descuento' => $tipoDescuentoAdultoMayor,
+                            'monto_total' => $descuentoAdultoMayor,
+                            'users_id' => Auth::id()
+                        ]);
+
+                        Descuento::create([
+                            'factura_id' => $factura->id,
+                            'producto_id' => $producto['id'],
+                            'Tipo_descuento' => $tipoDescuentoAdultoMayor,
+                            'monto_unidad' => 0, // Los descuentos de adulto mayor no tienen monto_unidad
+                            'monto_total' => $descuentoAdultoMayor,
+                            'users_id' => Auth::id(),
+                            'created_at' => now()
+                        ]);
+                        
+                        Log::info("DEBUG Descuento de adulto mayor creado exitosamente");
+                    }
+                }
+                
                 $indice++;
             }
 
@@ -1387,16 +1731,23 @@ class Ventas extends Component
         $this->facturaParaImprimir = Factura::with('usuario')->find($facturaId);
 
         // Cargar información del CAI asociado a la factura
-        $this->caiFacturaImpresa = DB::table('cai')
+        $cai = DB::table('cai')
             ->where('id', $this->facturaParaImprimir->cai_id)
             ->first();
+        
+        $this->caiFacturaImpresa = $cai ? (array) $cai : null;
 
         // Cargar productos
         $this->productosFacturaImpresa = DB::table('factura_has_producto as fp')
             ->join('producto as p', 'fp.producto_id', '=', 'p.id')
             ->join('isv as i', 'p.isv_id', '=', 'i.id')
+            ->leftJoin('descuentos as d', function($join) use ($facturaId) {
+                $join->on('d.producto_id', '=', 'p.id')
+                     ->where('d.factura_id', '=', $facturaId);
+            })
             ->where('fp.factura_id', $facturaId)
             ->select(
+                'p.id as producto_id',
                 'p.nombre',
                 'p.codigo_barra',
                 'i.cantidad as tasa_isv',
@@ -1406,11 +1757,14 @@ class Ventas extends Component
                 'fp.descuento',
                 'fp.isv_aplicado',
                 'fp.isv',
-                'fp.total'
+                'fp.total',
+                'd.monto_total as descuento_unitario'
             )
-            ->get()->map(function($item) {
+            ->get()
+            ->map(function($item) {
                 return (array) $item;
-            })->toArray();
+            })
+            ->toArray();
 
         // Cargar métodos de pago
         $this->pagosFacturaImpresa = DB::table('factura_has_pago as fp')
@@ -1820,31 +2174,24 @@ class Ventas extends Component
         $caiService = new CAIService();
 
         try {
-            // Pasar el tienda_id del usuario autenticado
+            // Usar CAI específico de la tienda del usuario
             $resultadoCAI = $caiService->obtenerSiguienteNumeroFactura($this->tiendaUsuario);
 
             // Guardar información para usar en la factura
             $this->caiActual = $resultadoCAI;
 
-            // Mostrar alerta de vencimiento si existe
-            if ($resultadoCAI['alerta_vencimiento']) {
-                $this->alertaCAI = $resultadoCAI['alerta_vencimiento'];
-            }
             // Si el CAI se agotó, mostrar alerta
-            elseif ($resultadoCAI['cai_agotado']) {
-                $this->alertaCAI = "¡ATENCIÓN! El CAI se ha agotado. Esta es la última factura disponible para este CAI.";
-            } 
-            // Alerta de cantidad baja
-            elseif ($resultadoCAI['cantidad_restante'] <= 10) {
-                $this->alertaCAI = "¡AVISO! Quedan solo {$resultadoCAI['cantidad_restante']} facturas disponibles en el CAI actual.";
+            if ($resultadoCAI['cai_agotado']) {
+                $this->alertaCAI = "¡ATENCIÓN! El CAI de su tienda se ha agotado. Esta es la última factura disponible para este CAI.";
+            } elseif ($resultadoCAI['cantidad_restante'] <= 10) {
+                $this->alertaCAI = "¡AVISO! Quedan solo {$resultadoCAI['cantidad_restante']} facturas disponibles en el CAI de su tienda.";
             }
 
             Log::info("DEBUG CAI generado para tienda", [
+                'tienda_id' => $this->tiendaUsuario,
                 'numero_factura' => $resultadoCAI['numero_factura'],
                 'cai_id' => $resultadoCAI['cai_id'],
-                'tienda_id' => $resultadoCAI['tienda_id'],
-                'cantidad_restante' => $resultadoCAI['cantidad_restante'],
-                'dias_restantes_vencimiento' => $resultadoCAI['dias_restantes_vencimiento']
+                'cantidad_restante' => $resultadoCAI['cantidad_restante']
             ]);
 
             return $resultadoCAI['numero_factura'];

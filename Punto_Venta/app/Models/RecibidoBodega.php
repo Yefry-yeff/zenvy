@@ -21,17 +21,17 @@ class RecibidoBodega extends Model
         'fecha_expiracion',
         'comentario',
         'unidades_compra',
-        'unidad_compra_id',
+        'unidad_medida_id',
         'users_registro_id',
         'estado_id'
     ];
 
     protected $casts = [
         'fecha_recibido' => 'date',
-        'fecha_expiracion' => 'date'
+        'fecha_expiracion' => 'date',
     ];
 
-    // Relationships
+    // Relaciones
     public function producto()
     {
         return $this->belongsTo(Producto::class);
@@ -42,30 +42,18 @@ class RecibidoBodega extends Model
         return $this->belongsTo(Seccion::class);
     }
 
-    public function unidadCompra()
+    public function unidadMedida()
     {
-        return $this->belongsTo(UnidadMedida::class, 'unidad_compra_id');
+        return $this->belongsTo(UnidadMedida::class, 'unidad_medida_id');
     }
 
-    public function userRegistro()
+    public function usuario()
     {
         return $this->belongsTo(User::class, 'users_registro_id');
     }
 
-    public function distribucionesStock()
+    public function estado()
     {
-        return $this->hasMany(DistribucionStock::class, 'recibido_bodega_id');
-    }
-
-    // Método para obtener el total distribuido
-    public function getTotalDistribuidoAttribute()
-    {
-        return $this->distribucionesStock()->sum('cantidad_distribuida');
-    }
-
-    // Método para obtener el stock disponible actual
-    public function getStockDisponibleAttribute()
-    {
-        return $this->cantidad_inicial_seccion - $this->totalDistribuido;
+        return $this->belongsTo(Estado::class);
     }
 }

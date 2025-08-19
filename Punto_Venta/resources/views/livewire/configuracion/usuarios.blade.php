@@ -12,7 +12,7 @@
     >
         <h5 class="mb-0">Gestión de Usuarios</h5>
         <button
-            x-on:click="$dispatch('cambiarVista', { ruta: 'Configuracion.usuariosform' })"
+            x-on:click="$dispatch('cambiarVista', { ruta: 'Configuracion.Usuariosform' })"
             class="px-3 py-1 text-sm text-gray-800 no-underline bg-white rounded hover:bg-gray-100"
         >
             ➕ Agregar Usuario
