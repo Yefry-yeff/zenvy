@@ -1203,9 +1203,9 @@ class Ventas extends Component
                 DB::table('factura_has_producto')->insert([
                     'factura_id' => $factura->id,
                     'producto_id' => null, // NULL para servicios
-                    'servicio_id' => $servicio['servicio_id'], // Nuevo campo para servicios
+                    'Servicios_id' => $servicio['servicio_id'], // ID del servicio
                     'seccion_id' => null, // Los servicios no tienen secciones
-                    'unidad_medida_id' => 1,
+                    'unidad_medida_id' => $this->obtenerUnidadMedidaDisponible(),
                     'indice' => $indice, // Continuar numeración después de productos
                     'numero_unidades_resta_inventario' => 0, // Los servicios no afectan inventario
                     'unidades_nota_credito_resta_inventario' => 0,
@@ -1227,7 +1227,6 @@ class Ventas extends Component
                     Descuento::create([
                         'factura_id' => $factura->id,
                         'producto_id' => null, // NULL porque es servicio
-                        'servicio_id' => $servicio['servicio_id'], // Asociar al servicio
                         'Tipo_descuento' => 'Servicio',
                         'monto_unidad' => $servicio['descuento_unitario_producto'] ?? 0,
                         'monto_total' => $descuentoUnitario,
@@ -1676,8 +1675,9 @@ class Ventas extends Component
             DB::table('factura_has_producto')->insert([
                 'factura_id' => $facturaId,
                 'producto_id' => $producto['id'],
+                'Servicios_id' => null, // NULL para productos
                 'seccion_id' => $seccion->seccion_id,
-                'unidad_medida_id' => 1, // Valor por defecto
+                'unidad_medida_id' => $this->obtenerUnidadMedidaDisponible(),
                 'indice' => $indice,
                 'numero_unidades_resta_inventario' => $cantidadATomar,
                 'unidades_nota_credito_resta_inventario' => 0,
@@ -1850,20 +1850,26 @@ class Ventas extends Component
         
         $this->caiFacturaImpresa = $cai ? (array) $cai : null;
 
-        // Cargar productos
+        // Cargar productos y servicios de forma unificada
         $this->productosFacturaImpresa = DB::table('factura_has_producto as fp')
-            ->join('producto as p', 'fp.producto_id', '=', 'p.id')
-            ->join('isv as i', 'p.isv_id', '=', 'i.id')
+            ->leftJoin('producto as p', 'fp.producto_id', '=', 'p.id')
+            ->leftJoin('servicios as s', 'fp.Servicios_id', '=', 's.id')
+            ->leftJoin('isv as i_producto', 'p.isv_id', '=', 'i_producto.id')
+            ->leftJoin('isv as i_servicio', 's.isv_id', '=', 'i_servicio.id')
             ->leftJoin('descuentos as d', function($join) use ($facturaId) {
-                $join->on('d.producto_id', '=', 'p.id')
-                     ->where('d.factura_id', '=', $facturaId);
+                $join->where('d.factura_id', '=', $facturaId)
+                     ->where(function($query) {
+                         $query->whereNotNull('d.producto_id')
+                               ->orWhere('d.Tipo_descuento', '=', 'Servicio');
+                     });
             })
             ->where('fp.factura_id', $facturaId)
             ->select(
-                'p.id as producto_id',
-                'p.nombre',
-                'p.codigo_barra',
-                'i.cantidad as tasa_isv',
+                DB::raw('COALESCE(p.id, s.id) as item_id'),
+                DB::raw('COALESCE(p.nombre, s.nombre) as nombre'),
+                DB::raw('COALESCE(p.codigo_barra, "SERVICIO") as codigo_barra'),
+                DB::raw('COALESCE(i_producto.cantidad, i_servicio.cantidad, 0) as tasa_isv'),
+                DB::raw('CASE WHEN p.id IS NOT NULL THEN "producto" ELSE "servicio" END as tipo'),
                 'fp.cantidad',
                 'fp.precio_unidad',
                 'fp.subtotal',
@@ -2555,6 +2561,19 @@ class Ventas extends Component
             return $stockTotal ?? 0;
         } catch (\Exception $e) {
             return 0;
+        }
+    }
+
+    /**
+     * Obtener la primera unidad de medida disponible
+     */
+    private function obtenerUnidadMedidaDisponible()
+    {
+        try {
+            $unidad = DB::table('unidad_medida')->select('id')->first();
+            return $unidad ? $unidad->id : 3; // Fallback al ID 3 que sabemos que existe
+        } catch (\Exception $e) {
+            return 3; // Fallback al ID 3
         }
     }
 
