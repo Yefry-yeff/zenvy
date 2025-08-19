@@ -3,6 +3,7 @@
 namespace App\Livewire\Inventario;
 
 use Livewire\Component;
+use Livewire\WithFileUploads;
 use App\Models\Producto as ProductoModel;
 use App\Models\Categoria;
 use App\Models\Subcategoria;
@@ -13,6 +14,8 @@ use Illuminate\Support\Facades\DB;
 
 class ProductoForm extends Component
 {
+    use WithFileUploads;
+    
     public $productoId;
     public $isEditing = false;
 
@@ -48,6 +51,10 @@ class ProductoForm extends Component
     public $mostrarAlerta = false;
     public $mensajeAlerta = '';
     public $campoConError = '';
+
+    // Propiedades para manejo de imagen
+    public $imagen;
+    public $imagenAnterior = null;
     public $camposConError = [];
     public $erroresValidacion = [];
 
@@ -73,6 +80,7 @@ class ProductoForm extends Component
         'form.ultimo_costo_compra' => 'nullable|numeric|min:0',
         'form.costo_promedio' => 'nullable|numeric|min:0',
         'form.unidad_medida_venta_id' => 'required|integer|exists:unidad_medida,id',
+        'imagen' => 'nullable|image|max:5120', // 5MB máximo
     ];
 
     protected $messages = [
@@ -91,6 +99,8 @@ class ProductoForm extends Component
         'form.descuento_unitario.min' => 'El descuento unitario no puede ser negativo',
         'form.unidad_medida_venta_id.required' => 'La unidad de medida es obligatoria',
         'form.unidad_medida_venta_id.exists' => 'La unidad de medida seleccionada no existe',
+        'imagen.image' => 'El archivo debe ser una imagen válida',
+        'imagen.max' => 'La imagen no puede ser mayor a 5MB',
     ];
 
     public function mount($id = null)
@@ -144,6 +154,9 @@ class ProductoForm extends Component
                     $this->cargarSubcategorias();
                 }
             }
+
+            // Cargar imagen anterior si existe
+            $this->imagenAnterior = $producto->imagen;
         }
     }
 
@@ -214,6 +227,17 @@ class ProductoForm extends Component
             // Convertir checkboxes boolean a enteros para el SP
             $datos['descuento_tercera'] = $datos['descuento_tercera'] ? 1 : 0;
             $datos['descuento_cuarta'] = $datos['descuento_cuarta'] ? 1 : 0;
+
+            // Procesar imagen si se subió una nueva
+            if ($this->imagen) {
+                $datos['imagen'] = file_get_contents($this->imagen->getRealPath());
+            } elseif ($this->isEditing && $this->imagenAnterior) {
+                // Si estamos editando y no hay nueva imagen, mantener la anterior
+                $datos['imagen'] = $this->imagenAnterior;
+            } else {
+                // No hay imagen
+                $datos['imagen'] = null;
+            }
 
             // Log para debugging
             Log::info('Intentando guardar producto', [
@@ -504,6 +528,28 @@ class ProductoForm extends Component
         }
         
         return $rules;
+    }
+
+    /**
+     * Remover imagen actual
+     */
+    public function removerImagen()
+    {
+        $this->imagen = null;
+        $this->imagenAnterior = null;
+    }
+
+    /**
+     * Obtener la imagen en formato base64 para mostrar en la vista
+     */
+    public function getImagenMiniatura()
+    {
+        if ($this->imagen) {
+            return 'data:image/*;base64,' . base64_encode(file_get_contents($this->imagen->getRealPath()));
+        } elseif ($this->imagenAnterior) {
+            return 'data:image/*;base64,' . base64_encode($this->imagenAnterior);
+        }
+        return null;
     }
 
     public function render()
