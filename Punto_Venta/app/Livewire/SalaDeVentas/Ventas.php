@@ -42,10 +42,12 @@ class Ventas extends Component
     // Productos en la factura
     public $productosFactura = [];
 
-    // Servicios
+    // Productos y Servicios para selección visual
+    public $productos = [];
     public $servicios = [];
-    public $busquedaServicios = '';
-    public $mostrarServicios = false; // Cambiado a false para evitar carga inicial
+    public $busquedaProductosServicios = '';
+    public $mostrarProductosServicios = false; // Panel unificado
+    public $tipoSeleccion = 'todos'; // 'productos', 'servicios', 'todos'
 
     // Totales
     public $subtotal = 0;
@@ -124,7 +126,8 @@ class Ventas extends Component
 
         $this->cargarTiposPago();
         $this->verificarCAI();
-        // Servicios se cargarán solo cuando el usuario los solicite
+        // Cargar productos y servicios para la interfaz unificada
+        $this->cargarProductosYServicios();
         
         // Cargar descuentos guardados si hay una factura específica
         $this->cargarDescuentosGuardados();
@@ -215,17 +218,48 @@ class Ventas extends Component
             ->select('id', 'nombre', 'descripcion', 'precio_base', 'estado_id', 'isv_id', 
                     'descuento_unitario', 'descuento_tercera', 'descuento_cuarta') // Excluir 'imagen'
             ->where('estado_id', 1) // Solo servicios activos
-            ->when($this->busquedaServicios, function ($query) {
-                $query->where('nombre', 'like', '%' . $this->busquedaServicios . '%')
-                      ->orWhere('descripcion', 'like', '%' . $this->busquedaServicios . '%');
+            ->when($this->busquedaProductosServicios, function ($query) {
+                $query->where('nombre', 'like', '%' . $this->busquedaProductosServicios . '%')
+                      ->orWhere('descripcion', 'like', '%' . $this->busquedaProductosServicios . '%');
             })
             ->orderBy('nombre')
             ->get();
     }
 
-    public function updatedBusquedaServicios()
+    public function cargarProductos()
     {
-        $this->cargarServicios();
+        $this->productos = Producto::with(['isv', 'estado'])
+            ->select('id', 'nombre', 'descripcion', 'precio_base', 'estado_id', 'isv_id', 
+                    'descuento_unitario', 'descuento_tercera', 'descuento_cuarta', 'codigo_barra') // Excluir 'imagen'
+            ->where('estado_id', 1) // Solo productos activos
+            ->when($this->busquedaProductosServicios, function ($query) {
+                $query->where('nombre', 'like', '%' . $this->busquedaProductosServicios . '%')
+                      ->orWhere('descripcion', 'like', '%' . $this->busquedaProductosServicios . '%')
+                      ->orWhere('codigo_barra', 'like', '%' . $this->busquedaProductosServicios . '%');
+            })
+            ->orderBy('nombre')
+            ->get();
+    }
+
+    public function cargarProductosYServicios()
+    {
+        if ($this->tipoSeleccion === 'productos' || $this->tipoSeleccion === 'todos') {
+            $this->cargarProductos();
+        }
+        
+        if ($this->tipoSeleccion === 'servicios' || $this->tipoSeleccion === 'todos') {
+            $this->cargarServicios();
+        }
+    }
+
+    public function updatedBusquedaProductosServicios()
+    {
+        $this->cargarProductosYServicios();
+    }
+
+    public function updatedTipoSeleccion()
+    {
+        $this->cargarProductosYServicios();
     }
 
     /**
@@ -235,6 +269,15 @@ class Ventas extends Component
     {
         $servicio = Servicio::select('imagen')->find($servicioId);
         return $servicio && $servicio->imagen ? base64_encode($servicio->imagen) : null;
+    }
+
+    /**
+     * Obtener la imagen de un producto específico como base64
+     */
+    public function getProductoImagen($productoId)
+    {
+        $producto = Producto::select('imagen')->find($productoId);
+        return $producto && $producto->imagen ? base64_encode($producto->imagen) : null;
     }
 
     public function agregarServicio($servicioId)
@@ -582,11 +625,11 @@ class Ventas extends Component
         $this->calcularTotales();
     }
 
-    public function toggleServicios()
+    public function toggleProductosServicios()
     {
-        $this->mostrarServicios = !$this->mostrarServicios;
-        if ($this->mostrarServicios) {
-            $this->cargarServicios();
+        $this->mostrarProductosServicios = !$this->mostrarProductosServicios;
+        if ($this->mostrarProductosServicios) {
+            $this->cargarProductosYServicios();
         }
     }
 
@@ -2512,6 +2555,84 @@ class Ventas extends Component
             return $stockTotal ?? 0;
         } catch (\Exception $e) {
             return 0;
+        }
+    }
+
+    public function agregarProductoPorClic($productoId)
+    {
+        try {
+            $producto = Producto::with('isv')->find($productoId);
+            
+            if (!$producto) {
+                $this->dispatch('mostrar-error', ['mensaje' => 'Producto no encontrado']);
+                return;
+            }
+
+            // Verificar stock disponible
+            $stockDisponible = $this->obtenerStockDisponible($producto->id);
+            if ($stockDisponible <= 0) {
+                $this->dispatch('mostrar-error', ['mensaje' => 'Producto sin stock disponible']);
+                return;
+            }
+
+            // Verificar si el producto ya está en la factura
+            $productoExistente = false;
+            foreach ($this->productosFactura as $index => $item) {
+                if (!isset($item['servicio_id']) && $item['id'] == $producto->id) {
+                    // Verificar que no exceda el stock
+                    if ($this->productosFactura[$index]['cantidad'] >= $stockDisponible) {
+                        $this->dispatch('mostrar-error', ['mensaje' => 'No se puede agregar más cantidad. Stock limitado a: ' . $stockDisponible]);
+                        return;
+                    }
+                    $this->productosFactura[$index]['cantidad'] += $this->cantidad;
+                    $productoExistente = true;
+                    break;
+                }
+            }
+
+            if (!$productoExistente) {
+                // Obtener el valor de ISV desde la relación
+                $valorIsv = $producto->isv ? $producto->isv->cantidad : 0;
+                
+                // Calcular descuento unitario automático si existe
+                $subtotalOriginal = $producto->precio_base;
+                $descuentoUnitarioAplicado = 0;
+                
+                if (($producto->descuento_unitario ?? 0) > 0) {
+                    $descuentoUnitarioAplicado = $producto->descuento_unitario;
+                }
+                
+                $this->productosFactura[] = [
+                    'id' => $producto->id,
+                    'servicio_id' => null,
+                    'nombre' => $producto->nombre,
+                    'codigo' => $producto->codigo_barra,
+                    'precio' => $producto->precio_base,
+                    'isv' => $valorIsv,
+                    'cantidad' => $this->cantidad,
+                    'descuento_tercera' => $producto->descuento_tercera ?? 0,
+                    'descuento_cuarta' => $producto->descuento_cuarta ?? 0,
+                    'descuento_unitario_producto' => $producto->descuento_unitario ?? 0,
+                    'descuento_unitario_aplicado' => $descuentoUnitarioAplicado,
+                    'descuento_aplicado' => 0,
+                    'subtotal_con_descuento' => $subtotalOriginal - $descuentoUnitarioAplicado,
+                    'tipo' => 'producto'
+                ];
+                
+                // Mostrar mensaje si se aplicó descuento automático
+                if (($producto->descuento_unitario ?? 0) > 0) {
+                    session()->flash('success', 'Producto agregado con descuento automático');
+                } else {
+                    session()->flash('success', 'Producto agregado exitosamente');
+                }
+            }
+
+            $this->calcularTotales();
+            $this->codigoBarras = ''; // Limpiar código de barras
+            
+        } catch (\Exception $e) {
+            Log::error('Error al agregar producto por clic: ' . $e->getMessage());
+            $this->dispatch('mostrar-error', ['mensaje' => 'Error al agregar el producto']);
         }
     }
 

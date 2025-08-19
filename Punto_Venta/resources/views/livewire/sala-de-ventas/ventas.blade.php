@@ -460,83 +460,194 @@
                     </form>
                 </div>
 
-                <!-- Botón para mostrar servicios -->
+                <!-- Botón para mostrar productos y servicios -->
                 <div class="mb-3">
                     <button type="button" 
-                        wire:click="toggleServicios"
-                        class="btn {{ $mostrarServicios ? 'btn-warning' : 'btn-outline-primary' }} btn-sm">
-                        <i class="fas {{ $mostrarServicios ? 'fa-eye-slash' : 'fa-plus' }} me-2"></i>
-                        {{ $mostrarServicios ? 'Ocultar Servicios' : 'Agregar Servicios' }}
+                        wire:click="toggleProductosServicios"
+                        class="btn {{ $mostrarProductosServicios ? 'btn-warning' : 'btn-outline-primary' }} btn-sm">
+                        <i class="fas {{ $mostrarProductosServicios ? 'fa-eye-slash' : 'fa-th-large' }} me-2"></i>
+                        {{ $mostrarProductosServicios ? 'Ocultar Catálogo' : 'Ver Catálogo Visual' }}
                     </button>
                 </div>
 
-                <!-- Panel de servicios -->
-                @if($mostrarServicios)
+                <!-- Panel unificado de productos y servicios -->
+                @if($mostrarProductosServicios)
                 <div class="mb-4 card">
                     <div class="card-header bg-light">
-                        <h6 class="mb-0">
-                            <i class="fas fa-concierge-bell me-2"></i>
-                            Seleccionar Servicios
-                        </h6>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0">
+                                <i class="fas fa-th-large me-2"></i>
+                                Catálogo Visual - Productos y Servicios
+                            </h6>
+                            <!-- Filtros de tipo -->
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button type="button" 
+                                    wire:click="$set('tipoSeleccion', 'todos')"
+                                    class="btn {{ $tipoSeleccion === 'todos' ? 'btn-primary' : 'btn-outline-primary' }}">
+                                    <i class="fas fa-th me-1"></i>Todos
+                                </button>
+                                <button type="button" 
+                                    wire:click="$set('tipoSeleccion', 'productos')"
+                                    class="btn {{ $tipoSeleccion === 'productos' ? 'btn-success' : 'btn-outline-success' }}">
+                                    <i class="fas fa-box me-1"></i>Productos
+                                </button>
+                                <button type="button" 
+                                    wire:click="$set('tipoSeleccion', 'servicios')"
+                                    class="btn {{ $tipoSeleccion === 'servicios' ? 'btn-info' : 'btn-outline-info' }}">
+                                    <i class="fas fa-concierge-bell me-1"></i>Servicios
+                                </button>
+                            </div>
+                        </div>
                     </div>
                     <div class="card-body">
-                        <!-- Búsqueda de servicios -->
+                        <!-- Búsqueda unificada -->
                         <div class="mb-3">
                             <input type="text"
-                                wire:model.live="busquedaServicios"
+                                wire:model.live="busquedaProductosServicios"
                                 class="form-control"
-                                placeholder="Buscar servicios...">
+                                placeholder="Buscar productos y servicios...">
                         </div>
 
-                        <!-- Lista de servicios disponibles -->
+                        <!-- Grid unificado de productos y servicios -->
                         <div class="row">
-                            @forelse($servicios as $servicio)
-                                <div class="mb-3 col-md-4">
-                                    <div class="border card h-100">
-                                        <!-- Imagen del servicio -->
-                                        @php
-                                            $imagenBase64 = $this->getServicioImagen($servicio->id);
-                                        @endphp
-                                        @if($imagenBase64)
-                                            <img src="data:image/jpeg;base64,{{ $imagenBase64 }}" 
-                                                 class="card-img-top" 
-                                                 style="height: 120px; object-fit: cover;"
-                                                 alt="{{ $servicio->nombre }}">
-                                        @else
-                                            <div class="bg-light card-img-top d-flex align-items-center justify-content-center" 
-                                                 style="height: 120px;">
-                                                <i class="text-muted fas fa-concierge-bell fa-3x"></i>
-                                            </div>
-                                        @endif
-                                        
-                                        <div class="card-body p-2">
-                                            <h6 class="card-title mb-1">{{ $servicio->nombre }}</h6>
-                                            @if($servicio->descripcion)
-                                                <p class="mb-2 card-text small text-muted">
-                                                    {{ Str::limit($servicio->descripcion, 80) }}
-                                                </p>
+                            <!-- Mostrar Productos -->
+                            @if($tipoSeleccion === 'todos' || $tipoSeleccion === 'productos')
+                                @foreach($productos as $producto)
+                                    <div class="mb-3 col-md-4 col-lg-3">
+                                        <div class="border card h-100 position-relative" 
+                                             style="cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;"
+                                             wire:click="agregarProductoPorClic({{ $producto->id }})"
+                                             onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 8px rgba(0,0,0,0.15)';"
+                                             onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 4px rgba(0,0,0,0.1)';">
+                                            
+                                            <!-- Badge de tipo -->
+                                            <span class="badge bg-success position-absolute top-0 start-0 m-2" style="z-index: 10;">
+                                                <i class="fas fa-box me-1"></i>Producto
+                                            </span>
+                                            
+                                            <!-- Imagen del producto -->
+                                            @php
+                                                $imagenBase64 = $this->getProductoImagen($producto->id);
+                                            @endphp
+                                            @if($imagenBase64)
+                                                <img src="data:image/jpeg;base64,{{ $imagenBase64 }}" 
+                                                     class="card-img-top" 
+                                                     style="height: 140px; object-fit: cover;"
+                                                     alt="{{ $producto->nombre }}">
+                                            @else
+                                                <div class="bg-light card-img-top d-flex align-items-center justify-content-center" 
+                                                     style="height: 140px;">
+                                                    <i class="text-muted fas fa-box fa-3x"></i>
+                                                </div>
                                             @endif
-                                            <div class="d-flex justify-content-between align-items-center">
-                                                <span class="text-success fw-bold">
-                                                    L. {{ number_format($servicio->precio_base, 2) }}
-                                                </span>
-                                                <button type="button"
-                                                    wire:click="agregarServicio({{ $servicio->id }})"
-                                                    class="btn btn-primary btn-sm">
-                                                    <i class="fas fa-plus"></i>
-                                                </button>
+                                            
+                                            <div class="card-body p-2">
+                                                <h6 class="card-title mb-1 fw-bold">{{ $producto->nombre }}</h6>
+                                                @if($producto->codigo_barra)
+                                                    <p class="mb-1 small text-muted">
+                                                        <i class="fas fa-barcode me-1"></i>{{ $producto->codigo_barra }}
+                                                    </p>
+                                                @endif
+                                                <div class="d-flex justify-content-between align-items-center">
+                                                    <div>
+                                                        <span class="text-success fw-bold fs-6">
+                                                            L. {{ number_format($producto->precio_base, 2) }}
+                                                        </span>
+                                                        @php
+                                                            $stock = $this->obtenerStockDisponible($producto->id);
+                                                        @endphp
+                                                        <br><small class="text-muted">Stock: {{ $stock }}</small>
+                                                    </div>
+                                                    <button type="button"
+                                                        class="btn btn-success btn-sm"
+                                                        onclick="event.stopPropagation();"
+                                                        wire:click="agregarProductoPorClic({{ $producto->id }})">
+                                                        <i class="fas fa-plus"></i>
+                                                    </button>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
-                            @empty
+                                @endforeach
+                            @endif
+
+                            <!-- Mostrar Servicios -->
+                            @if($tipoSeleccion === 'todos' || $tipoSeleccion === 'servicios')
+                                @foreach($servicios as $servicio)
+                                    <div class="mb-3 col-md-4 col-lg-3">
+                                        <div class="border card h-100 position-relative" 
+                                             style="cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;"
+                                             wire:click="agregarServicio({{ $servicio->id }})"
+                                             onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 8px rgba(0,0,0,0.15)';"
+                                             onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 4px rgba(0,0,0,0.1)';">
+                                            
+                                            <!-- Badge de tipo -->
+                                            <span class="badge bg-info position-absolute top-0 start-0 m-2" style="z-index: 10;">
+                                                <i class="fas fa-concierge-bell me-1"></i>Servicio
+                                            </span>
+                                            
+                                            <!-- Imagen del servicio -->
+                                            @php
+                                                $imagenBase64 = $this->getServicioImagen($servicio->id);
+                                            @endphp
+                                            @if($imagenBase64)
+                                                <img src="data:image/jpeg;base64,{{ $imagenBase64 }}" 
+                                                     class="card-img-top" 
+                                                     style="height: 140px; object-fit: cover;"
+                                                     alt="{{ $servicio->nombre }}">
+                                            @else
+                                                <div class="bg-light card-img-top d-flex align-items-center justify-content-center" 
+                                                     style="height: 140px;">
+                                                    <i class="text-muted fas fa-concierge-bell fa-3x"></i>
+                                                </div>
+                                            @endif
+                                            
+                                            <div class="card-body p-2">
+                                                <h6 class="card-title mb-1 fw-bold">{{ $servicio->nombre }}</h6>
+                                                @if($servicio->descripcion)
+                                                    <p class="mb-2 card-text small text-muted">
+                                                        {{ Str::limit($servicio->descripcion, 60) }}
+                                                    </p>
+                                                @endif
+                                                <div class="d-flex justify-content-between align-items-center">
+                                                    <span class="text-success fw-bold fs-6">
+                                                        L. {{ number_format($servicio->precio_base, 2) }}
+                                                    </span>
+                                                    <button type="button"
+                                                        class="btn btn-info btn-sm"
+                                                        onclick="event.stopPropagation();"
+                                                        wire:click="agregarServicio({{ $servicio->id }})">
+                                                        <i class="fas fa-plus"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            @endif
+
+                            <!-- Mensaje cuando no hay resultados -->
+                            @if(
+                                ($tipoSeleccion === 'productos' && $productos->isEmpty()) ||
+                                ($tipoSeleccion === 'servicios' && $servicios->isEmpty()) ||
+                                ($tipoSeleccion === 'todos' && $productos->isEmpty() && $servicios->isEmpty())
+                            )
                                 <div class="col-12">
-                                    <div class="py-3 text-center text-muted">
-                                        <i class="fas fa-search fa-2x mb-2"></i>
-                                        <p>No se encontraron servicios disponibles</p>
+                                    <div class="py-4 text-center text-muted">
+                                        <i class="fas fa-search fa-3x mb-3"></i>
+                                        <h5>No se encontraron elementos</h5>
+                                        <p>
+                                            @if($tipoSeleccion === 'productos')
+                                                No hay productos disponibles con los criterios de búsqueda
+                                            @elseif($tipoSeleccion === 'servicios')
+                                                No hay servicios disponibles con los criterios de búsqueda
+                                            @else
+                                                No hay productos o servicios disponibles con los criterios de búsqueda
+                                            @endif
+                                        </p>
                                     </div>
                                 </div>
-                            @endforelse
+                            @endif
                         </div>
                     </div>
                 </div>

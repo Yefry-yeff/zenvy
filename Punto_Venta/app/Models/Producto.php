@@ -53,6 +53,11 @@ class Producto extends Model
         return $this->belongsTo(Isv::class, 'isv_id');
     }
 
+    public function estado()
+    {
+        return $this->belongsTo(Estado::class, 'estado_id');
+    }
+
     // Relación con compras
     public function compras()
     {
