@@ -17,7 +17,7 @@
 
     <!-- FILTROS Y BÚSQUEDA -->
     <div class="row mb-4">
-        <div class="col-md-8">
+        <div class="col-md-6">
             <div class="input-group">
                 <span class="input-group-text">
                     <i class="fas fa-search"></i>
@@ -28,7 +28,14 @@
                        wire:model.live="busqueda">
             </div>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-3">
+            <select class="form-select" wire:model.live="filtroEstado">
+                <option value="">Todos los estados</option>
+                <option value="1">Activos</option>
+                <option value="2">Inactivos</option>
+            </select>
+        </div>
+        <div class="col-md-3">
             <button wire:click="limpiarFiltros" class="btn btn-outline-secondary w-100">
                 <i class="fas fa-eraser me-1"></i> Limpiar Filtros
             </button>
@@ -92,9 +99,21 @@
                                         ISV: {{ $servicio->isv->cantidad }}%
                                     </div>
                                 @endif
-                                <span class="badge bg-success">
-                                    <i class="fas fa-check-circle me-1"></i>Activo
-                                </span>
+                                @if($servicio->estado)
+                                    @if($servicio->estado_id == 1)
+                                        <span class="badge bg-success">
+                                            <i class="fas fa-check-circle me-1"></i>{{ $servicio->estado->descripcion }}
+                                        </span>
+                                    @else
+                                        <span class="badge bg-secondary">
+                                            <i class="fas fa-times-circle me-1"></i>{{ $servicio->estado->descripcion }}
+                                        </span>
+                                    @endif
+                                @else
+                                    <span class="badge bg-warning">
+                                        <i class="fas fa-question-circle me-1"></i>Sin Estado
+                                    </span>
+                                @endif
                             </div>
                         </div>
                     </div>

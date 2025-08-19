@@ -35,6 +35,10 @@ class ServicioForm extends Component
 
     // Datos para selectores
     public $isvs = [];
+    public $estados = [];
+
+    // Propiedades para estado
+    public $estadoOriginal = null;
 
     // Propiedades para validación
     public $mostrarAlerta = false;
@@ -86,6 +90,14 @@ class ServicioForm extends Component
     public function cargarDatosIniciales()
     {
         $this->isvs = DB::table('isv')->orderBy('cantidad')->get();
+        
+        // Solo cargar estados si estamos editando
+        if ($this->isEditing) {
+            $this->estados = collect([
+                (object)['id' => 1, 'descripcion' => 'Activo'],
+                (object)['id' => 2, 'descripcion' => 'Inactivo']
+            ]);
+        }
     }
 
     public function cargarServicio()
@@ -104,6 +116,9 @@ class ServicioForm extends Component
                 'estado_id' => $servicio->estado_id,
                 'users_id' => $servicio->users_id,
             ];
+
+            // Guardar estado original para la lógica de alternancia
+            $this->estadoOriginal = $servicio->estado_id;
 
             // Verificar si tiene imagen anterior (sin almacenar el BLOB directamente)
             $this->tieneImagenAnterior = !empty($servicio->imagen);
@@ -192,6 +207,34 @@ class ServicioForm extends Component
             }
         }
         return null;
+    }
+
+    /**
+     * Obtiene las opciones de estado disponibles según el estado actual
+     */
+    public function getOpcionesEstado()
+    {
+        if (!$this->isEditing || !$this->estadoOriginal) {
+            return collect();
+        }
+
+        // Si está activo (1), solo mostrar opción inactivo (2)
+        if ($this->estadoOriginal == 1) {
+            return collect([
+                (object)['id' => 1, 'descripcion' => 'Activo (actual)'],
+                (object)['id' => 2, 'descripcion' => 'Inactivo']
+            ]);
+        }
+        
+        // Si está inactivo (2), solo mostrar opción activo (1)
+        if ($this->estadoOriginal == 2) {
+            return collect([
+                (object)['id' => 2, 'descripcion' => 'Inactivo (actual)'],
+                (object)['id' => 1, 'descripcion' => 'Activo']
+            ]);
+        }
+
+        return collect();
     }
 
     // Métodos para mostrar alertas y modales

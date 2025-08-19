@@ -193,7 +193,7 @@
                                 <div class="col-md-6">
                                     <div class="mb-3">
                                         <label for="descuento_unitario" class="form-label">
-                                            Descuento Unitario (%)
+                                            Descuento Unitario
                                         </label>
                                         <input type="number" 
                                                id="descuento_unitario" 
@@ -238,6 +238,41 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Estado del Servicio (Solo en Edición) -->
+                @if($isEditing)
+                    <div class="mb-4">
+                        <div class="card shadow-sm">
+                            <div class="card-header bg-light">
+                                <h6 class="mb-0">
+                                    <i class="fas fa-toggle-on me-2 text-success"></i>
+                                    Estado del Servicio
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="estado_id" class="form-label">
+                                            Estado <span class="text-danger">*</span>
+                                        </label>
+                                        <select id="estado_id" class="form-select" wire:model="form.estado_id">
+                                            @foreach($this->getOpcionesEstado() as $estado)
+                                                <option value="{{ $estado->id }}">{{ $estado->descripcion }}</option>
+                                            @endforeach
+                                        </select>
+                                        @error('form.estado_id')
+                                            <div class="text-danger mt-1 small">{{ $message }}</div>
+                                        @enderror
+                                        <small class="text-muted">
+                                            <i class="fas fa-info-circle me-1"></i>
+                                            Puedes cambiar entre activo e inactivo según sea necesario
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                @endif
 
                 <!-- BOTONES -->
                 <div class="d-flex justify-content-end gap-2">

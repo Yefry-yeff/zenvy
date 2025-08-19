@@ -36,7 +36,6 @@ class Servicios extends Component
             ->when($this->filtroEstado, function ($query) {
                 $query->where('estado_id', $this->filtroEstado);
             })
-            ->where('estado_id', 1) // Solo mostrar servicios activos
             ->orderBy('nombre')
             ->paginate(12); // 12 servicios por página para una buena visualización en grid
 
