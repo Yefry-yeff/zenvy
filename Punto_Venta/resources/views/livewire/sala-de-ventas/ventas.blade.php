@@ -460,13 +460,93 @@
                     </form>
                 </div>
 
-            <!-- Tabla de productos agregados -->
+                <!-- Botón para mostrar servicios -->
+                <div class="mb-3">
+                    <button type="button" 
+                        wire:click="toggleServicios"
+                        class="btn {{ $mostrarServicios ? 'btn-warning' : 'btn-outline-primary' }} btn-sm">
+                        <i class="fas {{ $mostrarServicios ? 'fa-eye-slash' : 'fa-plus' }} me-2"></i>
+                        {{ $mostrarServicios ? 'Ocultar Servicios' : 'Agregar Servicios' }}
+                    </button>
+                </div>
+
+                <!-- Panel de servicios -->
+                @if($mostrarServicios)
+                <div class="mb-4 card">
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0">
+                            <i class="fas fa-concierge-bell me-2"></i>
+                            Seleccionar Servicios
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <!-- Búsqueda de servicios -->
+                        <div class="mb-3">
+                            <input type="text"
+                                wire:model.live="busquedaServicios"
+                                class="form-control"
+                                placeholder="Buscar servicios...">
+                        </div>
+
+                        <!-- Lista de servicios disponibles -->
+                        <div class="row">
+                            @forelse($servicios as $servicio)
+                                <div class="mb-3 col-md-4">
+                                    <div class="border card h-100">
+                                        <!-- Imagen del servicio -->
+                                        @if($servicio->imagen)
+                                            <img src="data:image/jpeg;base64,{{ $servicio->imagen_base64 }}" 
+                                                 class="card-img-top" 
+                                                 style="height: 120px; object-fit: cover;"
+                                                 alt="{{ $servicio->nombre }}">
+                                        @else
+                                            <div class="bg-light card-img-top d-flex align-items-center justify-content-center" 
+                                                 style="height: 120px;">
+                                                <i class="text-muted fas fa-concierge-bell fa-3x"></i>
+                                            </div>
+                                        @endif
+                                        
+                                        <div class="card-body p-2">
+                                            <h6 class="card-title mb-1">{{ $servicio->nombre }}</h6>
+                                            @if($servicio->descripcion)
+                                                <p class="mb-2 card-text small text-muted">
+                                                    {{ Str::limit($servicio->descripcion, 80) }}
+                                                </p>
+                                            @endif
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <span class="text-success fw-bold">
+                                                    L. {{ number_format($servicio->precio_base, 2) }}
+                                                </span>
+                                                <button type="button"
+                                                    wire:click="agregarServicio({{ $servicio->id }})"
+                                                    class="btn btn-primary btn-sm">
+                                                    <i class="fas fa-plus"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            @empty
+                                <div class="col-12">
+                                    <div class="py-3 text-center text-muted">
+                                        <i class="fas fa-search fa-2x mb-2"></i>
+                                        <p>No se encontraron servicios disponibles</p>
+                                    </div>
+                                </div>
+                            @endforelse
+                        </div>
+                    </div>
+                </div>
+                @endif
+
+            <!-- Tabla de productos y servicios agregados -->
             <div class="mb-4 table-responsive">
                 <table class="table table-sm table-bordered">
                     <thead class="table-light">
                         <tr>
-                            <th>Producto</th>
+                            <th>Item</th>
                             <th>Código</th>
+                            <th>Tipo</th>
                             <th>Precio Unit.</th>
                             <th>Cantidad</th>
                             <th>Subtotal</th>
@@ -484,15 +564,18 @@
                             $subtotalConDescuento = $item['subtotal_con_descuento'] ?? $subtotalOriginal;
                             $isv = $subtotalConDescuento * ($item['isv']/100);
                             $total = $subtotalConDescuento + $isv;
-                            $stockDisponible = $this->obtenerStockDisponible($item['id']);
+                            
+                            // Determinar si es producto o servicio
+                            $esServicio = isset($item['servicio_id']) && $item['servicio_id'] !== null;
+                            $stockDisponible = $esServicio ? null : $this->obtenerStockDisponible($item['id']);
                         @endphp
-                        <tr>
+                        <tr class="{{ $esServicio ? 'table-info' : '' }}">
                             <td>
                                 {{ $item['nombre'] }}
                                 @if($descuentoUnitario > 0)
                                     <br><small class="text-success">
                                         <i class="fas fa-tag"></i>
-                                        Descuento de producto: L. {{ number_format($descuentoUnitario, 2) }}
+                                        Descuento de {{ $esServicio ? 'servicio' : 'producto' }}: L. {{ number_format($descuentoUnitario, 2) }}
                                     </small>
                                 @endif
                                 @if($descuentoAplicado > 0)
@@ -501,33 +584,61 @@
                                         Descuento por edad: L. {{ number_format($descuentoAplicado, 2) }}
                                     </small>
                                 @endif
-                                <br>
-                                <small class="text-gray-500">
-                                    Stock disponible: {{ $stockDisponible }}
-                                </small>
+                                @if(!$esServicio)
+                                    <br>
+                                    <small class="text-gray-500">
+                                        Stock disponible: {{ $stockDisponible }}
+                                    </small>
+                                @endif
                             </td>
                             <td>{{ $item['codigo'] }}</td>
+                            <td>
+                                @if($esServicio)
+                                    <span class="badge bg-info text-white">
+                                        <i class="fas fa-concierge-bell me-1"></i>
+                                        Servicio
+                                    </span>
+                                @else
+                                    <span class="badge bg-primary text-white">
+                                        <i class="fas fa-box me-1"></i>
+                                        Producto
+                                    </span>
+                                @endif
+                            </td>
                             <td>L. {{ number_format($item['precio'], 2) }}</td>
                             <td>
-                                <input type="number"
-                                    wire:change="modificarCantidad({{ $loop->index }}, $event.target.value)"
-                                    value="{{ $item['cantidad'] }}"
-                                    min="1"
-                                    max="{{ $stockDisponible }}"
-                                    class="w-20 text-center form-control"
-                                    style="min-width: 60px;"
-                                    title="Stock disponible: {{ $stockDisponible }}">
+                                @if($esServicio)
+                                    <!-- Para servicios, cantidad editable sin restricción de stock -->
+                                    <input type="number"
+                                        wire:change="modificarCantidad({{ $loop->index }}, $event.target.value)"
+                                        value="{{ $item['cantidad'] }}"
+                                        min="1"
+                                        class="w-20 text-center form-control"
+                                        style="min-width: 60px;">
+                                @else
+                                    <!-- Para productos, cantidad limitada por stock -->
+                                    <input type="number"
+                                        wire:change="modificarCantidad({{ $loop->index }}, $event.target.value)"
+                                        value="{{ $item['cantidad'] }}"
+                                        min="1"
+                                        max="{{ $stockDisponible }}"
+                                        class="w-20 text-center form-control"
+                                        style="min-width: 60px;"
+                                        title="Stock disponible: {{ $stockDisponible }}">
+                                @endif
                             </td>
                             <td>
                                 <!-- Mostrar importe original (precio × cantidad SIN descuentos) -->
                                 <div class="fw-bold">L. {{ number_format($subtotalOriginal, 2) }}</div>
                                 
-                                <!-- Mostrar descuentos de productos guardados primero (si existen) -->
-                                @if(isset($descuentosGuardados[$item['id']]))
+                                <!-- Mostrar descuentos de productos/servicios guardados primero (si existen) -->
+                                @if($esServicio && isset($descuentosGuardados[$item['servicio_id']]))
+                                    <div class="text-success small">-L. {{ number_format($descuentosGuardados[$item['servicio_id']]['monto_total'], 2) }} (servicio)</div>
+                                @elseif(!$esServicio && isset($descuentosGuardados[$item['id']]))
                                     <div class="text-success small">-L. {{ number_format($descuentosGuardados[$item['id']]['monto_total'], 2) }} (producto)</div>
                                 @elseif($descuentoUnitario > 0)
                                     <!-- Si no hay descuentos guardados, mostrar descuento temporal -->
-                                    <div class="text-success small">-L. {{ number_format($descuentoUnitario, 2) }} (producto)</div>
+                                    <div class="text-success small">-L. {{ number_format($descuentoUnitario, 2) }} ({{ $esServicio ? 'servicio' : 'producto' }})</div>
                                 @endif
                                 
                                 <!-- Mostrar descuento de tercera/cuarta edad después -->
@@ -536,7 +647,9 @@
                                 @endif
                                 
                                 <!-- Mostrar subtotal final con descuentos aplicados si hay descuentos -->
-                                @if($descuentoUnitario > 0 || $descuentoAplicado > 0 || isset($descuentosGuardados[$item['id']]))
+                                @if($descuentoUnitario > 0 || $descuentoAplicado > 0 || 
+                                    ($esServicio && isset($descuentosGuardados[$item['servicio_id']])) || 
+                                    (!$esServicio && isset($descuentosGuardados[$item['id']])))
                                     <div class="text-success fw-bold border-top pt-1 mt-1">L. {{ number_format($subtotalConDescuento, 2) }}</div>
                                 @endif
                             </td>
@@ -558,7 +671,7 @@
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="8" class="text-center text-muted">No hay productos agregados</td>
+                            <td colspan="8" class="text-center text-muted">No hay productos o servicios agregados</td>
                         </tr>
                         @endforelse
                     </tbody>

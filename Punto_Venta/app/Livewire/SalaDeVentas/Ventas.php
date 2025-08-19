@@ -5,6 +5,7 @@ namespace App\Livewire\SalaDeVentas;
 use Livewire\Component;
 use App\Models\Cliente;
 use App\Models\Producto;
+use App\Models\Servicio;
 use App\Models\TipoPago;
 use App\Models\Factura;
 use App\Models\Bodega;
@@ -40,6 +41,11 @@ class Ventas extends Component
 
     // Productos en la factura
     public $productosFactura = [];
+
+    // Servicios
+    public $servicios = [];
+    public $busquedaServicios = '';
+    public $mostrarServicios = true;
 
     // Totales
     public $subtotal = 0;
@@ -118,6 +124,7 @@ class Ventas extends Component
 
         $this->cargarTiposPago();
         $this->verificarCAI();
+        $this->cargarServicios();
         
         // Cargar descuentos guardados si hay una factura específica
         $this->cargarDescuentosGuardados();
@@ -200,6 +207,80 @@ class Ventas extends Component
     public function cargarTiposPago()
     {
         $this->tiposPago = TipoPago::all();
+    }
+
+    public function cargarServicios()
+    {
+        $this->servicios = Servicio::with(['isv', 'estado'])
+            ->where('estado_id', 1) // Solo servicios activos
+            ->when($this->busquedaServicios, function ($query) {
+                $query->where('nombre', 'like', '%' . $this->busquedaServicios . '%')
+                      ->orWhere('descripcion', 'like', '%' . $this->busquedaServicios . '%');
+            })
+            ->orderBy('nombre')
+            ->get();
+    }
+
+    public function updatedBusquedaServicios()
+    {
+        $this->cargarServicios();
+    }
+
+    public function agregarServicio($servicioId)
+    {
+        $servicio = Servicio::with('isv')->find($servicioId);
+        
+        if (!$servicio) {
+            $this->dispatch('mostrar-error', ['mensaje' => 'Servicio no encontrado']);
+            return;
+        }
+
+        // Verificar si el servicio ya está en la factura
+        $servicioExistente = false;
+        foreach ($this->productosFactura as $index => $item) {
+            if (isset($item['servicio_id']) && $item['servicio_id'] == $servicio->id) {
+                $this->productosFactura[$index]['cantidad'] += 1;
+                $servicioExistente = true;
+                break;
+            }
+        }
+
+        if (!$servicioExistente) {
+            // Obtener el valor de ISV desde la relación
+            $valorIsv = $servicio->isv ? $servicio->isv->cantidad : 0;
+            
+            // Calcular descuento unitario automático si existe
+            $subtotalOriginal = $servicio->precio_base;
+            $descuentoUnitarioAplicado = 0;
+            
+            if (($servicio->descuento_unitario ?? 0) > 0) {
+                $descuentoUnitarioAplicado = $servicio->descuento_unitario;
+            }
+            
+            $this->productosFactura[] = [
+                'servicio_id' => $servicio->id,
+                'id' => null, // NULL para diferenciarlo de productos
+                'nombre' => $servicio->nombre,
+                'codigo' => 'SRV-' . $servicio->id, // Código especial para servicios
+                'precio' => $servicio->precio_base,
+                'isv' => $valorIsv,
+                'cantidad' => 1, // Los servicios siempre cantidad 1 inicialmente
+                'descuento_tercera' => $servicio->descuento_tercera ?? 0,
+                'descuento_cuarta' => $servicio->descuento_cuarta ?? 0,
+                'descuento_unitario_producto' => $servicio->descuento_unitario ?? 0,
+                'descuento_unitario_aplicado' => $descuentoUnitarioAplicado,
+                'descuento_aplicado' => 0,
+                'subtotal_con_descuento' => $subtotalOriginal - $descuentoUnitarioAplicado,
+                'tipo' => 'servicio' // Identificador para diferenciar en la vista
+            ];
+            
+            // Mostrar mensaje si se aplicó descuento automático
+            if (($servicio->descuento_unitario ?? 0) > 0) {
+                session()->flash('success', 'Servicio aplicado con descuento');
+            }
+        }
+
+        $this->calcularTotales();
     }
 
     #[On('enfocar-codigo-barras')]
@@ -490,6 +571,14 @@ class Ventas extends Component
         $this->calcularTotales();
     }
 
+    public function toggleServicios()
+    {
+        $this->mostrarServicios = !$this->mostrarServicios;
+        if ($this->mostrarServicios) {
+            $this->cargarServicios();
+        }
+    }
+
     public function calcularTotales()
     {
         $this->subtotal = 0;
@@ -733,131 +822,6 @@ class Ventas extends Component
         return $this->isvPorTasa;
     }
 
-    public function guardarFactura()
-    {
-        if (count($this->productosFactura) === 0) {
-            session()->flash('error', 'Debe agregar al menos un producto a la factura');
-            return;
-        }
-
-        try {
-            DB::beginTransaction();
-
-            // 1. Crear la factura
-            $factura = Factura::create([
-                'cai_id' => 1, // Ajustar según tu lógica
-                'tipo_facturacion_id' => 1, // Ajustar según tu lógica
-                'numero_factura' => $this->generarNumeroFactura(),
-                'numero_secuencia_cai' => $this->generarSecuenciaCAI(),
-                'nombre_cliente' => $this->clienteSeleccionado ? $this->clienteSeleccionado['nombre'] : 'Cliente General',
-                'rtn' => $this->clienteSeleccionado ? $this->clienteSeleccionado['rtn'] : null,
-                'sub_total' => $this->subtotal,
-                'sub_total_grabado' => $this->subtotal,
-                'sub_total_exento' => 0,
-                'isv' => $this->totalIsv,
-                'total' => $this->total,
-                'credito' => 0,
-                'dias_credito' => 0,
-                'fecha_emision' => now(),
-                'fecha_vencimiento' => now(),
-                'comentario' => null,
-                'porc_descuento' => 0,
-                'monto_descuento' => $this->totalDescuentos,
-                'precio_dolar' => 1,
-                'estado_factura_id' => 1,
-                'users_id' => Auth::id(),
-                'factura_imagen' => null
-            ]);
-
-            // 2. Guardar los productos y crear registros de descuentos
-            foreach ($this->productosFactura as $item) {
-                // Crear detalle de factura (asumiendo que existe tabla detalle_factura)
-                // Aquí deberías implementar la lógica según tu estructura
-
-                // Log para debug
-                Log::info("DEBUG Producto en factura", [
-                    'producto_id' => $item['id'],
-                    'nombre' => $item['nombre'],
-                    'descuento_unitario_aplicado' => $item['descuento_unitario_aplicado'] ?? 0,
-                    'descuento_unitario_producto' => $item['descuento_unitario_producto'] ?? 0,
-                    'producto_completo' => $item
-                ]);
-
-                // 3. Si el producto tiene descuento unitario, crear registro en tabla descuentos
-                $descuentoUnitario = $item['descuento_unitario_aplicado'] ?? 0;
-                if ($descuentoUnitario > 0) {
-                    Log::info("DEBUG Creando descuento", [
-                        'factura_id' => $factura->id,
-                        'producto_id' => $item['id'],
-                        'monto_unidad' => $item['descuento_unitario_producto'] ?? 0,
-                        'monto_total' => $descuentoUnitario,
-                        'users_id' => Auth::id()
-                    ]);
-
-                    Descuento::create([
-                        'factura_id' => $factura->id,
-                        'producto_id' => $item['id'],
-                        'Tipo_descuento' => 'Producto',
-                        'monto_unidad' => $item['descuento_unitario_producto'] ?? 0,
-                        'monto_total' => $descuentoUnitario,
-                        'users_id' => Auth::id(),
-                        'created_at' => now()
-                    ]);
-                    
-                    Log::info("DEBUG Descuento creado exitosamente");
-                } else {
-                    Log::info("DEBUG No se creó descuento porque descuentoUnitario es 0 o null");
-                }
-                
-                // 4. Si el producto tiene descuento de adulto mayor, crear registro en tabla descuentos
-                $descuentoAdultoMayor = $item['descuento_aplicado'] ?? 0;
-                if ($descuentoAdultoMayor > 0) {
-                    // Determinar tipo de descuento basado en los flags activos
-                    $tipoDescuentoAdultoMayor = '';
-                    if ($this->descuentoTerceraEdad) {
-                        $tipoDescuentoAdultoMayor = '3ra edad';
-                    } elseif ($this->descuentoCuartaEdad) {
-                        $tipoDescuentoAdultoMayor = '4ta edad';
-                    }
-                    
-                    if ($tipoDescuentoAdultoMayor) {
-                        Log::info("DEBUG Creando descuento de adulto mayor", [
-                            'factura_id' => $factura->id,
-                            'producto_id' => $item['id'],
-                            'tipo_descuento' => $tipoDescuentoAdultoMayor,
-                            'monto_total' => $descuentoAdultoMayor,
-                            'users_id' => Auth::id()
-                        ]);
-
-                        Descuento::create([
-                            'factura_id' => $factura->id,
-                            'producto_id' => $item['id'],
-                            'Tipo_descuento' => $tipoDescuentoAdultoMayor,
-                            'monto_unidad' => 0, // Los descuentos de adulto mayor no tienen monto_unidad
-                            'monto_total' => $descuentoAdultoMayor,
-                            'users_id' => Auth::id(),
-                            'created_at' => now()
-                        ]);
-                        
-                        Log::info("DEBUG Descuento de adulto mayor creado exitosamente");
-                    }
-                }
-            }
-
-            DB::commit();
-            
-            session()->flash('success', 'Factura guardada exitosamente');
-
-            // Limpiar el estado
-            $this->resetearFactura();
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Error al guardar factura: ' . $e->getMessage());
-            session()->flash('error', 'Error al guardar la factura: ' . $e->getMessage());
-        }
-    }
-
     // Métodos para procesamiento de pagos
     public function mostrarModalPago()
     {
@@ -1078,9 +1042,18 @@ class Ventas extends Component
 
             Log::info("DEBUG Factura guardada con ID: " . $factura->id);
 
+            // Separar productos y servicios para procesamiento diferenciado
+            $productos = array_filter($this->productosFactura, function($item) {
+                return !isset($item['servicio_id']) || $item['servicio_id'] === null;
+            });
+            
+            $servicios = array_filter($this->productosFactura, function($item) {
+                return isset($item['servicio_id']) && $item['servicio_id'] !== null;
+            });
+
             // Guardar productos de la factura con distribución FIFO por secciones
             $indice = 1;
-            foreach ($this->productosFactura as $producto) {
+            foreach ($productos as $producto) {
                 $this->guardarProductoConDistribucionSecciones($factura->id, $producto, $indice);
                 
                 // Log para debug del producto
@@ -1151,6 +1124,92 @@ class Ventas extends Component
                     }
                 }
                 
+                $indice++;
+            }
+
+            // Guardar servicios de la factura (nueva funcionalidad híbrida)
+            foreach ($servicios as $servicio) {
+                Log::info("DEBUG Servicio en factura", [
+                    'servicio_id' => $servicio['servicio_id'],
+                    'nombre' => $servicio['nombre'],
+                    'cantidad' => $servicio['cantidad'],
+                    'precio' => $servicio['precio'],
+                    'subtotal_con_descuento' => $servicio['subtotal_con_descuento'] ?? 0
+                ]);
+
+                // Calcular valores para el servicio
+                $subtotalOriginal = $servicio['cantidad'] * $servicio['precio'];
+                $descuentoAplicado = $servicio['descuento_aplicado'] ?? 0;
+                $subtotalConDescuento = $servicio['subtotal_con_descuento'] ?? $subtotalOriginal;
+                $isvAplicado = $servicio['isv'] ?? 0;
+                $isvCalculado = $subtotalConDescuento * ($isvAplicado / 100);
+                $totalFinal = $subtotalConDescuento + $isvCalculado;
+
+                // Crear registro en factura_has_producto (usamos la misma tabla pero con servicio_id)
+                DB::table('factura_has_producto')->insert([
+                    'factura_id' => $factura->id,
+                    'producto_id' => null, // NULL para servicios
+                    'servicio_id' => $servicio['servicio_id'], // Nuevo campo para servicios
+                    'seccion_id' => null, // Los servicios no tienen secciones
+                    'unidad_medida_id' => 1,
+                    'indice' => $indice, // Continuar numeración después de productos
+                    'numero_unidades_resta_inventario' => 0, // Los servicios no afectan inventario
+                    'unidades_nota_credito_resta_inventario' => 0,
+                    'resta_inventario_total' => 0,
+                    'precio_unidad' => $servicio['precio'],
+                    'cantidad' => $servicio['cantidad'],
+                    'subtotal' => $subtotalConDescuento,
+                    'descuento' => $descuentoAplicado,
+                    'isv_aplicado' => $isvAplicado,
+                    'isv' => $isvCalculado,
+                    'total' => $totalFinal,
+                    'idPrecioSeleccionado' => '0',
+                    'precio_seleccionado' => 0
+                ]);
+
+                // Crear descuento unitario para servicio si aplica
+                $descuentoUnitario = $servicio['descuento_unitario_aplicado'] ?? 0;
+                if ($descuentoUnitario > 0) {
+                    Descuento::create([
+                        'factura_id' => $factura->id,
+                        'producto_id' => null, // NULL porque es servicio
+                        'servicio_id' => $servicio['servicio_id'], // Asociar al servicio
+                        'Tipo_descuento' => 'Servicio',
+                        'monto_unidad' => $servicio['descuento_unitario_producto'] ?? 0,
+                        'monto_total' => $descuentoUnitario,
+                        'users_id' => Auth::id(),
+                        'created_at' => now()
+                    ]);
+
+                    Log::info("DEBUG Descuento de servicio creado exitosamente");
+                }
+
+                // Crear descuento de adulto mayor para servicio si aplica
+                $descuentoAdultoMayor = $servicio['descuento_aplicado'] ?? 0;
+                if ($descuentoAdultoMayor > 0) {
+                    $tipoDescuentoAdultoMayor = '';
+                    if ($this->descuentoTerceraEdad) {
+                        $tipoDescuentoAdultoMayor = '3ra edad';
+                    } elseif ($this->descuentoCuartaEdad) {
+                        $tipoDescuentoAdultoMayor = '4ta edad';
+                    }
+                    
+                    if ($tipoDescuentoAdultoMayor) {
+                        Descuento::create([
+                            'factura_id' => $factura->id,
+                            'producto_id' => null,
+                            'servicio_id' => $servicio['servicio_id'],
+                            'Tipo_descuento' => $tipoDescuentoAdultoMayor,
+                            'monto_unidad' => 0,
+                            'monto_total' => $descuentoAdultoMayor,
+                            'users_id' => Auth::id(),
+                            'created_at' => now()
+                        ]);
+
+                        Log::info("DEBUG Descuento de adulto mayor para servicio creado exitosamente");
+                    }
+                }
+
                 $indice++;
             }
 
