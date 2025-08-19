@@ -1,10 +1,16 @@
 <div> {{-- ELEMENTO RAÍZ ÚNICO OBLIGATORIO --}}
 
-    <div class="overflow-hidden border border-gray-300 rounded shadow">
+    <div class="overflow-hidden border border-gray-300 rounded shadow" x-data x-init="$watch('theme', t => localStorage.setItem('theme', t))">
 
         <!-- ENCABEZADO -->
-        <div class="d-flex justify-content-between align-items-center p-4 text-white rounded-t" 
-             style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+        <div class="flex items-center justify-between px-5 py-3 mb-4 font-semibold text-white rounded-t"
+            :class="{
+                'bg-emerald-600': theme === 'verde',
+                'bg-blue-600': theme === 'azul',
+                'bg-gray-900': theme === 'oscuro',
+                'bg-slate-700': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
+            }"
+        >
             <h5 class="mb-0 text-lg">
                 <i class="fas fa-concierge-bell me-2"></i>
                 @if($isEditing)
@@ -14,8 +20,8 @@
                 @endif
             </h5>
             <button wire:click="volverALista"
-                class="btn btn-light btn-sm">
-                <i class="fas fa-arrow-left me-1"></i> Volver
+                class="inline-flex items-center gap-1 px-3 py-2 text-sm text-gray-800 bg-white rounded hover:bg-gray-100">
+                <i class="fas fa-arrow-left"></i> Volver
             </button>
         </div>
 
@@ -235,17 +241,22 @@
 
                 <!-- BOTONES -->
                 <div class="d-flex justify-content-end gap-2">
-                    <button type="button" wire:click="volverALista" class="btn btn-secondary">
-                        <i class="fas fa-times me-1"></i> Cancelar
-                    </button>
-                    <button type="submit" class="btn btn-primary" wire:loading.attr="disabled">
+                    <button type="submit" 
+                            class="btn text-white" 
+                            :class="{
+                                'bg-emerald-600 hover:bg-emerald-700': theme === 'verde',
+                                'bg-blue-600 hover:bg-blue-700': theme === 'azul',
+                                'bg-gray-900 hover:bg-gray-800': theme === 'oscuro',
+                                'bg-slate-700 hover:bg-slate-800': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
+                            }"
+                            wire:loading.attr="disabled">
                         <div wire:loading wire:target="guardar">
                             <i class="fas fa-spinner fa-spin me-1"></i>
                         </div>
                         <div wire:loading.remove wire:target="guardar">
                             <i class="fas fa-save me-1"></i>
                         </div>
-                        @if($isEditing) Actualizar @else Guardar @endif
+                        @if($isEditing) Actualizar @else Crear @endif Servicio
                     </button>
                 </div>
 
@@ -301,16 +312,5 @@
         </div>
         <div class="modal-backdrop fade show"></div>
     @endif
-
-    <!-- JavaScript para redirección -->
-    <script>
-        document.addEventListener('livewire:initialized', () => {
-            Livewire.on('redirigirEnTresSeg', () => {
-                setTimeout(() => {
-                    Livewire.dispatch('cambiarVista', { ruta: 'Catalogo.Servicios' });
-                }, 3000);
-            });
-        });
-    </script>
 
 </div> {{-- FIN ELEMENTO RAÍZ --}}

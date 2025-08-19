@@ -20,8 +20,8 @@ class ServicioForm extends Component
     public $form = [
         'nombre' => '',
         'descripcion' => '',
-        'precio_base' => 0,
-        'descuento_unitario' => 0,
+        'precio_base' => '',
+        'descuento_unitario' => '',
         'descuento_tercera' => false,
         'descuento_cuarta' => false,
         'isv_id' => null,
@@ -31,7 +31,7 @@ class ServicioForm extends Component
 
     // Propiedades para imagen
     public $imagen;
-    public $imagenAnterior = null;
+    public $tieneImagenAnterior = false; // En lugar de almacenar la imagen directamente
 
     // Datos para selectores
     public $isvs = [];
@@ -94,10 +94,10 @@ class ServicioForm extends Component
 
         if ($servicio) {
             $this->form = [
-                'nombre' => $servicio->nombre,
-                'descripcion' => $servicio->descripcion,
-                'precio_base' => $servicio->precio_base ?? 0,
-                'descuento_unitario' => $servicio->descuento_unitario ?? 0,
+                'nombre' => $servicio->nombre ?? '',
+                'descripcion' => $servicio->descripcion ?? '',
+                'precio_base' => $servicio->precio_base !== null ? strval($servicio->precio_base) : '',
+                'descuento_unitario' => $servicio->descuento_unitario !== null ? strval($servicio->descuento_unitario) : '',
                 'descuento_tercera' => $servicio->descuento_tercera ? true : false,
                 'descuento_cuarta' => $servicio->descuento_cuarta ? true : false,
                 'isv_id' => $servicio->isv_id,
@@ -105,8 +105,8 @@ class ServicioForm extends Component
                 'users_id' => $servicio->users_id,
             ];
 
-            // Cargar imagen anterior si existe
-            $this->imagenAnterior = $servicio->imagen;
+            // Verificar si tiene imagen anterior (sin almacenar el BLOB directamente)
+            $this->tieneImagenAnterior = !empty($servicio->imagen);
         }
     }
 
@@ -118,16 +118,22 @@ class ServicioForm extends Component
             $datos = $this->form;
             $datos['users_id'] = Auth::id();
 
+            // Sanitizar campos numéricos - convertir strings vacíos a NULL o valores por defecto
+            $datos['precio_base'] = !empty($datos['precio_base']) ? floatval($datos['precio_base']) : 0;
+            $datos['descuento_unitario'] = !empty($datos['descuento_unitario']) ? floatval($datos['descuento_unitario']) : 0;
+
             // Convertir checkboxes boolean a enteros
             $datos['descuento_tercera'] = $datos['descuento_tercera'] ? 1 : 0;
             $datos['descuento_cuarta'] = $datos['descuento_cuarta'] ? 1 : 0;
 
-            // Procesar imagen si se subió una nueva
+            // Procesar imagen
             if ($this->imagen) {
+                // Nueva imagen subida
                 $datos['imagen'] = file_get_contents($this->imagen->getRealPath());
-            } elseif ($this->isEditing && $this->imagenAnterior) {
-                // Si estamos editando y no hay nueva imagen, mantener la anterior
-                $datos['imagen'] = $this->imagenAnterior;
+            } elseif ($this->isEditing && $this->tieneImagenAnterior) {
+                // Mantener imagen anterior (recuperarla de la BD)
+                $servicioActual = Servicio::find($this->servicioId);
+                $datos['imagen'] = $servicioActual ? $servicioActual->imagen : null;
             } else {
                 // No hay imagen
                 $datos['imagen'] = null;
@@ -135,14 +141,14 @@ class ServicioForm extends Component
 
             if ($this->isEditing) {
                 Servicio::actualizarServicio($this->servicioId, $datos);
-                $this->mostrarExito('Servicio actualizado exitosamente.');
+                session()->flash('success', 'Servicio actualizado exitosamente.');
             } else {
                 Servicio::crearServicio($datos);
-                $this->mostrarExito('Servicio creado exitosamente.');
+                session()->flash('success', 'Servicio creado exitosamente.');
             }
 
-            // Redirigir después de mostrar el modal
-            $this->dispatch('redirigirEnTresSeg');
+            // Redirigir inmediatamente a la vista de servicios
+            $this->dispatch('cambiarVista', ruta: 'Catalogo.Servicios');
 
         } catch (\Illuminate\Validation\ValidationException $e) {
             Log::warning('Error de validación al guardar servicio', [
@@ -156,7 +162,7 @@ class ServicioForm extends Component
         } catch (\Exception $e) {
             Log::error('Error al guardar servicio', [
                 'mensaje' => $e->getMessage(),
-                'datos' => $this->form,
+                'datos' => $datos, // Usar $datos en lugar de $this->form para ver los valores finales
                 'isEditing' => $this->isEditing
             ]);
             $this->mostrarError('Hubo un error inesperado al guardar el servicio');
@@ -171,15 +177,19 @@ class ServicioForm extends Component
     public function removerImagen()
     {
         $this->imagen = null;
-        $this->imagenAnterior = null;
+        $this->tieneImagenAnterior = false;
     }
 
     public function getImagenMiniatura()
     {
         if ($this->imagen) {
             return 'data:image/*;base64,' . base64_encode(file_get_contents($this->imagen->getRealPath()));
-        } elseif ($this->imagenAnterior) {
-            return 'data:image/*;base64,' . base64_encode($this->imagenAnterior);
+        } elseif ($this->isEditing && $this->tieneImagenAnterior && $this->servicioId) {
+            // Recuperar imagen de la base de datos solo cuando se necesite mostrar
+            $servicio = Servicio::find($this->servicioId);
+            if ($servicio && $servicio->imagen) {
+                return 'data:image/*;base64,' . base64_encode($servicio->imagen);
+            }
         }
         return null;
     }
