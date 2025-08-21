@@ -84,6 +84,15 @@
                         </h2>
 
                         <div class="space-y-4">
+                            <div class="p-4 border border-orange-200 rounded-lg bg-orange-50">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm font-medium text-orange-800">💰 Saldo Inicial:</span>
+                                    <span class="text-lg font-bold text-orange-600">
+                                        L.{{ number_format($resumenTransacciones['saldo_inicial'] ?? 0, 2) }}
+                                    </span>
+                                </div>
+                            </div>
+
                             <div class="p-4 border border-blue-200 rounded-lg bg-blue-50">
                                 <div class="flex items-center justify-between mb-2">
                                     <span class="text-sm font-medium text-blue-800">Balance Sistema:</span>
