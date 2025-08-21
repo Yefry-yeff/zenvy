@@ -35,6 +35,12 @@ class Ventas extends Component
     public $direccionManual = '';
     public $modoClienteManual = false;
 
+    // Propiedades adicionales para cliente manual (para compatibilidad con el blade)
+    public $nombreClienteManual = '';
+    public $correoClienteManual = '';
+    public $telefonoClienteManual = '';
+    public $direccionClienteManual = '';
+
     // Búsqueda de productos
     public $codigoBarras = '';
     public $cantidad = 1;
@@ -388,6 +394,71 @@ class Ventas extends Component
         $this->telefonoManual = '';
         $this->correoManual = '';
         $this->direccionManual = '';
+        
+        // También limpiar las propiedades adicionales
+        $this->nombreClienteManual = '';
+        $this->correoClienteManual = '';
+        $this->telefonoClienteManual = '';
+        $this->direccionClienteManual = '';
+    }
+
+    public function desactivarModoClienteManual()
+    {
+        $this->modoClienteManual = false;
+        $this->limpiarCamposManual();
+    }
+
+    public function guardarClienteManual()
+    {
+        // Validar que al menos el nombre esté presente
+        if (empty($this->nombreClienteManual)) {
+            session()->flash('error', 'El nombre del cliente es requerido');
+            return;
+        }
+
+        try {
+            // Crear cliente con los datos ingresados
+            $clienteData = [
+                'nombre' => $this->nombreClienteManual,
+                'identidad' => $this->rtnManual,
+                'rtn' => $this->rtnManual,
+                'telefono' => $this->telefonoClienteManual,
+                'correo' => $this->correoClienteManual,
+                'estado_id' => 1, // Activo
+                'tipo_cliente_id' => 1, // Por defecto
+                'tipo_persona_id' => 1, // Por defecto
+            ];
+
+            $nuevoCliente = Cliente::create($clienteData);
+            
+            // Si hay dirección, crearla por separado (si existe tabla direccion)
+            if (!empty($this->direccionClienteManual)) {
+                // Aquí podrías agregar lógica para guardar la dirección
+                // dependiendo de cómo esté estructurada tu base de datos
+            }
+
+            // Seleccionar el cliente recién creado
+            $this->cliente = $nuevoCliente;
+            
+            // Desactivar modo manual
+            $this->modoClienteManual = false;
+            $this->limpiarCamposManual();
+            
+            session()->flash('success', 'Cliente guardado exitosamente');
+            
+        } catch (Exception $e) {
+            Log::error('Error al guardar cliente manual', [
+                'error' => $e->getMessage(),
+                'datos' => [
+                    'nombre' => $this->nombreClienteManual,
+                    'rtn' => $this->rtnManual,
+                    'telefono' => $this->telefonoClienteManual,
+                    'correo' => $this->correoClienteManual,
+                ]
+            ]);
+            
+            session()->flash('error', 'Error al guardar el cliente: ' . $e->getMessage());
+        }
     }
 
     public function cancelarFactura()
@@ -2744,5 +2815,52 @@ class Ventas extends Component
                 // No lanzar la excepción para no afectar el guardado de la factura
             }
         }
+    }
+
+    /**
+     * Método para obtener productos y servicios filtrados para el catálogo
+     */
+    public function obtenerProductosYServiciosFiltrados()
+    {
+        $query = collect();
+        
+        // Obtener productos si se están mostrando
+        if ($this->tipoSeleccion === 'productos' || $this->tipoSeleccion === 'todos') {
+            $productos = Producto::query()
+                ->where('estado_id', 1)
+                ->when($this->busquedaProductosServicios, function ($q) {
+                    $q->where('nombre', 'like', '%' . $this->busquedaProductosServicios . '%')
+                      ->orWhere('codigo_barra', 'like', '%' . $this->busquedaProductosServicios . '%');
+                })
+                ->get()
+                ->map(function ($producto) {
+                    $producto->esServicio = false;
+                    // Calcular stock disponible usando el método existente
+                    $producto->stockDisponible = $this->obtenerStockDisponible($producto->id);
+                    return $producto;
+                });
+            
+            $query = $query->merge($productos);
+        }
+        
+        // Obtener servicios si se están mostrando
+        if ($this->tipoSeleccion === 'servicios' || $this->tipoSeleccion === 'todos') {
+            $servicios = Servicio::query()
+                ->where('estado_id', 1)
+                ->when($this->busquedaProductosServicios, function ($q) {
+                    $q->where('nombre', 'like', '%' . $this->busquedaProductosServicios . '%')
+                      ->orWhere('descripcion', 'like', '%' . $this->busquedaProductosServicios . '%');
+                })
+                ->get()
+                ->map(function ($servicio) {
+                    $servicio->esServicio = true;
+                    $servicio->stockDisponible = null; // Los servicios no tienen stock
+                    return $servicio;
+                });
+            
+            $query = $query->merge($servicios);
+        }
+        
+        return $query->sortBy('nombre')->values();
     }
 }
