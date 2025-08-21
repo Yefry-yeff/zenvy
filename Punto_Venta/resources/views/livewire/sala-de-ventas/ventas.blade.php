@@ -513,18 +513,6 @@
                                         <tr class="{{ $esServicio ? 'table-info' : '' }}">
                                             <td>
                                                 {{ $item['nombre'] }}
-                                                @if($descuentoUnitarioBase > 0)
-                                                    <br><small class="text-success">
-                                                        <i class="fas fa-tag"></i>
-                                                        Descuento {{ $esServicio ? 'servicio' : 'producto' }}: L. {{ number_format($descuentoUnitarioBase, 2) }} por unidad
-                                                    </small>
-                                                @endif
-                                                @if($descuentoAplicado > 0)
-                                                    <br><small class="text-primary">
-                                                        <i class="fas fa-percentage"></i>
-                                                        Descuento por edad: L. {{ number_format($descuentoAplicado, 2) }}
-                                                    </small>
-                                                @endif
                                                 @if(!$esServicio)
                                                     <br>
                                                     <small class="text-gray-500">
@@ -574,17 +562,17 @@
                                                 
                                                 <!-- Mostrar descuentos de productos/servicios guardados primero (si existen) -->
                                                 @if($esServicio && isset($descuentosGuardados[$item['servicio_id']]))
-                                                    <div class="text-success small">-L. {{ number_format($descuentosGuardados[$item['servicio_id']]['monto_total'], 2) }} (servicio)</div>
+                                                    <div class="text-danger small fw-bold">-L. {{ number_format($descuentosGuardados[$item['servicio_id']]['monto_total'], 2) }}</div>
                                                 @elseif(!$esServicio && isset($descuentosGuardados[$item['id']]))
-                                                    <div class="text-success small">-L. {{ number_format($descuentosGuardados[$item['id']]['monto_total'], 2) }} (producto)</div>
-                                                @elseif($descuentoUnitarioBase > 0)
-                                                    <!-- Mostrar descuento unitario × cantidad -->
-                                                    <div class="text-success small">-L. {{ number_format($descuentoUnitarioBase, 2) }} × {{ $item['cantidad'] }} = -L. {{ number_format($descuentoUnitarioTotal, 2) }} ({{ $esServicio ? 'servicio' : 'producto' }})</div>
+                                                    <div class="text-danger small fw-bold">-L. {{ number_format($descuentosGuardados[$item['id']]['monto_total'], 2) }}</div>
+                                                @elseif($descuentoUnitarioTotal > 0)
+                                                    <!-- Mostrar solo el total del descuento unitario en rojo -->
+                                                    <div class="text-danger small fw-bold">-L. {{ number_format($descuentoUnitarioTotal, 2) }}</div>
                                                 @endif
                                                 
                                                 <!-- Mostrar descuento de tercera/cuarta edad después -->
                                                 @if($descuentoAplicado > 0)
-                                                    <div class="text-primary small">-L. {{ number_format($descuentoAplicado, 2) }} (edad)</div>
+                                                    <div class="text-danger small fw-bold">-L. {{ number_format($descuentoAplicado, 2) }}</div>
                                                 @endif
                                                 
                                                 <!-- Mostrar subtotal final con descuentos aplicados si hay descuentos -->
@@ -683,15 +671,33 @@
                                         <!-- Desglose por tipo de descuento -->
                                         <div class="ml-2 mt-1 space-y-1">
                                             @if($descuentoTerceraEdad)
+                                                @php
+                                                    $totalDescuentoTerceraEdad = 0;
+                                                    foreach($productosFactura as $item) {
+                                                        if(($item['descuento_tercera'] ?? 0) == 1) {
+                                                            $subtotalItem = $item['precio'] * $item['cantidad'];
+                                                            $totalDescuentoTerceraEdad += $subtotalItem * 0.25;
+                                                        }
+                                                    }
+                                                @endphp
                                                 <div class="flex justify-between text-sm text-red-600">
                                                     <span class="ml-2">• Descuento tercera edad (25%):</span>
-                                                    <span class="font-medium">Aplicado</span>
+                                                    <span class="font-medium">L. {{ number_format($totalDescuentoTerceraEdad, 2) }}</span>
                                                 </div>
                                             @endif
                                             @if($descuentoCuartaEdad)
+                                                @php
+                                                    $totalDescuentoCuartaEdad = 0;
+                                                    foreach($productosFactura as $item) {
+                                                        if(($item['descuento_cuarta'] ?? 0) == 1) {
+                                                            $subtotalItem = $item['precio'] * $item['cantidad'];
+                                                            $totalDescuentoCuartaEdad += $subtotalItem * 0.35;
+                                                        }
+                                                    }
+                                                @endphp
                                                 <div class="flex justify-between text-sm text-red-600">
                                                     <span class="ml-2">• Descuento cuarta edad (35%):</span>
-                                                    <span class="font-medium">Aplicado</span>
+                                                    <span class="font-medium">L. {{ number_format($totalDescuentoCuartaEdad, 2) }}</span>
                                                 </div>
                                             @endif
                                             @if(array_sum(array_column($productosFactura, 'descuento_unitario_aplicado', 0)) > 0)
