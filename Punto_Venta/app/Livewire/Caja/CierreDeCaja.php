@@ -242,12 +242,12 @@ class CierreDeCaja extends Component
 
             DB::table('cierre_de_caja')->insert($datosInsert);
 
-            // Cerrar la caja y resetear balance
+            // Cerrar la caja - Solo cambiar estado y registrar fecha de cierre (balance se mantiene)
             DB::table('caja')
                 ->where('id', $this->cajaActual->id)
                 ->update([
                     'estado_caja' => 2, // 2 = cerrada
-                    'balance' => 0.00, // Resetear balance a 0
+                    'fecha_cierre' => now(), // Registrar fecha y hora de cierre
                     'updated_at' => now()
                 ]);
 
@@ -257,9 +257,10 @@ class CierreDeCaja extends Component
             $this->cargarDatosCaja();
 
             $this->cierreProcesado = true;
-            $this->mensajeExito = 'Cierre de caja procesado correctamente. Caja cerrada y balance resetado a L.0.00. ' . 
+            $this->mensajeExito = 'Cierre de caja procesado correctamente. Caja cerrada exitosamente. ' . 
                                  'Total contado: L.' . number_format($this->totalContado, 2) . 
-                                 '. Diferencia: L.' . number_format($this->diferenciaEfectivo, 2);
+                                 '. Diferencia: L.' . number_format($this->diferenciaEfectivo, 2) . 
+                                 '. Balance preserved: L.' . number_format($this->cajaActual->balance, 2);
 
         } catch (\Exception $e) {
             DB::rollBack();

@@ -216,6 +216,7 @@ class CierreDeJornada extends Component
                 ->whereIn('id', $cajasAbiertasAdicionales)
                 ->update([
                     'estado_caja' => 2,
+                    'fecha_cierre' => now(), // Agregar fecha de cierre
                     'updated_at' => now()
                 ]);
 

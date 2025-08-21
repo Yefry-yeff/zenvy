@@ -27,15 +27,15 @@ class AperturaDeJornada extends Component
     public function cargarTiendaUsuario()
     {
         $usuario = Auth::user();
-        
+
         if ($usuario && $usuario->tienda_id) {
             $this->tiendaUsuario = $usuario->tienda_id;
-            
+
             // Obtener nombre de la tienda
             $tienda = DB::table('tienda')
                 ->where('id', $this->tiendaUsuario)
                 ->first();
-            
+
             $this->nombreTienda = $tienda ? $tienda->denominacion_social : 'Tienda no encontrada';
         }
     }
@@ -43,7 +43,7 @@ class AperturaDeJornada extends Component
     public function validarYProcesarApertura()
     {
         $this->resetear();
-        
+
         if (!$this->tiendaUsuario) {
             $this->mensaje = 'Usuario sin tienda asignada. No se puede procesar la apertura.';
             $this->tipoMensaje = 'error';
@@ -73,7 +73,7 @@ class AperturaDeJornada extends Component
 
             // 2. Validar cierre del día anterior (solo si no es la primera vez)
             $fechaAnterior = Carbon::parse($this->fechaApertura)->subDay()->format('Y-m-d');
-            
+
             $jornadaAnterior = DB::table('jornada')
                 ->where('tienda_id', $this->tiendaUsuario)
                 ->where('fecha', $fechaAnterior)
@@ -108,7 +108,7 @@ class AperturaDeJornada extends Component
     public function procesarAperturaJornada()
     {
         if ($this->procesoEnCurso) return;
-        
+
         $this->procesoEnCurso = true;
 
         try {
@@ -126,9 +126,18 @@ class AperturaDeJornada extends Component
                 'updated_at' => now()
             ]);
 
+            // Aperturar automáticamente todas las cajas de la sucursal
+            $resultadoCajas = $this->aperturarCajasSucursal();
+
             DB::commit();
 
             $this->mensaje = 'Jornada aperturada exitosamente para la fecha ' . $this->fechaApertura . ' en ' . $this->nombreTienda . ' (ID: ' . $jornadaId . ')';
+
+            // Agregar información sobre las cajas aperturadas
+            if (!empty($resultadoCajas['mensaje'])) {
+                $this->mensaje .= '\n\n' . $resultadoCajas['mensaje'];
+            }
+
             $this->tipoMensaje = 'success';
 
         } catch (\Exception $e) {
@@ -137,6 +146,149 @@ class AperturaDeJornada extends Component
             $this->tipoMensaje = 'error';
         } finally {
             $this->procesoEnCurso = false;
+        }
+    }
+
+    /**
+     * Apertura automática de todas las cajas de la sucursal
+     */
+    private function aperturarCajasSucursal()
+    {
+        $fechaHoy = $this->fechaApertura;
+        $contadores = [
+            'aperturadas' => 0,
+            'yaAbiertas' => 0,
+            'nuevas' => 0,
+            'errores' => 0
+        ];
+        $mensajes = [];
+
+        try {
+            // 1. Obtener todos los usuarios de la tienda actual
+            $usuariosTienda = DB::table('users')
+                ->where('tienda_id', $this->tiendaUsuario)
+                ->where('estado_id', 1) // Solo usuarios activos
+                ->get();
+
+            foreach ($usuariosTienda as $usuario) {
+                try {
+                    // 2. Verificar si ya existe una caja para este usuario hoy
+                    $cajaHoy = DB::table('caja')
+                        ->where('users_id', $usuario->id)
+                        ->where('tienda_id', $this->tiendaUsuario)
+                        ->whereDate('created_at', $fechaHoy)
+                        ->first();
+
+                    // Si ya tiene caja hoy y está abierta, no hacer nada
+                    if ($cajaHoy && $cajaHoy->estado_caja == 1) {
+                        $contadores['yaAbiertas']++;
+                        continue;
+                    }
+
+                    // 3. Obtener el último balance del usuario en esta tienda
+                    $ultimaCaja = DB::table('caja')
+                        ->where('users_id', $usuario->id)
+                        ->where('tienda_id', $this->tiendaUsuario)
+                        ->orderBy('created_at', 'desc')
+                        ->first();
+
+                    // 4. Determinar el balance inicial
+                    $balanceInicial = 0;
+                    if ($ultimaCaja) {
+                        // Si hay una caja anterior, usar su último balance
+                        $balanceInicial = $ultimaCaja->balance ?? 0;
+                    }
+                    // Si es nuevo cajero, balance = 0 (ya establecido arriba)
+
+                    // 5. Crear nueva caja para hoy o actualizar existente
+                    $cajaIdParaTransaccion = null;
+
+                    if ($cajaHoy) {
+                        // Verificar si la caja existe y está cerrada
+                        if ($cajaHoy->estado_caja == 0) {
+                            // Si el cajero tiene un registro para ese día pero ya se cerró esa caja,
+                            // crear un nuevo registro con el último balance de ese cajero
+                            $nuevaCajaId = DB::table('caja')->insertGetId([
+                                'users_id' => $usuario->id,
+                                'tienda_id' => $this->tiendaUsuario,
+                                'balance' => $balanceInicial,
+                                'estado_caja' => 1, // Abierta
+                                'fecha_apertura' => now(),
+                                'created_at' => now(),
+                                'updated_at' => now()
+                            ]);
+
+                            $cajaIdParaTransaccion = $nuevaCajaId;
+                            $contadores['nuevas']++;
+                        } else {
+                            // Si existe caja para hoy y está abierta, actualizarla
+                            DB::table('caja')
+                                ->where('id', $cajaHoy->id)
+                                ->update([
+                                    'balance' => $balanceInicial,
+                                    'fecha_apertura' => now(),
+                                    'updated_at' => now()
+                                ]);
+
+                            $cajaIdParaTransaccion = $cajaHoy->id;
+                            $contadores['aperturadas']++;
+                        }
+                    } else {
+                        // Crear nueva caja para hoy
+                        $nuevaCajaId = DB::table('caja')->insertGetId([
+                            'users_id' => $usuario->id,
+                            'tienda_id' => $this->tiendaUsuario,
+                            'balance' => $balanceInicial,
+                            'estado_caja' => 1, // Abierta
+                            'fecha_apertura' => now(),
+                            'created_at' => now(),
+                            'updated_at' => now()
+                        ]);
+
+                        $cajaIdParaTransaccion = $nuevaCajaId;
+                        $contadores['nuevas']++;
+                    }
+
+                    // 6. Registrar transacción de apertura automática
+                    DB::table('transaccion')->insert([
+                        'caja_id' => $cajaIdParaTransaccion,
+                        'transaccion' => 'apertura_automatica',
+                        'efectivo' => $balanceInicial,
+                        'tarjeta' => 0,
+                        'cheque' => 0,
+                        'descripcion' => 'Apertura automática al iniciar jornada - Balance anterior: L.' . number_format($balanceInicial, 2),
+                        'created_at' => now(),
+                        'update_at' => now()
+                    ]);
+
+                } catch (\Exception $e) {
+                    $contadores['errores']++;
+                    $mensajes[] = "Error con usuario {$usuario->name}: " . $e->getMessage();
+                }
+            }
+
+            // Preparar mensaje de resultado
+            $mensajeResultado = "🏦 CAJAS APERTURADAS:\n";
+            $mensajeResultado .= "✅ Cajas aperturadas: {$contadores['aperturadas']}\n";
+            $mensajeResultado .= "🆕 Cajas nuevas creadas: {$contadores['nuevas']}\n";
+            $mensajeResultado .= "📝 Cajas ya abiertas: {$contadores['yaAbiertas']}\n";
+
+            if ($contadores['errores'] > 0) {
+                $mensajeResultado .= "❌ Errores: {$contadores['errores']}\n";
+            }
+
+            return [
+                'exito' => true,
+                'contadores' => $contadores,
+                'mensaje' => $mensajeResultado,
+                'errores' => $mensajes
+            ];
+
+        } catch (\Exception $e) {
+            return [
+                'exito' => false,
+                'mensaje' => "Error general al aperturar cajas: " . $e->getMessage()
+            ];
         }
     }
 

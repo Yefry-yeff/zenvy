@@ -189,27 +189,44 @@ class DashboardDinamico extends Component
         if ($usuario->tienda_id) {
             $fechaActual = date('Y-m-d');
             
-            // Buscar la jornada del día actual para la tienda del usuario
-            $jornadaActual = DB::table('jornada')
+            // Buscar la jornada más reciente para la tienda del usuario (no solo de hoy)
+            $jornadaReciente = DB::table('jornada')
+                ->where('tienda_id', $usuario->tienda_id)
+                ->orderBy('fecha', 'desc')
+                ->orderBy('created_at', 'desc')
+                ->first();
+
+            // También buscar específicamente la jornada de hoy
+            $jornadaHoy = DB::table('jornada')
                 ->where('fecha', $fechaActual)
                 ->where('tienda_id', $usuario->tienda_id)
                 ->orderBy('created_at', 'desc')
                 ->first();
 
+            // Usar la jornada de hoy si existe, si no, usar la más reciente
+            $jornadaActual = $jornadaHoy ?? $jornadaReciente;
+
             if ($jornadaActual) {
                 // Determinar el estado de la jornada
                 $estado = 'cerrada'; // Por defecto cerrada
                 $estado_codigo = 0;
+                $esJornadaHoy = ($jornadaActual->fecha == $fechaActual);
                 
                 if ($jornadaActual->apertura == 1 && $jornadaActual->cierre == 0) {
                     $estado = 'abierta';
                     $estado_codigo = 1;
-                } elseif ($jornadaActual->apertura == 0 && $jornadaActual->cierre == 1) {
+                } elseif ($jornadaActual->apertura == 1 && $jornadaActual->cierre == 1) {
                     $estado = 'cerrada';
                     $estado_codigo = 2;
                 } elseif ($jornadaActual->apertura == 0 && $jornadaActual->cierre == 0) {
                     $estado = 'sin_aperturar';
                     $estado_codigo = 0;
+                }
+
+                // Si no es jornada de hoy y no hay jornada para hoy, mostrar estado especial
+                if (!$esJornadaHoy && !$jornadaHoy) {
+                    $estado = 'sin_jornada_hoy';
+                    $estado_codigo = -1;
                 }
 
                 // Obtener información del usuario que aperturó y cerró
@@ -233,22 +250,27 @@ class DashboardDinamico extends Component
                 $this->estadoJornada = [
                     'id' => $jornadaActual->id,
                     'fecha' => $jornadaActual->fecha,
+                    'es_jornada_hoy' => $esJornadaHoy,
                     'estado' => $estado,
                     'estado_codigo' => $estado_codigo,
-                    'estado_texto' => $this->obtenerTextoEstadoJornada($estado),
+                    'estado_texto' => $this->obtenerTextoEstadoJornada($estado, $esJornadaHoy),
                     'apertura' => $jornadaActual->apertura,
                     'cierre' => $jornadaActual->cierre,
                     'usuario_apertura' => $usuarioApertura->name ?? null,
                     'usuario_cierre' => $usuarioCierre->name ?? null,
                     'comentario' => $jornadaActual->comentario,
                     'fecha_creacion' => $jornadaActual->created_at,
-                    'fecha_actualizacion' => $jornadaActual->updated_at
+                    'fecha_actualizacion' => $jornadaActual->updated_at,
+                    // Información adicional para el estado actual
+                    'fecha_apertura' => $jornadaActual->apertura == 1 ? $jornadaActual->updated_at : null,
+                    'fecha_cierre' => $jornadaActual->cierre == 1 ? $jornadaActual->updated_at : null
                 ];
             } else {
-                // No hay jornada para hoy
+                // No hay ninguna jornada
                 $this->estadoJornada = [
                     'id' => null,
                     'fecha' => $fechaActual,
+                    'es_jornada_hoy' => false,
                     'estado' => 'sin_jornada',
                     'estado_codigo' => -1,
                     'estado_texto' => 'Sin jornada creada',
@@ -258,19 +280,22 @@ class DashboardDinamico extends Component
                     'usuario_cierre' => null,
                     'comentario' => null,
                     'fecha_creacion' => null,
-                    'fecha_actualizacion' => null
+                    'fecha_actualizacion' => null,
+                    'fecha_apertura' => null,
+                    'fecha_cierre' => null
                 ];
             }
         }
     }
 
-    private function obtenerTextoEstadoJornada($estado)
+    private function obtenerTextoEstadoJornada($estado, $esJornadaHoy = true)
     {
         return match($estado) {
-            'abierta' => 'Abierta',
-            'cerrada' => 'Cerrada',
-            'sin_aperturar' => 'Sin aperturar',
+            'abierta' => $esJornadaHoy ? 'Abierta' : 'Abierta (anterior)',
+            'cerrada' => $esJornadaHoy ? 'Cerrada' : 'Cerrada (anterior)',
+            'sin_aperturar' => $esJornadaHoy ? 'Sin aperturar' : 'Sin aperturar (anterior)',
             'sin_jornada' => 'Sin jornada',
+            'sin_jornada_hoy' => 'Sin jornada hoy',
             default => 'Desconocido'
         };
     }
@@ -288,38 +313,73 @@ class DashboardDinamico extends Component
             'Caja.CierreDeCaja'
         ]);
         
-        if ($tienePermisosCaja) {
+        if ($tienePermisosCaja && $usuario->tienda_id) {
             // Obtener la tienda actual del usuario
             $tiendaId = $usuario->tienda_id;
             
             // Fecha actual para filtrar por día en transcurso
             $fechaHoy = date('Y-m-d');
             
-            // Buscar la caja del usuario en la tienda actual y fecha actual
-            $cajaActual = DB::table('caja')
+            // Buscar la caja más reciente del usuario en la tienda actual (no solo de hoy)
+            $cajaReciente = DB::table('caja')
+                ->where('users_id', $usuario->id)
+                ->where('tienda_id', $tiendaId)
+                ->orderBy('created_at', 'desc')
+                ->first();
+
+            // También buscar específicamente la caja de hoy
+            $cajaHoy = DB::table('caja')
                 ->where('users_id', $usuario->id)
                 ->where('tienda_id', $tiendaId)
                 ->whereDate('created_at', $fechaHoy)
                 ->orderBy('created_at', 'desc')
                 ->first();
 
+            // Usar la caja de hoy si existe, si no, usar la más reciente
+            $cajaActual = $cajaHoy ?? $cajaReciente;
+
             if ($cajaActual) {
+                $esCajaHoy = (date('Y-m-d', strtotime($cajaActual->created_at)) == $fechaHoy);
+                
                 $this->estadoCaja = [
                     'id' => $cajaActual->id,
                     'estado' => $cajaActual->estado_caja,
-                    'estado_texto' => $this->obtenerTextoEstado($cajaActual->estado_caja),
+                    'estado_texto' => $this->obtenerTextoEstadoCaja($cajaActual->estado_caja, $esCajaHoy),
                     'balance' => $cajaActual->balance,
                     'fecha_creacion' => $cajaActual->created_at,
                     'fecha_actualizacion' => $cajaActual->updated_at,
-                    'tienda_id' => $cajaActual->tienda_id
+                    'tienda_id' => $cajaActual->tienda_id,
+                    'es_caja_hoy' => $esCajaHoy,
+                    'tiene_caja_hoy' => $cajaHoy !== null
                 ];
             } else {
-                // Si no se encuentra caja, establecer mensaje apropiado
+                // Si no se encuentra ninguna caja
                 $this->estadoCaja = [
-                    'mensaje' => 'No se encontró caja para el usuario en esta tienda hoy'
+                    'id' => null,
+                    'estado' => 0,
+                    'estado_texto' => 'Sin caja creada',
+                    'balance' => 0,
+                    'fecha_creacion' => null,
+                    'fecha_actualizacion' => null,
+                    'tienda_id' => $tiendaId,
+                    'es_caja_hoy' => false,
+                    'tiene_caja_hoy' => false,
+                    'mensaje' => 'No se encontró caja para el usuario en esta tienda'
                 ];
             }
         }
+    }
+
+    private function obtenerTextoEstadoCaja($estado, $esCajaHoy = true)
+    {
+        $suffix = $esCajaHoy ? '' : ' (anterior)';
+        
+        return match($estado) {
+            1 => 'Abierta' . $suffix,
+            2 => 'Cerrada' . $suffix,
+            0 => 'Sin usar' . $suffix,
+            default => 'Desconocido' . $suffix
+        };
     }
 
     /**
@@ -367,16 +427,6 @@ class DashboardDinamico extends Component
         }
         
         return $this->usuarioTienePermisos($permisos);
-    }
-
-    private function obtenerTextoEstado($estado)
-    {
-        return match($estado) {
-            0 => 'Sin usar',
-            1 => 'Abierta',
-            2 => 'Cerrada',
-            default => 'Desconocido'
-        };
     }
 
     public function render()

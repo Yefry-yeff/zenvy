@@ -148,6 +148,7 @@ class SaldoInicial extends Component
                 ->update([
                     'balance' => floatval($this->monto),
                     'estado_caja' => 1, // Abierto
+                    'fecha_apertura' => now(), // Fecha y hora de apertura
                     'updated_at' => now()
                 ]);
 

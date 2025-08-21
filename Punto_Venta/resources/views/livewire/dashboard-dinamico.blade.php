@@ -29,14 +29,54 @@
                                 </span>
                             @elseif(isset($estadoJornada['estado']) && $estadoJornada['estado'] == 'sin_aperturar')
                                 <span class="px-2 py-1 text-xs font-medium text-yellow-800 bg-yellow-100 rounded-full">
-                                    🟡 Sin aperturar
+                                    🟡 {{ $estadoJornada['estado_texto'] ?? 'Sin aperturar' }}
+                                </span>
+                            @elseif(isset($estadoJornada['estado']) && $estadoJornada['estado'] == 'sin_jornada_hoy')
+                                <span class="px-2 py-1 text-xs font-medium text-orange-800 bg-orange-100 rounded-full">
+                                    🟠 Sin jornada hoy
                                 </span>
                             @else
                                 <span class="px-2 py-1 text-xs font-medium text-gray-800 bg-gray-100 rounded-full">
                                     ⚪ {{ $estadoJornada['estado_texto'] ?? 'Desconocido' }}
                                 </span>
                             @endif
+                            
+                            <!-- Fecha del estado actual -->
+                            @if(isset($estadoJornada['fecha']))
+                                <span class="text-xs text-gray-500">
+                                    ({{ \Carbon\Carbon::parse($estadoJornada['fecha'])->format('d/m/Y') }})
+                                </span>
+                            @endif
+
+                            <!-- Advertencia si no es jornada de hoy -->
+                            @if(isset($estadoJornada['es_jornada_hoy']) && !$estadoJornada['es_jornada_hoy'])
+                                <span class="px-1 py-0.5 text-xs font-medium text-orange-700 bg-orange-200 rounded">
+                                    ⚠️ Anterior
+                                </span>
+                            @endif
                         </div>
+                        
+                        <!-- Información adicional de apertura/cierre -->
+                        @if(isset($estadoJornada['fecha_actualizacion']) && $estadoJornada['fecha_actualizacion'])
+                            <div class="flex items-center space-x-1 text-xs text-gray-500">
+                                <i class="fas fa-clock"></i>
+                                <span>
+                                    @if($estadoJornada['estado'] == 'abierta')
+                                        Aperturada: {{ \Carbon\Carbon::parse($estadoJornada['fecha_actualizacion'])->format('d/m/Y H:i') }}
+                                        @if(isset($estadoJornada['usuario_apertura']))
+                                            por {{ $estadoJornada['usuario_apertura'] }}
+                                        @endif
+                                    @elseif($estadoJornada['estado'] == 'cerrada')
+                                        Cerrada: {{ \Carbon\Carbon::parse($estadoJornada['fecha_actualizacion'])->format('d/m/Y H:i') }}
+                                        @if(isset($estadoJornada['usuario_cierre']))
+                                            por {{ $estadoJornada['usuario_cierre'] }}
+                                        @endif
+                                    @else
+                                        Última actualización: {{ \Carbon\Carbon::parse($estadoJornada['fecha_actualizacion'])->format('d/m/Y H:i') }}
+                                    @endif
+                                </span>
+                            </div>
+                        @endif
                     </div>
                     @endif
 
@@ -59,12 +99,42 @@
                                     ⚠️ {{ $estadoCaja['estado_texto'] ?? 'Sin usar' }}
                                 </span>
                             @endif
+                            
+                            <!-- Fecha de creación de la caja -->
+                            @if(isset($estadoCaja['fecha_creacion']))
+                                <span class="text-xs text-gray-500">
+                                    ({{ \Carbon\Carbon::parse($estadoCaja['fecha_creacion'])->format('d/m/Y') }})
+                                </span>
+                            @endif
+
+                            <!-- Advertencia si no es caja de hoy -->
+                            @if(isset($estadoCaja['es_caja_hoy']) && !$estadoCaja['es_caja_hoy'])
+                                <span class="px-1 py-0.5 text-xs font-medium text-orange-700 bg-orange-200 rounded">
+                                    ⚠️ Anterior
+                                </span>
+                            @endif
+
+                            <!-- Mensaje si no tiene caja hoy -->
+                            @if(isset($estadoCaja['tiene_caja_hoy']) && !$estadoCaja['tiene_caja_hoy'])
+                                <span class="px-1 py-0.5 text-xs font-medium text-red-700 bg-red-200 rounded">
+                                    ❌ Sin caja hoy
+                                </span>
+                            @endif
                         </div>
+                        
                         @if(isset($estadoCaja['balance']))
                         <div class="flex items-center space-x-2">
                             <span class="text-sm text-gray-600">Balance:</span>
                             <span class="text-sm font-semibold text-gray-800">L. {{ number_format($estadoCaja['balance'], 2) }}</span>
                         </div>
+                        @endif
+                        
+                        <!-- Información adicional de última actualización -->
+                        @if(isset($estadoCaja['fecha_actualizacion']) && $estadoCaja['fecha_actualizacion'])
+                            <div class="flex items-center space-x-1 text-xs text-gray-500">
+                                <i class="fas fa-clock"></i>
+                                <span>Última actualización: {{ \Carbon\Carbon::parse($estadoCaja['fecha_actualizacion'])->format('d/m/Y H:i') }}</span>
+                            </div>
                         @endif
                     </div>
                     @endif
