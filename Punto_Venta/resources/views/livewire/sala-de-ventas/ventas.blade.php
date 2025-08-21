@@ -468,8 +468,203 @@
                         </div>
 
                         <!-- Lista de productos agregados a la factura -->
-                        <!-- Aquí incluirías el resto del contenido de facturación existente -->
-                        <!-- Solo quitamos el catálogo que estaba dentro -->
+                        <div class="mb-4">
+                            <div class="table-responsive">
+                                <table class="table table-sm table-bordered">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Producto/Servicio</th>
+                                            <th>Código</th>
+                                            <th>Tipo</th>
+                                            <th>Precio Unit.</th>
+                                            <th>Cantidad</th>
+                                            <th>Subtotal</th>
+                                            <th>ISV</th>
+                                            <th>Total</th>
+                                            <th>Acción</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @forelse($productosFactura as $item)
+                                        @php
+                                            $subtotalOriginal = $item['precio'] * $item['cantidad'];
+                                            $descuentoAplicado = $item['descuento_aplicado'] ?? 0; // Descuento por edad
+                                            $descuentoUnitario = $item['descuento_unitario_aplicado'] ?? 0; // Descuento automático del producto
+                                            $subtotalConDescuento = $item['subtotal_con_descuento'] ?? $subtotalOriginal;
+                                            $isv = $subtotalConDescuento * ($item['isv']/100);
+                                            $total = $subtotalConDescuento + $isv;
+                                            
+                                            // Determinar si es producto o servicio
+                                            $esServicio = isset($item['servicio_id']) && $item['servicio_id'] !== null;
+                                            $stockDisponible = $esServicio ? null : $this->obtenerStockDisponible($item['id']);
+                                        @endphp
+                                        <tr class="{{ $esServicio ? 'table-info' : '' }}">
+                                            <td>
+                                                {{ $item['nombre'] }}
+                                                @if($descuentoUnitario > 0)
+                                                    <br><small class="text-success">
+                                                        <i class="fas fa-tag"></i>
+                                                        Descuento de {{ $esServicio ? 'servicio' : 'producto' }}: L. {{ number_format($descuentoUnitario, 2) }}
+                                                    </small>
+                                                @endif
+                                                @if($descuentoAplicado > 0)
+                                                    <br><small class="text-primary">
+                                                        <i class="fas fa-percentage"></i>
+                                                        Descuento por edad: L. {{ number_format($descuentoAplicado, 2) }}
+                                                    </small>
+                                                @endif
+                                                @if(!$esServicio)
+                                                    <br>
+                                                    <small class="text-gray-500">
+                                                        Stock disponible: {{ $stockDisponible }}
+                                                    </small>
+                                                @endif
+                                            </td>
+                                            <td>{{ $item['codigo'] }}</td>
+                                            <td>
+                                                @if($esServicio)
+                                                    <span class="badge bg-info text-white">
+                                                        <i class="fas fa-concierge-bell me-1"></i>
+                                                        Servicio
+                                                    </span>
+                                                @else
+                                                    <span class="badge bg-primary text-white">
+                                                        <i class="fas fa-box me-1"></i>
+                                                        Producto
+                                                    </span>
+                                                @endif
+                                            </td>
+                                            <td>L. {{ number_format($item['precio'], 2) }}</td>
+                                            <td>
+                                                @if($esServicio)
+                                                    <!-- Para servicios, cantidad editable sin restricción de stock -->
+                                                    <input type="number"
+                                                        wire:change="modificarCantidad({{ $loop->index }}, $event.target.value)"
+                                                        value="{{ $item['cantidad'] }}"
+                                                        min="1"
+                                                        class="w-20 text-center form-control"
+                                                        style="min-width: 60px;">
+                                                @else
+                                                    <!-- Para productos, cantidad limitada por stock -->
+                                                    <input type="number"
+                                                        wire:change="modificarCantidad({{ $loop->index }}, $event.target.value)"
+                                                        value="{{ $item['cantidad'] }}"
+                                                        min="1"
+                                                        max="{{ $stockDisponible }}"
+                                                        class="w-20 text-center form-control"
+                                                        style="min-width: 60px;"
+                                                        title="Stock disponible: {{ $stockDisponible }}">
+                                                @endif
+                                            </td>
+                                            <td>
+                                                <!-- Mostrar importe original (precio × cantidad SIN descuentos) -->
+                                                <div class="fw-bold">L. {{ number_format($subtotalOriginal, 2) }}</div>
+                                                
+                                                <!-- Mostrar descuentos de productos/servicios guardados primero (si existen) -->
+                                                @if($esServicio && isset($descuentosGuardados[$item['servicio_id']]))
+                                                    <div class="text-success small">-L. {{ number_format($descuentosGuardados[$item['servicio_id']]['monto_total'], 2) }} (servicio)</div>
+                                                @elseif(!$esServicio && isset($descuentosGuardados[$item['id']]))
+                                                    <div class="text-success small">-L. {{ number_format($descuentosGuardados[$item['id']]['monto_total'], 2) }} (producto)</div>
+                                                @elseif($descuentoUnitario > 0)
+                                                    <!-- Si no hay descuentos guardados, mostrar descuento temporal -->
+                                                    <div class="text-success small">-L. {{ number_format($descuentoUnitario, 2) }} ({{ $esServicio ? 'servicio' : 'producto' }})</div>
+                                                @endif
+                                                
+                                                <!-- Mostrar descuento de tercera/cuarta edad después -->
+                                                @if($descuentoAplicado > 0)
+                                                    <div class="text-primary small">-L. {{ number_format($descuentoAplicado, 2) }} (edad)</div>
+                                                @endif
+                                                
+                                                <!-- Mostrar subtotal final con descuentos aplicados si hay descuentos -->
+                                                @if($descuentoUnitario > 0 || $descuentoAplicado > 0 || 
+                                                    ($esServicio && isset($descuentosGuardados[$item['servicio_id']])) || 
+                                                    (!$esServicio && isset($descuentosGuardados[$item['id']])))
+                                                    <div class="text-success fw-bold border-top pt-1 mt-1">L. {{ number_format($subtotalConDescuento, 2) }}</div>
+                                                @endif
+                                            </td>
+                                            <td>L. {{ number_format($isv, 2) }}
+                                                <span class="text-xs text-gray-500">({{ $item['isv'] }}%)</span>
+                                            </td>
+                                            <td>L. {{ number_format($total, 2) }}</td>
+                                            <td class="text-center">
+                                                <button wire:click="eliminarProducto({{ $loop->index }})"
+                                                    class="p-0 transition-opacity btn btn-link hover:opacity-75"
+                                                    title="Eliminar producto">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 7v12a2 2 0 002 2h8a2 2 0 002-2V7M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2m-7 0h10" style="color:#e3342f;" />
+                                                        <line x1="10" y1="11" x2="10" y2="17" stroke="#e3342f" stroke-width="2"/>
+                                                        <line x1="14" y1="11" x2="14" y2="17" stroke="#e3342f" stroke-width="2"/>
+                                                    </svg>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        @empty
+                                        <tr>
+                                            <td colspan="9" class="text-center text-muted">No hay productos o servicios agregados</td>
+                                        </tr>
+                                        @endforelse
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Botones de Descuento -->
+                        @if(count($productosFactura) > 0)
+                        <div class="mb-3 d-flex justify-content-end">
+                            <!-- Botón 3ra Edad -->
+                            <button
+                                wire:click="aplicarDescuentoTerceraEdad"
+                                class="btn me-2 {{ $descuentoTerceraEdad ? 'btn-danger' : 'btn-success' }} {{ $descuentoCuartaEdad ? 'opacity-50' : '' }}"
+                                {{ $descuentoCuartaEdad ? 'disabled' : '' }}
+                                style="{{ $descuentoCuartaEdad ? 'cursor: not-allowed;' : 'cursor: pointer;' }}"
+                                title="{{ $descuentoCuartaEdad ? 'Deshabilitado: ya hay un descuento de 4ta edad aplicado' : 'Descuento para personas de 60-64 años' }}">
+                                <i class="fas fa-user-friends me-1"></i>
+                                {{ $descuentoTerceraEdad ? 'Remover' : 'Aplicar' }} 3ra Edad
+                            </button>
+
+                            <!-- Botón 4ta Edad -->
+                            <button
+                                wire:click="aplicarDescuentoCuartaEdad"
+                                class="btn {{ $descuentoCuartaEdad ? 'btn-danger' : 'btn-success' }} {{ $descuentoTerceraEdad ? 'opacity-50' : '' }}"
+                                {{ $descuentoTerceraEdad ? 'disabled' : '' }}
+                                style="{{ $descuentoTerceraEdad ? 'cursor: not-allowed;' : 'cursor: pointer;' }}"
+                                title="{{ $descuentoTerceraEdad ? 'Deshabilitado: ya hay un descuento de 3ra edad aplicado' : 'Descuento para personas de 65+ años' }}">
+                                <i class="fas fa-user-check me-1"></i>
+                                {{ $descuentoCuartaEdad ? 'Remover' : 'Aplicar' }} 4ta Edad
+                            </button>
+                        </div>
+                        @endif
+
+                        <!-- Totales -->
+                        <div class="flex justify-end mb-4" x-data="{
+                            subtotal: @entangle('subtotal'),
+                            totalIsv: @entangle('totalIsv'),
+                            total: @entangle('total'),
+                            totalDescuentos: @entangle('totalDescuentos'),
+                            isvPorTasa: @entangle('isvPorTasa')
+                        }">
+                            <div class="w-full max-w-xs p-4 bg-gray-100 rounded-lg">
+                                <div class="flex justify-between mb-2">
+                                    <span class="font-semibold">Subtotal:</span>
+                                    <span x-text="'L. ' + parseFloat(subtotal).toFixed(2)">L. {{ number_format($subtotal, 2) }}</span>
+                                </div>
+                                @if($totalDescuentos > 0)
+                                <div class="flex justify-between mb-2 text-success">
+                                    <span class="font-semibold">Descuentos:</span>
+                                    <span x-text="'-L. ' + parseFloat(totalDescuentos).toFixed(2)">-L. {{ number_format($totalDescuentos, 2) }}</span>
+                                </div>
+                                @endif
+                                <div class="flex justify-between mb-2">
+                                    <span class="font-semibold">ISV:</span>
+                                    <span x-text="'L. ' + parseFloat(totalIsv).toFixed(2)">L. {{ number_format($totalIsv, 2) }}</span>
+                                </div>
+                                <hr class="my-2">
+                                <div class="flex justify-between">
+                                    <span class="text-lg font-bold">Total:</span>
+                                    <span class="text-lg font-bold" x-text="'L. ' + parseFloat(total).toFixed(2)">L. {{ number_format($total, 2) }}</span>
+                                </div>
+                            </div>
+                        </div>
                         
                     </div>
                 </div>
