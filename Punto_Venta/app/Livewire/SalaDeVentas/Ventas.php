@@ -1224,7 +1224,8 @@ class Ventas extends Component
                 // Crear descuento unitario para servicio si aplica
                 $descuentoUnitario = $servicio['descuento_unitario_aplicado'] ?? 0;
                 if ($descuentoUnitario > 0) {
-                    Descuento::create([
+                    // TODO: Agregar campo servicio_id a tabla descuentos para servicios
+                    /* Descuento::create([
                         'factura_id' => $factura->id,
                         'producto_id' => null, // NULL porque es servicio
                         'Tipo_descuento' => 'Servicio',
@@ -1232,9 +1233,9 @@ class Ventas extends Component
                         'monto_total' => $descuentoUnitario,
                         'users_id' => Auth::id(),
                         'created_at' => now()
-                    ]);
+                    ]); */
 
-                    Log::info("DEBUG Descuento de servicio creado exitosamente");
+                    Log::info("DEBUG Descuento de servicio omitido (estructura de tabla pendiente)");
                 }
 
                 // Crear descuento de adulto mayor para servicio si aplica
@@ -1248,18 +1249,18 @@ class Ventas extends Component
                     }
                     
                     if ($tipoDescuentoAdultoMayor) {
-                        Descuento::create([
+                        // TODO: Agregar campo servicio_id a tabla descuentos para servicios
+                        /* Descuento::create([
                             'factura_id' => $factura->id,
                             'producto_id' => null,
-                            'servicio_id' => $servicio['servicio_id'],
                             'Tipo_descuento' => $tipoDescuentoAdultoMayor,
                             'monto_unidad' => 0,
                             'monto_total' => $descuentoAdultoMayor,
                             'users_id' => Auth::id(),
                             'created_at' => now()
-                        ]);
+                        ]); */
 
-                        Log::info("DEBUG Descuento de adulto mayor para servicio creado exitosamente");
+                        Log::info("DEBUG Descuento de adulto mayor para servicio omitido (estructura de tabla pendiente)");
                     }
                 }
 
