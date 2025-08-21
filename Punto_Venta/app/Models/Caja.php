@@ -15,15 +15,11 @@ class Caja extends Model
         'tienda_id',
         'users_id',
         'balance',
-        'fecha_apertura',
-        'fecha_cierre',
         'estado_caja',
     ];
 
     protected $casts = [
         'balance' => 'decimal:2',
-        'fecha_apertura' => 'datetime',
-        'fecha_cierre' => 'datetime',
     ];
 
     /**

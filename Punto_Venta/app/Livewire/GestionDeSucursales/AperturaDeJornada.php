@@ -213,7 +213,6 @@ class AperturaDeJornada extends Component
                                 'tienda_id' => $this->tiendaUsuario,
                                 'balance' => $balanceInicial,
                                 'estado_caja' => 1, // Abierta
-                                'fecha_apertura' => now(),
                                 'created_at' => now(),
                                 'updated_at' => now()
                             ]);
@@ -226,7 +225,6 @@ class AperturaDeJornada extends Component
                                 ->where('id', $cajaHoy->id)
                                 ->update([
                                     'balance' => $balanceInicial,
-                                    'fecha_apertura' => now(),
                                     'updated_at' => now()
                                 ]);
 
@@ -240,7 +238,6 @@ class AperturaDeJornada extends Component
                             'tienda_id' => $this->tiendaUsuario,
                             'balance' => $balanceInicial,
                             'estado_caja' => 1, // Abierta
-                            'fecha_apertura' => now(),
                             'created_at' => now(),
                             'updated_at' => now()
                         ]);

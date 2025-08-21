@@ -197,10 +197,7 @@ class CierreDeJornada extends Component
                         'updated_at' => now()
                     ]);
 
-                    // Poner balance de la caja en 0
-                    DB::table('caja')
-                        ->where('id', $caja->id)
-                        ->update(['balance' => 0]);
+                    // NO actualizar el balance - se mantiene como está
                 }
             }
 
@@ -216,7 +213,6 @@ class CierreDeJornada extends Component
                 ->whereIn('id', $cajasAbiertasAdicionales)
                 ->update([
                     'estado_caja' => 2,
-                    'fecha_cierre' => now(), // Agregar fecha de cierre
                     'updated_at' => now()
                 ]);
 

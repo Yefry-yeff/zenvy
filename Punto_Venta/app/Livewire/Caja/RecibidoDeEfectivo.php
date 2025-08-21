@@ -62,11 +62,17 @@ class RecibidoDeEfectivo extends Component
             return;
         }
         
-        $this->cajaActual = DB::table('caja')
-            ->where('users_id', $usuario->id)
-            ->where('tienda_id', $usuario->tienda_id)
-            ->where('estado_caja', 1) // 1 = abierta
-            ->orderBy('created_at', 'desc')
+        // Obtener caja actual con la fecha de apertura más reciente
+        $this->cajaActual = DB::table('caja as c')
+            ->leftJoin('apertura_caja as ac', function($join) {
+                $join->on('c.id', '=', 'ac.caja_id')
+                     ->whereDate('ac.fecha_apertura', today());
+            })
+            ->where('c.users_id', $usuario->id)
+            ->where('c.tienda_id', $usuario->tienda_id)
+            ->where('c.estado_caja', 1) // 1 = abierta
+            ->select('c.*', 'ac.fecha_apertura')
+            ->orderBy('c.created_at', 'desc')
             ->first();
     }
 

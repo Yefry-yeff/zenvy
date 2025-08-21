@@ -48,7 +48,11 @@
                                 <div class="flex items-center justify-between">
                                     <span class="text-sm font-medium text-green-800">Fecha Apertura:</span>
                                     <span class="text-sm text-green-600">
-                                        {{ \Carbon\Carbon::parse($cajaActual->fecha_apertura)->format('d/m/Y H:i') }}
+                                        @if($cajaActual->fecha_apertura)
+                                            {{ \Carbon\Carbon::parse($cajaActual->fecha_apertura)->format('d/m/Y H:i') }}
+                                        @else
+                                            Sin fecha de apertura registrada
+                                        @endif
                                     </span>
                                 </div>
                             </div>

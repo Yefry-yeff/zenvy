@@ -364,8 +364,6 @@ public function seleccionarUsuario($usuarioId)
                     'tienda_id' => $tiendaId,
                     'users_id' => $userId,
                     'balance' => 0.00,
-                    'fecha_apertura' => null,
-                    'fecha_cierre' => null,
                     'estado_caja' => $estadoCaja,
                     'created_at' => now(),
                     'updated_at' => now()
