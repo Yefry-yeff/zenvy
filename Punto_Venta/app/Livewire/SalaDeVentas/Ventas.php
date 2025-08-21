@@ -57,6 +57,7 @@ class Ventas extends Component
 
     // Totales
     public $subtotal = 0;
+    public $subtotalBruto = 0; // Suma de cantidad * precio unitario (sin descuentos)
     public $isv = 15; // Porcentaje de ISV
     public $totalIsv = 0;
     public $total = 0;
@@ -707,12 +708,16 @@ class Ventas extends Component
     public function calcularTotales()
     {
         $this->subtotal = 0;
+        $this->subtotalBruto = 0; // Resetear subtotal bruto
         $this->totalIsv = 0;
         $this->totalDescuentos = 0;
         $isvPorTasa = []; // Agrupamos ISV por tasa
 
         foreach ($this->productosFactura as $index => $producto) {
             $subtotalProducto = $producto['precio'] * $producto['cantidad'];
+            
+            // Acumular subtotal bruto (cantidad * precio unitario sin descuentos)
+            $this->subtotalBruto += $subtotalProducto;
             
             // Aplicar descuento unitario automático del producto primero (valor monetario)
             $descuentoUnitario = $producto['descuento_unitario_aplicado'] ?? 0;

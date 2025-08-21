@@ -413,11 +413,11 @@
                 </div>
             </div>
 
-            <!-- 2. LAYOUT DE DOS COLUMNAS: FACTURA + CATÁLOGO -->
-            <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <!-- 2. LAYOUT DE DOS COLUMNAS: FACTURA (más ancho) + CATÁLOGO (más estrecho) -->
+            <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
                 
-                <!-- 2.1 FACTURA (izquierda) -->
-                <div class="bg-white border border-gray-300 rounded-lg shadow-lg" x-data x-init="$watch('theme', t => localStorage.setItem('theme', t))">
+                <!-- 2.1 FACTURA (izquierda - 2 columnas de espacio) -->
+                <div class="lg:col-span-2 bg-white border border-gray-300 rounded-lg shadow-lg" x-data x-init="$watch('theme', t => localStorage.setItem('theme', t))">
                     <!-- Header -->
                     <div class="flex items-center justify-between px-5 py-3 font-semibold text-white rounded-t"
                         :class="{
@@ -470,9 +470,9 @@
                         <!-- Lista de productos agregados a la factura -->
                         <div class="mb-4">
                             <div class="table-responsive">
-                                <table class="table table-sm table-bordered">
+                                <table class="table table-sm table-bordered" style="font-size: 0.8rem;">
                                     <thead class="table-light">
-                                        <tr>
+                                        <tr style="font-size: 0.75rem;">
                                             <th>Producto/Servicio</th>
                                             <th>Código</th>
                                             <th>Tipo</th>
@@ -484,7 +484,7 @@
                                             <th>Acción</th>
                                         </tr>
                                     </thead>
-                                    <tbody>
+                                    <tbody style="font-size: 0.75rem;">
                                         @forelse($productosFactura as $item)
                                         @php
                                             $subtotalOriginal = $item['precio'] * $item['cantidad'];
@@ -638,30 +638,108 @@
                         <!-- Totales -->
                         <div class="flex justify-end mb-4" x-data="{
                             subtotal: @entangle('subtotal'),
+                            subtotalBruto: @entangle('subtotalBruto'),
                             totalIsv: @entangle('totalIsv'),
                             total: @entangle('total'),
                             totalDescuentos: @entangle('totalDescuentos'),
                             isvPorTasa: @entangle('isvPorTasa')
                         }">
-                            <div class="w-full max-w-xs p-4 bg-gray-100 rounded-lg">
-                                <div class="flex justify-between mb-2">
-                                    <span class="font-semibold">Subtotal:</span>
-                                    <span x-text="'L. ' + parseFloat(subtotal).toFixed(2)">L. {{ number_format($subtotal, 2) }}</span>
+                            <div class="w-full max-w-md p-4 border border-gray-300 rounded-lg bg-gray-50">
+                                <!-- Encabezado -->
+                                <div class="mb-3 text-center">
+                                    <h6 class="mb-0 font-bold text-gray-700">RESUMEN DE FACTURACIÓN</h6>
+                                    <hr class="mt-2">
                                 </div>
+
+                                <!-- Subtotal bruto -->
+                                <div class="flex justify-between mb-2">
+                                    <span class="font-medium text-gray-700">Subtotal bruto:</span>
+                                    <span class="font-medium" x-text="'L. ' + parseFloat(subtotalBruto).toFixed(2)">L. {{ number_format($subtotalBruto, 2) }}</span>
+                                </div>
+
+                                <!-- Desglose de descuentos -->
                                 @if($totalDescuentos > 0)
-                                <div class="flex justify-between mb-2 text-success">
-                                    <span class="font-semibold">Descuentos:</span>
-                                    <span x-text="'-L. ' + parseFloat(totalDescuentos).toFixed(2)">-L. {{ number_format($totalDescuentos, 2) }}</span>
-                                </div>
+                                    <div class="mb-2 border-l-4 border-red-400 pl-3 bg-red-50">
+                                        <div class="flex justify-between mb-1">
+                                            <span class="font-medium text-red-700">
+                                                <i class="fas fa-minus-circle mr-1"></i>
+                                                Total Descuentos:
+                                            </span>
+                                            <span class="font-medium text-red-700" x-text="'-L. ' + parseFloat(totalDescuentos).toFixed(2)">-L. {{ number_format($totalDescuentos, 2) }}</span>
+                                        </div>
+                                        
+                                        <!-- Desglose por tipo de descuento -->
+                                        <div class="ml-2 mt-1 space-y-1">
+                                            @if($descuentoTerceraEdad)
+                                                <div class="flex justify-between text-sm text-red-600">
+                                                    <span class="ml-2">• Descuento tercera edad (25%):</span>
+                                                    <span class="font-medium">Aplicado</span>
+                                                </div>
+                                            @endif
+                                            @if($descuentoCuartaEdad)
+                                                <div class="flex justify-between text-sm text-red-600">
+                                                    <span class="ml-2">• Descuento cuarta edad (35%):</span>
+                                                    <span class="font-medium">Aplicado</span>
+                                                </div>
+                                            @endif
+                                            @if(array_sum(array_column($productosFactura, 'descuento_unitario_aplicado', 0)) > 0)
+                                                <div class="flex justify-between text-sm text-red-600">
+                                                    <span class="ml-2">• Descuentos unitarios:</span>
+                                                    <span class="font-medium">L. {{ number_format(array_sum(array_column($productosFactura, 'descuento_unitario_aplicado', 0)), 2) }}</span>
+                                                </div>
+                                            @endif
+                                        </div>
+                                    </div>
+
+                                    <!-- Subtotal con descuentos -->
+                                    <div class="flex justify-between mb-2 font-medium text-gray-700">
+                                        <span>Subtotal con descuentos:</span>
+                                        <span x-text="'L. ' + parseFloat(subtotal).toFixed(2)">L. {{ number_format($subtotal, 2) }}</span>
+                                    </div>
                                 @endif
-                                <div class="flex justify-between mb-2">
-                                    <span class="font-semibold">ISV:</span>
-                                    <span x-text="'L. ' + parseFloat(totalIsv).toFixed(2)">L. {{ number_format($totalIsv, 2) }}</span>
+
+                                <!-- Desglose del ISV -->
+                                <div class="mb-2 border-l-4 border-blue-400 pl-3 bg-blue-50">
+                                    <div class="flex justify-between mb-1">
+                                        <span class="font-medium text-blue-700">
+                                            <i class="fas fa-plus-circle mr-1"></i>
+                                            Total ISV:
+                                        </span>
+                                        <span class="font-medium text-blue-700" x-text="'L. ' + parseFloat(totalIsv).toFixed(2)">L. {{ number_format($totalIsv, 2) }}</span>
+                                    </div>
+                                    
+                                    <!-- Desglose del ISV por tasa si está disponible -->
+                                    @if(isset($isvPorTasa) && is_array($isvPorTasa) && count($isvPorTasa) > 0)
+                                        @foreach($isvPorTasa as $tasa => $monto)
+                                            <div class="flex justify-between text-sm text-blue-600">
+                                                <span class="ml-4">• ISV {{ $tasa }}%:</span>
+                                                <span>L. {{ number_format($monto, 2) }}</span>
+                                            </div>
+                                        @endforeach
+                                    @else
+                                        <div class="flex justify-between text-sm text-blue-600">
+                                            <span class="ml-4">• ISV 15%:</span>
+                                            <span x-text="'L. ' + parseFloat(totalIsv).toFixed(2)">L. {{ number_format($totalIsv, 2) }}</span>
+                                        </div>
+                                    @endif
                                 </div>
-                                <hr class="my-2">
-                                <div class="flex justify-between">
-                                    <span class="text-lg font-bold">Total:</span>
-                                    <span class="text-lg font-bold" x-text="'L. ' + parseFloat(total).toFixed(2)">L. {{ number_format($total, 2) }}</span>
+
+                                <hr class="my-3 border-gray-400">
+                                
+                                <!-- Total final -->
+                                <div class="flex justify-between p-3 bg-green-100 border border-green-300 rounded">
+                                    <span class="text-xl font-bold text-green-800">
+                                        <i class="fas fa-calculator mr-2"></i>
+                                        TOTAL A PAGAR:
+                                    </span>
+                                    <span class="text-xl font-bold text-green-800" x-text="'L. ' + parseFloat(total).toFixed(2)">L. {{ number_format($total, 2) }}</span>
+                                </div>
+
+                                <!-- Información adicional -->
+                                <div class="mt-3 text-xs text-center text-gray-500">
+                                    @if(count($productosFactura) > 0)
+                                        {{ count($productosFactura) }} artículo(s) en la factura
+                                    @endif
                                 </div>
                             </div>
                         </div>
@@ -669,10 +747,10 @@
                     </div>
                 </div>
 
-                <!-- 2.2 CATÁLOGO (derecha) -->
-                <div class="bg-white border border-gray-300 rounded-lg shadow-lg" x-data x-init="$watch('theme', t => localStorage.setItem('theme', t))">
+                <!-- 2.2 CATÁLOGO VISUAL (derecha - 1 columna de espacio) -->
+                <div class="lg:col-span-1 bg-white border border-gray-300 rounded-lg shadow-lg" x-data x-init="$watch('theme', t => localStorage.setItem('theme', t))">
                     <!-- Header -->
-                    <div class="flex items-center justify-between px-5 py-3 font-semibold text-white rounded-t"
+                    <div class="flex items-center justify-between px-4 py-3 font-semibold text-white rounded-t"
                         :class="{
                             'bg-emerald-600': theme === 'verde',
                             'bg-blue-600': theme === 'azul',
@@ -687,22 +765,22 @@
                     </div>
 
                     <!-- Content -->
-                    <div class="p-4">
+                    <div class="p-3">
                         <!-- Filtros de tipo -->
                         <div class="mb-3 btn-group w-100" role="group">
                             <button type="button" 
                                 wire:click="$set('tipoSeleccion', 'todos')"
-                                class="btn {{ $tipoSeleccion === 'todos' ? 'btn-primary' : 'btn-outline-primary' }}">
+                                class="btn btn-sm {{ $tipoSeleccion === 'todos' ? 'btn-primary' : 'btn-outline-primary' }}">
                                 <i class="fas fa-th me-1"></i>Todos
                             </button>
                             <button type="button" 
                                 wire:click="$set('tipoSeleccion', 'productos')"
-                                class="btn {{ $tipoSeleccion === 'productos' ? 'btn-success' : 'btn-outline-success' }}">
+                                class="btn btn-sm {{ $tipoSeleccion === 'productos' ? 'btn-success' : 'btn-outline-success' }}">
                                 <i class="fas fa-box me-1"></i>Productos
                             </button>
                             <button type="button" 
                                 wire:click="$set('tipoSeleccion', 'servicios')"
-                                class="btn {{ $tipoSeleccion === 'servicios' ? 'btn-info' : 'btn-outline-info' }}">
+                                class="btn btn-sm {{ $tipoSeleccion === 'servicios' ? 'btn-info' : 'btn-outline-info' }}">
                                 <i class="fas fa-concierge-bell me-1"></i>Servicios
                             </button>
                         </div>
@@ -711,18 +789,19 @@
                         <div class="mb-3">
                             <input type="text"
                                 wire:model.live="busquedaProductosServicios"
-                                class="form-control"
+                                class="form-control form-control-sm"
                                 placeholder="Buscar productos y servicios...">
                         </div>
 
-                        <!-- Grid de productos y servicios con scroll -->
-                        <div style="height: 600px; overflow-y: auto;" class="border rounded">
-                            <div class="row p-2">
+                        <!-- Grid de productos y servicios con scroll vertical - SOLO 2 ITEMS POR FILA -->
+                        <div style="height: 650px; overflow-y: auto;" class="border rounded">
+                            <div class="row p-2 g-2">
                                 @php
                                     $items = $this->obtenerProductosYServiciosFiltrados();
                                 @endphp
                                 @foreach($items as $item)
-                                    <div class="mb-3 col-12 col-md-6 col-xl-4">
+                                    <!-- Solo 2 items por fila: col-6 -->
+                                    <div class="col-6">
                                         <div class="border card h-100 position-relative" 
                                              style="cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;"
                                              wire:click="{{ $item->esServicio ? 'agregarServicio' : 'agregarProductoPorClic' }}({{ $item->id }})"
@@ -730,53 +809,49 @@
                                              onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 4px rgba(0,0,0,0.1)';">
                                             
                                             <!-- Badge de tipo -->
-                                            <span class="badge {{ $item->esServicio ? 'bg-info' : 'bg-success' }} position-absolute top-0 start-0 m-2" style="z-index: 10;">
+                                            <span class="badge {{ $item->esServicio ? 'bg-info' : 'bg-success' }} position-absolute top-0 start-0 m-1" style="z-index: 10; font-size: 0.65rem;">
                                                 <i class="fas {{ $item->esServicio ? 'fa-concierge-bell' : 'fa-box' }} me-1"></i>
                                                 {{ $item->esServicio ? 'Servicio' : 'Producto' }}
                                             </span>
                                             
-                                            <!-- Imagen -->
+                                            <!-- Imagen más grande para mejor visualización -->
                                             @php
                                                 $imagenBase64 = $item->esServicio ? $this->getServicioImagen($item->id) : $this->getProductoImagen($item->id);
                                             @endphp
                                             @if($imagenBase64)
                                                 <img src="data:image/jpeg;base64,{{ $imagenBase64 }}" 
                                                      class="card-img-top" 
-                                                     style="height: 120px; object-fit: cover;"
+                                                     style="height: 140px; object-fit: cover;"
                                                      alt="{{ $item->nombre }}">
                                             @else
                                                 <div class="bg-light card-img-top d-flex align-items-center justify-content-center" 
-                                                     style="height: 120px;">
-                                                    <i class="text-muted fas {{ $item->esServicio ? 'fa-concierge-bell' : 'fa-box' }} fa-2x"></i>
+                                                     style="height: 140px;">
+                                                    <i class="text-muted fas {{ $item->esServicio ? 'fa-concierge-bell' : 'fa-box' }} fa-3x"></i>
                                                 </div>
                                             @endif
                                             
                                             <div class="card-body p-2">
-                                                <h6 class="card-title mb-1 fw-bold" style="font-size: 0.85rem;">{{ $item->nombre }}</h6>
+                                                <h6 class="card-title mb-1 fw-bold text-center" style="font-size: 0.8rem; line-height: 1.1;">{{ $item->nombre }}</h6>
                                                 
                                                 @if(!$item->esServicio && !empty($item->codigo_barra))
-                                                    <p class="mb-1 small text-muted" style="font-size: 0.75rem;">
+                                                    <p class="mb-1 text-center small text-muted" style="font-size: 0.7rem;">
                                                         <i class="fas fa-barcode me-1"></i>{{ $item->codigo_barra }}
                                                     </p>
                                                 @endif
                                                 
-                                                <div class="d-flex justify-content-between align-items-center">
-                                                    <div>
-                                                        <span class="text-success fw-bold" style="font-size: 0.85rem;">
+                                                <div class="text-center">
+                                                    <div class="mb-1">
+                                                        <span class="text-success fw-bold" style="font-size: 0.9rem;">
                                                             L. {{ number_format($item->precio_base, 2) }}
                                                         </span>
-                                                        @if(!$item->esServicio)
-                                                            <br><small class="text-muted" style="font-size: 0.7rem;">
+                                                    </div>
+                                                    @if(!$item->esServicio)
+                                                        <div class="mb-2">
+                                                            <small class="text-muted" style="font-size: 0.7rem;">
                                                                 Stock: {{ $item->stockDisponible ?? 0 }}
                                                             </small>
-                                                        @endif
-                                                    </div>
-                                                    <button type="button"
-                                                        class="btn {{ $item->esServicio ? 'btn-info' : 'btn-success' }} btn-sm"
-                                                        onclick="event.stopPropagation();"
-                                                        wire:click="{{ $item->esServicio ? 'agregarServicio' : 'agregarProductoPorClic' }}({{ $item->id }})">
-                                                        <i class="fas fa-plus"></i>
-                                                    </button>
+                                                        </div>
+                                                    @endif
                                                 </div>
                                             </div>
                                         </div>
