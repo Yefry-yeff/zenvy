@@ -673,27 +673,49 @@ class Ventas extends Component
             return;
         }
 
-        // Validar stock con la nueva cantidad total
-        $productoId = $this->productosFactura[$index]['id'];
-        $stockTotal = $this->obtenerStockTotal($productoId);
+        // Obtener el item actual
+        $item = $this->productosFactura[$index];
+        
+        // Solo validar stock si es un producto (no servicio)
+        $esServicio = isset($item['servicio_id']) && $item['servicio_id'] !== null;
+        
+        if (!$esServicio) {
+            // Validar stock con la nueva cantidad total
+            $productoId = $item['id'];
+            $stockTotal = $this->obtenerStockTotal($productoId);
 
-        // Calcular cuánto hay en el carrito SIN incluir este item que estamos modificando
-        $cantidadEnCarritoSinEsteItem = 0;
-        foreach ($this->productosFactura as $i => $item) {
-            if ($item['id'] == $productoId && $i != $index) {
-                $cantidadEnCarritoSinEsteItem += $item['cantidad'];
+            // Calcular cuánto hay en el carrito SIN incluir este item que estamos modificando
+            $cantidadEnCarritoSinEsteItem = 0;
+            foreach ($this->productosFactura as $i => $itemCarrito) {
+                if ($itemCarrito['id'] == $productoId && $i != $index) {
+                    $cantidadEnCarritoSinEsteItem += $itemCarrito['cantidad'];
+                }
+            }
+
+            // La nueva cantidad total sería: cantidad en carrito (sin este item) + nueva cantidad de este item
+            $nuevaCantidadTotal = $cantidadEnCarritoSinEsteItem + $nuevaCantidad;
+
+            if ($nuevaCantidadTotal > $stockTotal) {
+                $this->dispatch('mostrar-sin-stock');
+                return;
             }
         }
 
-        // La nueva cantidad total sería: cantidad en carrito (sin este item) + nueva cantidad de este item
-        $nuevaCantidadTotal = $cantidadEnCarritoSinEsteItem + $nuevaCantidad;
-
-        if ($nuevaCantidadTotal > $stockTotal) {
-            $this->dispatch('mostrar-sin-stock');
-            return;
-        }
-
+        // Actualizar la cantidad
         $this->productosFactura[$index]['cantidad'] = $nuevaCantidad;
+        
+        // Recalcular el descuento unitario aplicado con la nueva cantidad
+        $descuentoUnitarioProducto = $item['descuento_unitario_producto'] ?? 0;
+        if ($descuentoUnitarioProducto > 0) {
+            $this->productosFactura[$index]['descuento_unitario_aplicado'] = $descuentoUnitarioProducto * $nuevaCantidad;
+        }
+        
+        // Recalcular subtotal con descuento para este item
+        $subtotalOriginal = $item['precio'] * $nuevaCantidad;
+        $descuentoUnitarioAplicado = $this->productosFactura[$index]['descuento_unitario_aplicado'] ?? 0;
+        $this->productosFactura[$index]['subtotal_con_descuento'] = $subtotalOriginal - $descuentoUnitarioAplicado;
+        
+        // Recalcular todos los totales
         $this->calcularTotales();
     }
 

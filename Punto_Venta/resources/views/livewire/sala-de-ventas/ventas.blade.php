@@ -487,11 +487,23 @@
                                     <tbody style="font-size: 0.65rem;" class="text-center">
                                         @forelse($productosFactura as $item)
                                         @php
+                                            // Cálculo base: cantidad × precio unitario
                                             $subtotalOriginal = $item['precio'] * $item['cantidad'];
-                                            $descuentoAplicado = $item['descuento_aplicado'] ?? 0; // Descuento por edad
-                                            $descuentoUnitario = $item['descuento_unitario_aplicado'] ?? 0; // Descuento automático del producto
-                                            $subtotalConDescuento = $item['subtotal_con_descuento'] ?? $subtotalOriginal;
+                                            
+                                            // Descuentos aplicados
+                                            $descuentoAplicado = $item['descuento_aplicado'] ?? 0; // Descuento por edad (total)
+                                            $descuentoUnitarioBase = $item['descuento_unitario_producto'] ?? 0; // Descuento por unidad base
+                                            
+                                            // El descuento unitario se aplica POR CADA CANTIDAD
+                                            $descuentoUnitarioTotal = $descuentoUnitarioBase * $item['cantidad'];
+                                            
+                                            // Subtotal después de todos los descuentos
+                                            $subtotalConDescuento = $subtotalOriginal - $descuentoUnitarioTotal - $descuentoAplicado;
+                                            
+                                            // ISV se calcula sobre el subtotal neto (después de descuentos)
                                             $isv = $subtotalConDescuento * ($item['isv']/100);
+                                            
+                                            // Total final: subtotal neto + ISV
                                             $total = $subtotalConDescuento + $isv;
                                             
                                             // Determinar si es producto o servicio
@@ -501,10 +513,10 @@
                                         <tr class="{{ $esServicio ? 'table-info' : '' }}">
                                             <td>
                                                 {{ $item['nombre'] }}
-                                                @if($descuentoUnitario > 0)
+                                                @if($descuentoUnitarioBase > 0)
                                                     <br><small class="text-success">
                                                         <i class="fas fa-tag"></i>
-                                                        Descuento de {{ $esServicio ? 'servicio' : 'producto' }}: L. {{ number_format($descuentoUnitario, 2) }}
+                                                        Descuento {{ $esServicio ? 'servicio' : 'producto' }}: L. {{ number_format($descuentoUnitarioBase, 2) }} por unidad
                                                     </small>
                                                 @endif
                                                 @if($descuentoAplicado > 0)
@@ -565,9 +577,9 @@
                                                     <div class="text-success small">-L. {{ number_format($descuentosGuardados[$item['servicio_id']]['monto_total'], 2) }} (servicio)</div>
                                                 @elseif(!$esServicio && isset($descuentosGuardados[$item['id']]))
                                                     <div class="text-success small">-L. {{ number_format($descuentosGuardados[$item['id']]['monto_total'], 2) }} (producto)</div>
-                                                @elseif($descuentoUnitario > 0)
-                                                    <!-- Si no hay descuentos guardados, mostrar descuento temporal -->
-                                                    <div class="text-success small">-L. {{ number_format($descuentoUnitario, 2) }} ({{ $esServicio ? 'servicio' : 'producto' }})</div>
+                                                @elseif($descuentoUnitarioBase > 0)
+                                                    <!-- Mostrar descuento unitario × cantidad -->
+                                                    <div class="text-success small">-L. {{ number_format($descuentoUnitarioBase, 2) }} × {{ $item['cantidad'] }} = -L. {{ number_format($descuentoUnitarioTotal, 2) }} ({{ $esServicio ? 'servicio' : 'producto' }})</div>
                                                 @endif
                                                 
                                                 <!-- Mostrar descuento de tercera/cuarta edad después -->
@@ -576,7 +588,7 @@
                                                 @endif
                                                 
                                                 <!-- Mostrar subtotal final con descuentos aplicados si hay descuentos -->
-                                                @if($descuentoUnitario > 0 || $descuentoAplicado > 0 || 
+                                                @if($descuentoUnitarioTotal > 0 || $descuentoAplicado > 0 || 
                                                     ($esServicio && isset($descuentosGuardados[$item['servicio_id']])) || 
                                                     (!$esServicio && isset($descuentosGuardados[$item['id']])))
                                                     <div class="text-success fw-bold border-top pt-1 mt-1">L. {{ number_format($subtotalConDescuento, 2) }}</div>
