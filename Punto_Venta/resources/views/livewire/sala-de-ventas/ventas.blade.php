@@ -470,9 +470,9 @@
                         <!-- Lista de productos agregados a la factura -->
                         <div class="mb-4">
                             <div class="table-responsive">
-                                <table class="table table-sm table-bordered" style="font-size: 0.8rem;">
+                                <table class="table table-sm table-bordered text-center" style="font-size: 0.7rem;">
                                     <thead class="table-light">
-                                        <tr style="font-size: 0.75rem;">
+                                        <tr style="font-size: 0.65rem;">
                                             <th>Producto/Servicio</th>
                                             <th>Código</th>
                                             <th>Tipo</th>
@@ -484,7 +484,7 @@
                                             <th>Acción</th>
                                         </tr>
                                     </thead>
-                                    <tbody style="font-size: 0.75rem;">
+                                    <tbody style="font-size: 0.65rem;" class="text-center">
                                         @forelse($productosFactura as $item)
                                         @php
                                             $subtotalOriginal = $item['precio'] * $item['cantidad'];
@@ -699,30 +699,34 @@
                                 @endif
 
                                 <!-- Desglose del ISV -->
-                                <div class="mb-2 border-l-4 border-blue-400 pl-3 bg-blue-50">
-                                    <div class="flex justify-between mb-1">
-                                        <span class="font-medium text-blue-700">
-                                            <i class="fas fa-plus-circle mr-1"></i>
-                                            Total ISV:
-                                        </span>
-                                        <span class="font-medium text-blue-700" x-text="'L. ' + parseFloat(totalIsv).toFixed(2)">L. {{ number_format($totalIsv, 2) }}</span>
-                                    </div>
-                                    
-                                    <!-- Desglose del ISV por tasa si está disponible -->
-                                    @if(isset($isvPorTasa) && is_array($isvPorTasa) && count($isvPorTasa) > 0)
-                                        @foreach($isvPorTasa as $tasa => $monto)
-                                            <div class="flex justify-between text-sm text-blue-600">
-                                                <span class="ml-4">• ISV {{ $tasa }}%:</span>
-                                                <span>L. {{ number_format($monto, 2) }}</span>
-                                            </div>
-                                        @endforeach
-                                    @else
-                                        <div class="flex justify-between text-sm text-blue-600">
-                                            <span class="ml-4">• ISV 15%:</span>
-                                            <span x-text="'L. ' + parseFloat(totalIsv).toFixed(2)">L. {{ number_format($totalIsv, 2) }}</span>
+                                @if($totalIsv > 0)
+                                    <div class="mb-2 border-l-4 border-blue-400 pl-3 bg-blue-50">
+                                        <div class="flex justify-between mb-1">
+                                            <span class="font-medium text-blue-700">
+                                                <i class="fas fa-plus-circle mr-1"></i>
+                                                Total ISV:
+                                            </span>
+                                            <span class="font-medium text-blue-700" x-text="'L. ' + parseFloat(totalIsv).toFixed(2)">L. {{ number_format($totalIsv, 2) }}</span>
                                         </div>
-                                    @endif
-                                </div>
+                                        
+                                        <!-- Desglose del ISV por tasa si está disponible -->
+                                        @if(isset($isvPorTasa) && is_array($isvPorTasa) && count($isvPorTasa) > 0)
+                                            @foreach($isvPorTasa as $tasa => $monto)
+                                                @if($monto > 0)
+                                                    <div class="flex justify-between text-sm text-blue-600">
+                                                        <span class="ml-4">• ISV {{ $tasa }}%:</span>
+                                                        <span>L. {{ number_format($monto, 2) }}</span>
+                                                    </div>
+                                                @endif
+                                            @endforeach
+                                        @else
+                                            <div class="flex justify-between text-sm text-blue-600">
+                                                <span class="ml-4">• ISV 15%:</span>
+                                                <span x-text="'L. ' + parseFloat(totalIsv).toFixed(2)">L. {{ number_format($totalIsv, 2) }}</span>
+                                            </div>
+                                        @endif
+                                    </div>
+                                @endif
 
                                 <hr class="my-3 border-gray-400">
                                 
@@ -743,6 +747,19 @@
                                 </div>
                             </div>
                         </div>
+
+                        <!-- Botón Procesar Factura -->
+                        @if(count($productosFactura) > 0)
+                        <div class="mt-4 text-center">
+                            <button type="button" 
+                                wire:click="mostrarModalPago"
+                                class="btn btn-primary btn-lg px-5 py-3"
+                                style="font-size: 1.1rem; font-weight: 600;">
+                                <i class="fas fa-file-invoice-dollar me-2"></i>
+                                Procesar Factura
+                            </button>
+                        </div>
+                        @endif
                         
                     </div>
                 </div>
@@ -873,4 +890,121 @@
 
         </div> <!-- End contenedor principal -->
     @endif <!-- End if cliente -->
+
+    <!-- Modal de Pago -->
+    @if($mostrarModalPagoFlag)
+        <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="fas fa-credit-card me-2"></i>
+                            Seleccionar Método de Pago
+                        </h5>
+                        <button type="button" class="btn-close" wire:click="cerrarModalPago"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <button type="button" 
+                                    wire:click="procesarSoloEfectivo"
+                                    class="btn btn-success btn-lg w-100 p-4">
+                                    <i class="fas fa-money-bill-wave fa-2x mb-2"></i>
+                                    <br>Solo Efectivo
+                                </button>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <button type="button" 
+                                    wire:click="procesarSoloTarjeta"
+                                    class="btn btn-primary btn-lg w-100 p-4">
+                                    <i class="fas fa-credit-card fa-2x mb-2"></i>
+                                    <br>Solo Tarjeta
+                                </button>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <button type="button" 
+                                    wire:click="procesarPagoMixto"
+                                    class="btn btn-warning btn-lg w-100 p-4">
+                                    <i class="fas fa-coins fa-2x mb-2"></i>
+                                    <br>Mixto
+                                </button>
+                            </div>
+                        </div>
+                        <div class="mt-4 p-3 bg-light rounded">
+                            <h6 class="mb-2">Resumen de la Venta:</h6>
+                            <div class="d-flex justify-content-between">
+                                <span>Total a Pagar:</span>
+                                <span class="fw-bold fs-5 text-success">L. {{ number_format($total, 2) }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    <!-- Modal de Descuento Adulto Mayor -->
+    @if($mostrarModalDescuentoAdulto)
+        <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="fas fa-user-friends me-2"></i>
+                            Descuento Adulto Mayor
+                        </h5>
+                        <button type="button" class="btn-close" wire:click="$set('mostrarModalDescuentoAdulto', false)"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="mb-3">Por favor, proporcione los datos del cliente para aplicar el descuento:</p>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Nombre Completo *</label>
+                            <input type="text" 
+                                class="form-control" 
+                                wire:model="nombreAdulto"
+                                placeholder="Ingrese el nombre completo">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Número de Identidad *</label>
+                            <input type="text" 
+                                class="form-control" 
+                                wire:model="dniAdulto"
+                                placeholder="Ingrese el número de identidad">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Edad *</label>
+                            <input type="number" 
+                                class="form-control" 
+                                wire:model="edadAdulto"
+                                placeholder="Ingrese la edad"
+                                min="60">
+                        </div>
+
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Información:</strong>
+                            <br>• Tercera edad (60-64 años): 25% de descuento
+                            <br>• Cuarta edad (65+ años): 35% de descuento
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" 
+                            class="btn btn-secondary" 
+                            wire:click="$set('mostrarModalDescuentoAdulto', false)">
+                            Cancelar
+                        </button>
+                        <button type="button" 
+                            class="btn btn-success" 
+                            wire:click="confirmarDescuentoAdulto">
+                            Aplicar Descuento
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
+
 </div>
