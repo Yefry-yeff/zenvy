@@ -13,6 +13,7 @@ class CierreDeCaja extends Component
     public $cajaActual = null;
     public $transaccionesDia = [];
     public $resumenTransacciones = [];
+    public $desglose_entradas = [];
     
     // Billetes
     public $billetes_500 = 0;
@@ -150,6 +151,56 @@ class CierreDeCaja extends Component
         ];
 
         $this->totalSistema = $this->cajaActual->balance ?? 0;
+        
+        // Calcular desglose de entradas
+        $this->calcularDesgloseEntradas();
+    }
+
+    public function calcularDesgloseEntradas()
+    {
+        if (!$this->cajaActual) return;
+
+        $fechaHoy = Carbon::today();
+        
+        // Obtener desglose por tipo de transacción con efectivo positivo
+        $desglose = DB::table('transaccion')
+            ->where('caja_id', $this->cajaActual->id)
+            ->whereDate('created_at', $fechaHoy)
+            ->where('transaccion', '!=', 'apertura_caja')
+            ->where('efectivo', '>', 0)
+            ->selectRaw('
+                transaccion as tipo,
+                SUM(efectivo) as total,
+                COUNT(*) as cantidad
+            ')
+            ->groupBy('transaccion')
+            ->orderBy('total', 'desc')
+            ->get();
+
+        $this->desglose_entradas = $desglose->map(function($item) {
+            return [
+                'tipo' => $this->formatearTipoTransaccion($item->tipo),
+                'total' => $item->total,
+                'cantidad' => $item->cantidad,
+                'tipo_original' => $item->tipo
+            ];
+        })->toArray();
+    }
+
+    private function formatearTipoTransaccion($tipo)
+    {
+        $formatos = [
+            'venta' => '🛒 Ventas',
+            'deposito' => '💰 Depósitos',
+            'ingreso_otro' => '📈 Otros Ingresos',
+            'devolucion' => '↩️ Devoluciones',
+            'ajuste_positivo' => '➕ Ajustes (+)',
+            'entrada_efectivo' => '💵 Entrada Efectivo',
+            'pago_recibido' => '💳 Pagos Recibidos',
+            'default' => '📋 ' . ucfirst(str_replace('_', ' ', $tipo))
+        ];
+
+        return $formatos[$tipo] ?? $formatos['default'];
     }
 
     public function calcularTotalContado()

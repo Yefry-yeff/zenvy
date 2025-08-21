@@ -109,7 +109,47 @@
                             </div>
 
                             <div class="p-4 border border-green-200 rounded-lg bg-green-50">
-                                <h3 class="mb-2 text-sm font-semibold text-green-800">💰 Efectivo</h3>
+                                <h3 class="mb-3 text-sm font-semibold text-green-800">💰 Efectivo</h3>
+                                
+                                <!-- Desglose de Entradas -->
+                                @if(count($desglose_entradas) > 0)
+                                    <div class="mb-3">
+                                        <div class="flex items-center justify-between mb-2">
+                                            <span class="text-xs font-medium text-green-700">📊 Desglose Entradas:</span>
+                                            <button class="text-xs text-green-600 hover:text-green-800" 
+                                                    x-data="{ show: false }" 
+                                                    @click="show = !show">
+                                                <span x-text="show ? 'Ocultar' : 'Ver detalles'"></span>
+                                            </button>
+                                        </div>
+                                        
+                                        <div x-data="{ show: false }" class="space-y-1">
+                                            <div @click="show = !show" class="cursor-pointer">
+                                                <div class="flex justify-between p-2 text-xs bg-white rounded border-green-100 border">
+                                                    <span class="text-green-700">Total Entradas:</span>
+                                                    <div class="flex items-center">
+                                                        <span class="font-medium text-green-800">L.{{ number_format($resumenTransacciones['efectivo_entrada'] ?? 0, 2) }}</span>
+                                                        <svg class="w-3 h-3 ml-1 text-green-600" :class="{ 'rotate-180': show }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                                        </svg>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            <div x-show="show" x-collapse>
+                                                <div class="ml-2 space-y-1">
+                                                    @foreach($desglose_entradas as $entrada)
+                                                        <div class="flex justify-between py-1 px-2 text-xs bg-green-25 rounded border-l-2 border-green-300">
+                                                            <span class="text-green-600">{{ $entrada['tipo'] }} ({{ $entrada['cantidad'] }})</span>
+                                                            <span class="font-medium text-green-700">L.{{ number_format($entrada['total'], 2) }}</span>
+                                                        </div>
+                                                    @endforeach
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                @endif
+                                
                                 <div class="space-y-1 text-sm">
                                     <div class="flex justify-between">
                                         <span class="text-green-700">Entradas:</span>
