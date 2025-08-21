@@ -142,24 +142,32 @@ class CierreDeCaja extends Component
 
     public function calcularTotalContado()
     {
+        // Función helper para convertir valores de forma segura
+        $safeFloat = function($value) {
+            if (is_numeric($value)) {
+                return floatval($value);
+            }
+            return 0.0;
+        };
+
         $totalBilletes = 
-            (floatval($this->billetes_500) * 500) +
-            (floatval($this->billetes_200) * 200) +
-            (floatval($this->billetes_100) * 100) +
-            (floatval($this->billetes_50) * 50) +
-            (floatval($this->billetes_20) * 20) +
-            (floatval($this->billetes_10) * 10) +
-            (floatval($this->billetes_5) * 5) +
-            (floatval($this->billetes_2) * 2) +
-            (floatval($this->billetes_1) * 1);
+            ($safeFloat($this->billetes_500) * 500) +
+            ($safeFloat($this->billetes_200) * 200) +
+            ($safeFloat($this->billetes_100) * 100) +
+            ($safeFloat($this->billetes_50) * 50) +
+            ($safeFloat($this->billetes_20) * 20) +
+            ($safeFloat($this->billetes_10) * 10) +
+            ($safeFloat($this->billetes_5) * 5) +
+            ($safeFloat($this->billetes_2) * 2) +
+            ($safeFloat($this->billetes_1) * 1);
 
         $totalMonedas = 
-            (floatval($this->monedas_0_50) * 0.50) +
-            (floatval($this->monedas_0_20) * 0.20) +
-            (floatval($this->monedas_0_10) * 0.10) +
-            (floatval($this->monedas_0_05) * 0.05) +
-            (floatval($this->monedas_0_02) * 0.02) +
-            (floatval($this->monedas_0_01) * 0.01);
+            ($safeFloat($this->monedas_0_50) * 0.50) +
+            ($safeFloat($this->monedas_0_20) * 0.20) +
+            ($safeFloat($this->monedas_0_10) * 0.10) +
+            ($safeFloat($this->monedas_0_05) * 0.05) +
+            ($safeFloat($this->monedas_0_02) * 0.02) +
+            ($safeFloat($this->monedas_0_01) * 0.01);
 
         $this->totalContado = $totalBilletes + $totalMonedas;
         $this->diferenciaEfectivo = $this->totalContado - $this->totalSistema;
@@ -167,8 +175,16 @@ class CierreDeCaja extends Component
 
     public function updated($propertyName)
     {
-        // Recalcular cuando se actualicen los campos de billetes/monedas
+        // Validar y limpiar valores de billetes y monedas
         if (str_contains($propertyName, 'billetes_') || str_contains($propertyName, 'monedas_')) {
+            // Asegurar que el valor sea numérico válido
+            $value = $this->$propertyName;
+            if (!is_numeric($value) || $value < 0) {
+                $this->$propertyName = 0;
+            } else {
+                $this->$propertyName = intval($value); // Para billetes/monedas debe ser entero
+            }
+            
             $this->calcularTotalContado();
         }
     }

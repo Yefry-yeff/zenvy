@@ -200,12 +200,13 @@
                                         <input wire:model.live="{{ $billete['model'] }}"
                                                type="number"
                                                min="0"
+                                               value="{{ $this->{$billete['model']} ?? 0 }}"
                                                placeholder="0"
                                                @if($cierreProcesado) disabled @endif
                                                class="w-20 px-3 py-2 border border-gray-300 rounded-lg text-center font-semibold {{ $cierreProcesado ? 'bg-gray-100' : 'focus:ring-2 focus:ring-green-500 focus:border-green-500' }}">
                                         <div class="text-gray-600">=</div>
                                         <div class="text-right font-bold text-green-600 min-w-[80px]">
-                                            L.{{ number_format($this->{$billete['model']} * $billete['value'], 2) }}
+                                            L.{{ number_format(is_numeric($this->{$billete['model']}) ? ($this->{$billete['model']} * $billete['value']) : 0, 2) }}
                                         </div>
                                     </div>
                                 @endforeach
@@ -236,12 +237,13 @@
                                         <input wire:model.live="{{ $moneda['model'] }}"
                                                type="number"
                                                min="0"
+                                               value="{{ $this->{$moneda['model']} ?? 0 }}"
                                                placeholder="0"
                                                @if($cierreProcesado) disabled @endif
                                                class="w-20 px-3 py-2 border border-gray-300 rounded-lg text-center font-semibold {{ $cierreProcesado ? 'bg-gray-100' : 'focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500' }}">
                                         <div class="text-gray-600">=</div>
                                         <div class="text-right font-bold text-yellow-600 min-w-[80px]">
-                                            L.{{ number_format($this->{$moneda['model']} * $moneda['value'], 2) }}
+                                            L.{{ number_format(is_numeric($this->{$moneda['model']}) ? ($this->{$moneda['model']} * $moneda['value']) : 0, 2) }}
                                         </div>
                                     </div>
                                 @endforeach
