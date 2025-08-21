@@ -510,7 +510,7 @@
                                             $esServicio = isset($item['servicio_id']) && $item['servicio_id'] !== null;
                                             $stockDisponible = $esServicio ? null : $this->obtenerStockDisponible($item['id']);
                                         @endphp
-                                        <tr class="{{ $esServicio ? 'table-info' : '' }}">
+                                        <tr class="{{ $esServicio ? 'table-info' : '' }}" wire:key="item-{{ $loop->index }}-{{ $item['cantidad'] }}">
                                             <td>
                                                 {{ $item['nombre'] }}
                                                 @if(!$esServicio)
@@ -539,6 +539,7 @@
                                                 @if($esServicio)
                                                     <!-- Para servicios, cantidad editable sin restricción de stock -->
                                                     <input type="number"
+                                                        wire:key="servicio-{{ $loop->index }}-{{ $item['cantidad'] }}"
                                                         wire:change="modificarCantidad({{ $loop->index }}, $event.target.value)"
                                                         value="{{ $item['cantidad'] }}"
                                                         min="1"
@@ -547,6 +548,7 @@
                                                 @else
                                                     <!-- Para productos, cantidad limitada por stock -->
                                                     <input type="number"
+                                                        wire:key="producto-{{ $loop->index }}-{{ $item['cantidad'] }}"
                                                         wire:change="modificarCantidad({{ $loop->index }}, $event.target.value)"
                                                         value="{{ $item['cantidad'] }}"
                                                         min="1"

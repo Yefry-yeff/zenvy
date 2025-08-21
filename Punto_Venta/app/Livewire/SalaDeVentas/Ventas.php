@@ -300,7 +300,21 @@ class Ventas extends Component
         $servicioExistente = false;
         foreach ($this->productosFactura as $index => $item) {
             if (isset($item['servicio_id']) && $item['servicio_id'] == $servicio->id) {
-                $this->productosFactura[$index]['cantidad'] += 1;
+                // Aumentar la cantidad
+                $nuevaCantidad = $this->productosFactura[$index]['cantidad'] + 1;
+                $this->productosFactura[$index]['cantidad'] = $nuevaCantidad;
+                
+                // Recalcular el descuento unitario aplicado con la nueva cantidad
+                $descuentoUnitarioProducto = $item['descuento_unitario_producto'] ?? 0;
+                if ($descuentoUnitarioProducto > 0) {
+                    $this->productosFactura[$index]['descuento_unitario_aplicado'] = $descuentoUnitarioProducto * $nuevaCantidad;
+                }
+                
+                // Recalcular subtotal con descuento para este item
+                $subtotalOriginal = $item['precio'] * $nuevaCantidad;
+                $descuentoUnitarioAplicado = $this->productosFactura[$index]['descuento_unitario_aplicado'] ?? 0;
+                $this->productosFactura[$index]['subtotal_con_descuento'] = $subtotalOriginal - $descuentoUnitarioAplicado;
+                
                 $servicioExistente = true;
                 break;
             }
@@ -342,6 +356,9 @@ class Ventas extends Component
         }
 
         $this->calcularTotales();
+        
+        // Forzar actualización de la vista
+        $this->dispatch('$refresh');
     }
 
     #[On('enfocar-codigo-barras')]
@@ -604,8 +621,21 @@ class Ventas extends Component
         $productoExistente = false;
         foreach ($this->productosFactura as $index => $item) {
             if ($item['id'] == $producto->id) {
+                // Actualizar la cantidad
                 $cantidadTotal = $item['cantidad'] + $this->cantidad;
                 $this->productosFactura[$index]['cantidad'] = $cantidadTotal;
+                
+                // Recalcular el descuento unitario aplicado con la nueva cantidad
+                $descuentoUnitarioProducto = $item['descuento_unitario_producto'] ?? 0;
+                if ($descuentoUnitarioProducto > 0) {
+                    $this->productosFactura[$index]['descuento_unitario_aplicado'] = $descuentoUnitarioProducto * $cantidadTotal;
+                }
+                
+                // Recalcular subtotal con descuento para este item
+                $subtotalOriginal = $item['precio'] * $cantidadTotal;
+                $descuentoUnitarioAplicado = $this->productosFactura[$index]['descuento_unitario_aplicado'] ?? 0;
+                $this->productosFactura[$index]['subtotal_con_descuento'] = $subtotalOriginal - $descuentoUnitarioAplicado;
+                
                 $productoExistente = true;
                 break;
             }
@@ -656,6 +686,9 @@ class Ventas extends Component
         ]);
 
         $this->calcularTotales();
+        
+        // Forzar actualización de la vista
+        $this->dispatch('$refresh');
     }
 
     public function eliminarProducto($index)
@@ -717,6 +750,9 @@ class Ventas extends Component
         
         // Recalcular todos los totales
         $this->calcularTotales();
+        
+        // Forzar actualización de la vista
+        $this->dispatch('$refresh');
     }
 
     public function toggleProductosServicios()
@@ -2686,6 +2722,10 @@ class Ventas extends Component
                 return;
             }
 
+            // Log para debug
+            Log::info("agregarProductoPorClic - ProductoId: {$productoId}, Cantidad actual: {$this->cantidad}");
+            Log::info("Productos en factura antes: ", $this->productosFactura);
+
             // Verificar stock disponible
             $stockDisponible = $this->obtenerStockDisponible($producto->id);
             if ($stockDisponible <= 0) {
@@ -2697,12 +2737,33 @@ class Ventas extends Component
             $productoExistente = false;
             foreach ($this->productosFactura as $index => $item) {
                 if (!isset($item['servicio_id']) && $item['id'] == $producto->id) {
+                    // Log para debug
+                    Log::info("Producto existente encontrado en índice {$index}, cantidad actual: {$item['cantidad']}");
+                    
                     // Verificar que no exceda el stock
-                    if ($this->productosFactura[$index]['cantidad'] >= $stockDisponible) {
+                    $nuevaCantidad = $this->productosFactura[$index]['cantidad'] + $this->cantidad;
+                    Log::info("Nueva cantidad será: {$nuevaCantidad}, stock disponible: {$stockDisponible}");
+                    
+                    if ($nuevaCantidad > $stockDisponible) {
                         $this->dispatch('mostrar-error', ['mensaje' => 'No se puede agregar más cantidad. Stock limitado a: ' . $stockDisponible]);
                         return;
                     }
-                    $this->productosFactura[$index]['cantidad'] += $this->cantidad;
+                    
+                    // Actualizar la cantidad
+                    $this->productosFactura[$index]['cantidad'] = $nuevaCantidad;
+                    
+                    // Recalcular el descuento unitario aplicado con la nueva cantidad
+                    $descuentoUnitarioProducto = $item['descuento_unitario_producto'] ?? 0;
+                    if ($descuentoUnitarioProducto > 0) {
+                        $this->productosFactura[$index]['descuento_unitario_aplicado'] = $descuentoUnitarioProducto * $nuevaCantidad;
+                    }
+                    
+                    // Recalcular subtotal con descuento para este item
+                    $subtotalOriginal = $item['precio'] * $nuevaCantidad;
+                    $descuentoUnitarioAplicado = $this->productosFactura[$index]['descuento_unitario_aplicado'] ?? 0;
+                    $this->productosFactura[$index]['subtotal_con_descuento'] = $subtotalOriginal - $descuentoUnitarioAplicado;
+                    
+                    Log::info("Cantidad actualizada a: {$nuevaCantidad}");
                     $productoExistente = true;
                     break;
                 }
@@ -2746,6 +2807,10 @@ class Ventas extends Component
             }
 
             $this->calcularTotales();
+            
+            // Forzar actualización de la vista
+            $this->dispatch('$refresh');
+            
             $this->codigoBarras = ''; // Limpiar código de barras
             
         } catch (\Exception $e) {
