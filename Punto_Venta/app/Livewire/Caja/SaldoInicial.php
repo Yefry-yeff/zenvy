@@ -219,9 +219,9 @@ class SaldoInicial extends Component
             DB::table('transaccion')->insert([
                 'caja_id' => $cajaId,
                 'transaccion' => 'apertura_caja',
-                'efectivo' => $balanceExistente,
-                'tarjeta' => 0,
-                'cheque' => 0,
+                'efectivo' => 0.00,
+                'tarjeta' => 0.00,
+                'cheque' => 0.00,
                 'descripcion' => $this->descripcion ?: 'Apertura de caja',
                 'created_at' => now(),
                 'update_at' => now()

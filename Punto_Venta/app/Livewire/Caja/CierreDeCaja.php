@@ -318,6 +318,24 @@ class CierreDeCaja extends Component
                     'updated_at' => now()
                 ]);
 
+            // Registrar transacción de cierre de caja con los montos recepcionados
+            $fechaAhora = now();
+            
+            // Crear una sola transacción de cierre con todos los montos (incluye 0s)
+            $transaccionCierre = [
+                'caja_id' => $this->cajaActual->id,
+                'transaccion' => 'cierre',
+                'efectivo' => $this->safeFloat($this->totalContado) ?: 0.00,
+                'tarjeta' => $this->safeFloat($this->resumenTransacciones['tarjeta']) ?: 0.00,
+                'cheque' => $this->safeFloat($this->resumenTransacciones['cheque']) ?: 0.00,
+                'descripcion' => 'Cierre de caja - Montos recepcionados',
+                'created_at' => $fechaAhora,
+                'update_at' => $fechaAhora
+            ];
+
+            // Insertar la transacción de cierre
+            DB::table('transaccion')->insert($transaccionCierre);
+
             DB::commit();
 
             // Recargar datos de caja para mostrar el nuevo estado
