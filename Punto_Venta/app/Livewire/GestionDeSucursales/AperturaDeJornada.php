@@ -73,6 +73,8 @@ class AperturaDeJornada extends Component
                 return;
             }
 
+            // COMENTADO: Permitir múltiples aperturas/cierres en el mismo día
+            /*
             // 2. Verificar si existe algún registro para esta fecha (independientemente del estado)
             $jornadaExistente = DB::table('jornada')
                 ->where('fecha', $this->fechaApertura)
@@ -84,6 +86,7 @@ class AperturaDeJornada extends Component
                 $this->tipoMensaje = 'error';
                 return;
             }
+            */
 
             // 3. VALIDACIÓN ADICIONAL: Verificar jornadas no cerradas de días anteriores
             $jornadasAbiertas = DB::table('jornada')
