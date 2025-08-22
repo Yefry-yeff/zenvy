@@ -7,6 +7,8 @@ use App\Models\Cliente;
 use App\Models\Producto;
 use App\Models\Servicio;
 use App\Models\TipoPago;
+use App\Models\TipoPersona;
+use App\Models\TipoCliente;
 use App\Models\Factura;
 use App\Models\Bodega;
 use App\Models\Descuento;
@@ -46,6 +48,9 @@ class Ventas extends Component
     // Datos para los selectores
     public $tiposPersona = [];
     public $tiposCliente = [];
+    
+    // Control de estado de campos
+    public $camposBloqueados = false;
 
     // Búsqueda de productos
     public $codigoBarras = '';
@@ -176,16 +181,10 @@ class Ventas extends Component
     {
         try {
             // Cargar tipos de persona desde la base de datos
-            $this->tiposPersona = DB::table('tipo_persona')
-                ->where('estado_id', 1) // Solo activos
-                ->select('id', 'nombre')
-                ->get();
+            $this->tiposPersona = TipoPersona::select('id', 'nombre')->get();
 
             // Cargar tipos de cliente desde la base de datos
-            $this->tiposCliente = DB::table('tipo_cliente')
-                ->where('estado_id', 1) // Solo activos
-                ->select('id', 'nombre')
-                ->get();
+            $this->tiposCliente = TipoCliente::select('id', 'nombre')->get();
 
         } catch (Exception $e) {
             Log::error('Error al cargar tipos de persona y cliente: ' . $e->getMessage());
@@ -448,6 +447,19 @@ class Ventas extends Component
         $this->correoClienteManual = '';
         $this->telefonoClienteManual = '';
         $this->direccionClienteManual = '';
+        $this->tipoPersonaId = 1;
+        $this->tipoClienteId = 1;
+        
+        // Desbloquear campos
+        $this->camposBloqueados = false;
+    }
+
+    public function limpiarDatosCliente()
+    {
+        $this->cliente = null;
+        $this->modoClienteManual = true;
+        $this->limpiarCamposManual();
+        session()->flash('success', 'Datos del cliente limpiados correctamente.');
     }
 
     public function desactivarModoClienteManual()
@@ -504,17 +516,22 @@ class Ventas extends Component
 
         try {
             // Buscar cliente por identidad (campo unificado RTN/Identidad)
-            $clienteEncontrado = Cliente::where('identidad', $this->rtnManual)->first();
+            $clienteEncontrado = Cliente::with(['tipoPersona', 'tipoCliente'])
+                ->where('identidad', $this->rtnManual)
+                ->first();
 
             if ($clienteEncontrado) {
                 // Cliente encontrado, llenar los campos
                 $this->nombreClienteManual = $clienteEncontrado->nombre;
                 $this->telefonoClienteManual = $clienteEncontrado->telefono ?? '';
                 $this->correoClienteManual = $clienteEncontrado->correo ?? '';
-                $this->direccionClienteManual = $clienteEncontrado->direccion ?? ''; // Campo correcto
-                $this->tipoPersonaId = $clienteEncontrado->tipo_persona_id;
-                $this->tipoClienteId = $clienteEncontrado->tipo_cliente_id;
+                $this->direccionClienteManual = $clienteEncontrado->direccion ?? '';
+                $this->tipoPersonaId = $clienteEncontrado->tipo_persona_id ?? 1;
+                $this->tipoClienteId = $clienteEncontrado->tipo_cliente_id ?? 1;
                 $this->cliente = $clienteEncontrado;
+                
+                // Bloquear campos cuando se encuentra un cliente
+                $this->camposBloqueados = true;
                 
                 session()->flash('success', 'Cliente encontrado: ' . $clienteEncontrado->nombre);
             } else {
@@ -523,6 +540,7 @@ class Ventas extends Component
                 $rtnTemp = $this->rtnManual; // Guardar el RTN ingresado
                 $this->rtnManual = $rtnTemp; // Mantener el RTN ingresado
                 $this->cliente = null;
+                $this->camposBloqueados = false; // Permitir edición para nuevo cliente
             }
         } catch (Exception $e) {
             Log::error('Error al buscar cliente: ' . $e->getMessage());
@@ -583,16 +601,13 @@ class Ventas extends Component
 
     public function cargarClientesModal()
     {
-        $query = Cliente::select([
-                'cliente.*'
-            ])
+        $query = Cliente::with(['tipoPersona', 'tipoCliente'])
             ->where('cliente.estado_id', 1); // Solo clientes activos
 
         if (!empty($this->busquedaCliente)) {
             $query->where(function($q) {
                 $q->where('cliente.nombre', 'LIKE', "%{$this->busquedaCliente}%")
                   ->orWhere('cliente.identidad', 'LIKE', "%{$this->busquedaCliente}%")
-                  ->orWhere('cliente.rtn', 'LIKE', "%{$this->busquedaCliente}%")
                   ->orWhere('cliente.correo', 'LIKE', "%{$this->busquedaCliente}%");
             });
         }
@@ -608,17 +623,28 @@ class Ventas extends Component
 
     public function seleccionarClienteModal($clienteId)
     {
-        $cliente = Cliente::select([
-                'cliente.*'
-            ])
+        $cliente = Cliente::with(['tipoPersona', 'tipoCliente'])
             ->where('cliente.id', $clienteId)
             ->first();
 
         if ($cliente) {
             $this->cliente = $cliente;
+            
+            // Llenar los campos manuales con los datos del cliente seleccionado
+            $this->rtnManual = $cliente->identidad ?? '';
+            $this->nombreClienteManual = $cliente->nombre ?? '';
+            $this->telefonoClienteManual = $cliente->telefono ?? '';
+            $this->correoClienteManual = $cliente->correo ?? '';
+            $this->direccionClienteManual = $cliente->direccion ?? '';
+            $this->tipoPersonaId = $cliente->tipo_persona_id ?? 1;
+            $this->tipoClienteId = $cliente->tipo_cliente_id ?? 1;
+            
+            // Bloquear campos al seleccionar cliente desde el modal
+            $this->camposBloqueados = true;
             $this->modoClienteManual = false;
-            $this->limpiarCamposManual();
             $this->cerrarModalClientes();
+            
+            session()->flash('success', 'Cliente seleccionado: ' . $cliente->nombre);
         }
     }
 

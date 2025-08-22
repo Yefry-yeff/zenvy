@@ -81,7 +81,8 @@
                                 <th>Identidad/RTN</th>
                                 <th>Correo</th>
                                 <th>Teléfono</th>
-                                <th>Dirección</th>
+                                <th>Tipo Persona</th>
+                                <th>Tipo Cliente</th>
                                 <th>Estado</th>
                             </tr>
                         </thead>
@@ -114,8 +115,28 @@
 
                                     <td>{{ $cliente_item->telefono ?? 'N/A' }}</td>
 
-                                    <td class="text-start">
-                                        <small>{{ $cliente_item->direccion_completa ?? 'Sin dirección' }}</small>
+                                    <td>
+                                        @if($cliente_item->tipoPersona)
+                                            <span class="badge bg-info">{{ $cliente_item->tipoPersona->nombre }}</span>
+                                        @else
+                                            <span class="text-muted">N/A</span>
+                                        @endif
+                                    </td>
+
+                                    <td>
+                                        @if($cliente_item->tipoCliente)
+                                            <span class="badge bg-warning">
+                                                @if($cliente_item->tipoCliente->id == 1)
+                                                    Cliente A
+                                                @elseif($cliente_item->tipoCliente->id == 2)
+                                                    Cliente B
+                                                @else
+                                                    {{ $cliente_item->tipoCliente->nombre }}
+                                                @endif
+                                            </span>
+                                        @else
+                                            <span class="text-muted">N/A</span>
+                                        @endif
                                     </td>
 
                                     <td>
@@ -126,7 +147,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="7" class="py-4 text-center text-muted">
+                                    <td colspan="8" class="py-4 text-center text-muted">
                                         <i class="mb-3 fas fa-users fa-2x"></i><br>
                                         No se encontraron clientes
                                     </td>
@@ -222,9 +243,10 @@
                                         wire:blur="buscarClientePorRtn"
                                         wire:keydown.enter="buscarClientePorRtn"
                                         wire:keydown.tab="buscarClientePorRtn"
-                                        class="w-full px-3 py-2 pr-10 border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-200"
-                                        placeholder="000000000000000 (RTN/Identidad 13-15 dígitos)"
-                                        maxlength="15">
+                                        class="w-full px-3 py-2 pr-10 border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-200 {{ $camposBloqueados ? 'bg-gray-100' : '' }}"
+                                        placeholder="RTN/Identidad (13-15 dígitos) - Enter/Tab para buscar"
+                                        maxlength="15"
+                                        {{ $camposBloqueados ? 'readonly' : '' }}>
                                     <button type="button"
                                         wire:click="mostrarModalClientes"
                                         class="absolute inset-y-0 right-0 flex items-center px-3 text-gray-500 hover:text-blue-600"
@@ -238,8 +260,9 @@
                                 <label class="block text-sm font-medium text-gray-700">Nombre del Cliente</label>
                                 <input type="text"
                                     wire:model="nombreClienteManual"
-                                    class="w-full px-3 py-2 border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-200"
-                                    placeholder="Ingrese nombre del cliente">
+                                    class="w-full px-3 py-2 border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-200 {{ $camposBloqueados ? 'bg-gray-100' : '' }}"
+                                    placeholder="Ingrese nombre del cliente"
+                                    {{ $camposBloqueados ? 'readonly' : '' }}>
                             </div>
                         </div>
 
@@ -249,16 +272,18 @@
                                 <label class="block text-sm font-medium text-gray-700">Correo Electrónico</label>
                                 <input type="email"
                                     wire:model="correoClienteManual"
-                                    class="w-full px-3 py-2 border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-200"
-                                    placeholder="correo@ejemplo.com">
+                                    class="w-full px-3 py-2 border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-200 {{ $camposBloqueados ? 'bg-gray-100' : '' }}"
+                                    placeholder="correo@ejemplo.com"
+                                    {{ $camposBloqueados ? 'readonly' : '' }}>
                             </div>
 
                             <div class="space-y-1">
                                 <label class="block text-sm font-medium text-gray-700">Teléfono</label>
                                 <input type="tel"
                                     wire:model="telefonoClienteManual"
-                                    class="w-full px-3 py-2 border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-200"
-                                    placeholder="+504 0000-0000">
+                                    class="w-full px-3 py-2 border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-200 {{ $camposBloqueados ? 'bg-gray-100' : '' }}"
+                                    placeholder="+504 0000-0000"
+                                    {{ $camposBloqueados ? 'readonly' : '' }}>
                             </div>
                         </div>
 
@@ -266,9 +291,10 @@
                         <div class="space-y-1">
                             <label class="block text-sm font-medium text-gray-700">Dirección</label>
                             <textarea wire:model="direccionClienteManual"
-                                class="w-full px-3 py-2 border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-200"
+                                class="w-full px-3 py-2 border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-200 {{ $camposBloqueados ? 'bg-gray-100' : '' }}"
                                 rows="2"
-                                placeholder="Dirección completa del cliente"></textarea>
+                                placeholder="Dirección completa del cliente"
+                                {{ $camposBloqueados ? 'readonly' : '' }}></textarea>
                         </div>
 
                         <!-- Cuarta fila: Tipo de Persona y Tipo de Cliente -->
@@ -276,7 +302,8 @@
                             <div class="space-y-1">
                                 <label class="block text-sm font-medium text-gray-700">Tipo de Persona</label>
                                 <select wire:model="tipoPersonaId"
-                                    class="w-full px-3 py-2 border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-200">
+                                    class="w-full px-3 py-2 border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-200 {{ $camposBloqueados ? 'bg-gray-100' : '' }}"
+                                    {{ $camposBloqueados ? 'disabled' : '' }}>
                                     <option value="">Seleccione tipo de persona</option>
                                     @forelse($tiposPersona as $tipoPersona)
                                         <option value="{{ $tipoPersona->id }}">{{ $tipoPersona->nombre }}</option>
@@ -284,30 +311,80 @@
                                         <option value="1">Natural</option>
                                     @endforelse
                                 </select>
+                                @if($camposBloqueados && isset($tiposPersona))
+                                    @php
+                                        $tipoPersonaSeleccionada = $tiposPersona->firstWhere('id', $tipoPersonaId);
+                                    @endphp
+                                    @if($tipoPersonaSeleccionada)
+                                        <p class="text-sm text-gray-600">{{ $tipoPersonaSeleccionada->nombre }}</p>
+                                    @endif
+                                @endif
                             </div>
 
                             <div class="space-y-1">
                                 <label class="block text-sm font-medium text-gray-700">Tipo de Cliente</label>
                                 <select wire:model="tipoClienteId"
-                                    class="w-full px-3 py-2 border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-200">
+                                    class="w-full px-3 py-2 border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-200 {{ $camposBloqueados ? 'bg-gray-100' : '' }}"
+                                    {{ $camposBloqueados ? 'disabled' : '' }}>
                                     <option value="">Seleccione tipo de cliente</option>
                                     @forelse($tiposCliente as $tipoCliente)
-                                        <option value="{{ $tipoCliente->id }}">{{ $tipoCliente->nombre }}</option>
+                                        <option value="{{ $tipoCliente->id }}">
+                                            @if($tipoCliente->id == 1)
+                                                Cliente A
+                                            @elseif($tipoCliente->id == 2)
+                                                Cliente B
+                                            @else
+                                                {{ $tipoCliente->nombre }}
+                                            @endif
+                                        </option>
                                     @empty
-                                        <option value="1">Regular</option>
+                                        <option value="1">Cliente A</option>
+                                        <option value="2">Cliente B</option>
                                     @endforelse
                                 </select>
+                                @if($camposBloqueados && isset($tiposCliente))
+                                    @php
+                                        $tipoClienteSeleccionado = $tiposCliente->firstWhere('id', $tipoClienteId);
+                                    @endphp
+                                    @if($tipoClienteSeleccionado)
+                                        <p class="text-sm text-gray-600">
+                                            @if($tipoClienteSeleccionado->id == 1)
+                                                Cliente A
+                                            @elseif($tipoClienteSeleccionado->id == 2)
+                                                Cliente B
+                                            @else
+                                                {{ $tipoClienteSeleccionado->nombre }}
+                                            @endif
+                                        </p>
+                                    @endif
+                                @endif
                             </div>
                         </div>
 
                         <!-- Botones de control -->
                         <div class="flex flex-wrap gap-2">
+                            @if(!$camposBloqueados)
+                                <button type="button"
+                                    wire:click="guardarClienteManual"
+                                    class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-green-600 border border-green-600 rounded-lg hover:bg-green-700 focus:ring-4 focus:ring-green-200">
+                                    <i class="w-4 h-4 mr-2 fas fa-save"></i>
+                                    Guardar Cliente
+                                </button>
+                            @endif
+                            
                             <button type="button"
-                                wire:click="guardarClienteManual"
-                                class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-green-600 border border-green-600 rounded-lg hover:bg-green-700 focus:ring-4 focus:ring-green-200">
-                                <i class="w-4 h-4 mr-2 fas fa-save"></i>
-                                Guardar Cliente
+                                wire:click="limpiarDatosCliente"
+                                class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-4 focus:ring-gray-200">
+                                <i class="w-4 h-4 mr-2 fas fa-eraser"></i>
+                                Limpiar Datos
                             </button>
+                            
+                            @if($camposBloqueados)
+                                <div class="inline-flex items-center px-3 py-2 text-sm text-green-700 bg-green-100 border border-green-200 rounded-lg">
+                                    <i class="w-4 h-4 mr-2 fas fa-lock"></i>
+                                    Datos bloqueados
+                                </div>
+                            @endif
                         </div>
                     </div>
                 </div>
