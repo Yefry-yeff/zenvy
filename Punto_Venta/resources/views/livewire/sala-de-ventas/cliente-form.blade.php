@@ -42,67 +42,72 @@
                 <div class="p-4">
                     <div class="p-4 bg-white border shadow rounded-xl">
                         <h2 class="mb-4 text-lg font-semibold text-gray-700">👤 Información Básica del Actor</h2>
+
                         <div class="row">
+                            <!-- RTN/Identidad -->
+                            <div class="mb-3 col-md-6">
+                                <label for="rtn_identidad" class="form-label">RTN/Identidad <span class="text-red-600">*</span></label>
+                                <input type="text"
+                                    id="rtn_identidad"
+                                    class="form-control {{ $this->getClaseCampo('form.rtn_identidad') }}"
+                                    wire:model.blur="form.rtn_identidad"
+                                    wire:change="validarRtnUnico"
+                                    placeholder="000000000000000 (15 dígitos)"
+                                    maxlength="15">
+                                @error('form.rtn_identidad')
+                                    <div class="mt-1 text-sm text-danger">{{ $message }}</div>
+                                @enderror
+                                @if($rtnExiste)
+                                    <div class="mt-1 text-sm text-danger">Este RTN/Identidad ya está registrado en el sistema</div>
+                                @endif
+                            </div>
+
+                            <!-- Nombre Completo -->
                             <div class="mb-3 col-md-6">
                                 <label for="nombre" class="form-label">Nombre Completo <span class="text-red-600">*</span></label>
-                                <input type="text" id="nombre" class="form-control {{ $this->getClaseCampo('form.nombre') }}" wire:model.blur="form.nombre">
+                                <input type="text"
+                                    id="nombre"
+                                    class="form-control {{ $this->getClaseCampo('form.nombre') }}"
+                                    wire:model.blur="form.nombre"
+                                    placeholder="Nombre completo del actor">
                                 @error('form.nombre')
                                     <div class="mt-1 text-sm text-danger">{{ $message }}</div>
                                 @enderror
                             </div>
 
+                            <!-- Correo Electrónico -->
                             <div class="mb-3 col-md-6">
                                 <label for="correo" class="form-label">Correo Electrónico</label>
-                                <input type="email" id="correo" class="form-control {{ $this->getClaseCampo('form.correo') }}" wire:model.blur="form.correo">
+                                <input type="email"
+                                    id="correo"
+                                    class="form-control {{ $this->getClaseCampo('form.correo') }}"
+                                    wire:model.blur="form.correo"
+                                    placeholder="correo@ejemplo.com">
                                 @error('form.correo')
                                     <div class="mt-1 text-sm text-danger">{{ $message }}</div>
                                 @enderror
                             </div>
 
+                            <!-- Teléfono -->
                             <div class="mb-3 col-md-6">
                                 <label for="telefono" class="form-label">Teléfono</label>
-                                <input type="text"
+                                <input type="tel"
                                     id="telefono"
                                     class="form-control {{ $this->getClaseCampo('form.telefono') }}"
                                     wire:model.blur="form.telefono"
-                                    placeholder="####-####"
-                                    maxlength="9"
-                                    x-data="{
-                                        formatPhone(event) {
-                                            let value = event.target.value.replace(/\D/g, '');
-                                            if (value.length >= 4) {
-                                                value = value.substring(0, 4) + '-' + value.substring(4, 8);
-                                            }
-                                            event.target.value = value;
-                                            $wire.set('form.telefono', value);
-                                        }
-                                    }"
-                                    @input="formatPhone($event)"
-                                    @keypress="if (!/[0-9]/.test(String.fromCharCode($event.which)) && $event.which !== 8 && $event.which !== 46) $event.preventDefault()">
+                                    placeholder="0000-0000"
+                                    maxlength="9">
                                 @error('form.telefono')
                                     <div class="mt-1 text-sm text-danger">{{ $message }}</div>
                                 @enderror
                             </div>
 
-                            <div class="mb-3 col-md-6">
-                                <label for="identidad" class="form-label">Número de Identidad</label>
-                                <input type="text" id="identidad" class="form-control {{ $this->getClaseCampo('form.identidad') }}" wire:model.blur="form.identidad" placeholder="Ej: 0801-1990-12345">
-                                @error('form.identidad')
-                                    <div class="mt-1 text-sm text-danger">{{ $message }}</div>
-                                @enderror
-                            </div>
-
-                            <div class="mb-3 col-md-6">
-                                <label for="rtn" class="form-label">RTN</label>
-                                <input type="text" id="rtn" class="form-control {{ $this->getClaseCampo('form.rtn') }}" wire:model.blur="form.rtn" placeholder="Ej: 08011990123456">
-                                @error('form.rtn')
-                                    <div class="mt-1 text-sm text-danger">{{ $message }}</div>
-                                @enderror
-                            </div>
-
+                            <!-- Tipo de Persona -->
                             <div class="mb-3 col-md-6">
                                 <label for="tipo_persona_id" class="form-label">Tipo de Persona <span class="text-red-600">*</span></label>
-                                <select id="tipo_persona_id" class="form-control {{ $this->getClaseCampo('form.tipo_persona_id') }}" wire:model.live="form.tipo_persona_id">
+                                <select id="tipo_persona_id"
+                                    class="form-control {{ $this->getClaseCampo('form.tipo_persona_id') }}"
+                                    wire:model.live="form.tipo_persona_id">
                                     <option value="">Seleccionar tipo de persona</option>
                                     @foreach($tiposPersona as $tipo)
                                         <option value="{{ $tipo->id }}">{{ $tipo->nombre }}</option>
@@ -113,9 +118,12 @@
                                 @enderror
                             </div>
 
+                            <!-- Tipo de Actor -->
                             <div class="mb-3 col-md-6">
                                 <label for="tipo_cliente_id" class="form-label">Tipo de Actor <span class="text-red-600">*</span></label>
-                                <select id="tipo_cliente_id" class="form-control {{ $this->getClaseCampo('form.tipo_cliente_id') }}" wire:model.live="form.tipo_cliente_id">
+                                <select id="tipo_cliente_id"
+                                    class="form-control {{ $this->getClaseCampo('form.tipo_cliente_id') }}"
+                                    wire:model.live="form.tipo_cliente_id">
                                     <option value="">Seleccionar tipo de actor</option>
                                     @foreach($tiposCliente as $tipo)
                                         <option value="{{ $tipo->id }}">{{ $tipo->nombre }}</option>
@@ -125,108 +133,16 @@
                                     <div class="mt-1 text-sm text-danger">{{ $message }}</div>
                                 @enderror
                             </div>
-                        </div>
-                    </div>
-                </div>
 
-                <!-- Información de Dirección (reordenada) -->
-                <div class="p-4">
-                    <div class="p-4 bg-white border shadow rounded-xl">
-                        <h2 class="mb-4 text-lg font-semibold text-gray-700">📍 Dirección del Actor</h2>
-                        <div class="row">
-                            <!-- Tipo de Dirección - PRIMERO -->
-                            <div class="mb-3 col-md-6">
-                                <label for="tipo_direccion_id" class="form-label">Tipo de Dirección <span class="text-red-600">*</span></label>
-                                <select id="tipo_direccion_id" class="form-control {{ $this->getClaseCampo('direccionForm.tipo_direccion_id') }}" wire:model.live="direccionForm.tipo_direccion_id">
-                                    <option value="">Seleccionar tipo de dirección</option>
-                                    @foreach($tiposDireccion as $tipo)
-                                        <option value="{{ $tipo->id }}">{{ $tipo->nombre }}</option>
-                                    @endforeach
-                                </select>
-                                @error('direccionForm.tipo_direccion_id')
-                                    <div class="mt-1 text-sm text-danger">{{ $message }}</div>
-                                @enderror
-                            </div>
-
-                            <!-- Departamento - SEGUNDO -->
-                            <div class="mb-3 col-md-6">
-                                <label for="departamento" class="form-label">Departamento <span class="text-red-600">*</span></label>
-                                <select id="departamento"
-                                        class="form-control {{ $this->getClaseCampo('departamentoSeleccionado') }}"
-                                        wire:model.lazy="departamentoSeleccionado"
-                                        wire:loading.attr="disabled">
-                                    <option value="">Seleccionar departamento</option>
-                                    @foreach($departamentos as $departamento)
-                                        <option value="{{ $departamento->id }}">{{ $departamento->nombre }}</option>
-                                    @endforeach
-                                </select>
-                                <div wire:loading wire:target="departamentoSeleccionado" class="mt-1">
-                                    <small class="text-info">
-                                        <i class="fas fa-spinner fa-spin"></i> Cargando municipios...
-                                    </small>
-                                </div>
-                            </div>
-
-                            <!-- Municipio - TERCERO -->
-                            <div class="mb-3 col-md-6">
-                                <label for="municipio_id" class="form-label">Municipio <span class="text-red-600">*</span></label>
-                                <select id="municipio_id"
-                                        class="form-control {{ $this->getClaseCampo('direccionForm.municipio_id') }}"
-                                        wire:model.live="direccionForm.municipio_id"
-                                        @if(!$departamentoSeleccionado) disabled @endif>
-                                    <option value="">
-                                        @if(!$departamentoSeleccionado)
-                                            Primero seleccione un departamento
-                                        @else
-                                            Seleccionar municipio
-                                        @endif
-                                    </option>
-                                    @foreach($municipios as $municipio)
-                                        <option value="{{ $municipio->id }}">{{ $municipio->nombre }}</option>
-                                    @endforeach
-                                </select>
-                                @if(!$departamentoSeleccionado)
-                                    <small class="form-text text-warning">
-                                        <i class="fas fa-exclamation-triangle"></i> Debe seleccionar un departamento primero
-                                    </small>
-                                @endif
-                                @error('direccionForm.municipio_id')
-                                    <div class="mt-1 text-sm text-danger">{{ $message }}</div>
-                                @enderror
-                            </div>
-
-                            <!-- Colonia - CUARTO -->
-                            <div class="mb-3 col-md-6">
-                                <label for="colonia" class="form-label">Colonia</label>
-                                <input type="text" id="colonia" class="form-control {{ $this->getClaseCampo('direccionForm.colonia') }}" wire:model="direccionForm.colonia" placeholder="Nombre de la colonia">
-                                @error('direccionForm.colonia')
-                                    <div class="mt-1 text-sm text-danger">{{ $message }}</div>
-                                @enderror
-                            </div>
-
-                            <!-- Calle/Boulevard - QUINTO -->
-                            <div class="mb-3 col-md-6">
-                                <label for="calle_blv" class="form-label">Calle/Boulevard</label>
-                                <input type="text" id="calle_blv" class="form-control {{ $this->getClaseCampo('direccionForm.calle_blv') }}" wire:model="direccionForm.calle_blv" placeholder="Nombre de la calle o boulevard">
-                                @error('direccionForm.calle_blv')
-                                    <div class="mt-1 text-sm text-danger">{{ $message }}</div>
-                                @enderror
-                            </div>
-
-                            <!-- Sector/Zona - SEXTO -->
-                            <div class="mb-3 col-md-6">
-                                <label for="sector_zona" class="form-label">Sector/Zona</label>
-                                <input type="text" id="sector_zona" class="form-control {{ $this->getClaseCampo('direccionForm.sector_zona') }}" wire:model="direccionForm.sector_zona" placeholder="Sector o zona">
-                                @error('direccionForm.sector_zona')
-                                    <div class="mt-1 text-sm text-danger">{{ $message }}</div>
-                                @enderror
-                            </div>
-
-                            <!-- Bloque - SÉPTIMO -->
-                            <div class="mb-3 col-md-6">
-                                <label for="bloque" class="form-label">Bloque</label>
-                                <input type="text" id="bloque" class="form-control {{ $this->getClaseCampo('direccionForm.bloque') }}" wire:model="direccionForm.bloque" placeholder="Número de bloque">
-                                @error('direccionForm.bloque')
+                            <!-- Dirección -->
+                            <div class="mb-3 col-md-12">
+                                <label for="direccion" class="form-label">Dirección</label>
+                                <textarea id="direccion"
+                                    class="form-control {{ $this->getClaseCampo('form.direccion') }}"
+                                    wire:model.blur="form.direccion"
+                                    rows="3"
+                                    placeholder="Dirección completa del actor"></textarea>
+                                @error('form.direccion')
                                     <div class="mt-1 text-sm text-danger">{{ $message }}</div>
                                 @enderror
                             </div>
@@ -259,9 +175,8 @@
 
             </form>
         </div>
-    </div>
 
-    <!-- Modal de Éxito con Alpine.js -->
+        <!-- Modal de Éxito con Alpine.js -->
     <div x-data="{ open: @entangle('mostrarModalExito') }"
          x-show="open"
          x-transition:enter="transition ease-out duration-300"
@@ -411,5 +326,7 @@
             display: none !important;
         }
     </style>
+
+    </div>
 
 </div>

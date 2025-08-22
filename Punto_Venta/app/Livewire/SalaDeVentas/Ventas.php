@@ -407,15 +407,8 @@ class Ventas extends Component
     public function buscarClientePorIdentidad($identidad)
     {
         $cliente = Cliente::select([
-                'cliente.*',
-                DB::raw("CONCAT_WS(', ',
-                    NULLIF(direccion.colonia, ''),
-                    NULLIF(direccion.calle_blv, ''),
-                    NULLIF(direccion.sector_zona, ''),
-                    NULLIF(direccion.bloque, '')
-                ) as direccion_completa")
+                'cliente.*'
             ])
-            ->leftJoin('direccion', 'cliente.direccion_id', '=', 'direccion.id')
             ->where(function($q) use ($identidad) {
                 $q->where('cliente.identidad', $identidad)
                   ->orWhere('cliente.rtn', $identidad);
@@ -595,15 +588,8 @@ class Ventas extends Component
     public function cargarClientesModal()
     {
         $query = Cliente::select([
-                'cliente.*',
-                DB::raw("CONCAT_WS(', ',
-                    NULLIF(direccion.colonia, ''),
-                    NULLIF(direccion.calle_blv, ''),
-                    NULLIF(direccion.sector_zona, ''),
-                    NULLIF(direccion.bloque, '')
-                ) as direccion_completa")
+                'cliente.*'
             ])
-            ->leftJoin('direccion', 'cliente.direccion_id', '=', 'direccion.id')
             ->where('cliente.estado_id', 1); // Solo clientes activos
 
         if (!empty($this->busquedaCliente)) {
@@ -627,15 +613,8 @@ class Ventas extends Component
     public function seleccionarClienteModal($clienteId)
     {
         $cliente = Cliente::select([
-                'cliente.*',
-                DB::raw("CONCAT_WS(', ',
-                    NULLIF(direccion.colonia, ''),
-                    NULLIF(direccion.calle_blv, ''),
-                    NULLIF(direccion.sector_zona, ''),
-                    NULLIF(direccion.bloque, '')
-                ) as direccion_completa")
+                'cliente.*'
             ])
-            ->leftJoin('direccion', 'cliente.direccion_id', '=', 'direccion.id')
             ->where('cliente.id', $clienteId)
             ->first();
 

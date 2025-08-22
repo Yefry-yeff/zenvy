@@ -223,6 +223,8 @@
                                     <input type="text"
                                         wire:model.live.debounce.500ms="rtnManual"
                                         wire:blur="buscarClientePorRtn"
+                                        wire:keydown.enter="buscarClientePorRtn"
+                                        wire:keydown.tab="buscarClientePorRtn"
                                         class="w-full px-3 py-2 pr-10 border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-200"
                                         placeholder="Ingrese RTN o número de identidad">
                                     <button type="button"

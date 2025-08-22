@@ -24,34 +24,19 @@ class ClienteForm extends Component
         'nombre' => '',
         'correo' => '',
         'telefono' => '',
-        'identidad' => '',
-        'rtn' => '',
+        'rtn_identidad' => '',
         'tipo_persona_id' => null,
         'tipo_cliente_id' => null,
         'estado_id' => 1,
+        'direccion' => '',
     ];
 
-    // Formulario de dirección (sin domicilio tributario)
-    public $direccionForm = [
-        'colonia' => '',
-        'calle_blv' => '',
-        'sector_zona' => '',
-        'bloque' => '',
-        'tipo_direccion_id' => null,
-        'municipio_id' => null,
-        'estado_id' => 1,
-        'latitud' => '',
-        'longitud' => '',
-    ];
+    // Variables para validación de RTN único
+    public $rtnExiste = false;
 
     // Datos para los selectores
     public $tiposPersona = [];
     public $tiposCliente = [];
-    public $estados = [];
-    public $tiposDireccion = [];
-    public $departamentos = [];
-    public $municipios = [];
-    public $departamentoSeleccionado = null;
 
     // Propiedades para validación backend
     public $mostrarAlerta = false;
@@ -71,10 +56,11 @@ class ClienteForm extends Component
         return [
             'form.nombre' => 'required|min:2|max:150',
             'form.correo' => 'nullable|email|max:45',
-            'form.telefono' => 'nullable|max:9|regex:/^\d{4}-\d{4}$/',
-            'form.identidad' => [
-                'nullable',
-                'max:45',
+            'form.telefono' => 'nullable|max:9',
+            'form.rtn_identidad' => [
+                'required',
+                'max:13',
+                'min:13',
                 function ($attribute, $value, $fail) {
                     if (!empty($value)) {
                         $exists = Cliente::where('identidad', $value)
@@ -83,40 +69,14 @@ class ClienteForm extends Component
                                       })
                                       ->exists();
                         if ($exists) {
-                            $fail('Esta identidad ya está registrada por otro cliente.');
-                        }
-                    }
-                }
-            ],
-            'form.rtn' => [
-                'nullable',
-                'max:45',
-                function ($attribute, $value, $fail) {
-                    if (!empty($value)) {
-                        $exists = Cliente::where('rtn', $value)
-                                      ->when($this->isEditing, function ($query) {
-                                          return $query->where('id', '!=', $this->clienteId);
-                                      })
-                                      ->exists();
-                        if ($exists) {
-                            $fail('Este RTN ya está registrado por otro cliente.');
+                            $fail('Este RTN/Identidad ya está registrado en el sistema.');
                         }
                     }
                 }
             ],
             'form.tipo_persona_id' => 'required|exists:tipo_persona,id',
             'form.tipo_cliente_id' => 'required|exists:tipo_cliente,id',
-            'form.estado_id' => 'required|exists:estado,id',
-
-            // Validaciones de dirección (sin domicilio tributario)
-            'direccionForm.tipo_direccion_id' => 'required|exists:tipo_direccion,id',
-            'direccionForm.municipio_id' => 'required|exists:municipio,id',
-            'direccionForm.colonia' => 'nullable|max:100',
-            'direccionForm.calle_blv' => 'nullable|max:100',
-            'direccionForm.sector_zona' => 'nullable|max:100',
-            'direccionForm.bloque' => 'nullable|max:50',
-            'direccionForm.latitud' => 'nullable|numeric',
-            'direccionForm.longitud' => 'nullable|numeric',
+            'form.direccion' => 'nullable|max:500',
         ];
     }
 
@@ -129,17 +89,14 @@ class ClienteForm extends Component
             'form.correo.email' => 'El formato del correo electrónico no es válido',
             'form.correo.max' => 'El correo no puede exceder 45 caracteres',
             'form.telefono.max' => 'El teléfono no puede exceder 9 caracteres',
-            'form.telefono.regex' => 'El formato del teléfono debe ser ####-####',
-            'form.identidad.max' => 'El número de identidad no puede exceder 45 caracteres',
-            'form.rtn.max' => 'El RTN no puede exceder 45 caracteres',
+            'form.rtn_identidad.required' => 'El RTN/Identidad es obligatorio',
+            'form.rtn_identidad.min' => 'El RTN/Identidad debe tener exactamente 13 dígitos',
+            'form.rtn_identidad.max' => 'El RTN/Identidad debe tener exactamente 13 dígitos',
             'form.tipo_persona_id.required' => 'Debe seleccionar un tipo de persona',
             'form.tipo_persona_id.exists' => 'El tipo de persona seleccionado no es válido',
             'form.tipo_cliente_id.required' => 'Debe seleccionar un tipo de cliente',
             'form.tipo_cliente_id.exists' => 'El tipo de cliente seleccionado no es válido',
-
-            // Mensajes de dirección (sin domicilio tributario)
-            'direccionForm.tipo_direccion_id.required' => 'Debe seleccionar un tipo de dirección',
-            'direccionForm.municipio_id.required' => 'Debe seleccionar un municipio',
+            'form.direccion.max' => 'La dirección no puede exceder 500 caracteres',
         ];
     }
 
@@ -159,9 +116,6 @@ class ClienteForm extends Component
         try {
             $this->tiposPersona = TipoPersona::activos()->orderBy('nombre')->get();
             $this->tiposCliente = TipoCliente::activos()->orderBy('nombre')->get();
-            $this->estados = Estado::orderBy('descripcion')->get();
-            $this->tiposDireccion = TipoDireccion::where('nombre', '!=', 'Tienda')->orderBy('nombre')->get();
-            $this->departamentos = Departamento::orderBy('nombre')->get();
 
         } catch (\Exception $e) {
             Log::error('Error al cargar datos iniciales para cliente', [
@@ -176,39 +130,17 @@ class ClienteForm extends Component
     private function cargarCliente()
     {
         try {
-            $cliente = Cliente::with('direccion.municipio.departamento')->findOrFail($this->clienteId);
+            $cliente = Cliente::findOrFail($this->clienteId);
 
             $this->form = [
-                'nombre' => $cliente->nombre,
-                'correo' => $cliente->correo,
-                'telefono' => $cliente->telefono,
-                'identidad' => $cliente->identidad,
-                'rtn' => $cliente->rtn,
+                'nombre' => $cliente->nombre ?? '',
+                'correo' => $cliente->correo ?? '',
+                'telefono' => $cliente->telefono ?? '',
+                'rtn_identidad' => $cliente->identidad ?? '',
                 'tipo_persona_id' => $cliente->tipo_persona_id,
                 'tipo_cliente_id' => $cliente->tipo_cliente_id,
-                'estado_id' => $cliente->estado_id,
+                'direccion' => $cliente->direccion ?? '',
             ];
-
-            // Cargar dirección si existe
-            if ($cliente->direccion) {
-                $this->direccionForm = [
-                    'colonia' => $cliente->direccion->colonia,
-                    'calle_blv' => $cliente->direccion->calle_blv,
-                    'sector_zona' => $cliente->direccion->sector_zona,
-                    'bloque' => $cliente->direccion->bloque,
-                    'tipo_direccion_id' => $cliente->direccion->tipo_direccion_id,
-                    'municipio_id' => $cliente->direccion->municipio_id,
-                    'estado_id' => $cliente->direccion->estado_id,
-                    'latitud' => $cliente->direccion->latitud,
-                    'longitud' => $cliente->direccion->longitud,
-                ];
-
-                // Cargar departamento y municipios si existe dirección
-                if ($cliente->direccion->municipio) {
-                    $this->departamentoSeleccionado = $cliente->direccion->municipio->departamento_id;
-                    $this->cargarMunicipios();
-                }
-            }
 
         } catch (\Exception $e) {
             Log::error('Error al cargar cliente', [
@@ -216,37 +148,6 @@ class ClienteForm extends Component
                 'mensaje' => $e->getMessage()
             ]);
             $this->mostrarError('Error al cargar el cliente');
-        }
-    }
-
-    // Método para cargar municipios cuando cambia el departamento
-    public function updatedDepartamentoSeleccionado()
-    {
-        $this->direccionForm['municipio_id'] = null;
-        $this->cargarMunicipios();
-
-        // Limpiar error de departamento si tenía
-        $this->limpiarErrorCampo('departamentoSeleccionado');
-        // También limpiar error de municipio ya que se resetea
-        $this->limpiarErrorCampo('direccionForm.municipio_id');
-    }
-
-    private function cargarMunicipios()
-    {
-        try {
-            if ($this->departamentoSeleccionado) {
-                $this->municipios = Municipio::where('departamento_id', $this->departamentoSeleccionado)
-                                           ->orderBy('nombre')
-                                           ->get();
-            } else {
-                $this->municipios = [];
-            }
-        } catch (\Exception $e) {
-            Log::error('Error al cargar municipios', [
-                'departamento_id' => $this->departamentoSeleccionado,
-                'mensaje' => $e->getMessage()
-            ]);
-            $this->municipios = [];
         }
     }
 
@@ -260,6 +161,13 @@ class ClienteForm extends Component
         try {
             // Limpiar alertas previas
             $this->cerrarAlerta();
+            $this->rtnExiste = false;
+
+            // Validar RTN único antes de continuar
+            $this->validarRtnUnico();
+            if ($this->rtnExiste) {
+                return;
+            }
 
             // Validar formulario
             $this->validate();
@@ -280,32 +188,31 @@ class ClienteForm extends Component
                 return;
             }
 
-            // Crear o actualizar dirección primero
-            $direccionData = $this->direccionForm;
-            $direccionData['users_id'] = Auth::id();
-
-            if ($this->isEditing && Cliente::find($this->clienteId)->direccion) {
-                // Actualizar dirección existente
-                $direccion = Cliente::find($this->clienteId)->direccion;
-                $direccion->update($direccionData);
-            } else {
-                // Crear nueva dirección
-                $direccion = Direccion::create($direccionData);
-            }
-
             // Preparar datos del cliente
-            $clienteData = $this->form;
-            $clienteData['direccion_id'] = $direccion->id;
-            $clienteData['users_id'] = Auth::id();
+            $clienteData = [
+                'nombre' => $this->form['nombre'],
+                'correo' => $this->form['correo'],
+                'telefono' => $this->form['telefono'],
+                'identidad' => $this->form['rtn_identidad'], // Guardar RTN/Identidad en campo identidad
+                'tipo_persona_id' => $this->form['tipo_persona_id'],
+                'tipo_cliente_id' => $this->form['tipo_cliente_id'],
+                'direccion' => $this->form['direccion'],
+                'users_id' => Auth::id(),
+                'estado_id' => 1,
+            ];
 
             if ($this->isEditing) {
                 // Actualizar cliente existente
-                Cliente::actualizarCliente($this->clienteId, $clienteData);
-                $this->mostrarExito('Cliente actualizado exitosamente');
+                Cliente::where('id', $this->clienteId)->update($clienteData);
+                $this->mostrarExito('Actor actualizado exitosamente');
             } else {
                 // Crear nuevo cliente
-                Cliente::crearCliente($clienteData);
-                $this->mostrarExito('Cliente creado exitosamente');
+                Cliente::create($clienteData);
+                $this->mostrarExito('Actor creado exitosamente');
+                
+                // Limpiar formulario después de crear
+                $this->reset('form');
+                $this->rtnExiste = false;
             }
 
         } catch (\Illuminate\Validation\ValidationException $e) {
@@ -325,10 +232,9 @@ class ClienteForm extends Component
             Log::error('Error al guardar cliente', [
                 'mensaje' => $e->getMessage(),
                 'datos' => $this->form,
-                'direccion' => $this->direccionForm,
                 'isEditing' => $this->isEditing
             ]);
-            $this->mostrarError('Error al guardar el cliente');
+            $this->mostrarError('Error al guardar el actor');
         }
     }
 
@@ -419,6 +325,50 @@ class ClienteForm extends Component
         }
     }
 
+    public function validarRtnUnico()
+    {
+        $this->rtnExiste = false;
+        
+        if (!empty($this->form['rtn_identidad'])) {
+            try {
+                // Validar longitud
+                if (strlen($this->form['rtn_identidad']) !== 13) {
+                    $this->mostrarErrorCampo('form.rtn_identidad', 'El RTN/Identidad debe tener exactamente 13 dígitos');
+                    return;
+                }
+
+                // Validar que solo contenga números
+                if (!preg_match('/^\d{13}$/', $this->form['rtn_identidad'])) {
+                    $this->mostrarErrorCampo('form.rtn_identidad', 'El RTN/Identidad solo debe contener números');
+                    return;
+                }
+
+                // Verificar si ya existe
+                $existe = Cliente::where('identidad', $this->form['rtn_identidad'])
+                ->when($this->isEditing, function ($query) {
+                    return $query->where('id', '!=', $this->clienteId);
+                })
+                ->exists();
+
+                if ($existe) {
+                    $this->rtnExiste = true;
+                    $this->mostrarErrorCampo('form.rtn_identidad', 'Este RTN/Identidad ya está registrado en el sistema');
+                } else {
+                    $this->rtnExiste = false;
+                    $this->limpiarErrorCampo('form.rtn_identidad');
+                }
+                
+            } catch (\Exception $e) {
+                Log::error('Error al validar RTN único', [
+                    'rtn_identidad' => $this->form['rtn_identidad'],
+                    'mensaje' => $e->getMessage()
+                ]);
+            }
+        } else {
+            $this->limpiarErrorCampo('form.rtn_identidad');
+        }
+    }
+
     public function updatedFormTipoPersonaId()
     {
         try {
@@ -436,27 +386,6 @@ class ClienteForm extends Component
             $this->limpiarErrorCampo('form.tipo_cliente_id');
         } catch (\Illuminate\Validation\ValidationException $e) {
             $this->mostrarErrorCampo('form.tipo_cliente_id', 'Debe seleccionar un tipo de cliente');
-        }
-    }
-
-    // Métodos para campos de dirección
-    public function updatedDireccionFormTipoDireccionId()
-    {
-        try {
-            $this->validateOnly('direccionForm.tipo_direccion_id');
-            $this->limpiarErrorCampo('direccionForm.tipo_direccion_id');
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            $this->mostrarErrorCampo('direccionForm.tipo_direccion_id', 'Debe seleccionar un tipo de dirección');
-        }
-    }
-
-    public function updatedDireccionFormMunicipioId()
-    {
-        try {
-            $this->validateOnly('direccionForm.municipio_id');
-            $this->limpiarErrorCampo('direccionForm.municipio_id');
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            $this->mostrarErrorCampo('direccionForm.municipio_id', 'Debe seleccionar un municipio');
         }
     }
 

@@ -89,18 +89,11 @@
                                     @if($cliente->direccion)
                                         <div>
                                             <small>
-                                                @php
-                                                    $ubicacion = collect([
-                                                        $cliente->direccion->colonia,
-                                                        $cliente->direccion->sector_zona,
-                                                        $cliente->direccion->bloque
-                                                    ])->filter()->implode(', ');
-                                                @endphp
-                                                @if($ubicacion)
-                                                    {{ $ubicacion }}<br>
+                                                @if($cliente->direccion)
+                                                    {{ $cliente->direccion }}<br>
+                                                @else
+                                                    <span class="text-muted">Sin dirección</span><br>
                                                 @endif
-                                                {{ $cliente->direccion->municipio->nombre ?? 'N/A' }},
-                                                {{ $cliente->direccion->municipio->departamento->nombre ?? 'N/A' }}
                                             </small>
                                         </div>
                                     @else
