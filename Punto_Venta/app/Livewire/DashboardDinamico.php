@@ -320,37 +320,61 @@ class DashboardDinamico extends Component
             // Fecha actual para filtrar por día en transcurso
             $fechaHoy = date('Y-m-d');
             
-            // Buscar la caja más reciente del usuario en la tienda actual (no solo de hoy)
-            $cajaReciente = DB::table('caja')
+            // Buscar la caja actual del usuario en la tienda
+            $cajaActual = DB::table('caja')
                 ->where('users_id', $usuario->id)
                 ->where('tienda_id', $tiendaId)
-                ->orderBy('created_at', 'desc')
+                ->orderBy('updated_at', 'desc')
                 ->first();
-
-            // También buscar específicamente la caja de hoy
-            $cajaHoy = DB::table('caja')
-                ->where('users_id', $usuario->id)
-                ->where('tienda_id', $tiendaId)
-                ->whereDate('created_at', $fechaHoy)
-                ->orderBy('created_at', 'desc')
-                ->first();
-
-            // Usar la caja de hoy si existe, si no, usar la más reciente
-            $cajaActual = $cajaHoy ?? $cajaReciente;
 
             if ($cajaActual) {
-                $esCajaHoy = (date('Y-m-d', strtotime($cajaActual->created_at)) == $fechaHoy);
+                // Obtener la última apertura de caja para obtener la fecha
+                $ultimaApertura = DB::table('apertura_caja')
+                    ->where('caja_id', $cajaActual->id)
+                    ->orderBy('fecha_apertura', 'desc')
+                    ->first();
+                
+                // Verificar si tiene caja abierta hoy
+                $tieneAperturaHoy = $ultimaApertura && 
+                    date('Y-m-d', strtotime($ultimaApertura->fecha_apertura)) == $fechaHoy;
+                
+                // Determinar el tipo de estado
+                $esCajaHoy = $tieneAperturaHoy;
+                
+                // Calcular balances por tipo de pago basándose en transacciones
+                $balancesPorTipo = DB::table('transaccion')
+                    ->where('caja_id', $cajaActual->id)
+                    ->selectRaw('
+                        IFNULL(SUM(efectivo), 0) as balance_efectivo,
+                        IFNULL(SUM(tarjeta), 0) as balance_tarjeta,
+                        IFNULL(SUM(cheque), 0) as balance_cheque
+                    ')
+                    ->first();
+                
+                // Calcular transferencias (por ahora será 0 ya que no está en la tabla transaccion)
+                $balanceTransferencia = 0;
+                
+                // Balance total
+                $balanceTotal = ($balancesPorTipo->balance_efectivo ?? 0) + 
+                               ($balancesPorTipo->balance_tarjeta ?? 0) + 
+                               ($balancesPorTipo->balance_cheque ?? 0) + 
+                               $balanceTransferencia;
                 
                 $this->estadoCaja = [
                     'id' => $cajaActual->id,
                     'estado' => $cajaActual->estado_caja,
                     'estado_texto' => $this->obtenerTextoEstadoCaja($cajaActual->estado_caja, $esCajaHoy),
                     'balance' => $cajaActual->balance,
-                    'fecha_creacion' => $cajaActual->created_at,
+                    'balance_efectivo' => $balancesPorTipo->balance_efectivo ?? 0,
+                    'balance_tarjeta' => $balancesPorTipo->balance_tarjeta ?? 0,
+                    'balance_cheque' => $balancesPorTipo->balance_cheque ?? 0,
+                    'balance_transferencia' => $balanceTransferencia,
+                    'balance_total_calculado' => $balanceTotal,
+                    'fecha_apertura' => $ultimaApertura ? $ultimaApertura->fecha_apertura : null,
                     'fecha_actualizacion' => $cajaActual->updated_at,
                     'tienda_id' => $cajaActual->tienda_id,
                     'es_caja_hoy' => $esCajaHoy,
-                    'tiene_caja_hoy' => $cajaHoy !== null
+                    'tiene_caja_hoy' => $tieneAperturaHoy
                 ];
             } else {
                 // Si no se encuentra ninguna caja
@@ -359,7 +383,12 @@ class DashboardDinamico extends Component
                     'estado' => 0,
                     'estado_texto' => 'Sin caja creada',
                     'balance' => 0,
-                    'fecha_creacion' => null,
+                    'balance_efectivo' => 0,
+                    'balance_tarjeta' => 0,
+                    'balance_cheque' => 0,
+                    'balance_transferencia' => 0,
+                    'balance_total_calculado' => 0,
+                    'fecha_apertura' => null,
                     'fecha_actualizacion' => null,
                     'tienda_id' => $tiendaId,
                     'es_caja_hoy' => false,

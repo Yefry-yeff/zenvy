@@ -100,10 +100,10 @@
                                 </span>
                             @endif
                             
-                            <!-- Fecha de creación de la caja -->
-                            @if(isset($estadoCaja['fecha_creacion']))
+                            <!-- Fecha de apertura de la caja -->
+                            @if(isset($estadoCaja['fecha_apertura']) && $estadoCaja['fecha_apertura'])
                                 <span class="text-xs text-gray-500">
-                                    ({{ \Carbon\Carbon::parse($estadoCaja['fecha_creacion'])->format('d/m/Y') }})
+                                    ({{ \Carbon\Carbon::parse($estadoCaja['fecha_apertura'])->format('d/m/Y') }})
                                 </span>
                             @endif
 
@@ -123,9 +123,53 @@
                         </div>
                         
                         @if(isset($estadoCaja['balance']))
-                        <div class="flex items-center space-x-2">
-                            <span class="text-sm text-gray-600">Balance:</span>
-                            <span class="text-sm font-semibold text-gray-800">L. {{ number_format($estadoCaja['balance'], 2) }}</span>
+                        <div class="space-y-2">
+                            <span class="text-sm text-gray-600 font-medium">Balance por tipo:</span>
+                            
+                            <!-- Balance Efectivo -->
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-1">
+                                    <i class="fas fa-money-bill-wave text-green-500 text-xs"></i>
+                                    <span class="text-xs text-gray-600">Efectivo:</span>
+                                </div>
+                                <span class="text-xs font-semibold text-gray-800">L. {{ number_format($estadoCaja['balance_efectivo'] ?? 0, 2) }}</span>
+                            </div>
+                            
+                            <!-- Balance Tarjeta -->
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-1">
+                                    <i class="fas fa-credit-card text-blue-500 text-xs"></i>
+                                    <span class="text-xs text-gray-600">Tarjeta:</span>
+                                </div>
+                                <span class="text-xs font-semibold text-gray-800">L. {{ number_format($estadoCaja['balance_tarjeta'] ?? 0, 2) }}</span>
+                            </div>
+                            
+                            <!-- Balance Cheque -->
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-1">
+                                    <i class="fas fa-money-check text-purple-500 text-xs"></i>
+                                    <span class="text-xs text-gray-600">Cheque:</span>
+                                </div>
+                                <span class="text-xs font-semibold text-gray-800">L. {{ number_format($estadoCaja['balance_cheque'] ?? 0, 2) }}</span>
+                            </div>
+                            
+                            <!-- Balance Transferencia -->
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-1">
+                                    <i class="fas fa-exchange-alt text-orange-500 text-xs"></i>
+                                    <span class="text-xs text-gray-600">Transferencia:</span>
+                                </div>
+                                <span class="text-xs font-semibold text-gray-800">L. {{ number_format($estadoCaja['balance_transferencia'] ?? 0, 2) }}</span>
+                            </div>
+                            
+                            <!-- Línea divisoria -->
+                            <hr class="border-gray-200">
+                            
+                            <!-- Total -->
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm font-medium text-gray-700">Total:</span>
+                                <span class="text-sm font-bold text-gray-900">L. {{ number_format($estadoCaja['balance_total_calculado'] ?? 0, 2) }}</span>
+                            </div>
                         </div>
                         @endif
                         

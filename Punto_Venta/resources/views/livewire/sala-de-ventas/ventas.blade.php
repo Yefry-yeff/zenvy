@@ -221,7 +221,8 @@
                                 </label>
                                 <div class="relative">
                                     <input type="text"
-                                        wire:model="rtnManual"
+                                        wire:model.live.debounce.500ms="rtnManual"
+                                        wire:blur="buscarClientePorRtn"
                                         class="w-full px-3 py-2 pr-10 border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-200"
                                         placeholder="Ingrese RTN o número de identidad">
                                     <button type="button"
@@ -268,6 +269,35 @@
                                 class="w-full px-3 py-2 border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-200"
                                 rows="2"
                                 placeholder="Dirección completa del cliente"></textarea>
+                        </div>
+
+                        <!-- Cuarta fila: Tipo de Persona y Tipo de Cliente -->
+                        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                            <div class="space-y-1">
+                                <label class="block text-sm font-medium text-gray-700">Tipo de Persona</label>
+                                <select wire:model="tipoPersonaId"
+                                    class="w-full px-3 py-2 border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-200">
+                                    <option value="">Seleccione tipo de persona</option>
+                                    @forelse($tiposPersona as $tipoPersona)
+                                        <option value="{{ $tipoPersona->id }}">{{ $tipoPersona->nombre }}</option>
+                                    @empty
+                                        <option value="1">Natural</option>
+                                    @endforelse
+                                </select>
+                            </div>
+
+                            <div class="space-y-1">
+                                <label class="block text-sm font-medium text-gray-700">Tipo de Cliente</label>
+                                <select wire:model="tipoClienteId"
+                                    class="w-full px-3 py-2 border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-200">
+                                    <option value="">Seleccione tipo de cliente</option>
+                                    @forelse($tiposCliente as $tipoCliente)
+                                        <option value="{{ $tipoCliente->id }}">{{ $tipoCliente->nombre }}</option>
+                                    @empty
+                                        <option value="1">Regular</option>
+                                    @endforelse
+                                </select>
+                            </div>
                         </div>
 
                         <!-- Botones de control -->

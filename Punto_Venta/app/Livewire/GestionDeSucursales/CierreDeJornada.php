@@ -14,6 +14,7 @@ class CierreDeJornada extends Component
     public $mostrarAlerta = false;
     public $cajasAbiertas = [];
     public $cajasConDiferencia = [];
+    public $transaccionesPorCaja = [];
     public $mensaje = '';
     public $tipoMensaje = '';
     public $procesoEnCurso = false;
@@ -95,7 +96,6 @@ class CierreDeJornada extends Component
                 ->join('users as u', 'c.users_id', '=', 'u.id')
                 ->where('c.estado_caja', 1)
                 ->where('c.tienda_id', $this->tiendaUsuario)
-                ->whereDate('c.created_at', $this->fechaCierre)
                 ->select('c.*', 'u.name as nombre_usuario')
                 ->get()
                 ->toArray();
@@ -104,20 +104,53 @@ class CierreDeJornada extends Component
             $this->cajasConDiferencia = DB::table('cierre_de_caja as cc')
                 ->join('caja as c', 'cc.caja_id', '=', 'c.id')
                 ->join('users as u', 'c.users_id', '=', 'u.id')
-                ->where('cc.diferencia_efectivo', '!=', 0)
                 ->where('c.tienda_id', $this->tiendaUsuario)
-                ->whereDate('cc.created_at', $this->fechaCierre)
+                ->whereDate('cc.fecha_cierre', $this->fechaCierre)
+                ->where(function($query) {
+                    $query->where('cc.diferencia_efectivo', '!=', 0)
+                          ->orWhere('cc.diferencia_tarjeta', '!=', 0)
+                          ->orWhere('cc.diferencia_cheque', '!=', 0);
+                })
                 ->select(
                     'c.id', 
                     'c.users_id', 
                     'u.name as nombre_usuario',
                     'cc.diferencia_efectivo', 
-                    'cc.created_at'
+                    'cc.diferencia_tarjeta', 
+                    'cc.diferencia_cheque', 
+                    'cc.fecha_cierre'
                 )
                 ->get()
                 ->toArray();
 
-            // 5. Mostrar alertas si hay problemas o proceder directamente
+            // 5. Obtener transacciones por caja (excluyendo las que ya tienen diferencias registradas)
+            $cajasConDiferenciaIds = collect($this->cajasConDiferencia)->pluck('id')->toArray();
+            
+            $this->transaccionesPorCaja = DB::table('transaccion as t')
+                ->join('caja as c', 't.caja_id', '=', 'c.id')
+                ->join('users as u', 'c.users_id', '=', 'u.id')
+                ->where('c.tienda_id', $this->tiendaUsuario)
+                ->whereDate('t.created_at', $this->fechaCierre)
+                ->whereNotIn('c.id', $cajasConDiferenciaIds)
+                ->groupBy('c.id', 'c.users_id', 'u.name')
+                ->selectRaw('
+                    c.id as caja_id,
+                    c.users_id,
+                    u.name as nombre_usuario,
+                    c.balance as balance_actual,
+                    SUM(CASE WHEN t.efectivo > 0 THEN t.efectivo ELSE 0 END) as total_efectivo_ingreso,
+                    SUM(CASE WHEN t.efectivo < 0 THEN ABS(t.efectivo) ELSE 0 END) as total_efectivo_egreso,
+                    SUM(CASE WHEN t.tarjeta > 0 THEN t.tarjeta ELSE 0 END) as total_tarjeta_ingreso,
+                    SUM(CASE WHEN t.tarjeta < 0 THEN ABS(t.tarjeta) ELSE 0 END) as total_tarjeta_egreso,
+                    SUM(CASE WHEN t.cheque > 0 THEN t.cheque ELSE 0 END) as total_cheque_ingreso,
+                    SUM(CASE WHEN t.cheque < 0 THEN ABS(t.cheque) ELSE 0 END) as total_cheque_egreso,
+                    SUM(IFNULL(t.efectivo, 0) + IFNULL(t.tarjeta, 0) + IFNULL(t.cheque, 0)) as total_neto
+                ')
+                ->having('total_neto', '!=', 0)
+                ->get()
+                ->toArray();
+
+            // 6. Mostrar alertas si hay problemas o proceder directamente
             if (count($this->cajasAbiertas) > 0 || count($this->cajasConDiferencia) > 0) {
                 $this->mostrarAlerta = true;
             } else {
@@ -168,6 +201,30 @@ class CierreDeJornada extends Component
                 // Convertir array a objeto si es necesario
                 $caja = is_array($cajaData) ? (object) $cajaData : $cajaData;
                 
+                // Obtener totales de transacciones para esta caja en la fecha de cierre
+                $totalesTransacciones = DB::table('transaccion')
+                    ->where('caja_id', $caja->id)
+                    ->whereDate('created_at', $this->fechaCierre)
+                    ->selectRaw('
+                        IFNULL(SUM(efectivo), 0) as total_efectivo_transacciones,
+                        IFNULL(SUM(tarjeta), 0) as total_tarjeta_transacciones,
+                        IFNULL(SUM(cheque), 0) as total_cheque_transacciones
+                    ')
+                    ->first();
+
+                // Valores por defecto si no hay transacciones
+                $totalEfectivo = $totalesTransacciones ? ($totalesTransacciones->total_efectivo_transacciones ?? 0) : 0;
+                $totalTarjeta = $totalesTransacciones ? ($totalesTransacciones->total_tarjeta_transacciones ?? 0) : 0;
+                $totalCheque = $totalesTransacciones ? ($totalesTransacciones->total_cheque_transacciones ?? 0) : 0;
+
+                // El balance actual de la caja
+                $balanceCaja = $caja->balance ?? 0;
+
+                // Calcular diferencias (balance actual vs totales de transacciones)
+                $diferenciaEfectivo = $balanceCaja - $totalEfectivo;
+                $diferenciaTarjeta = 0 - $totalTarjeta; // Para tarjeta y cheque, la diferencia es negativa de los totales
+                $diferenciaCheque = 0 - $totalCheque;
+
                 // Cambiar estado a cerrada (2)
                 DB::table('caja')
                     ->where('id', $caja->id)
@@ -176,50 +233,124 @@ class CierreDeJornada extends Component
                         'updated_at' => now()
                     ]);
 
-                // Si tiene balance, registrar como cierre con diferencia
-                if (isset($caja->balance) && $caja->balance > 0) {
-                    DB::table('cierre_de_caja')->insert([
-                        'caja_id' => $caja->id,
-                        'total_efectivo' => $caja->balance,
-                        'conteo_efectivo' => 0,
-                        'diferencia_efectivo' => $caja->balance, // El balance como diferencia
-                        'total_tarjeta' => 0,
-                        'conteo_tarjeta' => 0,
-                        'diferencia_tarjeta' => 0,
-                        'total_cheque' => 0,
-                        'conteo_cheque' => 0,
-                        'diferencia_cheque' => 0,
-                        // Inicializar todas las denominaciones en 0
-                        '1' => 0, '2' => 0, '5' => 0, '10' => 0, '20' => 0, '50' => 0,
-                        '100' => 0, '200' => 0, '500' => 0,
-                        '001' => 0, '002' => 0, '005' => 0, '010' => 0, '020' => 0, '050' => 0,
-                        'created_at' => now(),
-                        'updated_at' => now()
-                    ]);
+                // Registrar cierre de caja con todos los datos
+                $cierreId = DB::table('cierre_de_caja')->insertGetId([
+                    'caja_id' => $caja->id,
+                    'balance_cierre' => $balanceCaja,
+                    'total_efectivo' => $totalEfectivo,
+                    'total_tarjeta' => $totalTarjeta,
+                    'total_cheque' => $totalCheque,
+                    'conteo_efectivo' => 0,
+                    'conteo_tarjeta' => 0,
+                    'conteo_cheque' => 0,
+                    'diferencia_efectivo' => $diferenciaEfectivo,
+                    'diferencia_tarjeta' => $diferenciaTarjeta,
+                    'diferencia_cheque' => $diferenciaCheque,
+                    // Inicializar todas las denominaciones en 0
+                    '1' => 0, '2' => 0, '5' => 0, '10' => 0, '20' => 0, '50' => 0,
+                    '100' => 0, '200' => 0, '500' => 0,
+                    '001' => 0, '002' => 0, '005' => 0, '010' => 0, '020' => 0, '050' => 0,
+                    'fecha_cierre' => now(),
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ]);
 
-                    // NO actualizar el balance - se mantiene como está
-                }
+                // Registrar transacción de cierre de caja
+                DB::table('transaccion')->insert([
+                    'caja_id' => $caja->id,
+                    'transaccion' => 'cierre_caja',
+                    'efectivo' => $diferenciaEfectivo,
+                    'tarjeta' => $diferenciaTarjeta,
+                    'cheque' => $diferenciaCheque,
+                    'descripcion' => 'Cierre automático por cierre de jornada - Diferencias registradas',
+                    'created_at' => now(),
+                    'update_at' => now()
+                ]);
             }
 
-            // 3. También cambiar estado de cajas de la tienda que ya tenían cierres pero estaban abiertas
+            // 3. Procesar cajas adicionales que estén abiertas pero no fueron capturadas en la primera consulta
             $cajasAbiertasAdicionales = DB::table('caja as c')
                 ->join('users as u', 'c.users_id', '=', 'u.id')
                 ->where('c.estado_caja', 1)
                 ->where('c.tienda_id', $this->tiendaUsuario)
-                ->whereDate('c.created_at', $this->fechaCierre)
-                ->pluck('c.id');
+                ->whereNotIn('c.id', collect($this->cajasAbiertas)->pluck('id')->toArray())
+                ->select('c.*', 'u.name as nombre_usuario')
+                ->get();
 
-            DB::table('caja')
-                ->whereIn('id', $cajasAbiertasAdicionales)
-                ->update([
-                    'estado_caja' => 2,
+            foreach ($cajasAbiertasAdicionales as $caja) {
+                // Obtener totales de transacciones para esta caja en la fecha de cierre
+                $totalesTransacciones = DB::table('transaccion')
+                    ->where('caja_id', $caja->id)
+                    ->whereDate('created_at', $this->fechaCierre)
+                    ->selectRaw('
+                        IFNULL(SUM(efectivo), 0) as total_efectivo_transacciones,
+                        IFNULL(SUM(tarjeta), 0) as total_tarjeta_transacciones,
+                        IFNULL(SUM(cheque), 0) as total_cheque_transacciones
+                    ')
+                    ->first();
+
+                // Valores por defecto si no hay transacciones
+                $totalEfectivo = $totalesTransacciones ? ($totalesTransacciones->total_efectivo_transacciones ?? 0) : 0;
+                $totalTarjeta = $totalesTransacciones ? ($totalesTransacciones->total_tarjeta_transacciones ?? 0) : 0;
+                $totalCheque = $totalesTransacciones ? ($totalesTransacciones->total_cheque_transacciones ?? 0) : 0;
+
+                // El balance actual de la caja
+                $balanceCaja = $caja->balance ?? 0;
+
+                // Calcular diferencias (balance actual vs totales de transacciones)
+                $diferenciaEfectivo = $balanceCaja - $totalEfectivo;
+                $diferenciaTarjeta = 0 - $totalTarjeta;
+                $diferenciaCheque = 0 - $totalCheque;
+
+                // Cambiar estado a cerrada (2)
+                DB::table('caja')
+                    ->where('id', $caja->id)
+                    ->update([
+                        'estado_caja' => 2,
+                        'updated_at' => now()
+                    ]);
+
+                // Registrar cierre de caja
+                DB::table('cierre_de_caja')->insert([
+                    'caja_id' => $caja->id,
+                    'balance_cierre' => $balanceCaja,
+                    'total_efectivo' => $totalEfectivo,
+                    'total_tarjeta' => $totalTarjeta,
+                    'total_cheque' => $totalCheque,
+                    'conteo_efectivo' => 0,
+                    'conteo_tarjeta' => 0,
+                    'conteo_cheque' => 0,
+                    'diferencia_efectivo' => $diferenciaEfectivo,
+                    'diferencia_tarjeta' => $diferenciaTarjeta,
+                    'diferencia_cheque' => $diferenciaCheque,
+                    // Inicializar todas las denominaciones en 0
+                    '1' => 0, '2' => 0, '5' => 0, '10' => 0, '20' => 0, '50' => 0,
+                    '100' => 0, '200' => 0, '500' => 0,
+                    '001' => 0, '002' => 0, '005' => 0, '010' => 0, '020' => 0, '050' => 0,
+                    'fecha_cierre' => now(),
+                    'created_at' => now(),
                     'updated_at' => now()
                 ]);
+
+                // Registrar transacción de cierre de caja
+                DB::table('transaccion')->insert([
+                    'caja_id' => $caja->id,
+                    'transaccion' => 'cierre_caja',
+                    'efectivo' => $diferenciaEfectivo,
+                    'tarjeta' => $diferenciaTarjeta,
+                    'cheque' => $diferenciaCheque,
+                    'descripcion' => 'Cierre automático por cierre de jornada - Diferencias registradas',
+                    'created_at' => now(),
+                    'update_at' => now()
+                ]);
+            }
+
+            $totalCajasProcesadas = count($this->cajasAbiertas) + count($cajasAbiertasAdicionales);
 
             DB::commit();
 
             $this->mensaje = 'Jornada cerrada exitosamente para la fecha ' . $this->fechaCierre . 
-                            ' en ' . $this->nombreTienda . '. ' . count($this->cajasAbiertas) . ' cajas procesadas.';
+                            ' en ' . $this->nombreTienda . '. ' . $totalCajasProcesadas . ' cajas procesadas con cierres automáticos registrados.';
             $this->tipoMensaje = 'success';
             
             $this->resetear();
@@ -251,6 +382,7 @@ class CierreDeJornada extends Component
         $this->mostrarAlerta = false;
         $this->cajasAbiertas = [];
         $this->cajasConDiferencia = [];
+        $this->transaccionesPorCaja = [];
     }
 
     public function render()

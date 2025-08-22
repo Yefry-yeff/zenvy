@@ -40,6 +40,12 @@ class Ventas extends Component
     public $correoClienteManual = '';
     public $telefonoClienteManual = '';
     public $direccionClienteManual = '';
+    public $tipoPersonaId = 1; // Nueva propiedad para tipo de persona
+    public $tipoClienteId = 1; // Nueva propiedad para tipo de cliente
+
+    // Datos para los selectores
+    public $tiposPersona = [];
+    public $tiposCliente = [];
 
     // Búsqueda de productos
     public $codigoBarras = '';
@@ -136,6 +142,7 @@ class Ventas extends Component
         $this->limpiarCamposManual();
 
         $this->cargarTiposPago();
+        $this->cargarTiposPersonaYCliente(); // Nueva función
         $this->verificarCAI();
         // Cargar productos y servicios para la interfaz unificada
         $this->cargarProductosYServicios();
@@ -160,6 +167,32 @@ class Ventas extends Component
         ]);
         
         session()->flash('info', 'Verificación completada. Revisa los logs.');
+    }
+
+    /**
+     * Nuevo método para cargar tipos de persona y cliente
+     */
+    public function cargarTiposPersonaYCliente()
+    {
+        try {
+            // Cargar tipos de persona desde la base de datos
+            $this->tiposPersona = DB::table('tipo_persona')
+                ->where('estado_id', 1) // Solo activos
+                ->select('id', 'nombre')
+                ->get();
+
+            // Cargar tipos de cliente desde la base de datos
+            $this->tiposCliente = DB::table('tipo_cliente')
+                ->where('estado_id', 1) // Solo activos
+                ->select('id', 'nombre')
+                ->get();
+
+        } catch (Exception $e) {
+            Log::error('Error al cargar tipos de persona y cliente: ' . $e->getMessage());
+            // Valores por defecto si hay error
+            $this->tiposPersona = collect([]);
+            $this->tiposCliente = collect([]);
+        }
     }
 
     /**
@@ -439,47 +472,72 @@ class Ventas extends Component
         }
 
         try {
-            // Crear cliente con los datos ingresados
+            // Crear cliente con los datos ingresados según la estructura real de la tabla
             $clienteData = [
                 'nombre' => $this->nombreClienteManual,
                 'identidad' => $this->rtnManual,
                 'rtn' => $this->rtnManual,
                 'telefono' => $this->telefonoClienteManual,
                 'correo' => $this->correoClienteManual,
-                'estado_id' => 1, // Activo
-                'tipo_cliente_id' => 1, // Por defecto
-                'tipo_persona_id' => 1, // Por defecto
+                'direccion' => $this->direccionClienteManual, // Campo correcto según la tabla
+                'estado_id' => 1, // Siempre 1 como indicaste
+                'tipo_cliente_id' => $this->tipoClienteId ?? 1, // Nueva propiedad
+                'tipo_persona_id' => $this->tipoPersonaId ?? 1, // Nueva propiedad
+                'users_id' => Auth::id(), // Usuario actual que crea el cliente
             ];
 
             $nuevoCliente = Cliente::create($clienteData);
             
-            // Si hay dirección, crearla por separado (si existe tabla direccion)
-            if (!empty($this->direccionClienteManual)) {
-                // Aquí podrías agregar lógica para guardar la dirección
-                // dependiendo de cómo esté estructurada tu base de datos
-            }
-
             // Seleccionar el cliente recién creado
             $this->cliente = $nuevoCliente;
             
-            // Desactivar modo manual
-            $this->modoClienteManual = false;
+            // Limpiar campos pero mantener modo manual
             $this->limpiarCamposManual();
             
             session()->flash('success', 'Cliente guardado exitosamente');
             
         } catch (Exception $e) {
-            Log::error('Error al guardar cliente manual', [
-                'error' => $e->getMessage(),
-                'datos' => [
-                    'nombre' => $this->nombreClienteManual,
-                    'rtn' => $this->rtnManual,
-                    'telefono' => $this->telefonoClienteManual,
-                    'correo' => $this->correoClienteManual,
-                ]
-            ]);
-            
+            Log::error('Error al guardar cliente manual: ' . $e->getMessage());
             session()->flash('error', 'Error al guardar el cliente: ' . $e->getMessage());
+        }
+    }
+
+    // Nueva función para buscar cliente por RTN automáticamente
+    public function buscarClientePorRtn()
+    {
+        if (empty($this->rtnManual)) {
+            $this->limpiarCamposManual();
+            return;
+        }
+
+        try {
+            // Buscar cliente por RTN o identidad
+            $clienteEncontrado = Cliente::where(function($query) {
+                $query->where('rtn', $this->rtnManual)
+                      ->orWhere('identidad', $this->rtnManual);
+            })->first();
+
+            if ($clienteEncontrado) {
+                // Cliente encontrado, llenar los campos
+                $this->nombreClienteManual = $clienteEncontrado->nombre;
+                $this->telefonoClienteManual = $clienteEncontrado->telefono ?? '';
+                $this->correoClienteManual = $clienteEncontrado->correo ?? '';
+                $this->direccionClienteManual = $clienteEncontrado->direccion ?? ''; // Campo correcto
+                $this->tipoPersonaId = $clienteEncontrado->tipo_persona_id;
+                $this->tipoClienteId = $clienteEncontrado->tipo_cliente_id;
+                $this->cliente = $clienteEncontrado;
+                
+                session()->flash('success', 'Cliente encontrado: ' . $clienteEncontrado->nombre);
+            } else {
+                // Cliente no encontrado, limpiar campos para permitir crear uno nuevo
+                $this->limpiarCamposManual();
+                $rtnTemp = $this->rtnManual; // Guardar el RTN ingresado
+                $this->rtnManual = $rtnTemp; // Mantener el RTN ingresado
+                $this->cliente = null;
+            }
+        } catch (Exception $e) {
+            Log::error('Error al buscar cliente: ' . $e->getMessage());
+            session()->flash('error', 'Error al buscar el cliente');
         }
     }
 

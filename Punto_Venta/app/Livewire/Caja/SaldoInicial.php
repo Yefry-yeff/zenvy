@@ -6,6 +6,7 @@ use Livewire\Component;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Carbon\Carbon;
 
 class SaldoInicial extends Component
 {
@@ -124,10 +125,29 @@ class SaldoInicial extends Component
         }
     }
 
+    public function validarYProcesarApertura()
+    {
+        try {
+            // Validación simplificada - solo verificar que la jornada esté abierta
+            return $this->validarJornadaAbierta();
+            
+        } catch (\Exception $e) {
+            Log::error("Error en validación de apertura de caja: " . $e->getMessage());
+            $this->mensaje = 'Error en validación: ' . $e->getMessage();
+            $this->tipoMensaje = 'error';
+            return false;
+        }
+    }
+
     public function aperturarCaja()
     {
         // Validar que la jornada esté abierta antes de proceder
         if (!$this->validarJornadaAbierta()) {
+            return;
+        }
+
+        // Validar que no haya jornadas o cajas sin cerrar de días anteriores
+        if (!$this->validarYProcesarApertura()) {
             return;
         }
 

@@ -97,15 +97,38 @@
                                                     </div>
                                                     <div class="text-sm text-gray-600">
                                                         <i class="fas fa-calendar-alt text-green-500 mr-1"></i>
-                                                        <strong>Fecha del cierre:</strong> {{ \Carbon\Carbon::parse($caja->created_at)->format('d/m/Y H:i:s') }}
+                                                        <strong>Fecha del cierre:</strong> {{ \Carbon\Carbon::parse($caja->fecha_cierre)->format('d/m/Y H:i:s') }}
                                                     </div>
                                                 </div>
                                                 <div class="text-right">
-                                                    <span class="font-bold text-lg {{ $caja->diferencia_efectivo > 0 ? 'text-green-600' : 'text-red-600' }}">
-                                                        {{ $caja->diferencia_efectivo > 0 ? '+' : '' }}L. {{ number_format($caja->diferencia_efectivo, 2) }}
-                                                    </span>
-                                                    <div class="text-xs text-gray-500">
-                                                        {{ $caja->diferencia_efectivo > 0 ? 'Sobrante' : 'Faltante' }}
+                                                    <div class="space-y-1">
+                                                        @if($caja->diferencia_efectivo != 0)
+                                                            <div class="flex items-center justify-end">
+                                                                <i class="fas fa-money-bill-wave text-green-500 mr-2"></i>
+                                                                <span class="text-sm font-medium mr-2">Efectivo:</span>
+                                                                <span class="font-bold {{ $caja->diferencia_efectivo > 0 ? 'text-green-600' : 'text-red-600' }}">
+                                                                    {{ $caja->diferencia_efectivo > 0 ? '+' : '' }}L. {{ number_format($caja->diferencia_efectivo, 2) }}
+                                                                </span>
+                                                            </div>
+                                                        @endif
+                                                        @if($caja->diferencia_tarjeta != 0)
+                                                            <div class="flex items-center justify-end">
+                                                                <i class="fas fa-credit-card text-blue-500 mr-2"></i>
+                                                                <span class="text-sm font-medium mr-2">Tarjeta:</span>
+                                                                <span class="font-bold {{ $caja->diferencia_tarjeta > 0 ? 'text-green-600' : 'text-red-600' }}">
+                                                                    {{ $caja->diferencia_tarjeta > 0 ? '+' : '' }}L. {{ number_format($caja->diferencia_tarjeta, 2) }}
+                                                                </span>
+                                                            </div>
+                                                        @endif
+                                                        @if($caja->diferencia_cheque != 0)
+                                                            <div class="flex items-center justify-end">
+                                                                <i class="fas fa-money-check text-purple-500 mr-2"></i>
+                                                                <span class="text-sm font-medium mr-2">Cheque:</span>
+                                                                <span class="font-bold {{ $caja->diferencia_cheque > 0 ? 'text-green-600' : 'text-red-600' }}">
+                                                                    {{ $caja->diferencia_cheque > 0 ? '+' : '' }}L. {{ number_format($caja->diferencia_cheque, 2) }}
+                                                                </span>
+                                                            </div>
+                                                        @endif
                                                     </div>
                                                 </div>
                                             </div>
@@ -114,7 +137,86 @@
                                 </div>
                                 <p class="text-sm text-orange-600 mt-2">
                                     <i class="fas fa-info-circle mr-1"></i>
-                                    Estas cajas tuvieron diferencias en sus cierres del día. Se muestra el usuario responsable y la fecha del cierre.
+                                    Estas cajas tuvieron diferencias en sus cierres del día (efectivo, tarjeta o cheque). Se muestra el usuario responsable y la fecha del cierre.
+                                </p>
+                            </div>
+                        @endif
+
+                        <!-- Resumen de Transacciones por Caja -->
+                        @if(count($transaccionesPorCaja) > 0)
+                            <div class="mb-6">
+                                <h4 class="font-semibold text-blue-600 mb-2">
+                                    <i class="fas fa-exchange-alt mr-2"></i>
+                                    Transacciones Registradas por Caja ({{ count($transaccionesPorCaja) }})
+                                </h4>
+                                <div class="max-h-48 overflow-y-auto border border-blue-200 rounded-lg">
+                                    @foreach($transaccionesPorCaja as $caja)
+                                        <div class="flex justify-between items-start p-3 border-b border-blue-100 last:border-b-0">
+                                            <div class="flex-1">
+                                                <div class="font-medium text-gray-800">
+                                                    <i class="fas fa-cash-register text-blue-500 mr-1"></i>
+                                                    Caja #{{ $caja->caja_id }}
+                                                </div>
+                                                <div class="text-sm text-gray-600 mt-1">
+                                                    <i class="fas fa-user text-green-500 mr-1"></i>
+                                                    <strong>Usuario:</strong> {{ $caja->nombre_usuario }}
+                                                </div>
+                                                <div class="text-sm text-gray-600">
+                                                    <i class="fas fa-wallet text-orange-500 mr-1"></i>
+                                                    <strong>Balance Actual:</strong> L. {{ number_format($caja->balance_actual, 2) }}
+                                                </div>
+                                            </div>
+                                            <div class="text-right">
+                                                <div class="space-y-1">
+                                                    @if($caja->total_efectivo_ingreso > 0 || $caja->total_efectivo_egreso > 0)
+                                                        <div class="flex items-center justify-end">
+                                                            <i class="fas fa-money-bill-wave text-green-500 mr-2"></i>
+                                                            <span class="text-xs font-medium mr-2">Efectivo:</span>
+                                                            <span class="text-xs">
+                                                                <span class="text-green-600">+L. {{ number_format($caja->total_efectivo_ingreso, 2) }}</span>
+                                                                @if($caja->total_efectivo_egreso > 0)
+                                                                    <span class="text-red-600 ml-1">-L. {{ number_format($caja->total_efectivo_egreso, 2) }}</span>
+                                                                @endif
+                                                            </span>
+                                                        </div>
+                                                    @endif
+                                                    @if($caja->total_tarjeta_ingreso > 0 || $caja->total_tarjeta_egreso > 0)
+                                                        <div class="flex items-center justify-end">
+                                                            <i class="fas fa-credit-card text-blue-500 mr-2"></i>
+                                                            <span class="text-xs font-medium mr-2">Tarjeta:</span>
+                                                            <span class="text-xs">
+                                                                <span class="text-green-600">+L. {{ number_format($caja->total_tarjeta_ingreso, 2) }}</span>
+                                                                @if($caja->total_tarjeta_egreso > 0)
+                                                                    <span class="text-red-600 ml-1">-L. {{ number_format($caja->total_tarjeta_egreso, 2) }}</span>
+                                                                @endif
+                                                            </span>
+                                                        </div>
+                                                    @endif
+                                                    @if($caja->total_cheque_ingreso > 0 || $caja->total_cheque_egreso > 0)
+                                                        <div class="flex items-center justify-end">
+                                                            <i class="fas fa-money-check text-purple-500 mr-2"></i>
+                                                            <span class="text-xs font-medium mr-2">Cheque:</span>
+                                                            <span class="text-xs">
+                                                                <span class="text-green-600">+L. {{ number_format($caja->total_cheque_ingreso, 2) }}</span>
+                                                                @if($caja->total_cheque_egreso > 0)
+                                                                    <span class="text-red-600 ml-1">-L. {{ number_format($caja->total_cheque_egreso, 2) }}</span>
+                                                                @endif
+                                                            </span>
+                                                        </div>
+                                                    @endif
+                                                    <div class="flex items-center justify-end mt-2 pt-1 border-t border-gray-200">
+                                                        <span class="text-xs font-bold {{ $caja->total_neto >= 0 ? 'text-green-600' : 'text-red-600' }}">
+                                                            Total Neto: {{ $caja->total_neto >= 0 ? '+' : '' }}L. {{ number_format($caja->total_neto, 2) }}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @endforeach
+                                </div>
+                                <p class="text-sm text-blue-600 mt-2">
+                                    <i class="fas fa-info-circle mr-1"></i>
+                                    Resumen de todas las transacciones registradas en las cajas durante la fecha de cierre. No incluye cajas que ya tienen diferencias registradas.
                                 </p>
                             </div>
                         @endif
