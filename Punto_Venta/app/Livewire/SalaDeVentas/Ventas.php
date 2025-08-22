@@ -542,12 +542,22 @@ class Ventas extends Component
 
                 session()->flash('success', 'Cliente encontrado: ' . $clienteEncontrado->nombre);
             } else {
-                // Cliente no encontrado, limpiar campos para permitir crear uno nuevo
-                $this->limpiarCamposManual();
-                $rtnTemp = $this->rtnManual; // Guardar el RTN ingresado
-                $this->rtnManual = $rtnTemp; // Mantener el RTN ingresado
+                // Cliente no encontrado - mantener RTN y limpiar solo otros campos
+                $rtnTemp = $this->rtnManual; // Guardar el RTN ingresado antes de limpiar
+                
+                // Limpiar solo los otros campos, no el RTN
+                $this->nombreClienteManual = '';
+                $this->telefonoClienteManual = '';
+                $this->correoClienteManual = '';
+                $this->direccionClienteManual = '';
+                $this->tipoPersonaId = 1;
+                $this->tipoClienteId = 1;
+                
+                $this->rtnManual = $rtnTemp; // Restaurar el RTN ingresado
                 $this->cliente = null;
                 $this->camposBloqueados = false; // Permitir edición para nuevo cliente
+                
+                session()->flash('error', 'Cliente con RTN/Identidad "' . $rtnTemp . '" no existe. Puede crear un nuevo cliente con estos datos.');
             }
         } catch (Exception $e) {
             Log::error('Error al buscar cliente: ' . $e->getMessage());
