@@ -1,77 +1,4 @@
 <div>
-    <!-- Modal de búsqueda de cliente por identidad -->
-    @if(!isset($cliente))
-    <div x-data="{ open: true, identidad: '' }"
-         x-show="open"
-         x-cloak
-         @cerrar-modal-busqueda.window="open = false"
-         @click.self="open = false"
-         @keydown.escape.window="open = false"
-         class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-        <div class="w-full max-w-md overflow-hidden bg-white rounded-lg shadow-xl"
-             x-data x-init="$watch('theme', t => localStorage.setItem('theme', t))">
-            <!-- Header con tema -->
-            <div class="flex items-center justify-between px-6 py-4 text-white"
-                :class="{
-                    'bg-emerald-600': theme === 'verde',
-                    'bg-blue-600': theme === 'azul',
-                    'bg-gray-900': theme === 'oscuro',
-                    'bg-slate-700': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
-                }">
-                <h2 class="text-lg font-semibold">
-                    <i class="fas fa-search me-2"></i>
-                    Buscar Cliente
-                </h2>
-                <button @click="open = false" class="text-white transition-colors hover:text-gray-200">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                    </svg>
-                </button>
-            </div>
-
-            <!-- Body -->
-            <div class="p-6">
-                <form @submit.prevent="$wire.buscarClientePorIdentidad(identidad)">
-                    <label for="identidad" class="block mb-2 text-sm font-medium text-gray-700">Número de Identidad:</label>
-                    <input type="text"
-                        id="identidad"
-                        x-model="identidad"
-                        class="w-full px-3 py-2 mb-4 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-200"
-                        maxlength="20"
-                        placeholder="Ingrese número de identidad"
-                        required
-                        autofocus>
-
-                    <div class="flex justify-end gap-3">
-                        <button type="button"
-                            @click="open = false"
-                            class="px-4 py-2 text-gray-700 transition-colors bg-gray-200 rounded-lg hover:bg-gray-300">
-                            Cancelar
-                        </button>
-                        <button type="button"
-                            wire:click="activarModoClienteManual"
-                            class="px-4 py-2 text-white transition-colors bg-orange-600 rounded-lg hover:bg-orange-700">
-                            <i class="fas fa-edit me-1"></i>
-                            RTN
-                        </button>
-                        <button type="submit"
-                            class="px-4 py-2 text-white transition-colors rounded-lg"
-                            :class="{
-                                'bg-emerald-600 hover:bg-emerald-700': theme === 'verde',
-                                'bg-blue-600 hover:bg-blue-700': theme === 'azul',
-                                'bg-gray-900 hover:bg-gray-800': theme === 'oscuro',
-                                'bg-slate-700 hover:bg-slate-800': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
-                            }">
-                            <i class="fas fa-search me-1"></i>
-                            Buscar
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-    @endif
-
     <!-- Mensaje emergente si el cliente no existe -->
     @if(session('cliente_no_encontrado'))
         <div class="fixed z-50 px-4 py-2 text-white bg-red-500 rounded shadow-lg top-5 right-5">
@@ -226,9 +153,8 @@
     </div>
     @endif
 
-    <!-- CONTENIDO PRINCIPAL: Solo cuando hay cliente seleccionado o en modo manual -->
-    @if(isset($cliente) || $modoClienteManual)
-        <div class="mx-auto max-w-7xl">
+    <!-- CONTENIDO PRINCIPAL: Siempre visible (modo manual por defecto) -->
+    <div class="mx-auto max-w-7xl">
             
             <!-- 1. INFORMACIÓN DEL CLIENTE (arriba, ancho completo) -->
             <div class="mb-6 bg-white border border-gray-300 rounded-lg shadow-lg" x-data x-init="$watch('theme', t => localStorage.setItem('theme', t))">
@@ -909,7 +835,6 @@
             </div> <!-- End grid de dos columnas -->
 
         </div> <!-- End contenedor principal -->
-    @endif <!-- End if cliente -->
 
     <!-- Modal de Pago -->
     <!-- Modal de métodos de pago -->

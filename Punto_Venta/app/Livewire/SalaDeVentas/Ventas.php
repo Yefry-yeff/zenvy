@@ -131,6 +131,10 @@ class Ventas extends Component
                                           ->first();
         }
 
+        // Activar modo cliente manual directamente sin modal
+        $this->modoClienteManual = true;
+        $this->limpiarCamposManual();
+
         $this->cargarTiposPago();
         $this->verificarCAI();
         // Cargar productos y servicios para la interfaz unificada
