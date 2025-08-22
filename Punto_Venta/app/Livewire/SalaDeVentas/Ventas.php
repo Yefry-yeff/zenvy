@@ -28,7 +28,7 @@ class Ventas extends Component
     public $mostrarModalClientesFlag = false;
     public $busquedaCliente = '';
     public $clientesModal;
-    
+
     // Cliente manual - campos editables
     public $rtnManual = '';
     public $nombreCompletoManual = '';
@@ -48,7 +48,7 @@ class Ventas extends Component
     // Datos para los selectores
     public $tiposPersona = [];
     public $tiposCliente = [];
-    
+
     // Control de estado de campos
     public $camposBloqueados = false;
 
@@ -73,12 +73,12 @@ class Ventas extends Component
     public $totalIsv = 0;
     public $total = 0;
     public $isvPorTasa = []; // Nuevo: ISV agrupado por tasa
-    
+
     // Descuentos por edad
     public $descuentoTerceraEdad = false;
     public $descuentoCuartaEdad = false;
     public $totalDescuentos = 0;
-    
+
     // Descuentos guardados en BD (para mostrar en facturas guardadas)
     public $descuentosGuardados = [];
 
@@ -151,7 +151,7 @@ class Ventas extends Component
         $this->verificarCAI();
         // Cargar productos y servicios para la interfaz unificada
         $this->cargarProductosYServicios();
-        
+
         // Cargar descuentos guardados si hay una factura específica
         $this->cargarDescuentosGuardados();
     }
@@ -165,12 +165,12 @@ class Ventas extends Component
             ->where('descuento_unitario', '>', 0)
             ->where('estado_id', 1)
             ->get();
-            
+
         Log::info("Productos con descuento unitario en BD", [
             'cantidad' => $productos->count(),
             'productos' => $productos->toArray()
         ]);
-        
+
         session()->flash('info', 'Verificación completada. Revisa los logs.');
     }
 
@@ -220,7 +220,7 @@ class Ventas extends Component
 
             // Verificar disponibilidad específica para la tienda del usuario
             $validacionTienda = $caiService->validarCAIParaTienda($this->tiendaUsuario);
-            
+
             if (!$validacionTienda['valido']) {
                 $this->alertaCAI = "¡CRÍTICO! " . $validacionTienda['mensaje'] . " - " . $validacionTienda['detalle'];
                 $this->caiActual = null;
@@ -258,7 +258,7 @@ class Ventas extends Component
     public function cargarServicios()
     {
         $this->servicios = Servicio::with(['isv', 'estado'])
-            ->select('id', 'nombre', 'descripcion', 'precio_base', 'estado_id', 'isv_id', 
+            ->select('id', 'nombre', 'descripcion', 'precio_base', 'estado_id', 'isv_id',
                     'descuento_unitario', 'descuento_tercera', 'descuento_cuarta') // Excluir 'imagen'
             ->where('estado_id', 1) // Solo servicios activos
             ->when($this->busquedaProductosServicios, function ($query) {
@@ -272,7 +272,7 @@ class Ventas extends Component
     public function cargarProductos()
     {
         $this->productos = Producto::with(['isv', 'estado'])
-            ->select('id', 'nombre', 'descripcion', 'precio_base', 'estado_id', 'isv_id', 
+            ->select('id', 'nombre', 'descripcion', 'precio_base', 'estado_id', 'isv_id',
                     'descuento_unitario', 'descuento_tercera', 'descuento_cuarta', 'codigo_barra') // Excluir 'imagen'
             ->where('estado_id', 1) // Solo productos activos
             ->when($this->busquedaProductosServicios, function ($query) {
@@ -289,7 +289,7 @@ class Ventas extends Component
         if ($this->tipoSeleccion === 'productos' || $this->tipoSeleccion === 'todos') {
             $this->cargarProductos();
         }
-        
+
         if ($this->tipoSeleccion === 'servicios' || $this->tipoSeleccion === 'todos') {
             $this->cargarServicios();
         }
@@ -326,7 +326,7 @@ class Ventas extends Component
     public function agregarServicio($servicioId)
     {
         $servicio = Servicio::with('isv')->find($servicioId);
-        
+
         if (!$servicio) {
             $this->dispatch('mostrar-error', ['mensaje' => 'Servicio no encontrado']);
             return;
@@ -339,18 +339,18 @@ class Ventas extends Component
                 // Aumentar la cantidad
                 $nuevaCantidad = $this->productosFactura[$index]['cantidad'] + 1;
                 $this->productosFactura[$index]['cantidad'] = $nuevaCantidad;
-                
+
                 // Recalcular el descuento unitario aplicado con la nueva cantidad
                 $descuentoUnitarioProducto = $item['descuento_unitario_producto'] ?? 0;
                 if ($descuentoUnitarioProducto > 0) {
                     $this->productosFactura[$index]['descuento_unitario_aplicado'] = $descuentoUnitarioProducto * $nuevaCantidad;
                 }
-                
+
                 // Recalcular subtotal con descuento para este item
                 $subtotalOriginal = $item['precio'] * $nuevaCantidad;
                 $descuentoUnitarioAplicado = $this->productosFactura[$index]['descuento_unitario_aplicado'] ?? 0;
                 $this->productosFactura[$index]['subtotal_con_descuento'] = $subtotalOriginal - $descuentoUnitarioAplicado;
-                
+
                 $servicioExistente = true;
                 break;
             }
@@ -359,15 +359,15 @@ class Ventas extends Component
         if (!$servicioExistente) {
             // Obtener el valor de ISV desde la relación
             $valorIsv = $servicio->isv ? $servicio->isv->cantidad : 0;
-            
+
             // Calcular descuento unitario automático si existe
             $subtotalOriginal = $servicio->precio_base;
             $descuentoUnitarioAplicado = 0;
-            
+
             if (($servicio->descuento_unitario ?? 0) > 0) {
                 $descuentoUnitarioAplicado = $servicio->descuento_unitario;
             }
-            
+
             $this->productosFactura[] = [
                 'servicio_id' => $servicio->id,
                 'id' => null, // NULL para diferenciarlo de productos
@@ -384,7 +384,7 @@ class Ventas extends Component
                 'subtotal_con_descuento' => $subtotalOriginal - $descuentoUnitarioAplicado,
                 'tipo' => 'servicio' // Identificador para diferenciar en la vista
             ];
-            
+
             // Mostrar mensaje si se aplicó descuento automático
             if (($servicio->descuento_unitario ?? 0) > 0) {
                 session()->flash('success', 'Servicio aplicado con descuento');
@@ -392,7 +392,7 @@ class Ventas extends Component
         }
 
         $this->calcularTotales();
-        
+
         // Forzar actualización de la vista
         $this->dispatch('$refresh');
     }
@@ -441,7 +441,7 @@ class Ventas extends Component
         $this->telefonoManual = '';
         $this->correoManual = '';
         $this->direccionManual = '';
-        
+
         // También limpiar las propiedades adicionales
         $this->nombreClienteManual = '';
         $this->correoClienteManual = '';
@@ -449,7 +449,7 @@ class Ventas extends Component
         $this->direccionClienteManual = '';
         $this->tipoPersonaId = 1;
         $this->tipoClienteId = 1;
-        
+
         // Desbloquear campos
         $this->camposBloqueados = false;
     }
@@ -470,9 +470,16 @@ class Ventas extends Component
 
     public function guardarClienteManual()
     {
-        // Validar que al menos el nombre esté presente
+        // Validar que el nombre esté presente
         if (empty($this->nombreClienteManual)) {
             session()->flash('error', 'El nombre del cliente es requerido');
+            return;
+        }
+
+        // Validar que el teléfono esté presente
+        if (empty($this->telefonoClienteManual)) {
+            session()->flash('error', 'Telefono debe ser obligatorio');
+            $this->dispatch('marcarCampoError', 'telefonoClienteManual');
             return;
         }
 
@@ -491,15 +498,15 @@ class Ventas extends Component
             ];
 
             $nuevoCliente = Cliente::create($clienteData);
-            
+
             // Seleccionar el cliente recién creado
             $this->cliente = $nuevoCliente;
-            
-            // Limpiar campos pero mantener modo manual
-            $this->limpiarCamposManual();
-            
-            session()->flash('success', 'Cliente guardado exitosamente');
-            
+
+            // Bloquear campos después de guardar (en lugar de limpiarlos)
+            $this->camposBloqueados = true;
+
+            session()->flash('success', 'Cliente guardado exitosamente ');
+
         } catch (Exception $e) {
             Log::error('Error al guardar cliente manual: ' . $e->getMessage());
             session()->flash('error', 'Error al guardar el cliente: ' . $e->getMessage());
@@ -529,10 +536,10 @@ class Ventas extends Component
                 $this->tipoPersonaId = $clienteEncontrado->tipo_persona_id ?? 1;
                 $this->tipoClienteId = $clienteEncontrado->tipo_cliente_id ?? 1;
                 $this->cliente = $clienteEncontrado;
-                
+
                 // Bloquear campos cuando se encuentra un cliente
                 $this->camposBloqueados = true;
-                
+
                 session()->flash('success', 'Cliente encontrado: ' . $clienteEncontrado->nombre);
             } else {
                 // Cliente no encontrado, limpiar campos para permitir crear uno nuevo
@@ -560,7 +567,7 @@ class Ventas extends Component
         $this->totalDescuentos = 0;
         $this->datosDescuentoAdulto = [];
         $this->calcularTotales();
-        
+
         // Redirigir al dashboard
         return redirect()->route('dashboard');
     }
@@ -629,7 +636,7 @@ class Ventas extends Component
 
         if ($cliente) {
             $this->cliente = $cliente;
-            
+
             // Llenar los campos manuales con los datos del cliente seleccionado
             $this->rtnManual = $cliente->identidad ?? '';
             $this->nombreClienteManual = $cliente->nombre ?? '';
@@ -638,12 +645,12 @@ class Ventas extends Component
             $this->direccionClienteManual = $cliente->direccion ?? '';
             $this->tipoPersonaId = $cliente->tipo_persona_id ?? 1;
             $this->tipoClienteId = $cliente->tipo_cliente_id ?? 1;
-            
+
             // Bloquear campos al seleccionar cliente desde el modal
             $this->camposBloqueados = true;
             $this->modoClienteManual = false;
             $this->cerrarModalClientes();
-            
+
             session()->flash('success', 'Cliente seleccionado: ' . $cliente->nombre);
         }
     }
@@ -687,18 +694,18 @@ class Ventas extends Component
                 // Actualizar la cantidad
                 $cantidadTotal = $item['cantidad'] + $this->cantidad;
                 $this->productosFactura[$index]['cantidad'] = $cantidadTotal;
-                
+
                 // Recalcular el descuento unitario aplicado con la nueva cantidad
                 $descuentoUnitarioProducto = $item['descuento_unitario_producto'] ?? 0;
                 if ($descuentoUnitarioProducto > 0) {
                     $this->productosFactura[$index]['descuento_unitario_aplicado'] = $descuentoUnitarioProducto * $cantidadTotal;
                 }
-                
+
                 // Recalcular subtotal con descuento para este item
                 $subtotalOriginal = $item['precio'] * $cantidadTotal;
                 $descuentoUnitarioAplicado = $this->productosFactura[$index]['descuento_unitario_aplicado'] ?? 0;
                 $this->productosFactura[$index]['subtotal_con_descuento'] = $subtotalOriginal - $descuentoUnitarioAplicado;
-                
+
                 $productoExistente = true;
                 break;
             }
@@ -707,16 +714,16 @@ class Ventas extends Component
         if (!$productoExistente) {
             // Obtener el valor de ISV desde la relación
             $valorIsv = $producto->isv ? $producto->isv->cantidad : 0;
-            
+
             // Calcular descuento unitario automático si existe (valor monetario directo)
             $subtotalOriginal = $producto->precio_base * $this->cantidad;
             $descuentoUnitarioAplicado = 0;
-            
+
             if (($producto->descuento_unitario ?? 0) > 0) {
                 // El descuento es un valor monetario que se aplica por cantidad
                 $descuentoUnitarioAplicado = $producto->descuento_unitario * $this->cantidad;
             }
-            
+
             $this->productosFactura[] = [
                 'id' => $producto->id,
                 'nombre' => $producto->nombre,
@@ -731,7 +738,7 @@ class Ventas extends Component
                 'descuento_aplicado' => 0,
                 'subtotal_con_descuento' => $subtotalOriginal - $descuentoUnitarioAplicado
             ];
-            
+
             // Mostrar mensaje si se aplicó descuento automático
             if (($producto->descuento_unitario ?? 0) > 0) {
                 session()->flash('success', 'Producto aplicado con descuento');
@@ -749,7 +756,7 @@ class Ventas extends Component
         ]);
 
         $this->calcularTotales();
-        
+
         // Forzar actualización de la vista
         $this->dispatch('$refresh');
     }
@@ -771,10 +778,10 @@ class Ventas extends Component
 
         // Obtener el item actual
         $item = $this->productosFactura[$index];
-        
+
         // Solo validar stock si es un producto (no servicio)
         $esServicio = isset($item['servicio_id']) && $item['servicio_id'] !== null;
-        
+
         if (!$esServicio) {
             // Validar stock con la nueva cantidad total
             $productoId = $item['id'];
@@ -799,21 +806,21 @@ class Ventas extends Component
 
         // Actualizar la cantidad
         $this->productosFactura[$index]['cantidad'] = $nuevaCantidad;
-        
+
         // Recalcular el descuento unitario aplicado con la nueva cantidad
         $descuentoUnitarioProducto = $item['descuento_unitario_producto'] ?? 0;
         if ($descuentoUnitarioProducto > 0) {
             $this->productosFactura[$index]['descuento_unitario_aplicado'] = $descuentoUnitarioProducto * $nuevaCantidad;
         }
-        
+
         // Recalcular subtotal con descuento para este item
         $subtotalOriginal = $item['precio'] * $nuevaCantidad;
         $descuentoUnitarioAplicado = $this->productosFactura[$index]['descuento_unitario_aplicado'] ?? 0;
         $this->productosFactura[$index]['subtotal_con_descuento'] = $subtotalOriginal - $descuentoUnitarioAplicado;
-        
+
         // Recalcular todos los totales
         $this->calcularTotales();
-        
+
         // Forzar actualización de la vista
         $this->dispatch('$refresh');
     }
@@ -836,26 +843,26 @@ class Ventas extends Component
 
         foreach ($this->productosFactura as $index => $producto) {
             $subtotalProducto = $producto['precio'] * $producto['cantidad'];
-            
+
             // Acumular subtotal bruto (cantidad * precio unitario sin descuentos)
             $this->subtotalBruto += $subtotalProducto;
-            
+
             // Aplicar descuento unitario automático del producto primero (valor monetario)
             $descuentoUnitario = $producto['descuento_unitario_aplicado'] ?? 0;
-            
+
             // Si el producto cambió de cantidad, recalcular el descuento unitario automático
             if (($producto['descuento_unitario_producto'] ?? 0) > 0) {
                 // El descuento es un valor monetario que se multiplica por la cantidad
                 $descuentoUnitario = ($producto['descuento_unitario_producto'] ?? 0) * $producto['cantidad'];
                 $this->productosFactura[$index]['descuento_unitario_aplicado'] = $descuentoUnitario;
             }
-            
+
             // Aplicar el descuento unitario al subtotal
             $subtotalConDescuentoUnitario = $subtotalProducto - $descuentoUnitario;
-            
+
             // Aplicar descuentos por edad al subtotal ORIGINAL (sin descuento unitario aplicado)
             $descuentoProducto = 0;
-            
+
             // Verificar descuento de tercera edad (25%) - solo si el producto lo permite
             if ($this->descuentoTerceraEdad && ($producto['descuento_tercera'] ?? 0) == 1) {
                 $descuentoProducto = $subtotalProducto * 0.25; // 25% sobre precio original
@@ -864,14 +871,14 @@ class Ventas extends Component
             elseif ($this->descuentoCuartaEdad && ($producto['descuento_cuarta'] ?? 0) == 1) {
                 $descuentoProducto = $subtotalProducto * 0.35; // 35% sobre precio original
             }
-            
+
             // Calcular subtotal final restando ambos descuentos del subtotal original
             $subtotalConDescuento = $subtotalProducto - $descuentoUnitario - $descuentoProducto;
             $this->subtotal += $subtotalConDescuento;
-            
+
             // Sumar ambos tipos de descuentos al total de descuentos
             $this->totalDescuentos += ($descuentoUnitario + $descuentoProducto);
-            
+
             // Actualizar el producto con la información de los descuentos aplicados
             $this->productosFactura[$index]['descuento_aplicado'] = $descuentoProducto;
             $this->productosFactura[$index]['subtotal_con_descuento'] = $subtotalConDescuento;
@@ -908,13 +915,13 @@ class Ventas extends Component
             session()->flash('warning', 'Ya hay un descuento de cuarta edad aplicado. Solo se permite un descuento por edad a la vez.');
             return;
         }
-        
+
         // Verificar que hay productos en la factura
         if (empty($this->productosFactura)) {
             session()->flash('error', 'No hay productos en la factura para aplicar el descuento.');
             return;
         }
-        
+
         // Si el descuento ya está activo, removerlo
         if ($this->descuentoTerceraEdad) {
             $this->descuentoTerceraEdad = false;
@@ -923,22 +930,22 @@ class Ventas extends Component
             session()->flash('success', 'Descuento de tercera edad removido');
             return;
         }
-        
+
         // Verificar que hay productos elegibles para descuento de tercera edad
         $productosElegibles = collect($this->productosFactura)->filter(function($producto) {
             return ($producto['descuento_tercera'] ?? 0) == 1;
         });
-        
+
         if ($productosElegibles->isEmpty()) {
             session()->flash('warning', 'Ningún producto en la factura permite descuento de tercera edad.');
             return;
         }
-        
+
         // Abrir modal para capturar datos del adulto mayor
         $this->tipoDescuentoActual = 'tercera';
         $this->mostrarModalDescuentoAdulto = true;
     }
-    
+
     public function aplicarDescuentoCuartaEdad()
     {
         // Si ya hay un descuento de tercera edad activo, no permitir
@@ -946,13 +953,13 @@ class Ventas extends Component
             session()->flash('warning', 'Ya hay un descuento de tercera edad aplicado. Solo se permite un descuento por edad a la vez.');
             return;
         }
-        
+
         // Verificar que hay productos en la factura
         if (empty($this->productosFactura)) {
             session()->flash('error', 'No hay productos en la factura para aplicar el descuento.');
             return;
         }
-        
+
         // Si el descuento ya está activo, removerlo
         if ($this->descuentoCuartaEdad) {
             $this->descuentoCuartaEdad = false;
@@ -961,22 +968,22 @@ class Ventas extends Component
             session()->flash('success', 'Descuento de cuarta edad removido');
             return;
         }
-        
+
         // Verificar que hay productos elegibles para descuento de cuarta edad
         $productosElegibles = collect($this->productosFactura)->filter(function($producto) {
             return ($producto['descuento_cuarta'] ?? 0) == 1;
         });
-        
+
         if ($productosElegibles->isEmpty()) {
             session()->flash('warning', 'Ningún producto en la factura permite descuento de cuarta edad.');
             return;
         }
-        
+
         // Abrir modal para capturar datos del adulto mayor
         $this->tipoDescuentoActual = 'cuarta';
         $this->mostrarModalDescuentoAdulto = true;
     }
-    
+
     // Funciones para manejar el modal de descuento de adulto mayor
     public function cerrarModalDescuentoAdulto()
     {
@@ -984,14 +991,14 @@ class Ventas extends Component
         $this->tipoDescuentoActual = null;
         $this->limpiarDatosModalAdulto();
     }
-    
+
     public function limpiarDatosModalAdulto()
     {
         $this->dniAdulto = '';
         $this->nombreAdulto = '';
         $this->edadAdulto = null;
     }
-    
+
     public function confirmarDescuentoAdulto()
     {
         // Validar campos requeridos
@@ -999,18 +1006,18 @@ class Ventas extends Component
             session()->flash('error', 'Todos los campos son obligatorios');
             return;
         }
-        
+
         // Validar edad según el tipo de descuento
         if ($this->tipoDescuentoActual === 'tercera' && ($this->edadAdulto < 60 || $this->edadAdulto > 64)) {
             session()->flash('error', 'Para descuento de tercera edad, la edad debe estar entre 60 y 64 años');
             return;
         }
-        
+
         if ($this->tipoDescuentoActual === 'cuarta' && $this->edadAdulto < 65) {
             session()->flash('error', 'Para descuento de cuarta edad, la edad debe ser de 65 años o más');
             return;
         }
-        
+
         // Guardar datos en memoria
         $this->datosDescuentoAdulto = [
             'dni' => $this->dniAdulto,
@@ -1018,7 +1025,7 @@ class Ventas extends Component
             'edad' => $this->edadAdulto,
             'tipo_descuento' => $this->tipoDescuentoActual
         ];
-        
+
         // Aplicar el descuento correspondiente
         if ($this->tipoDescuentoActual === 'tercera') {
             $this->descuentoTerceraEdad = true;
@@ -1027,17 +1034,17 @@ class Ventas extends Component
             $this->descuentoCuartaEdad = true;
             $porcentaje = 35;
         }
-        
+
         $this->calcularTotales();
-        
+
         // Mensaje de éxito
         $tipoTexto = $this->tipoDescuentoActual === 'tercera' ? 'tercera' : 'cuarta';
         session()->flash('success', "Descuento del {$porcentaje}% para {$tipoTexto} edad aplicado correctamente para {$this->nombreAdulto}");
-        
+
         // Cerrar modal
         $this->cerrarModalDescuentoAdulto();
     }
-    
+
     // Método para resetear completamente la factura
     public function resetearFactura()
     {
@@ -1240,14 +1247,14 @@ class Ventas extends Component
         }
 
         $this->procesandoVenta = true;
-        
+
         Log::info("DEBUG finalizarVentaConDistribucion INICIO");
 
         try {
             // VALIDACIÓN CAI ANTES DE FACTURAR
             $caiService = new CAIService();
             $validacionCAI = $caiService->validarCAIParaTienda($this->tiendaUsuario);
-            
+
             if (!$validacionCAI['valido']) {
                 $this->procesandoVenta = false;
                 session()->flash('error', '❌ No se puede facturar: ' . $validacionCAI['mensaje']);
@@ -1261,7 +1268,7 @@ class Ventas extends Component
 
             // Actualizar información de CAI actual
             $this->caiActual = $validacionCAI['cai_info'];
-            
+
             DB::beginTransaction();
 
             Log::info("DEBUG Transacción iniciada");
@@ -1297,7 +1304,7 @@ class Ventas extends Component
             $productos = array_filter($this->productosFactura, function($item) {
                 return !isset($item['servicio_id']) || $item['servicio_id'] === null;
             });
-            
+
             $servicios = array_filter($this->productosFactura, function($item) {
                 return isset($item['servicio_id']) && $item['servicio_id'] !== null;
             });
@@ -1306,7 +1313,7 @@ class Ventas extends Component
             $indice = 1;
             foreach ($productos as $producto) {
                 $this->guardarProductoConDistribucionSecciones($factura->id, $producto, $indice);
-                
+
                 // Log para debug del producto
                 Log::info("DEBUG Producto en factura", [
                     'producto_id' => $producto['id'],
@@ -1335,12 +1342,12 @@ class Ventas extends Component
                         'users_id' => Auth::id(),
                         'created_at' => now()
                     ]);
-                    
+
                     Log::info("DEBUG Descuento creado exitosamente");
                 } else {
                     Log::info("DEBUG No se creó descuento porque descuentoUnitario es 0 o null");
                 }
-                
+
                 // Guardar descuento de adulto mayor si existe
                 $descuentoAdultoMayor = $producto['descuento_aplicado'] ?? 0;
                 if ($descuentoAdultoMayor > 0) {
@@ -1351,7 +1358,7 @@ class Ventas extends Component
                     } elseif ($this->descuentoCuartaEdad) {
                         $tipoDescuentoAdultoMayor = '4ta edad';
                     }
-                    
+
                     if ($tipoDescuentoAdultoMayor) {
                         Log::info("DEBUG Creando descuento de adulto mayor", [
                             'factura_id' => $factura->id,
@@ -1370,11 +1377,11 @@ class Ventas extends Component
                             'users_id' => Auth::id(),
                             'created_at' => now()
                         ]);
-                        
+
                         Log::info("DEBUG Descuento de adulto mayor creado exitosamente");
                     }
                 }
-                
+
                 $indice++;
             }
 
@@ -1444,7 +1451,7 @@ class Ventas extends Component
                     } elseif ($this->descuentoCuartaEdad) {
                         $tipoDescuentoAdultoMayor = '4ta edad';
                     }
-                    
+
                     if ($tipoDescuentoAdultoMayor) {
                         // TODO: Agregar campo servicio_id a tabla descuentos para servicios
                         /* Descuento::create([
@@ -1497,10 +1504,10 @@ class Ventas extends Component
 
         } catch (\Exception $e) {
             DB::rollBack();
-            
+
             // Resetear bandera de procesamiento en caso de error
             $this->procesandoVenta = false;
-            
+
             Log::error("ERROR en finalizarVentaConDistribucion", [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
@@ -1658,21 +1665,21 @@ class Ventas extends Component
         ]);
 
         $user = Auth::user();
-        
+
         // Obtener el ID de la caja del usuario en su tienda actual
         $caja = DB::table('caja')
             ->where('users_id', $user->id)
             ->where('tienda_id', $user->tienda_id)
             ->where('estado_caja', 1)
             ->first();
-            
+
         if (!$caja) {
             Log::error("No se encontró caja abierta para el usuario: " . $user->id);
             return;
         }
-        
+
         $cajaId = $caja->id;
-        
+
         $metodosParaRegistrar = [];
 
         // Obtener métodos activos con monto > 0
@@ -2045,7 +2052,7 @@ class Ventas extends Component
         $cai = DB::table('cai')
             ->where('id', $this->facturaParaImprimir->cai_id)
             ->first();
-        
+
         $this->caiFacturaImpresa = $cai ? (array) $cai : null;
 
         // Cargar productos y servicios de forma unificada
@@ -2291,7 +2298,7 @@ class Ventas extends Component
             // Productos
             $totalDescuentos = 0;
             $isvPorTasa = [];
-            
+
             foreach ($this->productosFacturaImpresa as $producto) {
                 $nombreCorto = substr($producto['nombre'], 0, 25);
                 imagestring($imagen, 2, 30, $y, $nombreCorto, $negro);
@@ -2299,7 +2306,7 @@ class Ventas extends Component
                 imagestring($imagen, 2, 420, $y, "L. " . number_format($producto['precio_unidad'], 2), $negro);
                 imagestring($imagen, 2, 500, $y, "L. " . number_format($producto['total'], 2), $negro);
                 $y += 15;
-                
+
                 // Mostrar descuento si existe
                 if ($producto['descuento'] > 0) {
                     $porcentajeDescuento = ($producto['descuento'] / ($producto['subtotal'] + $producto['descuento'])) * 100;
@@ -2309,7 +2316,7 @@ class Ventas extends Component
                     $y += 12;
                     $totalDescuentos += $producto['descuento'];
                 }
-                
+
                 // Agrupar ISV por tasa
                 $tasaIsv = $producto['isv_aplicado'];
                 if ($tasaIsv > 0) {
@@ -2328,14 +2335,14 @@ class Ventas extends Component
             imagestring($imagen, 3, 350, $y, "Subtotal:", $negro);
             imagestring($imagen, 3, 470, $y, "L. " . number_format((float)$factura->sub_total, 2), $negro);
             $y += 20;
-            
+
             // Mostrar descuentos si existen
             if ($totalDescuentos > 0) {
                 imagestring($imagen, 3, 350, $y, "Descuentos y rebajas:", $rojo);
                 imagestring($imagen, 3, 470, $y, "-L. " . number_format($totalDescuentos, 2), $rojo);
                 $y += 20;
             }
-            
+
             // Mostrar ISV por tasa
             foreach ($isvPorTasa as $tasa => $montoIsv) {
                 if ($tasa > 0 && $montoIsv > 0) {
@@ -2344,14 +2351,14 @@ class Ventas extends Component
                     $y += 20;
                 }
             }
-            
+
             // Si no hay ISV por tasa, mostrar el total de ISV
             if (empty($isvPorTasa) || array_sum($isvPorTasa) == 0) {
                 imagestring($imagen, 3, 350, $y, "ISV:", $negro);
                 imagestring($imagen, 3, 470, $y, "L. " . number_format((float)$factura->isv, 2), $negro);
                 $y += 20;
             }
-            
+
             imagestring($imagen, 4, 350, $y, "TOTAL:", $azul);
             imagestring($imagen, 4, 470, $y, "L. " . number_format((float)$factura->total, 2), $azul);
             $y += 30;
@@ -2779,7 +2786,7 @@ class Ventas extends Component
     {
         try {
             $producto = Producto::with('isv')->find($productoId);
-            
+
             if (!$producto) {
                 $this->dispatch('mostrar-error', ['mensaje' => 'Producto no encontrado']);
                 return;
@@ -2802,30 +2809,30 @@ class Ventas extends Component
                 if (!isset($item['servicio_id']) && $item['id'] == $producto->id) {
                     // Log para debug
                     Log::info("Producto existente encontrado en índice {$index}, cantidad actual: {$item['cantidad']}");
-                    
+
                     // Verificar que no exceda el stock
                     $nuevaCantidad = $this->productosFactura[$index]['cantidad'] + $this->cantidad;
                     Log::info("Nueva cantidad será: {$nuevaCantidad}, stock disponible: {$stockDisponible}");
-                    
+
                     if ($nuevaCantidad > $stockDisponible) {
                         $this->dispatch('mostrar-error', ['mensaje' => 'No se puede agregar más cantidad. Stock limitado a: ' . $stockDisponible]);
                         return;
                     }
-                    
+
                     // Actualizar la cantidad
                     $this->productosFactura[$index]['cantidad'] = $nuevaCantidad;
-                    
+
                     // Recalcular el descuento unitario aplicado con la nueva cantidad
                     $descuentoUnitarioProducto = $item['descuento_unitario_producto'] ?? 0;
                     if ($descuentoUnitarioProducto > 0) {
                         $this->productosFactura[$index]['descuento_unitario_aplicado'] = $descuentoUnitarioProducto * $nuevaCantidad;
                     }
-                    
+
                     // Recalcular subtotal con descuento para este item
                     $subtotalOriginal = $item['precio'] * $nuevaCantidad;
                     $descuentoUnitarioAplicado = $this->productosFactura[$index]['descuento_unitario_aplicado'] ?? 0;
                     $this->productosFactura[$index]['subtotal_con_descuento'] = $subtotalOriginal - $descuentoUnitarioAplicado;
-                    
+
                     Log::info("Cantidad actualizada a: {$nuevaCantidad}");
                     $productoExistente = true;
                     break;
@@ -2835,15 +2842,15 @@ class Ventas extends Component
             if (!$productoExistente) {
                 // Obtener el valor de ISV desde la relación
                 $valorIsv = $producto->isv ? $producto->isv->cantidad : 0;
-                
+
                 // Calcular descuento unitario automático si existe
                 $subtotalOriginal = $producto->precio_base;
                 $descuentoUnitarioAplicado = 0;
-                
+
                 if (($producto->descuento_unitario ?? 0) > 0) {
                     $descuentoUnitarioAplicado = $producto->descuento_unitario;
                 }
-                
+
                 $this->productosFactura[] = [
                     'id' => $producto->id,
                     'servicio_id' => null,
@@ -2860,7 +2867,7 @@ class Ventas extends Component
                     'subtotal_con_descuento' => $subtotalOriginal - $descuentoUnitarioAplicado,
                     'tipo' => 'producto'
                 ];
-                
+
                 // Mostrar mensaje si se aplicó descuento automático
                 if (($producto->descuento_unitario ?? 0) > 0) {
                     session()->flash('success', 'Producto agregado con descuento automático');
@@ -2870,12 +2877,12 @@ class Ventas extends Component
             }
 
             $this->calcularTotales();
-            
+
             // Forzar actualización de la vista
             $this->dispatch('$refresh');
-            
+
             $this->codigoBarras = ''; // Limpiar código de barras
-            
+
         } catch (\Exception $e) {
             Log::error('Error al agregar producto por clic: ' . $e->getMessage());
             $this->dispatch('mostrar-error', ['mensaje' => 'Error al agregar el producto']);
@@ -2961,7 +2968,7 @@ class Ventas extends Component
                     'nombre' => $this->datosDescuentoAdulto['nombre'],
                     'edad' => $this->datosDescuentoAdulto['edad']
                 ]);
-                
+
             } catch (\Exception $e) {
                 Log::error("ERROR al guardar descuento adulto mayor", [
                     'factura_id' => $facturaId,
@@ -2978,7 +2985,7 @@ class Ventas extends Component
     public function obtenerProductosYServiciosFiltrados()
     {
         $query = collect();
-        
+
         // Obtener productos si se están mostrando
         if ($this->tipoSeleccion === 'productos' || $this->tipoSeleccion === 'todos') {
             $productos = Producto::query()
@@ -2994,10 +3001,10 @@ class Ventas extends Component
                     $producto->stockDisponible = $this->obtenerStockDisponible($producto->id);
                     return $producto;
                 });
-            
+
             $query = $query->merge($productos);
         }
-        
+
         // Obtener servicios si se están mostrando
         if ($this->tipoSeleccion === 'servicios' || $this->tipoSeleccion === 'todos') {
             $servicios = Servicio::query()
@@ -3012,10 +3019,10 @@ class Ventas extends Component
                     $servicio->stockDisponible = null; // Los servicios no tienen stock
                     return $servicio;
                 });
-            
+
             $query = $query->merge($servicios);
         }
-        
+
         return $query->sortBy('nombre')->values();
     }
 }

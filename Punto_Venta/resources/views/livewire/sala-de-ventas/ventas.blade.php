@@ -240,11 +240,9 @@
                                 <div class="relative">
                                     <input type="text"
                                         wire:model.live.debounce.500ms="rtnManual"
-                                        wire:blur="buscarClientePorRtn"
                                         wire:keydown.enter="buscarClientePorRtn"
-                                        wire:keydown.tab="buscarClientePorRtn"
                                         class="w-full px-3 py-2 pr-10 border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-200 {{ $camposBloqueados ? 'bg-gray-100' : '' }}"
-                                        placeholder="RTN/Identidad (13-15 dígitos) - Enter/Tab para buscar"
+                                        placeholder="RTN/Identidad (13-15 dígitos) - Enter para buscar"
                                         maxlength="15"
                                         {{ $camposBloqueados ? 'readonly' : '' }}>
                                     <button type="button"
@@ -277,11 +275,13 @@
                                     {{ $camposBloqueados ? 'readonly' : '' }}>
                             </div>
 
-                            <div class="space-y-1">
-                                <label class="block text-sm font-medium text-gray-700">Teléfono</label>
+                            <div class="space-y-1" x-data="{ error: false }" 
+                                @marcar-campo-error.window="if($event.detail === 'telefonoClienteManual') { error = true; setTimeout(() => error = false, 3000) }">
+                                <label class="block text-sm font-medium text-gray-700">Teléfono *</label>
                                 <input type="tel"
                                     wire:model="telefonoClienteManual"
-                                    class="w-full px-3 py-2 border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-200 {{ $camposBloqueados ? 'bg-gray-100' : '' }}"
+                                    :class="error ? 'border-red-500 ring-1 ring-red-200 bg-red-50' : 'border-gray-300'"
+                                    class="w-full px-3 py-2 border rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-200 {{ $camposBloqueados ? 'bg-gray-100' : '' }}"
                                     placeholder="+504 0000-0000"
                                     {{ $camposBloqueados ? 'readonly' : '' }}>
                             </div>
