@@ -1106,20 +1106,21 @@ class Ventas extends Component
         // Guardar el porcentaje de descuento
         $producto['porcentaje_descuento'] = $this->porcentajeDescuentoProducto;
         
-        // Calcular el descuento en monto
-        $totalSinDescuento = $producto['cantidad'] * $producto['precio'];
-        $descuentoMonto = $totalSinDescuento * ($this->porcentajeDescuentoProducto / 100);
-        $producto['descuento_monto'] = $descuentoMonto;
+        // Calcular el descuento basado en el precio unitario (lógica original)
+        $precioUnitario = $producto['precio'];
+        $descuentoPorUnidad = $precioUnitario * ($this->porcentajeDescuentoProducto / 100);
+        $producto['descuento_monto'] = $descuentoPorUnidad; // Solo el descuento por unidad
         
-        // Calcular el nuevo total con descuento
-        $producto['total'] = $totalSinDescuento - $descuentoMonto;
+        // El descuento se aplica al subtotal actual (precio × cantidad)
+        $subtotalActual = $producto['cantidad'] * $producto['precio'];
+        $producto['total'] = $subtotalActual - $descuentoPorUnidad;
 
         // Recalcular totales generales
         $this->calcularTotales();
 
         // Mensaje de éxito
         $nombreProducto = $producto['nombre'];
-        session()->flash('success', "Descuento del {$this->porcentajeDescuentoProducto}% aplicado a {$nombreProducto}");
+        session()->flash('success', "Descuento del {$this->porcentajeDescuentoProducto}% (basado en precio unitario) aplicado a {$nombreProducto}");
 
         // Cerrar modal y limpiar datos
         $this->cerrarModalDescuentoProducto();

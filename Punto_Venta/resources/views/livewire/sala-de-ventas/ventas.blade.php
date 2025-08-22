@@ -712,10 +712,21 @@
                                                     <span class="font-medium">L. {{ number_format($totalDescuentoCuartaEdad, 2) }}</span>
                                                 </div>
                                             @endif
-                                            @if(array_sum(array_column($productosFactura, 'descuento_unitario_aplicado', 0)) > 0)
+                                            @php
+                                                // Calcular total de descuentos de productos individuales
+                                                $totalDescuentosIndividuales = 0;
+                                                foreach($productosFactura as $item) {
+                                                    $totalDescuentosIndividuales += $item['descuento_monto'] ?? 0;
+                                                }
+                                                // Calcular total de descuentos unitarios
+                                                $totalDescuentosUnitarios = array_sum(array_column($productosFactura, 'descuento_unitario_aplicado', 0));
+                                                // Suma total de descuentos de productos (unitarios + individuales)
+                                                $totalDescuentosProductos = $totalDescuentosIndividuales + $totalDescuentosUnitarios;
+                                            @endphp
+                                            @if($totalDescuentosProductos > 0)
                                                 <div class="flex justify-between text-sm text-red-600">
                                                     <span class="ml-2">• Descuentos unitarios:</span>
-                                                    <span class="font-medium">L. {{ number_format(array_sum(array_column($productosFactura, 'descuento_unitario_aplicado', 0)), 2) }}</span>
+                                                    <span class="font-medium">L. {{ number_format($totalDescuentosProductos, 2) }}</span>
                                                 </div>
                                             @endif
                                         </div>
@@ -1364,16 +1375,6 @@
                                 @error('porcentajeDescuentoProducto')
                                     <div class="text-danger mt-1">{{ $message }}</div>
                                 @enderror
-                            </div>
-                            <div x-show="porcentaje > 0" class="mb-3 p-3 bg-light rounded">
-                                <label class="fw-bold text-success">Vista Previa del Descuento:</label>
-                                @if(isset($productoSeleccionadoDescuento))
-                                    @php
-                                        $totalProducto = ($productoSeleccionadoDescuento['precio'] ?? 0) * ($productoSeleccionadoDescuento['cantidad'] ?? 0);
-                                    @endphp
-                                    <p class="mb-1" x-text="'Descuento: L ' + ({{ $totalProducto }} * (porcentaje / 100)).toFixed(2)">Descuento: L 0.00</p>
-                                    <p class="mb-0 fw-bold" x-text="'Nuevo Total: L ' + ({{ $totalProducto }} - ({{ $totalProducto }} * (porcentaje / 100))).toFixed(2)">Nuevo Total: L 0.00</p>
-                                @endif
                             </div>
                         @endif
                     </div>
