@@ -190,10 +190,16 @@
                                     @endif
                                     
                                     <!-- Total de la transacción -->
-                                    <hr class="border-gray-200 my-1">
-                                    <div class="text-sm font-bold {{ $transaccion['total'] > 0 ? 'text-gray-800' : 'text-red-600' }}">
-                                        {{ $transaccion['total'] > 0 ? '+' : '' }}L. {{ number_format($transaccion['total'], 2) }}
-                                    </div>
+                                    @php
+                                        $esAperturaOCierre = in_array(strtolower($transaccion['transaccion']), ['apertura_caja', 'cierre']);
+                                    @endphp
+                                    
+                                    @if(!$esAperturaOCierre && $transaccion['total'] != 0)
+                                        <hr class="border-gray-200 my-1">
+                                        <div class="text-sm font-bold {{ $transaccion['total'] > 0 ? 'text-gray-800' : 'text-red-600' }}">
+                                            {{ $transaccion['total'] > 0 ? '+' : '' }}L. {{ number_format($transaccion['total'], 2) }}
+                                        </div>
+                                    @endif
                                 </div>
                             </div>
                         </div>
