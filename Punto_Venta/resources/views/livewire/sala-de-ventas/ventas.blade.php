@@ -217,21 +217,13 @@
                         <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
                             <div class="space-y-1">
                                 <label class="block text-sm font-medium text-gray-700">
-                                    @if($modoClienteManual) RTN / Número de Identidad @else Número de Identidad @endif
+                                    RTN / Número de Identidad
                                 </label>
                                 <div class="relative">
-                                    @if($modoClienteManual)
-                                        <input type="text"
-                                            wire:model="rtnManual"
-                                            class="w-full px-3 py-2 pr-10 border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-200"
-                                            placeholder="Ingrese RTN o número de identidad">
-                                    @else
-                                        <input type="text"
-                                            wire:model="numeroIdentidad"
-                                            class="w-full px-3 py-2 pr-10 border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-200"
-                                            placeholder="Número de identidad del cliente"
-                                            readonly>
-                                    @endif
+                                    <input type="text"
+                                        wire:model="rtnManual"
+                                        class="w-full px-3 py-2 pr-10 border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-200"
+                                        placeholder="Ingrese RTN o número de identidad">
                                     <button type="button"
                                         wire:click="mostrarModalClientes"
                                         class="absolute inset-y-0 right-0 flex items-center px-3 text-gray-500 hover:text-blue-600"
@@ -243,18 +235,10 @@
 
                             <div class="space-y-1">
                                 <label class="block text-sm font-medium text-gray-700">Nombre del Cliente</label>
-                                @if($modoClienteManual)
-                                    <input type="text"
-                                        wire:model="nombreClienteManual"
-                                        class="w-full px-3 py-2 border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-200"
-                                        placeholder="Ingrese nombre del cliente">
-                                @else
-                                    <input type="text"
-                                        value="{{ $cliente->nombre ?? '' }}"
-                                        class="w-full px-3 py-2 border border-gray-300 rounded bg-gray-50"
-                                        placeholder="Nombre del cliente seleccionado"
-                                        readonly>
-                                @endif
+                                <input type="text"
+                                    wire:model="nombreClienteManual"
+                                    class="w-full px-3 py-2 border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-200"
+                                    placeholder="Ingrese nombre del cliente">
                             </div>
                         </div>
 
@@ -262,78 +246,38 @@
                         <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
                             <div class="space-y-1">
                                 <label class="block text-sm font-medium text-gray-700">Correo Electrónico</label>
-                                @if($modoClienteManual)
-                                    <input type="email"
-                                        wire:model="correoClienteManual"
-                                        class="w-full px-3 py-2 border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-200"
-                                        placeholder="correo@ejemplo.com">
-                                @else
-                                    <input type="email"
-                                        value="{{ $cliente->correo ?? '' }}"
-                                        class="w-full px-3 py-2 border border-gray-300 rounded bg-gray-50"
-                                        placeholder="Correo del cliente seleccionado"
-                                        readonly>
-                                @endif
+                                <input type="email"
+                                    wire:model="correoClienteManual"
+                                    class="w-full px-3 py-2 border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-200"
+                                    placeholder="correo@ejemplo.com">
                             </div>
 
                             <div class="space-y-1">
                                 <label class="block text-sm font-medium text-gray-700">Teléfono</label>
-                                @if($modoClienteManual)
-                                    <input type="tel"
-                                        wire:model="telefonoClienteManual"
-                                        class="w-full px-3 py-2 border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-200"
-                                        placeholder="+504 0000-0000">
-                                @else
-                                    <input type="tel"
-                                        value="{{ $cliente->telefono ?? '' }}"
-                                        class="w-full px-3 py-2 border border-gray-300 rounded bg-gray-50"
-                                        placeholder="Teléfono del cliente seleccionado"
-                                        readonly>
-                                @endif
+                                <input type="tel"
+                                    wire:model="telefonoClienteManual"
+                                    class="w-full px-3 py-2 border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-200"
+                                    placeholder="+504 0000-0000">
                             </div>
                         </div>
 
                         <!-- Tercera fila: Dirección -->
                         <div class="space-y-1">
                             <label class="block text-sm font-medium text-gray-700">Dirección</label>
-                            @if($modoClienteManual)
-                                <textarea wire:model="direccionClienteManual"
-                                    class="w-full px-3 py-2 border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-200"
-                                    rows="2"
-                                    placeholder="Dirección completa del cliente"></textarea>
-                            @else
-                                <textarea class="w-full px-3 py-2 border border-gray-300 rounded bg-gray-50"
-                                    rows="2"
-                                    placeholder="Dirección del cliente seleccionado"
-                                    readonly>{{ $cliente->direccion_completa ?? '' }}</textarea>
-                            @endif
+                            <textarea wire:model="direccionClienteManual"
+                                class="w-full px-3 py-2 border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-200"
+                                rows="2"
+                                placeholder="Dirección completa del cliente"></textarea>
                         </div>
 
                         <!-- Botones de control -->
                         <div class="flex flex-wrap gap-2">
-                            @if($modoClienteManual)
-                                <button type="button"
-                                    wire:click="desactivarModoClienteManual"
-                                    class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-gray-50 border border-gray-300 rounded-lg hover:bg-gray-100 focus:ring-4 focus:ring-gray-200">
-                                    <i class="w-4 h-4 mr-2 fas fa-times"></i>
-                                    Desactivar Modo Manual
-                                </button>
-                                <button type="button"
-                                    wire:click="guardarClienteManual"
-                                    class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-green-600 border border-green-600 rounded-lg hover:bg-green-700 focus:ring-4 focus:ring-green-200">
-                                    <i class="w-4 h-4 mr-2 fas fa-save"></i>
-                                    Guardar Cliente
-                                </button>
-                            @else
-                                @if(!$cliente)
-                                    <button type="button"
-                                        wire:click="activarModoClienteManual"
-                                        class="inline-flex items-center px-4 py-2 text-sm font-medium text-orange-700 bg-orange-50 border border-orange-300 rounded-lg hover:bg-orange-100 focus:ring-4 focus:ring-orange-200">
-                                        <i class="w-4 h-4 mr-2 fas fa-edit"></i>
-                                        Activar Modo Manual
-                                    </button>
-                                @endif
-                            @endif
+                            <button type="button"
+                                wire:click="guardarClienteManual"
+                                class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-green-600 border border-green-600 rounded-lg hover:bg-green-700 focus:ring-4 focus:ring-green-200">
+                                <i class="w-4 h-4 mr-2 fas fa-save"></i>
+                                Guardar Cliente
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -1239,3 +1183,4 @@
     @endif
 
 </div>
+
