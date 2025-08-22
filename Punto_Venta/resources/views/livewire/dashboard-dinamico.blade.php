@@ -40,7 +40,7 @@
                                     ⚪ {{ $estadoJornada['estado_texto'] ?? 'Desconocido' }}
                                 </span>
                             @endif
-                            
+
                             <!-- Fecha del estado actual -->
                             @if(isset($estadoJornada['fecha']))
                                 <span class="text-xs text-gray-500">
@@ -55,7 +55,7 @@
                                 </span>
                             @endif
                         </div>
-                        
+
                         <!-- Información adicional de apertura/cierre -->
                         @if(isset($estadoJornada['fecha_actualizacion']) && $estadoJornada['fecha_actualizacion'])
                             <div class="flex items-center space-x-1 text-xs text-gray-500">
@@ -99,7 +99,7 @@
                                     ⚠️ {{ $estadoCaja['estado_texto'] ?? 'Sin usar' }}
                                 </span>
                             @endif
-                            
+
                             <!-- Fecha de apertura de la caja -->
                             @if(isset($estadoCaja['fecha_apertura']) && $estadoCaja['fecha_apertura'])
                                 <span class="text-xs text-gray-500">
@@ -121,58 +121,83 @@
                                 </span>
                             @endif
                         </div>
-                        
+
                         @if(isset($estadoCaja['balance']))
-                        <div class="space-y-2">
-                            <span class="text-sm text-gray-600 font-medium">Balance por tipo:</span>
-                            
-                            <!-- Balance Efectivo -->
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center space-x-1">
-                                    <i class="fas fa-money-bill-wave text-green-500 text-xs"></i>
-                                    <span class="text-xs text-gray-600">Efectivo:</span>
+                        <div x-data="{ mostrarDetalle: false }" class="space-y-2">
+                            <!-- Botón para mostrar/ocultar detalle -->
+                            <button @click="mostrarDetalle = !mostrarDetalle"
+                                    class="flex items-center justify-between w-full p-2 text-left transition-colors duration-200 rounded-md bg-gray-50 hover:bg-gray-100">
+                                <div class="flex items-center space-x-2">
+                                    <i class="text-sm text-blue-500 fas fa-chart-line"></i>
+                                    <span class="text-sm font-medium text-gray-700">Flujo de Caja</span>
                                 </div>
-                                <span class="text-xs font-semibold text-gray-800">L. {{ number_format($estadoCaja['balance_efectivo'] ?? 0, 2) }}</span>
-                            </div>
-                            
-                            <!-- Balance Tarjeta -->
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center space-x-1">
-                                    <i class="fas fa-credit-card text-blue-500 text-xs"></i>
-                                    <span class="text-xs text-gray-600">Tarjeta:</span>
+                                <div class="flex items-center space-x-2">
+                                    <span class="text-sm font-bold text-gray-900">L. {{ number_format($estadoCaja['balance_total_calculado'] ?? 0, 2) }}</span>
+                                    <i class="text-xs text-gray-400 transition-transform duration-200 transform fas fa-chevron-down"
+                                       :class="{ 'rotate-180': mostrarDetalle }"></i>
                                 </div>
-                                <span class="text-xs font-semibold text-gray-800">L. {{ number_format($estadoCaja['balance_tarjeta'] ?? 0, 2) }}</span>
-                            </div>
-                            
-                            <!-- Balance Cheque -->
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center space-x-1">
-                                    <i class="fas fa-money-check text-purple-500 text-xs"></i>
-                                    <span class="text-xs text-gray-600">Cheque:</span>
+                            </button>
+
+                            <!-- Contenido colapsable del detalle -->
+                            <div x-show="mostrarDetalle"
+                                 x-transition:enter="transition ease-out duration-200"
+                                 x-transition:enter-start="opacity-0 transform scale-95"
+                                 x-transition:enter-end="opacity-100 transform scale-100"
+                                 x-transition:leave="transition ease-in duration-200"
+                                 x-transition:leave-start="opacity-100 transform scale-100"
+                                 x-transition:leave-end="opacity-0 transform scale-95"
+                                 class="p-3 space-y-2 bg-white border border-gray-200 rounded-md">
+
+                                <div class="pb-1 mb-2 text-xs font-medium text-gray-600 border-b">Balance por tipo de pago:</div>
+
+                                <!-- Balance Efectivo -->
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center space-x-2">
+                                        <i class="text-xs text-green-500 fas fa-money-bill-wave"></i>
+                                        <span class="text-xs text-gray-600">Efectivo:</span>
+                                    </div>
+                                    <span class="text-xs font-semibold text-gray-800">L. {{ number_format($estadoCaja['balance_efectivo'] ?? 0, 2) }}</span>
                                 </div>
-                                <span class="text-xs font-semibold text-gray-800">L. {{ number_format($estadoCaja['balance_cheque'] ?? 0, 2) }}</span>
-                            </div>
-                            
-                            <!-- Balance Transferencia -->
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center space-x-1">
-                                    <i class="fas fa-exchange-alt text-orange-500 text-xs"></i>
-                                    <span class="text-xs text-gray-600">Transferencia:</span>
+
+                                <!-- Balance Tarjeta -->
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center space-x-2">
+                                        <i class="text-xs text-blue-500 fas fa-credit-card"></i>
+                                        <span class="text-xs text-gray-600">Tarjeta:</span>
+                                    </div>
+                                    <span class="text-xs font-semibold text-gray-800">L. {{ number_format($estadoCaja['balance_tarjeta'] ?? 0, 2) }}</span>
                                 </div>
-                                <span class="text-xs font-semibold text-gray-800">L. {{ number_format($estadoCaja['balance_transferencia'] ?? 0, 2) }}</span>
-                            </div>
-                            
-                            <!-- Línea divisoria -->
-                            <hr class="border-gray-200">
-                            
-                            <!-- Total -->
-                            <div class="flex items-center justify-between">
-                                <span class="text-sm font-medium text-gray-700">Total:</span>
-                                <span class="text-sm font-bold text-gray-900">L. {{ number_format($estadoCaja['balance_total_calculado'] ?? 0, 2) }}</span>
+
+                                <!-- Balance Cheque -->
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center space-x-2">
+                                        <i class="text-xs text-purple-500 fas fa-money-check"></i>
+                                        <span class="text-xs text-gray-600">Cheque:</span>
+                                    </div>
+                                    <span class="text-xs font-semibold text-gray-800">L. {{ number_format($estadoCaja['balance_cheque'] ?? 0, 2) }}</span>
+                                </div>
+
+                                <!-- Balance Transferencia -->
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center space-x-2">
+                                        <i class="text-xs text-orange-500 fas fa-exchange-alt"></i>
+                                        <span class="text-xs text-gray-600">Transferencia:</span>
+                                    </div>
+                                    <span class="text-xs font-semibold text-gray-800">L. {{ number_format($estadoCaja['balance_transferencia'] ?? 0, 2) }}</span>
+                                </div>
+
+                                <!-- Línea divisoria -->
+                                <hr class="my-2 border-gray-200">
+
+                                <!-- Total -->
+                                <div class="flex items-center justify-between p-2 rounded bg-gray-50">
+                                    <span class="text-sm font-medium text-gray-700">Total:</span>
+                                    <span class="text-sm font-bold text-gray-900">L. {{ number_format($estadoCaja['balance_total_calculado'] ?? 0, 2) }}</span>
+                                </div>
                             </div>
                         </div>
                         @endif
-                        
+
                         <!-- Información adicional de última actualización -->
                         @if(isset($estadoCaja['fecha_actualizacion']) && $estadoCaja['fecha_actualizacion'])
                             <div class="flex items-center space-x-1 text-xs text-gray-500">
