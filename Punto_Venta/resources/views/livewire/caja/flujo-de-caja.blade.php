@@ -41,10 +41,11 @@
                             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                         <option value="">Todas las transacciones</option>
                         <option value="apertura_caja">Apertura de Caja</option>
-                        <option value="cierre_caja">Cierre de Caja</option>
-                        <option value="venta">Venta</option>
-                        <option value="entrada_efectivo">Entrada de Efectivo</option>
-                        <option value="salida_efectivo">Salida de Efectivo</option>
+                        <option value="cierre">Cierre</option>
+                        <option value="cierre_caja">Cierre de Caja (Jornada)</option>
+                        <option value="Facturacion">Facturación</option>
+                        <option value="Recibo de Efectivo">Recibo de Efectivo</option>
+                        <option value="Entrega de Efectivo">Entrega de Efectivo</option>
                     </select>
                 </div>
 
