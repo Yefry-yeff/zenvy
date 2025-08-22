@@ -126,6 +126,12 @@ class Ventas extends Component
     public $edadAdulto = null;
     public $datosDescuentoAdulto = []; // Para mantener en memoria
 
+    // Modal y datos de descuento por producto
+    public $modalDescuentoProductoVisible = false;
+    public $indiceProductoSeleccionado = null;
+    public $productoSeleccionadoDescuento = null;
+    public $porcentajeDescuentoProducto = 0;
+
     public function mount()
     {
         $this->clientesModal = collect(); // Inicializar como colección vacía
@@ -870,6 +876,13 @@ class Ventas extends Component
             // Aplicar el descuento unitario al subtotal
             $subtotalConDescuentoUnitario = $subtotalProducto - $descuentoUnitario;
 
+            // Aplicar descuento individual por producto (porcentaje)
+            $descuentoIndividual = 0;
+            if (isset($producto['porcentaje_descuento']) && $producto['porcentaje_descuento'] > 0) {
+                $descuentoIndividual = $subtotalProducto * ($producto['porcentaje_descuento'] / 100);
+                $this->productosFactura[$index]['descuento_monto'] = $descuentoIndividual;
+            }
+
             // Aplicar descuentos por edad al subtotal ORIGINAL (sin descuento unitario aplicado)
             $descuentoProducto = 0;
 
@@ -882,16 +895,20 @@ class Ventas extends Component
                 $descuentoProducto = $subtotalProducto * 0.35; // 35% sobre precio original
             }
 
-            // Calcular subtotal final restando ambos descuentos del subtotal original
-            $subtotalConDescuento = $subtotalProducto - $descuentoUnitario - $descuentoProducto;
+            // Calcular subtotal final restando todos los descuentos del subtotal original
+            $subtotalConDescuento = $subtotalProducto - $descuentoUnitario - $descuentoIndividual - $descuentoProducto;
             $this->subtotal += $subtotalConDescuento;
 
-            // Sumar ambos tipos de descuentos al total de descuentos
-            $this->totalDescuentos += ($descuentoUnitario + $descuentoProducto);
+            // Sumar todos los tipos de descuentos al total de descuentos
+            $this->totalDescuentos += ($descuentoUnitario + $descuentoIndividual + $descuentoProducto);
 
             // Actualizar el producto con la información de los descuentos aplicados
             $this->productosFactura[$index]['descuento_aplicado'] = $descuentoProducto;
+            $this->productosFactura[$index]['descuento_individual_aplicado'] = $descuentoIndividual;
             $this->productosFactura[$index]['subtotal_con_descuento'] = $subtotalConDescuento;
+            
+            // Actualizar el total del producto en el array
+            $this->productosFactura[$index]['total'] = $subtotalConDescuento;
 
             // Calcular ISV sobre el subtotal con descuento
             $tasaIsv = $producto['isv'];
@@ -1055,6 +1072,67 @@ class Ventas extends Component
         $this->cerrarModalDescuentoAdulto();
     }
 
+    // Métodos para descuento por producto
+    public function mostrarModalDescuentoProducto($indice)
+    {
+        // Validar que el índice sea válido
+        if (!isset($this->productosFactura[$indice])) {
+            session()->flash('error', 'Producto no encontrado');
+            return;
+        }
+
+        $this->indiceProductoSeleccionado = $indice;
+        $this->productoSeleccionadoDescuento = $this->productosFactura[$indice];
+        $this->porcentajeDescuentoProducto = $this->productoSeleccionadoDescuento['porcentaje_descuento'] ?? 0;
+        $this->modalDescuentoProductoVisible = true;
+    }
+
+    public function aplicarDescuentoProducto()
+    {
+        // Validaciones
+        if ($this->porcentajeDescuentoProducto < 0 || $this->porcentajeDescuentoProducto > 100) {
+            session()->flash('error', 'El porcentaje de descuento debe estar entre 0 y 100');
+            return;
+        }
+
+        if ($this->indiceProductoSeleccionado === null || !isset($this->productosFactura[$this->indiceProductoSeleccionado])) {
+            session()->flash('error', 'Producto no válido para aplicar descuento');
+            return;
+        }
+
+        // Aplicar el descuento al producto
+        $producto = &$this->productosFactura[$this->indiceProductoSeleccionado];
+        
+        // Guardar el porcentaje de descuento
+        $producto['porcentaje_descuento'] = $this->porcentajeDescuentoProducto;
+        
+        // Calcular el descuento en monto
+        $totalSinDescuento = $producto['cantidad'] * $producto['precio'];
+        $descuentoMonto = $totalSinDescuento * ($this->porcentajeDescuentoProducto / 100);
+        $producto['descuento_monto'] = $descuentoMonto;
+        
+        // Calcular el nuevo total con descuento
+        $producto['total'] = $totalSinDescuento - $descuentoMonto;
+
+        // Recalcular totales generales
+        $this->calcularTotales();
+
+        // Mensaje de éxito
+        $nombreProducto = $producto['nombre'];
+        session()->flash('success', "Descuento del {$this->porcentajeDescuentoProducto}% aplicado a {$nombreProducto}");
+
+        // Cerrar modal y limpiar datos
+        $this->cerrarModalDescuentoProducto();
+    }
+
+    public function cerrarModalDescuentoProducto()
+    {
+        $this->modalDescuentoProductoVisible = false;
+        $this->indiceProductoSeleccionado = null;
+        $this->productoSeleccionadoDescuento = null;
+        $this->porcentajeDescuentoProducto = 0;
+    }
+
     // Método para resetear completamente la factura
     public function resetearFactura()
     {
@@ -1066,6 +1144,10 @@ class Ventas extends Component
         $this->descuentoCuartaEdad = false;
         $this->totalDescuentos = 0;
         $this->datosDescuentoAdulto = []; // Limpiar datos del adulto mayor
+        
+        // Limpiar datos del descuento por producto
+        $this->cerrarModalDescuentoProducto();
+        
         $this->calcularTotales();
     }
 

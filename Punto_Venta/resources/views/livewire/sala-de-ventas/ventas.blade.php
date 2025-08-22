@@ -482,12 +482,13 @@
                                             // Descuentos aplicados
                                             $descuentoAplicado = $item['descuento_aplicado'] ?? 0; // Descuento por edad (total)
                                             $descuentoUnitarioBase = $item['descuento_unitario_producto'] ?? 0; // Descuento por unidad base
+                                            $descuentoIndividual = $item['descuento_monto'] ?? 0; // Descuento individual por producto
                                             
                                             // El descuento unitario se aplica POR CADA CANTIDAD
                                             $descuentoUnitarioTotal = $descuentoUnitarioBase * $item['cantidad'];
                                             
                                             // Subtotal después de todos los descuentos
-                                            $subtotalConDescuento = $subtotalOriginal - $descuentoUnitarioTotal - $descuentoAplicado;
+                                            $subtotalConDescuento = $subtotalOriginal - $descuentoUnitarioTotal - $descuentoIndividual - $descuentoAplicado;
                                             
                                             // ISV se calcula sobre el subtotal neto (después de descuentos)
                                             $isv = $subtotalConDescuento * ($item['isv']/100);
@@ -561,13 +562,23 @@
                                                     <div class="text-danger small fw-bold">-L. {{ number_format($descuentoUnitarioTotal, 2) }}</div>
                                                 @endif
                                                 
+                                                <!-- Mostrar descuento individual por producto (si existe) -->
+                                                @if($descuentoIndividual > 0)
+                                                    <div class="text-warning small fw-bold">
+                                                        -L. {{ number_format($descuentoIndividual, 2) }}
+                                                        @if(isset($item['porcentaje_descuento']) && $item['porcentaje_descuento'] > 0)
+                                                            ({{ number_format($item['porcentaje_descuento'], 1) }}%)
+                                                        @endif
+                                                    </div>
+                                                @endif
+                                                
                                                 <!-- Mostrar descuento de tercera/cuarta edad después -->
                                                 @if($descuentoAplicado > 0)
                                                     <div class="text-danger small fw-bold">-L. {{ number_format($descuentoAplicado, 2) }}</div>
                                                 @endif
                                                 
                                                 <!-- Mostrar subtotal final con descuentos aplicados si hay descuentos -->
-                                                @if($descuentoUnitarioTotal > 0 || $descuentoAplicado > 0 || 
+                                                @if($descuentoUnitarioTotal > 0 || $descuentoIndividual > 0 || $descuentoAplicado > 0 || 
                                                     ($esServicio && isset($descuentosGuardados[$item['servicio_id']])) || 
                                                     (!$esServicio && isset($descuentosGuardados[$item['id']])))
                                                     <div class="text-success fw-bold border-top pt-1 mt-1">L. {{ number_format($subtotalConDescuento, 2) }}</div>
@@ -578,6 +589,16 @@
                                             </td>
                                             <td>L. {{ number_format($total, 2) }}</td>
                                             <td class="text-center">
+                                                <!-- Botón de descuento por producto -->
+                                                <button wire:click="mostrarModalDescuentoProducto({{ $loop->index }})"
+                                                    class="p-1 mr-2 transition-opacity btn btn-link hover:opacity-75"
+                                                    title="Aplicar descuento">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2zM10 8.5a.5.5 0 11-1 0 .5.5 0 011 0zm5 5a.5.5 0 11-1 0 .5.5 0 011 0z" style="color:#f59e0b;" />
+                                                    </svg>
+                                                </button>
+                                                
+                                                <!-- Botón de eliminar -->
                                                 <button wire:click="eliminarProducto({{ $loop->index }})"
                                                     class="p-0 transition-opacity btn btn-link hover:opacity-75"
                                                     title="Eliminar producto">
@@ -1293,6 +1314,79 @@
                         <button type="button" 
                             class="btn btn-success" 
                             wire:click="confirmarDescuentoAdulto">
+                            Aplicar Descuento
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    <!-- Modal Descuento por Producto -->
+    @if($modalDescuentoProductoVisible)
+        <div class="modal fade show" tabindex="-1" role="dialog" style="display: block; background-color: rgba(0,0,0,0.5);">
+            <div class="modal-dialog modal-dialog-centered" role="document" x-data="{ porcentaje: @entangle('porcentajeDescuentoProducto') }">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Aplicar Descuento al Producto</h5>
+                        <button type="button" class="btn-close" wire:click="$set('modalDescuentoProductoVisible', false)"></button>
+                    </div>
+                    <div class="modal-body">
+                        @if(isset($productoSeleccionadoDescuento))
+                            <div class="mb-3">
+                                <label class="fw-bold">Producto:</label>
+                                <p class="mb-2">{{ $productoSeleccionadoDescuento['nombre'] ?? 'N/A' }}</p>
+                            </div>
+                            <div class="mb-3">
+                                <label class="fw-bold">Precio Unitario:</label>
+                                <p class="mb-2">L {{ number_format($productoSeleccionadoDescuento['precio'] ?? 0, 2) }}</p>
+                            </div>
+                            <div class="mb-3">
+                                <label class="fw-bold">Cantidad:</label>
+                                <p class="mb-2">{{ $productoSeleccionadoDescuento['cantidad'] ?? 0 }}</p>
+                            </div>
+                            <div class="mb-3">
+                                <label class="fw-bold">Total Actual:</label>
+                                <p class="mb-2">L {{ number_format($productoSeleccionadoDescuento['total'] ?? (($productoSeleccionadoDescuento['precio'] ?? 0) * ($productoSeleccionadoDescuento['cantidad'] ?? 0)), 2) }}</p>
+                            </div>
+                            <div class="mb-3">
+                                <label for="porcentaje_descuento_producto" class="form-label">
+                                    Porcentaje de Descuento (%)
+                                </label>
+                                <input type="number" 
+                                    id="porcentaje_descuento_producto"
+                                    class="form-control" 
+                                    wire:model="porcentajeDescuentoProducto"
+                                    min="0" 
+                                    max="100" 
+                                    step="0.1"
+                                    placeholder="Ej: 10.5">
+                                @error('porcentajeDescuentoProducto')
+                                    <div class="text-danger mt-1">{{ $message }}</div>
+                                @enderror
+                            </div>
+                            <div x-show="porcentaje > 0" class="mb-3 p-3 bg-light rounded">
+                                <label class="fw-bold text-success">Vista Previa del Descuento:</label>
+                                @if(isset($productoSeleccionadoDescuento))
+                                    @php
+                                        $totalProducto = ($productoSeleccionadoDescuento['precio'] ?? 0) * ($productoSeleccionadoDescuento['cantidad'] ?? 0);
+                                    @endphp
+                                    <p class="mb-1" x-text="'Descuento: L ' + ({{ $totalProducto }} * (porcentaje / 100)).toFixed(2)">Descuento: L 0.00</p>
+                                    <p class="mb-0 fw-bold" x-text="'Nuevo Total: L ' + ({{ $totalProducto }} - ({{ $totalProducto }} * (porcentaje / 100))).toFixed(2)">Nuevo Total: L 0.00</p>
+                                @endif
+                            </div>
+                        @endif
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" 
+                            class="btn btn-secondary" 
+                            wire:click="$set('modalDescuentoProductoVisible', false)">
+                            Cancelar
+                        </button>
+                        <button type="button" 
+                            class="btn btn-warning" 
+                            wire:click="aplicarDescuentoProducto"
+                            x-bind:disabled="!porcentaje || porcentaje <= 0">
                             Aplicar Descuento
                         </button>
                     </div>
