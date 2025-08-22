@@ -103,12 +103,9 @@
 
                                     <td>
                                         @if($cliente_item->identidad)
-                                            <span class="badge bg-primary">{{ $cliente_item->identidad }}</span><br>
+                                            <span class="badge bg-primary">{{ $cliente_item->identidad }}</span>
                                         @endif
-                                        @if($cliente_item->rtn)
-                                            <span class="badge bg-secondary">{{ $cliente_item->rtn }}</span>
-                                        @endif
-                                        @if(!$cliente_item->identidad && !$cliente_item->rtn)
+                                        @if(!$cliente_item->identidad)
                                             <span class="text-muted">N/A</span>
                                         @endif
                                     </td>
@@ -226,7 +223,8 @@
                                         wire:keydown.enter="buscarClientePorRtn"
                                         wire:keydown.tab="buscarClientePorRtn"
                                         class="w-full px-3 py-2 pr-10 border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-200"
-                                        placeholder="Ingrese RTN o número de identidad">
+                                        placeholder="000000000000000 (RTN/Identidad 13-15 dígitos)"
+                                        maxlength="15">
                                     <button type="button"
                                         wire:click="mostrarModalClientes"
                                         class="absolute inset-y-0 right-0 flex items-center px-3 text-gray-500 hover:text-blue-600"

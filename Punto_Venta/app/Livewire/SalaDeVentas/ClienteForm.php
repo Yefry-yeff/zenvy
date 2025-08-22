@@ -59,7 +59,7 @@ class ClienteForm extends Component
             'form.telefono' => 'nullable|max:9',
             'form.rtn_identidad' => [
                 'required',
-                'max:13',
+                'max:15',
                 'min:13',
                 function ($attribute, $value, $fail) {
                     if (!empty($value)) {
@@ -90,8 +90,8 @@ class ClienteForm extends Component
             'form.correo.max' => 'El correo no puede exceder 45 caracteres',
             'form.telefono.max' => 'El teléfono no puede exceder 9 caracteres',
             'form.rtn_identidad.required' => 'El RTN/Identidad es obligatorio',
-            'form.rtn_identidad.min' => 'El RTN/Identidad debe tener exactamente 13 dígitos',
-            'form.rtn_identidad.max' => 'El RTN/Identidad debe tener exactamente 13 dígitos',
+            'form.rtn_identidad.min' => 'El RTN/Identidad debe tener entre 13 y 15 caracteres',
+            'form.rtn_identidad.max' => 'El RTN/Identidad debe tener entre 13 y 15 caracteres',
             'form.tipo_persona_id.required' => 'Debe seleccionar un tipo de persona',
             'form.tipo_persona_id.exists' => 'El tipo de persona seleccionado no es válido',
             'form.tipo_cliente_id.required' => 'Debe seleccionar un tipo de cliente',
@@ -331,14 +331,15 @@ class ClienteForm extends Component
         
         if (!empty($this->form['rtn_identidad'])) {
             try {
-                // Validar longitud
-                if (strlen($this->form['rtn_identidad']) !== 13) {
-                    $this->mostrarErrorCampo('form.rtn_identidad', 'El RTN/Identidad debe tener exactamente 13 dígitos');
+                // Validar longitud (entre 13 y 15 caracteres)
+                $longitud = strlen($this->form['rtn_identidad']);
+                if ($longitud < 13 || $longitud > 15) {
+                    $this->mostrarErrorCampo('form.rtn_identidad', 'El RTN/Identidad debe tener entre 13 y 15 caracteres');
                     return;
                 }
 
                 // Validar que solo contenga números
-                if (!preg_match('/^\d{13}$/', $this->form['rtn_identidad'])) {
+                if (!preg_match('/^\d{13,15}$/', $this->form['rtn_identidad'])) {
                     $this->mostrarErrorCampo('form.rtn_identidad', 'El RTN/Identidad solo debe contener números');
                     return;
                 }

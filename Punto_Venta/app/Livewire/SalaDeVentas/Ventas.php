@@ -468,8 +468,7 @@ class Ventas extends Component
             // Crear cliente con los datos ingresados según la estructura real de la tabla
             $clienteData = [
                 'nombre' => $this->nombreClienteManual,
-                'identidad' => $this->rtnManual,
-                'rtn' => $this->rtnManual,
+                'identidad' => $this->rtnManual, // Campo unificado RTN/Identidad
                 'telefono' => $this->telefonoClienteManual,
                 'correo' => $this->correoClienteManual,
                 'direccion' => $this->direccionClienteManual, // Campo correcto según la tabla
@@ -504,11 +503,8 @@ class Ventas extends Component
         }
 
         try {
-            // Buscar cliente por RTN o identidad
-            $clienteEncontrado = Cliente::where(function($query) {
-                $query->where('rtn', $this->rtnManual)
-                      ->orWhere('identidad', $this->rtnManual);
-            })->first();
+            // Buscar cliente por identidad (campo unificado RTN/Identidad)
+            $clienteEncontrado = Cliente::where('identidad', $this->rtnManual)->first();
 
             if ($clienteEncontrado) {
                 // Cliente encontrado, llenar los campos
