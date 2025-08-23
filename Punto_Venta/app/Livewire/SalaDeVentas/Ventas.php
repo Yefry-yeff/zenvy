@@ -128,6 +128,9 @@ class Ventas extends Component
 
     // Modal y datos de descuento por producto
     public $modalDescuentoProductoVisible = false;
+
+    // Control de visibilidad del catálogo visual basado en permisos de menú
+    public $mostrarCatalogoVisual = true;
     public $indiceProductoSeleccionado = null;
     public $productoSeleccionadoDescuento = null;
     public $porcentajeDescuentoProducto = 0;
@@ -157,6 +160,9 @@ class Ventas extends Component
         $this->verificarCAI();
         // Cargar productos y servicios para la interfaz unificada
         $this->cargarProductosYServicios();
+
+        // Verificar si el menú de servicios está activo para mostrar el catálogo visual
+        $this->verificarEstadoMenuServicios();
 
         // Cargar descuentos guardados si hay una factura específica
         $this->cargarDescuentosGuardados();
@@ -3152,5 +3158,43 @@ class Ventas extends Component
         }
 
         return $query->sortBy('nombre')->values();
+    }
+
+    /**
+     * Verificar si el menú de servicios está activo para mostrar el catálogo visual
+     */
+    public function verificarEstadoMenuServicios()
+    {
+        try {
+            // Verificar si el menú "Catalogo.Servicios" está activo
+            $menuServicios = DB::table('menu')
+                ->where('route', 'Catalogo.Servicios')
+                ->where('estado_id', 1) // 1 = Activo
+                ->first();
+
+            // Si no existe el menú o está inactivo, ocultar el catálogo visual
+            $this->mostrarCatalogoVisual = $menuServicios !== null;
+
+            Log::info('Verificación estado menú servicios', [
+                'menu_encontrado' => $menuServicios !== null,
+                'mostrar_catalogo' => $this->mostrarCatalogoVisual
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error al verificar estado del menú servicios', [
+                'error' => $e->getMessage()
+            ]);
+            // En caso de error, mantener el catálogo visible por defecto
+            $this->mostrarCatalogoVisual = true;
+        }
+    }
+
+    /**
+     * Método público para refrescar el estado del catálogo visual
+     * Útil si se cambia el estado del menú sin recargar la página
+     */
+    public function refrescarEstadoCatalogo()
+    {
+        $this->verificarEstadoMenuServicios();
     }
 }

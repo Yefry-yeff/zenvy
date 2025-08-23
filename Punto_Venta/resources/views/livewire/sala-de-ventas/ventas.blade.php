@@ -402,11 +402,11 @@
                 </div>
             </div>
 
-            <!-- 2. LAYOUT DE DOS COLUMNAS: FACTURA (más ancho) + CATÁLOGO (más estrecho) -->
-            <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+            <!-- 2. LAYOUT DINÁMICO: FACTURA (ancho completo si no hay catálogo, o 2/3 si hay catálogo) -->
+            <div class="grid grid-cols-1 gap-6 {{ $mostrarCatalogoVisual ? 'lg:grid-cols-3' : 'lg:grid-cols-1' }}">
                 
-                <!-- 2.1 FACTURA (izquierda - 2 columnas de espacio) -->
-                <div class="lg:col-span-2 bg-white border border-gray-300 rounded-lg shadow-lg" x-data x-init="$watch('theme', t => localStorage.setItem('theme', t))">
+                <!-- 2.1 FACTURA (ancho completo o 2 columnas según disponibilidad del catálogo) -->
+                <div class="{{ $mostrarCatalogoVisual ? 'lg:col-span-2' : 'lg:col-span-1' }} bg-white border border-gray-300 rounded-lg shadow-lg" x-data x-init="$watch('theme', t => localStorage.setItem('theme', t))">
                     <!-- Header -->
                     <div class="flex items-center justify-between px-5 py-3 font-semibold text-white rounded-t"
                         :class="{
@@ -806,6 +806,7 @@
                 </div>
 
                 <!-- 2.2 CATÁLOGO VISUAL (derecha - 1 columna de espacio) -->
+                @if($mostrarCatalogoVisual)
                 <div class="lg:col-span-1 bg-white border border-gray-300 rounded-lg shadow-lg" x-data x-init="$watch('theme', t => localStorage.setItem('theme', t))">
                     <!-- Header -->
                     <div class="flex items-center justify-between px-4 py-3 font-semibold text-white rounded-t"
@@ -926,6 +927,15 @@
                         </div>
                     </div>
                 </div>
+                @else
+                <div class="lg:col-span-1 bg-white border border-gray-300 rounded-lg shadow-lg flex items-center justify-center">
+                    <div class="text-center p-8">
+                        <i class="fas fa-lock fa-3x text-gray-400 mb-4"></i>
+                        <h5 class="text-gray-500 mb-2">Catálogo Visual No Disponible</h5>
+                        <p class="text-gray-400 text-sm">El menú de servicios está inactivo</p>
+                    </div>
+                </div>
+                @endif
 
             </div> <!-- End grid de dos columnas -->
 

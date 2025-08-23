@@ -177,6 +177,10 @@
                                         <span class="text-purple-700">Cheques:</span>
                                         <span class="font-medium">L.{{ number_format($resumenTransacciones['cheque'] ?? 0, 2) }}</span>
                                     </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-purple-700">Transferencias:</span>
+                                        <span class="font-medium">L.{{ number_format($resumenTransacciones['transferencia'] ?? 0, 2) }}</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>

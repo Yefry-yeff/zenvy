@@ -136,6 +136,7 @@ class CierreDeCaja extends Component
                 SUM(efectivo) as total_efectivo_neto,
                 SUM(tarjeta) as total_tarjeta,
                 SUM(cheque) as total_cheque,
+                SUM(transferencia) as total_transferencia,
                 COUNT(*) as total_transacciones
             ')
             ->first();
@@ -147,6 +148,7 @@ class CierreDeCaja extends Component
             'efectivo_neto' => $resumen->total_efectivo_neto ?? 0,
             'tarjeta' => $resumen->total_tarjeta ?? 0,
             'cheque' => $resumen->total_cheque ?? 0,
+            'transferencia' => $resumen->total_transferencia ?? 0,
             'transacciones' => $resumen->total_transacciones ?? 0
         ];
 
@@ -328,6 +330,7 @@ class CierreDeCaja extends Component
                 'efectivo' => 0.00,
                 'tarjeta' => 0.00,
                 'cheque' => 0.00,
+                'transferencia' => 0.00,
                 'descripcion' => 'Cierre de caja - Montos recepcionados',
                 'created_at' => $fechaAhora,
                 'update_at' => $fechaAhora
