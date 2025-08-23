@@ -1773,6 +1773,12 @@ class Ventas extends Component
 
         $cajaId = $caja->id;
 
+        // Inicializar montos de cada método de pago
+        $montoEfectivo = 0;
+        $montoTarjeta = 0;
+        $montoCheque = 0;
+        $montoTransferencia = 0;
+
         $metodosParaRegistrar = [];
 
         // Obtener métodos activos con monto > 0
@@ -1795,51 +1801,80 @@ class Ventas extends Component
             }
         }
 
-        // Registrar transacciones para cada método de pago
+        // Acumular montos por tipo de pago
         foreach ($metodosParaRegistrar as $metodo) {
             $tipoPago = TipoPago::find($metodo['id']);
             if (!$tipoPago) continue;
 
-            // Determinar el monto a registrar por método específico
-            $montoTransaccion = 0;
-            $tipoMovimiento = 'entrada';
+            $montoMetodo = $metodo['monto'];
+            $nombreTipoPago = strtolower($tipoPago->nombre);
 
-            switch (strtolower($tipoPago->nombre)) {
+            switch ($nombreTipoPago) {
                 case 'efectivo':
-                    $montoTransaccion = $metodo['monto'];
+                    $montoEfectivo += $montoMetodo;
                     // Actualizar balance de caja si hay efectivo
-                    $this->actualizarBalanceCaja($montoTransaccion, $cajaId);
+                    $this->actualizarBalanceCaja($montoMetodo, $cajaId);
                     break;
                 case 'tarjeta':
-                    $montoTransaccion = $metodo['monto'];
+                case 'tarjeta(pos)':
+                case 'pos':
+                    $montoTarjeta += $montoMetodo;
                     break;
                 case 'cheque':
-                    $montoTransaccion = $metodo['monto'];
+                    $montoCheque += $montoMetodo;
+                    break;
+                case 'transferencia':
+                case 'transferencia bancaria':
+                case 'transferencia_bancaria':
+                    $montoTransferencia += $montoMetodo;
                     break;
                 default:
-                    $montoTransaccion = $metodo['monto'];
+                    // Para otros tipos de pago, intentar identificar el tipo por palabras clave
+                    if (str_contains($nombreTipoPago, 'tarjeta') || str_contains($nombreTipoPago, 'pos')) {
+                        $montoTarjeta += $montoMetodo;
+                    } elseif (str_contains($nombreTipoPago, 'transfer')) {
+                        $montoTransferencia += $montoMetodo;
+                    } elseif (str_contains($nombreTipoPago, 'cheque')) {
+                        $montoCheque += $montoMetodo;
+                    } elseif (str_contains($nombreTipoPago, 'efectivo')) {
+                        $montoEfectivo += $montoMetodo;
+                        $this->actualizarBalanceCaja($montoMetodo, $cajaId);
+                    } else {
+                        // Por defecto, asignar a transferencia
+                        $montoTransferencia += $montoMetodo;
+                    }
                     break;
             }
 
-            // Registrar transacción solo si hay monto
-            if ($montoTransaccion > 0) {
-                DB::table('transaccion')->insert([
-                    'caja_id' => $cajaId,
-                    'efectivo' => strtolower($tipoPago->nombre) === 'efectivo' ? $montoTransaccion : 0,
-                    'tarjeta' => strtolower($tipoPago->nombre) === 'tarjeta' ? $montoTransaccion : 0,
-                    'cheque' => strtolower($tipoPago->nombre) === 'cheque' ? $montoTransaccion : 0,
-                    'transaccion' => 'Facturacion',
-                    'descripcion' => "Factura #$numeroFactura",
-                    'created_at' => now(),
-                    'update_at' => now()
-                ]);
+            Log::info("DEBUG Método procesado", [
+                'tipo_pago' => $tipoPago->nombre,
+                'monto' => $montoMetodo,
+                'asignado_a' => $nombreTipoPago
+            ]);
+        }
 
-                Log::info("DEBUG Transacción registrada", [
-                    'tipo_pago' => $tipoPago->nombre,
-                    'monto' => $montoTransaccion,
-                    'numero_factura' => $numeroFactura
-                ]);
-            }
+        // Crear un solo registro de transacción con todos los montos
+        if ($montoEfectivo > 0 || $montoTarjeta > 0 || $montoCheque > 0 || $montoTransferencia > 0) {
+            DB::table('transaccion')->insert([
+                'caja_id' => $cajaId,
+                'efectivo' => $montoEfectivo,
+                'tarjeta' => $montoTarjeta,
+                'cheque' => $montoCheque,
+                'transferencia' => $montoTransferencia,
+                'transaccion' => 'Facturacion',
+                'descripcion' => "Factura #$numeroFactura",
+                'created_at' => now(),
+                'update_at' => now()
+            ]);
+
+            Log::info("DEBUG Transacción ÚNICA registrada", [
+                'numero_factura' => $numeroFactura,
+                'efectivo' => $montoEfectivo,
+                'tarjeta' => $montoTarjeta,
+                'cheque' => $montoCheque,
+                'transferencia' => $montoTransferencia,
+                'total' => $montoEfectivo + $montoTarjeta + $montoCheque + $montoTransferencia
+            ]);
         }
 
         Log::info("DEBUG registrarTransaccionesPorMetodoPago FINALIZADO");
