@@ -14,7 +14,7 @@ class CierreDeCaja extends Component
     public $transaccionesDia = [];
     public $resumenTransacciones = [];
     public $desglose_entradas = [];
-    
+
     // Billetes
     public $billetes_500 = 0;
     public $billetes_200 = 0;
@@ -25,7 +25,7 @@ class CierreDeCaja extends Component
     public $billetes_5 = 0;
     public $billetes_2 = 0;
     public $billetes_1 = 0;
-    
+
     // Monedas
     public $monedas_0_50 = 0;
     public $monedas_0_20 = 0;
@@ -33,12 +33,12 @@ class CierreDeCaja extends Component
     public $monedas_0_05 = 0;
     public $monedas_0_02 = 0;
     public $monedas_0_01 = 0;
-    
+
     // Cálculos
     public $totalContado = 0;
     public $diferenciaEfectivo = 0;
     public $totalSistema = 0;
-    
+
     // Mensajes
     public $mensajeExito = '';
     public $mensajeError = '';
@@ -55,13 +55,13 @@ class CierreDeCaja extends Component
     public function validarJornadaAbierta()
     {
         $usuario = Auth::user();
-        
+
         if (!$usuario->tienda_id) {
             return false;
         }
 
         $fechaActual = date('Y-m-d');
-        
+
         // Verificar si existe una jornada aperturada para hoy
         $jornadaAbierta = DB::table('jornada')
             ->where('fecha', $fechaActual)
@@ -80,13 +80,13 @@ class CierreDeCaja extends Component
     public function cargarDatosCaja()
     {
         $usuario = Auth::user();
-        
+
         // Verificar que el usuario tenga tienda asignada
         if (!$usuario || !$usuario->tienda_id) {
             $this->cajaActual = null;
             return;
         }
-        
+
         $this->cajaActual = DB::table('caja')
             ->where('users_id', $usuario->id)
             ->where('tienda_id', $usuario->tienda_id)
@@ -100,7 +100,7 @@ class CierreDeCaja extends Component
         if (!$this->cajaActual) return;
 
         $fechaHoy = Carbon::today();
-        
+
         // Cargar todas las transacciones del día (incluye apertura_caja para visualización)
         $this->transaccionesDia = DB::table('transaccion')
             ->where('caja_id', $this->cajaActual->id)
@@ -115,7 +115,7 @@ class CierreDeCaja extends Component
         if (!$this->cajaActual) return;
 
         $fechaHoy = Carbon::today();
-        
+
         // Obtener el último saldo inicial del día desde apertura_caja
         $ultimaApertura = DB::table('apertura_caja')
             ->where('caja_id', $this->cajaActual->id)
@@ -124,7 +124,7 @@ class CierreDeCaja extends Component
             ->first();
 
         $saldoInicial = $ultimaApertura ? $ultimaApertura->balance_apertura : 0;
-        
+
         // Calcular totales por tipo - EXCLUIR transacciones de apertura_caja
         $resumen = DB::table('transaccion')
             ->where('caja_id', $this->cajaActual->id)
@@ -151,7 +151,7 @@ class CierreDeCaja extends Component
         ];
 
         $this->totalSistema = $this->cajaActual->balance ?? 0;
-        
+
         // Calcular desglose de entradas
         $this->calcularDesgloseEntradas();
     }
@@ -161,7 +161,7 @@ class CierreDeCaja extends Component
         if (!$this->cajaActual) return;
 
         $fechaHoy = Carbon::today();
-        
+
         // Obtener desglose por tipo de transacción con efectivo positivo
         $desglose = DB::table('transaccion')
             ->where('caja_id', $this->cajaActual->id)
@@ -205,7 +205,7 @@ class CierreDeCaja extends Component
 
     public function calcularTotalContado()
     {
-        $totalBilletes = 
+        $totalBilletes =
             ($this->safeFloat($this->billetes_500) * 500) +
             ($this->safeFloat($this->billetes_200) * 200) +
             ($this->safeFloat($this->billetes_100) * 100) +
@@ -216,7 +216,7 @@ class CierreDeCaja extends Component
             ($this->safeFloat($this->billetes_2) * 2) +
             ($this->safeFloat($this->billetes_1) * 1);
 
-        $totalMonedas = 
+        $totalMonedas =
             ($this->safeFloat($this->monedas_0_50) * 0.50) +
             ($this->safeFloat($this->monedas_0_20) * 0.20) +
             ($this->safeFloat($this->monedas_0_10) * 0.10) +
@@ -250,7 +250,7 @@ class CierreDeCaja extends Component
             } else {
                 $this->$propertyName = intval($value); // Para billetes/monedas debe ser entero
             }
-            
+
             $this->calcularTotalContado();
         }
     }
@@ -320,7 +320,7 @@ class CierreDeCaja extends Component
 
             // Registrar transacción de cierre de caja con los montos recepcionados
             $fechaAhora = now();
-            
+
             // Crear una sola transacción de cierre con todos los montos en 0
             $transaccionCierre = [
                 'caja_id' => $this->cajaActual->id,
@@ -342,9 +342,9 @@ class CierreDeCaja extends Component
             $this->cargarDatosCaja();
 
             $this->cierreProcesado = true;
-            $this->mensajeExito = 'Cierre de caja procesado correctamente. Caja cerrada exitosamente. ' . 
-                                 'Total contado: L.' . number_format($this->totalContado, 2) . 
-                                 '. Diferencia: L.' . number_format($this->diferenciaEfectivo, 2) . 
+            $this->mensajeExito = 'Cierre de caja procesado correctamente. Caja cerrada exitosamente. ' .
+                                 'Total contado: L.' . number_format($this->totalContado, 2) .
+                                 '. Diferencia: L.' . number_format($this->diferenciaEfectivo, 2) .
                                  '. Balance preserved: L.' . number_format($this->cajaActual->balance, 2);
 
         } catch (\Exception $e) {

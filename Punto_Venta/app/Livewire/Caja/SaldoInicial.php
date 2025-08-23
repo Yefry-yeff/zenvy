@@ -25,7 +25,7 @@ class SaldoInicial extends Component
     public function validarJornadaAbierta()
     {
         $usuario = Auth::user();
-        
+
         if (!$usuario->tienda_id) {
             $this->mensaje = 'Usuario sin tienda asignada. No se pueden realizar operaciones de caja.';
             $this->tipoMensaje = 'error';
@@ -33,7 +33,7 @@ class SaldoInicial extends Component
         }
 
         $fechaActual = date('Y-m-d');
-        
+
         // Verificar si existe una jornada aperturada para hoy
         $jornadaAbierta = DB::table('jornada')
             ->where('fecha', $fechaActual)
@@ -54,7 +54,7 @@ class SaldoInicial extends Component
     public function verificarOCrearRegistroCaja()
     {
         $usuario = Auth::user();
-        
+
         // Verificar que el usuario tenga tienda asignada
         if (!$usuario || !$usuario->tienda_id) {
             return;
@@ -77,7 +77,7 @@ class SaldoInicial extends Component
                     'created_at' => now(),
                     'updated_at' => now()
                 ]);
-                
+
                 Log::info("Registro de caja creado automáticamente para usuario {$usuario->id} en tienda {$usuario->tienda_id}");
             } catch (\Exception $e) {
                 Log::error("Error al crear registro de caja: " . $e->getMessage());
@@ -88,7 +88,7 @@ class SaldoInicial extends Component
     public function cargarCajaActual()
     {
         $usuario = Auth::user();
-        
+
         // Verificar que el usuario tenga tienda asignada
         if (!$usuario || !$usuario->tienda_id) {
             $this->cajaActual = null;
@@ -102,7 +102,7 @@ class SaldoInicial extends Component
             ->where('users_id', $usuario->id)
             ->where('tienda_id', $usuario->tienda_id)
             ->first();
-        
+
         // Verificar estado de la caja
         if (!$this->cajaActual) {
             // No existe registro de caja - Se puede aperturar
@@ -130,7 +130,7 @@ class SaldoInicial extends Component
         try {
             // Validación simplificada - solo verificar que la jornada esté abierta
             return $this->validarJornadaAbierta();
-            
+
         } catch (\Exception $e) {
             Log::error("Error en validación de apertura de caja: " . $e->getMessage());
             $this->mensaje = 'Error en validación: ' . $e->getMessage();
@@ -183,7 +183,7 @@ class SaldoInicial extends Component
             elseif ($this->cajaActual->estado_caja == 2) {
                 $cajaId = $this->cajaActual->id;
                 $balanceExistente = floatval($this->cajaActual->balance ?? 0);
-                
+
                 // Cambiar estado de la caja a abierto
                 DB::table('caja')
                     ->where('id', $cajaId)
@@ -191,7 +191,7 @@ class SaldoInicial extends Component
                         'estado_caja' => 1, // Abierto
                         'updated_at' => now()
                     ]);
-                
+
                 $tipoOperacion = 'Caja aperturada';
             }
             else {
@@ -231,10 +231,10 @@ class SaldoInicial extends Component
 
             $this->mensaje = $tipoOperacion . ' correctamente con L. ' . number_format($balanceExistente, 2) . '. La caja está ahora disponible para operar.';
             $this->tipoMensaje = 'success';
-            
+
             // Limpiar formulario
             $this->reset(['descripcion']);
-            
+
             // Recargar información de la caja
             $this->cargarCajaActual();
 

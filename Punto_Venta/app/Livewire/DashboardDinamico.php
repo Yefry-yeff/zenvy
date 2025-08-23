@@ -48,20 +48,20 @@ class DashboardDinamico extends Component
             'facturas_hoy' => DB::table('factura')
                 ->whereDate('created_at', today())
                 ->count(),
-            
+
             'ventas_hoy' => DB::table('factura')
                 ->whereDate('created_at', today())
                 ->sum('total'),
-            
+
             'ventas_mes' => DB::table('factura')
                 ->whereMonth('created_at', now()->month)
                 ->whereYear('created_at', now()->year)
                 ->sum('total'),
-            
+
             'productos_activos' => DB::table('producto')
                 ->where('estado_id', 1)
                 ->count(),
-            
+
             'usuarios_activos' => DB::table('users')
                 ->where('estado_id', 1)
                 ->count(),
@@ -81,7 +81,7 @@ class DashboardDinamico extends Component
             // Para stock bajo, filtrar por bodegas de la tienda del usuario
             $queryStockBajo = DB::table('recibido_bodega')
                 ->where('cantidad_disponible', '<', 10);
-            
+
             // Si el usuario no es Admin, filtrar por su tienda
             if (!$this->usuarioTienePermisos(['Configuracion.Usuarios', 'Configuracion.Roles']) && $usuario->tienda_id) {
                 $queryStockBajo->join('seccion as s', 'recibido_bodega.seccion_id', '=', 's.id')
@@ -89,16 +89,16 @@ class DashboardDinamico extends Component
                     ->join('bodega as b', 'seg.bodega_id', '=', 'b.id')
                     ->where('b.tienda_id', $usuario->tienda_id);
             }
-            
+
             // Para recepciones de productos del mes, filtrar por usuario actual si no es Admin
             $queryRecepciones = DB::table('recibido_bodega')
                 ->whereMonth('created_at', now()->month)
                 ->whereYear('created_at', now()->year);
-            
+
             if (!$this->usuarioTienePermisos(['Configuracion.Usuarios', 'Configuracion.Roles'])) {
                 $queryRecepciones->where('users_registro_id', $usuario->id);
             }
-            
+
             $this->estadisticas = array_merge($this->estadisticas, [
                 'stock_bajo' => $queryStockBajo->count(),
                 'recepciones_mes' => $queryRecepciones->count(),
@@ -135,12 +135,12 @@ class DashboardDinamico extends Component
                 ->join('bodega as b', 'seg.bodega_id', '=', 'b.id')
                 ->where('rb.cantidad_disponible', '<', 10)
                 ->where('rb.cantidad_disponible', '>', 0);
-            
+
             // Si el usuario no tiene permisos administrativos, filtrar por su tienda
             if (!$this->usuarioTienePermisos(['Configuracion.Usuarios', 'Configuracion.Roles']) && $usuario->tienda_id) {
                 $queryProductosStockBajo->where('b.tienda_id', $usuario->tienda_id);
             }
-            
+
             $this->productosStockBajo = $queryProductosStockBajo
                 ->select(
                     'p.nombre as producto',
@@ -184,11 +184,11 @@ class DashboardDinamico extends Component
     public function cargarEstadoJornada()
     {
         $usuario = Auth::user();
-        
+
         // Solo cargar estado de jornada si el usuario tiene tienda asignada
         if ($usuario->tienda_id) {
             $fechaActual = date('Y-m-d');
-            
+
             // Buscar la jornada más reciente para la tienda del usuario (no solo de hoy)
             $jornadaReciente = DB::table('jornada')
                 ->where('tienda_id', $usuario->tienda_id)
@@ -211,7 +211,7 @@ class DashboardDinamico extends Component
                 $estado = 'cerrada'; // Por defecto cerrada
                 $estado_codigo = 0;
                 $esJornadaHoy = ($jornadaActual->fecha == $fechaActual);
-                
+
                 if ($jornadaActual->apertura == 1 && $jornadaActual->cierre == 0) {
                     $estado = 'abierta';
                     $estado_codigo = 1;
@@ -232,14 +232,14 @@ class DashboardDinamico extends Component
                 // Obtener información del usuario que aperturó y cerró
                 $usuarioApertura = null;
                 $usuarioCierre = null;
-                
+
                 if ($jornadaActual->user_id_apertura) {
                     $usuarioApertura = DB::table('users')
                         ->where('id', $jornadaActual->user_id_apertura)
                         ->select('name')
                         ->first();
                 }
-                
+
                 if ($jornadaActual->user_id_cierre) {
                     $usuarioCierre = DB::table('users')
                         ->where('id', $jornadaActual->user_id_cierre)
@@ -308,18 +308,18 @@ class DashboardDinamico extends Component
         $tienePermisosCaja = $this->usuarioTienePermisos([
             'SalaDeVentas.Ventas',
             'Caja.RecibidoDeEfectivo',
-            'Caja.EntregaDeEfectivo', 
+            'Caja.EntregaDeEfectivo',
             'Caja.SaldoInicial',
             'Caja.CierreDeCaja'
         ]);
-        
+
         if ($tienePermisosCaja && $usuario->tienda_id) {
             // Obtener la tienda actual del usuario
             $tiendaId = $usuario->tienda_id;
-            
+
             // Fecha actual para filtrar por día en transcurso
             $fechaHoy = date('Y-m-d');
-            
+
             // Buscar la caja actual del usuario en la tienda
             $cajaActual = DB::table('caja')
                 ->where('users_id', $usuario->id)
@@ -333,14 +333,14 @@ class DashboardDinamico extends Component
                     ->where('caja_id', $cajaActual->id)
                     ->orderBy('fecha_apertura', 'desc')
                     ->first();
-                
+
                 // Verificar si tiene caja abierta hoy
-                $tieneAperturaHoy = $ultimaApertura && 
+                $tieneAperturaHoy = $ultimaApertura &&
                     date('Y-m-d', strtotime($ultimaApertura->fecha_apertura)) == $fechaHoy;
-                
+
                 // Determinar el tipo de estado
                 $esCajaHoy = $tieneAperturaHoy;
-                
+
                 // Calcular balances por tipo de pago basándose en transacciones
                 $balancesPorTipo = DB::table('transaccion')
                     ->where('caja_id', $cajaActual->id)
@@ -350,16 +350,16 @@ class DashboardDinamico extends Component
                         IFNULL(SUM(cheque), 0) as balance_cheque
                     ')
                     ->first();
-                
+
                 // Calcular transferencias (por ahora será 0 ya que no está en la tabla transaccion)
                 $balanceTransferencia = 0;
-                
+
                 // Balance total
-                $balanceTotal = ($balancesPorTipo->balance_efectivo ?? 0) + 
-                               ($balancesPorTipo->balance_tarjeta ?? 0) + 
-                               ($balancesPorTipo->balance_cheque ?? 0) + 
+                $balanceTotal = ($balancesPorTipo->balance_efectivo ?? 0) +
+                               ($balancesPorTipo->balance_tarjeta ?? 0) +
+                               ($balancesPorTipo->balance_cheque ?? 0) +
                                $balanceTransferencia;
-                
+
                 $this->estadoCaja = [
                     'id' => $cajaActual->id,
                     'estado' => $cajaActual->estado_caja,
@@ -402,7 +402,7 @@ class DashboardDinamico extends Component
     private function obtenerTextoEstadoCaja($estado, $esCajaHoy = true)
     {
         $suffix = $esCajaHoy ? '' : ' (anterior)';
-        
+
         return match($estado) {
             1 => 'Abierta' . $suffix,
             2 => 'Cerrada' . $suffix,
@@ -419,7 +419,7 @@ class DashboardDinamico extends Component
     private function usuarioTienePermisos($permisos)
     {
         $usuario = Auth::user();
-        
+
         if (!$usuario || !$usuario->roles_id) {
             return false;
         }
@@ -427,7 +427,7 @@ class DashboardDinamico extends Component
         // Verificar si es admin (tiene acceso a todo)
         $rolNombre = $usuario->rol->txt_nombre ?? '';
         $esAdmin = in_array($rolNombre, ['Admin', 'Administrador']);
-        
+
         if ($esAdmin) {
             return true;
         }
@@ -454,7 +454,7 @@ class DashboardDinamico extends Component
         if (is_string($permisos)) {
             $permisos = [$permisos];
         }
-        
+
         return $this->usuarioTienePermisos($permisos);
     }
 

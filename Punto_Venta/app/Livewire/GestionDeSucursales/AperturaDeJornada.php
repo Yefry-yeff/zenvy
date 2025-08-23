@@ -101,8 +101,8 @@ class AperturaDeJornada extends Component
                 $fechasTexto = $jornadasAbiertas->pluck('fecha')->map(function($fecha) {
                     return date('d/m/Y', strtotime($fecha));
                 })->implode(', ');
-                
-                $this->mensaje = "❌ NO se puede aperturar la jornada porque existen jornadas sin cerrar de días anteriores: " . $fechasTexto . 
+
+                $this->mensaje = "❌ NO se puede aperturar la jornada porque existen jornadas sin cerrar de días anteriores: " . $fechasTexto .
                     ". Debe cerrar todas las jornadas pendientes antes de aperturar una nueva.";
                 $this->tipoMensaje = 'error';
                 return;
@@ -118,7 +118,7 @@ class AperturaDeJornada extends Component
             } else {
                 $this->mensaje = "✅ Validaciones completadas. Creando nueva jornada para {$this->nombreTienda}...";
             }
-            
+
             $this->tipoMensaje = 'info';
             $this->procesarAperturaJornada();
 

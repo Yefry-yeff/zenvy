@@ -48,11 +48,11 @@ class CierreDeJornada extends Component
             ->where('u.id', Auth::id())
             ->select('u.tienda_id', 't.denominacion_social')
             ->first();
-        
+
         if ($usuario) {
             $this->tiendaUsuario = $usuario->tienda_id;
             // Usar denominacion_social si existe, sino mostrar ID
-            $this->nombreTienda = $usuario->denominacion_social 
+            $this->nombreTienda = $usuario->denominacion_social
                                   ?? 'Tienda #' . $usuario->tienda_id;
         } else {
             $this->tiendaUsuario = null;
@@ -63,13 +63,13 @@ class CierreDeJornada extends Component
     public function verificarCondicionesParaCierre()
     {
         $this->resetear();
-        
+
         if (!$this->tiendaUsuario) {
             $this->mensaje = 'Usuario sin tienda asignada. No se puede procesar el cierre.';
             $this->tipoMensaje = 'error';
             return;
         }
-        
+
         try {
             // 1. PRIMERO: Verificar si existe una jornada aperturada para esta fecha y tienda
             $jornadaAperturada = DB::table('jornada')
@@ -112,12 +112,12 @@ class CierreDeJornada extends Component
                           ->orWhere('cc.diferencia_cheque', '!=', 0);
                 })
                 ->select(
-                    'c.id', 
-                    'c.users_id', 
+                    'c.id',
+                    'c.users_id',
                     'u.name as nombre_usuario',
-                    'cc.diferencia_efectivo', 
-                    'cc.diferencia_tarjeta', 
-                    'cc.diferencia_cheque', 
+                    'cc.diferencia_efectivo',
+                    'cc.diferencia_tarjeta',
+                    'cc.diferencia_cheque',
                     'cc.fecha_cierre'
                 )
                 ->get()
@@ -125,7 +125,7 @@ class CierreDeJornada extends Component
 
             // 5. Obtener transacciones por caja (excluyendo las que ya tienen diferencias registradas)
             $cajasConDiferenciaIds = collect($this->cajasConDiferencia)->pluck('id')->toArray();
-            
+
             $this->transaccionesPorCaja = DB::table('transaccion as t')
                 ->join('caja as c', 't.caja_id', '=', 'c.id')
                 ->join('users as u', 'c.users_id', '=', 'u.id')
@@ -167,7 +167,7 @@ class CierreDeJornada extends Component
     public function procesarCierreJornada()
     {
         if ($this->procesoEnCurso) return;
-        
+
         $this->procesoEnCurso = true;
 
         try {
@@ -200,7 +200,7 @@ class CierreDeJornada extends Component
             foreach ($this->cajasAbiertas as $cajaData) {
                 // Convertir array a objeto si es necesario
                 $caja = is_array($cajaData) ? (object) $cajaData : $cajaData;
-                
+
                 // Obtener totales de transacciones para esta caja en la fecha de cierre
                 $totalesTransacciones = DB::table('transaccion')
                     ->where('caja_id', $caja->id)
@@ -349,10 +349,10 @@ class CierreDeJornada extends Component
 
             DB::commit();
 
-            $this->mensaje = 'Jornada cerrada exitosamente para la fecha ' . $this->fechaCierre . 
+            $this->mensaje = 'Jornada cerrada exitosamente para la fecha ' . $this->fechaCierre .
                             ' en ' . $this->nombreTienda . '. ' . $totalCajasProcesadas . ' cajas procesadas con cierres automáticos registrados.';
             $this->tipoMensaje = 'success';
-            
+
             $this->resetear();
 
         } catch (\Exception $e) {

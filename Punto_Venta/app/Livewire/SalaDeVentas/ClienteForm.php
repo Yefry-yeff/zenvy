@@ -209,7 +209,7 @@ class ClienteForm extends Component
                 // Crear nuevo cliente
                 Cliente::create($clienteData);
                 $this->mostrarExito('Actor creado exitosamente');
-                
+
                 // Limpiar formulario después de crear
                 $this->reset('form');
                 $this->rtnExiste = false;
@@ -328,7 +328,7 @@ class ClienteForm extends Component
     public function validarRtnUnico()
     {
         $this->rtnExiste = false;
-        
+
         if (!empty($this->form['rtn_identidad'])) {
             try {
                 // Validar longitud (entre 13 y 15 caracteres)
@@ -358,7 +358,7 @@ class ClienteForm extends Component
                     $this->rtnExiste = false;
                     $this->limpiarErrorCampo('form.rtn_identidad');
                 }
-                
+
             } catch (\Exception $e) {
                 Log::error('Error al validar RTN único', [
                     'rtn_identidad' => $this->form['rtn_identidad'],

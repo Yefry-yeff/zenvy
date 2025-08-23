@@ -26,7 +26,7 @@ class FlujoDeCaja extends Component
     public function cargarTransacciones()
     {
         $usuario = Auth::user();
-        
+
         if (!$usuario || !$usuario->tienda_id) {
             $this->transacciones = [];
             return;
@@ -63,7 +63,7 @@ class FlujoDeCaja extends Component
             ->map(function ($transaccion) {
                 // No mostrar valores para apertura de caja y cierre
                 $esAperturaOCierre = in_array(strtolower($transaccion->transaccion), ['apertura_caja', 'cierre']);
-                
+
                 return [
                     'id' => $transaccion->id,
                     'caja_id' => $transaccion->caja_id,
