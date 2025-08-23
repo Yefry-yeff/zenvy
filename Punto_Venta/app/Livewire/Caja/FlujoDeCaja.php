@@ -15,6 +15,7 @@ class FlujoDeCaja extends Component
     public $totalEfectivo = 0;
     public $totalTarjeta = 0;
     public $totalCheque = 0;
+    public $totalTransferencia = 0;
     public $totalGeneral = 0;
 
     public function mount()
@@ -71,9 +72,10 @@ class FlujoDeCaja extends Component
                     'efectivo' => $esAperturaOCierre ? 0 : ($transaccion->efectivo ?? 0),
                     'tarjeta' => $esAperturaOCierre ? 0 : ($transaccion->tarjeta ?? 0),
                     'cheque' => $esAperturaOCierre ? 0 : ($transaccion->cheque ?? 0),
+                    'transferencia' => $esAperturaOCierre ? 0 : ($transaccion->transferencia ?? 0),
                     'descripcion' => $transaccion->descripcion,
                     'created_at' => $transaccion->created_at,
-                    'total' => $esAperturaOCierre ? 0 : (($transaccion->efectivo ?? 0) + ($transaccion->tarjeta ?? 0) + ($transaccion->cheque ?? 0))
+                    'total' => $esAperturaOCierre ? 0 : (($transaccion->efectivo ?? 0) + ($transaccion->tarjeta ?? 0) + ($transaccion->cheque ?? 0) + ($transaccion->transferencia ?? 0))
                 ];
             })
             ->toArray();
@@ -86,7 +88,8 @@ class FlujoDeCaja extends Component
         $this->totalEfectivo = collect($this->transacciones)->sum('efectivo');
         $this->totalTarjeta = collect($this->transacciones)->sum('tarjeta');
         $this->totalCheque = collect($this->transacciones)->sum('cheque');
-        $this->totalGeneral = $this->totalEfectivo + $this->totalTarjeta + $this->totalCheque;
+        $this->totalTransferencia = collect($this->transacciones)->sum('transferencia');
+        $this->totalGeneral = $this->totalEfectivo + $this->totalTarjeta + $this->totalCheque + $this->totalTransferencia;
     }
 
     public function filtrarTransacciones()

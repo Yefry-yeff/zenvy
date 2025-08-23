@@ -62,7 +62,7 @@
 
         <!-- Resumen de Totales -->
         <div class="p-6 border-b bg-blue-50">
-            <div class="grid grid-cols-2 gap-4 md:grid-cols-4">
+            <div class="grid grid-cols-2 gap-4 md:grid-cols-5">
                 <!-- Total Efectivo -->
                 <div class="text-center">
                     <div class="flex items-center justify-center mb-2">
@@ -93,6 +93,17 @@
                     </div>
                     <div class="text-lg font-bold text-purple-600">
                         L. {{ number_format($totalCheque, 2) }}
+                    </div>
+                </div>
+
+                <!-- Total Transferencia -->
+                <div class="text-center">
+                    <div class="flex items-center justify-center mb-2">
+                        <i class="mr-2 text-xl text-orange-500 fas fa-exchange-alt"></i>
+                        <span class="text-sm font-medium text-gray-600">Transferencia</span>
+                    </div>
+                    <div class="text-lg font-bold text-orange-600">
+                        L. {{ number_format($totalTransferencia, 2) }}
                     </div>
                 </div>
 
@@ -129,17 +140,17 @@
                                                     <i class="mr-2 text-red-500 fas fa-lock"></i>
                                                     <span class="font-medium text-red-600">Cierre de Caja</span>
                                                     @break
-                                                @case('venta')
+                                                @case('Facturacion')
                                                     <i class="mr-2 text-blue-500 fas fa-shopping-cart"></i>
-                                                    <span class="font-medium text-blue-600">Venta</span>
+                                                    <span class="font-medium text-blue-600">Facturación</span>
                                                     @break
-                                                @case('entrada_efectivo')
+                                                @case('Recibo de Efectivo')
                                                     <i class="mr-2 text-green-500 fas fa-arrow-down"></i>
-                                                    <span class="font-medium text-green-600">Entrada de Efectivo</span>
+                                                    <span class="font-medium text-green-600">Recibo de Efectivo</span>
                                                     @break
-                                                @case('salida_efectivo')
+                                                @case('Entrega de Efectivo')
                                                     <i class="mr-2 text-red-500 fas fa-arrow-up"></i>
-                                                    <span class="font-medium text-red-600">Salida de Efectivo</span>
+                                                    <span class="font-medium text-red-600">Entrega de Efectivo</span>
                                                     @break
                                                 @default
                                                     <i class="mr-2 text-gray-500 fas fa-exchange-alt"></i>
@@ -186,6 +197,15 @@
                                             <i class="text-xs text-purple-500 fas fa-money-check"></i>
                                             <span class="text-sm font-medium {{ $transaccion['cheque'] > 0 ? 'text-purple-600' : 'text-red-600' }}">
                                                 {{ $transaccion['cheque'] > 0 ? '+' : '' }}L. {{ number_format($transaccion['cheque'], 2) }}
+                                            </span>
+                                        </div>
+                                    @endif
+
+                                    @if($transaccion['transferencia'] != 0)
+                                        <div class="flex items-center justify-end space-x-2">
+                                            <i class="text-xs text-orange-500 fas fa-exchange-alt"></i>
+                                            <span class="text-sm font-medium {{ $transaccion['transferencia'] > 0 ? 'text-orange-600' : 'text-red-600' }}">
+                                                {{ $transaccion['transferencia'] > 0 ? '+' : '' }}L. {{ number_format($transaccion['transferencia'], 2) }}
                                             </span>
                                         </div>
                                     @endif
