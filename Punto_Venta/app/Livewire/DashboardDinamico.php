@@ -347,18 +347,16 @@ class DashboardDinamico extends Component
                     ->selectRaw('
                         IFNULL(SUM(efectivo), 0) as balance_efectivo,
                         IFNULL(SUM(tarjeta), 0) as balance_tarjeta,
-                        IFNULL(SUM(cheque), 0) as balance_cheque
+                        IFNULL(SUM(cheque), 0) as balance_cheque,
+                        IFNULL(SUM(transferencia), 0) as balance_transferencia
                     ')
                     ->first();
-
-                // Calcular transferencias (por ahora será 0 ya que no está en la tabla transaccion)
-                $balanceTransferencia = 0;
 
                 // Balance total
                 $balanceTotal = ($balancesPorTipo->balance_efectivo ?? 0) +
                                ($balancesPorTipo->balance_tarjeta ?? 0) +
                                ($balancesPorTipo->balance_cheque ?? 0) +
-                               $balanceTransferencia;
+                               ($balancesPorTipo->balance_transferencia ?? 0);
 
                 $this->estadoCaja = [
                     'id' => $cajaActual->id,
@@ -368,7 +366,7 @@ class DashboardDinamico extends Component
                     'balance_efectivo' => $balancesPorTipo->balance_efectivo ?? 0,
                     'balance_tarjeta' => $balancesPorTipo->balance_tarjeta ?? 0,
                     'balance_cheque' => $balancesPorTipo->balance_cheque ?? 0,
-                    'balance_transferencia' => $balanceTransferencia,
+                    'balance_transferencia' => $balancesPorTipo->balance_transferencia ?? 0,
                     'balance_total_calculado' => $balanceTotal,
                     'fecha_apertura' => $ultimaApertura ? $ultimaApertura->fecha_apertura : null,
                     'fecha_actualizacion' => $cajaActual->updated_at,
