@@ -233,7 +233,20 @@ class CierreDeJornada extends Component
                         'updated_at' => now()
                     ]);
 
-                // Registrar cierre de caja con todos los datos
+                // PRIMERO: Registrar transacción de cierre de caja y obtener su ID
+                $idTransaccion = DB::table('transaccion')->insertGetId([
+                    'caja_id' => $caja->id,
+                    'transaccion' => 'cierre_caja',
+                    'efectivo' => $totalEfectivo, // Total efectivo sin diferencias
+                    'tarjeta' => $totalTarjeta,   // Total tarjeta sin diferencias
+                    'cheque' => $totalCheque,     // Total cheque sin diferencias
+                    'transferencia' => 0,         // No hay transferencias en este contexto
+                    'descripcion' => 'Cierre automático por cierre de jornada - Totales de la jornada',
+                    'created_at' => now(),
+                    'update_at' => now()
+                ]);
+
+                // SEGUNDO: Registrar cierre de caja con todos los datos incluyendo id_transaccion
                 $cierreId = DB::table('cierre_de_caja')->insertGetId([
                     'caja_id' => $caja->id,
                     'balance_cierre' => $balanceCaja,
@@ -250,21 +263,10 @@ class CierreDeJornada extends Component
                     '1' => 0, '2' => 0, '5' => 0, '10' => 0, '20' => 0, '50' => 0,
                     '100' => 0, '200' => 0, '500' => 0,
                     '001' => 0, '002' => 0, '005' => 0, '010' => 0, '020' => 0, '050' => 0,
-                    'fecha_cierre' => now(),
+                    'fecha_cierre' => $this->fechaCierre, // Usar la fecha de cierre seleccionada
+                    'transaccion_id' => $idTransaccion, // Agregar el ID de la transacción
                     'created_at' => now(),
                     'updated_at' => now()
-                ]);
-
-                // Registrar transacción de cierre de caja
-                DB::table('transaccion')->insert([
-                    'caja_id' => $caja->id,
-                    'transaccion' => 'cierre_caja',
-                    'efectivo' => $diferenciaEfectivo,
-                    'tarjeta' => $diferenciaTarjeta,
-                    'cheque' => $diferenciaCheque,
-                    'descripcion' => 'Cierre automático por cierre de jornada - Diferencias registradas',
-                    'created_at' => now(),
-                    'update_at' => now()
                 ]);
             }
 
@@ -310,7 +312,20 @@ class CierreDeJornada extends Component
                         'updated_at' => now()
                     ]);
 
-                // Registrar cierre de caja
+                // PRIMERO: Registrar transacción de cierre de caja y obtener su ID
+                $idTransaccion = DB::table('transaccion')->insertGetId([
+                    'caja_id' => $caja->id,
+                    'transaccion' => 'cierre_caja',
+                    'efectivo' => $totalEfectivo, // Total efectivo sin diferencias
+                    'tarjeta' => $totalTarjeta,   // Total tarjeta sin diferencias
+                    'cheque' => $totalCheque,     // Total cheque sin diferencias
+                    'transferencia' => 0,         // No hay transferencias en este contexto
+                    'descripcion' => 'Cierre automático por cierre de jornada - Totales de la jornada',
+                    'created_at' => now(),
+                    'update_at' => now()
+                ]);
+
+                // SEGUNDO: Registrar cierre de caja con todos los datos incluyendo id_transaccion
                 DB::table('cierre_de_caja')->insert([
                     'caja_id' => $caja->id,
                     'balance_cierre' => $balanceCaja,
@@ -327,21 +342,10 @@ class CierreDeJornada extends Component
                     '1' => 0, '2' => 0, '5' => 0, '10' => 0, '20' => 0, '50' => 0,
                     '100' => 0, '200' => 0, '500' => 0,
                     '001' => 0, '002' => 0, '005' => 0, '010' => 0, '020' => 0, '050' => 0,
-                    'fecha_cierre' => now(),
+                    'fecha_cierre' => $this->fechaCierre, // Usar la fecha de cierre seleccionada
+                    'transaccion_id' => $idTransaccion, // Agregar el ID de la transacción
                     'created_at' => now(),
                     'updated_at' => now()
-                ]);
-
-                // Registrar transacción de cierre de caja
-                DB::table('transaccion')->insert([
-                    'caja_id' => $caja->id,
-                    'transaccion' => 'cierre_caja',
-                    'efectivo' => $diferenciaEfectivo,
-                    'tarjeta' => $diferenciaTarjeta,
-                    'cheque' => $diferenciaCheque,
-                    'descripcion' => 'Cierre automático por cierre de jornada - Diferencias registradas',
-                    'created_at' => now(),
-                    'update_at' => now()
                 ]);
             }
 

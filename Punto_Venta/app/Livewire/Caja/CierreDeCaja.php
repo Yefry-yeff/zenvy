@@ -402,6 +402,26 @@ class CierreDeCaja extends Component
             $datosInsert['002'] = $this->safeFloat($this->monedas_0_02);
             $datosInsert['001'] = $this->safeFloat($this->monedas_0_01);
 
+            // PRIMERO: Insertar transacción de cierre y obtener su ID
+            $fechaAhora = now();
+            $transaccionCierre = [
+                'caja_id' => $this->cajaActual->id,
+                'transaccion' => 'cierre',
+                'efectivo' => $this->safeFloat($this->resumenTransacciones['efectivo_neto']),
+                'tarjeta' => $this->safeFloat($this->resumenTransacciones['tarjeta']),
+                'cheque' => $this->safeFloat($this->resumenTransacciones['cheque']),
+                'transferencia' => $this->safeFloat($this->resumenTransacciones['transferencia']),
+                'descripcion' => 'Cierre de caja - Totales de la jornada',
+                'created_at' => $fechaAhora,
+                'update_at' => $fechaAhora
+            ];
+
+            // Insertar la transacción y obtener su ID
+            $idTransaccion = DB::table('transaccion')->insertGetId($transaccionCierre);
+
+            // SEGUNDO: Agregar el ID de transacción al cierre de caja
+            $datosInsert['transaccion_id'] = $idTransaccion;
+
             DB::table('cierre_de_caja')->insert($datosInsert);
 
             // Cerrar la caja - Solo cambiar estado a cerrado (2)
@@ -411,25 +431,6 @@ class CierreDeCaja extends Component
                     'estado_caja' => 2, // 2 = cerrada
                     'updated_at' => now()
                 ]);
-
-            // Registrar transacción de cierre de caja con los montos recepcionados
-            $fechaAhora = now();
-
-            // Crear una sola transacción de cierre con todos los montos en 0
-            $transaccionCierre = [
-                'caja_id' => $this->cajaActual->id,
-                'transaccion' => 'cierre',
-                'efectivo' => 0.00,
-                'tarjeta' => 0.00,
-                'cheque' => 0.00,
-                'transferencia' => 0.00,
-                'descripcion' => 'Cierre de caja - Montos recepcionados',
-                'created_at' => $fechaAhora,
-                'update_at' => $fechaAhora
-            ];
-
-            // Insertar la transacción de cierre
-            DB::table('transaccion')->insert($transaccionCierre);
 
             DB::commit();
 
