@@ -208,7 +208,8 @@ class CierreDeJornada extends Component
                     ->selectRaw('
                         IFNULL(SUM(efectivo), 0) as total_efectivo_transacciones,
                         IFNULL(SUM(tarjeta), 0) as total_tarjeta_transacciones,
-                        IFNULL(SUM(cheque), 0) as total_cheque_transacciones
+                        IFNULL(SUM(cheque), 0) as total_cheque_transacciones,
+                        IFNULL(SUM(transferencia), 0) as total_transferencia_transacciones
                     ')
                     ->first();
 
@@ -216,6 +217,7 @@ class CierreDeJornada extends Component
                 $totalEfectivo = $totalesTransacciones ? ($totalesTransacciones->total_efectivo_transacciones ?? 0) : 0;
                 $totalTarjeta = $totalesTransacciones ? ($totalesTransacciones->total_tarjeta_transacciones ?? 0) : 0;
                 $totalCheque = $totalesTransacciones ? ($totalesTransacciones->total_cheque_transacciones ?? 0) : 0;
+                $totalTransferencia = $totalesTransacciones ? ($totalesTransacciones->total_transferencia_transacciones ?? 0) : 0;
 
                 // El balance actual de la caja
                 $balanceCaja = $caja->balance ?? 0;
@@ -240,7 +242,7 @@ class CierreDeJornada extends Component
                     'efectivo' => $totalEfectivo, // Total efectivo sin diferencias
                     'tarjeta' => $totalTarjeta,   // Total tarjeta sin diferencias
                     'cheque' => $totalCheque,     // Total cheque sin diferencias
-                    'transferencia' => 0,         // No hay transferencias en este contexto
+                    'transferencia' => $totalTransferencia, // Total transferencia sin diferencias
                     'descripcion' => 'Cierre automático por cierre de jornada - Totales de la jornada',
                     'created_at' => now(),
                     'update_at' => now()
@@ -253,7 +255,7 @@ class CierreDeJornada extends Component
                     'total_efectivo' => $totalEfectivo,
                     'total_tarjeta' => $totalTarjeta,
                     'total_cheque' => $totalCheque,
-                    'total_transferencia' => 0, // No hay transferencias en cierre de jornada
+                    'total_transferencia' => $totalTransferencia, // Total transferencia calculado
                     'conteo_efectivo' => 0,
                     'conteo_tarjeta' => 0,
                     'conteo_cheque' => 0,
@@ -280,7 +282,7 @@ class CierreDeJornada extends Component
                 ->select('c.*', 'u.name as nombre_usuario')
                 ->get();
 
-            foreach ($cajasAbiertasAdicionales as $caja) {
+                foreach ($cajasAbiertasAdicionales as $caja) {
                 // Obtener totales de transacciones para esta caja en la fecha de cierre
                 $totalesTransacciones = DB::table('transaccion')
                     ->where('caja_id', $caja->id)
@@ -288,7 +290,8 @@ class CierreDeJornada extends Component
                     ->selectRaw('
                         IFNULL(SUM(efectivo), 0) as total_efectivo_transacciones,
                         IFNULL(SUM(tarjeta), 0) as total_tarjeta_transacciones,
-                        IFNULL(SUM(cheque), 0) as total_cheque_transacciones
+                        IFNULL(SUM(cheque), 0) as total_cheque_transacciones,
+                        IFNULL(SUM(transferencia), 0) as total_transferencia_transacciones
                     ')
                     ->first();
 
@@ -296,6 +299,7 @@ class CierreDeJornada extends Component
                 $totalEfectivo = $totalesTransacciones ? ($totalesTransacciones->total_efectivo_transacciones ?? 0) : 0;
                 $totalTarjeta = $totalesTransacciones ? ($totalesTransacciones->total_tarjeta_transacciones ?? 0) : 0;
                 $totalCheque = $totalesTransacciones ? ($totalesTransacciones->total_cheque_transacciones ?? 0) : 0;
+                $totalTransferencia = $totalesTransacciones ? ($totalesTransacciones->total_transferencia_transacciones ?? 0) : 0;
 
                 // El balance actual de la caja
                 $balanceCaja = $caja->balance ?? 0;
@@ -320,20 +324,18 @@ class CierreDeJornada extends Component
                     'efectivo' => $totalEfectivo, // Total efectivo sin diferencias
                     'tarjeta' => $totalTarjeta,   // Total tarjeta sin diferencias
                     'cheque' => $totalCheque,     // Total cheque sin diferencias
-                    'transferencia' => 0,         // No hay transferencias en este contexto
+                    'transferencia' => $totalTransferencia, // Total transferencia sin diferencias
                     'descripcion' => 'Cierre automático por cierre de jornada - Totales de la jornada',
                     'created_at' => now(),
                     'update_at' => now()
-                ]);
-
-                // SEGUNDO: Registrar cierre de caja con todos los datos incluyendo id_transaccion
+                ]);                // SEGUNDO: Registrar cierre de caja con todos los datos incluyendo id_transaccion
                 DB::table('cierre_de_caja')->insert([
                     'caja_id' => $caja->id,
                     'balance_cierre' => $balanceCaja,
                     'total_efectivo' => $totalEfectivo,
                     'total_tarjeta' => $totalTarjeta,
                     'total_cheque' => $totalCheque,
-                    'total_transferencia' => 0, // No hay transferencias en cierre de jornada
+                    'total_transferencia' => $totalTransferencia, // Total transferencia calculado
                     'conteo_efectivo' => 0,
                     'conteo_tarjeta' => 0,
                     'conteo_cheque' => 0,
