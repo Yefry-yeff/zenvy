@@ -253,6 +253,7 @@ class CierreDeJornada extends Component
                     'total_efectivo' => $totalEfectivo,
                     'total_tarjeta' => $totalTarjeta,
                     'total_cheque' => $totalCheque,
+                    'total_transferencia' => 0, // No hay transferencias en cierre de jornada
                     'conteo_efectivo' => 0,
                     'conteo_tarjeta' => 0,
                     'conteo_cheque' => 0,
@@ -332,6 +333,7 @@ class CierreDeJornada extends Component
                     'total_efectivo' => $totalEfectivo,
                     'total_tarjeta' => $totalTarjeta,
                     'total_cheque' => $totalCheque,
+                    'total_transferencia' => 0, // No hay transferencias en cierre de jornada
                     'conteo_efectivo' => 0,
                     'conteo_tarjeta' => 0,
                     'conteo_cheque' => 0,

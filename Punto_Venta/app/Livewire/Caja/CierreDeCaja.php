@@ -372,6 +372,7 @@ class CierreDeCaja extends Component
                 'total_efectivo' => $this->safeFloat($this->resumenTransacciones['efectivo_neto']),
                 'total_tarjeta' => $this->safeFloat($this->resumenTransacciones['tarjeta']),
                 'total_cheque' => $this->safeFloat($this->resumenTransacciones['cheque']),
+                'total_transferencia' => $this->safeFloat($this->resumenTransacciones['transferencia']),
                 'conteo_efectivo' => $this->safeFloat($this->totalContado),
                 'conteo_tarjeta' => $this->safeFloat($this->resumenTransacciones['tarjeta']), // Mismo valor
                 'conteo_cheque' => $this->safeFloat($this->resumenTransacciones['cheque']), // Mismo valor
