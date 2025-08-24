@@ -20,6 +20,7 @@ class Segmentos extends Component
     public $buscar = '';
     public $filtroEstado = '';
     public $registrosPorPagina = 10;
+    public $page = 1;
 
     // Propiedades para modales
     public $mostrarModalEliminar = false;

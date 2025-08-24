@@ -11,7 +11,12 @@
                     </div>
                     <div>
                         <h1 class="text-2xl font-bold text-gray-800">Cierre de Caja</h1>
-                        <p class="text-gray-600">Resumen del día y conteo de efectivo</p>
+                        <p class="text-gray-600">
+                            Resumen del día y conteo de efectivo
+                            @if(isset($resumenTransacciones['fecha_jornada']))
+                                - Jornada: {{ $resumenTransacciones['fecha_jornada'] }}
+                            @endif
+                        </p>
                     </div>
                 </div>
                 <div class="flex space-x-3">
@@ -111,44 +116,48 @@
                             <div class="p-4 border border-green-200 rounded-lg bg-green-50">
                                 <h3 class="mb-3 text-sm font-semibold text-green-800">💰 Efectivo</h3>
 
-                                <!-- Desglose de Entradas -->
-                                @if(count($desglose_entradas) > 0)
-                                    <div class="mb-3">
-                                        <div class="flex items-center justify-between mb-2">
-                                            <span class="text-xs font-medium text-green-700">📊 Desglose Entradas:</span>
-                                            <button class="text-xs text-green-600 hover:text-green-800"
-                                                    x-data="{ show: false }"
-                                                    @click="show = !show">
-                                                <span x-text="show ? 'Ocultar' : 'Ver detalles'"></span>
-                                            </button>
-                                        </div>
+                                <!-- Desglose de Entradas - Mostrar siempre, aunque esté vacío -->
+                                <div class="mb-3">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <span class="text-xs font-medium text-green-700">📊 Desglose Entradas:</span>
+                                        <button class="text-xs text-green-600 hover:text-green-800"
+                                                x-data="{ show: false }"
+                                                @click="show = !show">
+                                            <span x-text="show ? 'Ocultar' : 'Ver detalles'"></span>
+                                        </button>
+                                    </div>
 
-                                        <div x-data="{ show: false }" class="space-y-1">
-                                            <div @click="show = !show" class="cursor-pointer">
-                                                <div class="flex justify-between p-2 text-xs bg-white border border-green-100 rounded">
-                                                    <span class="text-green-700">Total Entradas:</span>
-                                                    <div class="flex items-center">
-                                                        <span class="font-medium text-green-800">L.{{ number_format($resumenTransacciones['efectivo_entrada'] ?? 0, 2) }}</span>
-                                                        <svg class="w-3 h-3 ml-1 text-green-600" :class="{ 'rotate-180': show }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                                                        </svg>
-                                                    </div>
+                                    <div x-data="{ show: false }" class="space-y-1">
+                                        <div @click="show = !show" class="cursor-pointer">
+                                            <div class="flex justify-between p-2 text-xs bg-white border border-green-100 rounded">
+                                                <span class="text-green-700">Total Entradas:</span>
+                                                <div class="flex items-center">
+                                                    <span class="font-medium text-green-800">L.{{ number_format($resumenTransacciones['efectivo_entrada'] ?? 0, 2) }}</span>
+                                                    <svg class="w-3 h-3 ml-1 text-green-600" :class="{ 'rotate-180': show }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                                    </svg>
                                                 </div>
                                             </div>
+                                        </div>
 
-                                            <div x-show="show" x-collapse>
-                                                <div class="ml-2 space-y-1">
+                                        <div x-show="show" x-collapse>
+                                            <div class="ml-2 space-y-1">
+                                                @if(count($desglose_entradas) > 0)
                                                     @foreach($desglose_entradas as $entrada)
                                                         <div class="flex justify-between px-2 py-1 text-xs border-l-2 border-green-300 rounded bg-green-25">
                                                             <span class="text-green-600">{{ $entrada['tipo'] }} ({{ $entrada['cantidad'] }})</span>
                                                             <span class="font-medium text-green-700">L.{{ number_format($entrada['total'], 2) }}</span>
                                                         </div>
                                                     @endforeach
-                                                </div>
+                                                @else
+                                                    <div class="px-2 py-1 text-xs text-green-600 border-l-2 border-green-300 rounded bg-green-25">
+                                                        No hay entradas registradas
+                                                    </div>
+                                                @endif
                                             </div>
                                         </div>
                                     </div>
-                                @endif
+                                </div>
 
                                 <div class="space-y-1 text-sm">
                                     <div class="flex justify-between">
@@ -162,24 +171,6 @@
                                     <div class="flex justify-between pt-1 border-t">
                                         <span class="font-semibold text-green-800">Neto:</span>
                                         <span class="font-bold">L.{{ number_format($resumenTransacciones['efectivo_neto'] ?? 0, 2) }}</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="p-4 border border-purple-200 rounded-lg bg-purple-50">
-                                <h3 class="mb-2 text-sm font-semibold text-purple-800">💳 Otros Pagos</h3>
-                                <div class="space-y-1 text-sm">
-                                    <div class="flex justify-between">
-                                        <span class="text-purple-700">Tarjetas:</span>
-                                        <span class="font-medium">L.{{ number_format($resumenTransacciones['tarjeta'] ?? 0, 2) }}</span>
-                                    </div>
-                                    <div class="flex justify-between">
-                                        <span class="text-purple-700">Cheques:</span>
-                                        <span class="font-medium">L.{{ number_format($resumenTransacciones['cheque'] ?? 0, 2) }}</span>
-                                    </div>
-                                    <div class="flex justify-between">
-                                        <span class="text-purple-700">Transferencias:</span>
-                                        <span class="font-medium">L.{{ number_format($resumenTransacciones['transferencia'] ?? 0, 2) }}</span>
                                     </div>
                                 </div>
                             </div>

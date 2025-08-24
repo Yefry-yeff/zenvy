@@ -74,6 +74,19 @@
                                     <i class="fas fa-cube me-1"></i>{{ $recibido->seccion->descripcion }} ({{ $recibido->seccion->numeracion }})
                                 </span>
                             </div>
+                            
+                            <!-- Debug temporal -->
+                            <div class="mt-2 small text-muted">
+                                <strong>Debug:</strong> ID Recibido: {{ $recibido->id ?? 'N/A' }} | 
+                                Cantidad Inicial: {{ $recibido->cantidad_inicial_seccion ?? 'N/A' }} | 
+                                Cantidad Disponible: {{ $recibido->cantidad_disponible ?? 'N/A' }} |
+                                Total Bodega: {{ $cantidadTotalBodega ?? 'N/A' }}
+                            </div>
+                        </div>
+                        @else
+                        <div class="p-3 mt-3 rounded bg-warning">
+                            <p class="mb-0 text-dark"><strong>⚠️ No hay datos de recibido para mostrar</strong></p>
+                            <small>Recibido existe: {{ $recibido ? 'Sí' : 'No' }} | SeccionId: {{ $seccionId ?? 'N/A' }}</small>
                         </div>
                         @endif
                     </div>
@@ -97,7 +110,7 @@
                                     <input type="number"
                                            id="cantidad_asignada_bodega"
                                            class="form-control bg-light"
-                                           value="{{ $cantidadTotalBodega }}"
+                                           value="{{ $cantidadTotalBodega ?? 0 }}"
                                            readonly>
                                     <button class="btn btn-outline-primary"
                                             type="button"

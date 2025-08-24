@@ -11,7 +11,7 @@ use Log;
 class CierreDeCaja extends Component
 {
     public $cajaActual = null;
-    public $transaccionesDia = [];
+    public $jornadaAbierta = null;
     public $resumenTransacciones = [];
     public $desglose_entradas = [];
 
@@ -48,7 +48,6 @@ class CierreDeCaja extends Component
     {
         $this->validarJornadaAbierta();
         $this->cargarDatosCaja();
-        $this->cargarTransaccionesDia();
         $this->calcularResumen();
     }
 
@@ -60,17 +59,14 @@ class CierreDeCaja extends Component
             return false;
         }
 
-        $fechaActual = date('Y-m-d');
-
-        // Verificar si existe una jornada aperturada para hoy
-        $jornadaAbierta = DB::table('jornada')
-            ->where('fecha', $fechaActual)
+        // Buscar jornada aperturada (puede ser de cualquier fecha)
+        $this->jornadaAbierta = DB::table('jornada')
             ->where('tienda_id', $usuario->tienda_id)
             ->where('apertura', 1)
             ->where('cierre', 0)
             ->first();
 
-        if (!$jornadaAbierta) {
+        if (!$this->jornadaAbierta) {
             return false;
         }
 
@@ -95,40 +91,26 @@ class CierreDeCaja extends Component
             ->first();
     }
 
-    public function cargarTransaccionesDia()
-    {
-        if (!$this->cajaActual) return;
-
-        $fechaHoy = Carbon::today();
-
-        // Cargar todas las transacciones del día (incluye apertura_caja para visualización)
-        $this->transaccionesDia = DB::table('transaccion')
-            ->where('caja_id', $this->cajaActual->id)
-            ->whereDate('created_at', $fechaHoy)
-            ->orderBy('created_at', 'desc')
-            ->get()
-            ->toArray();
-    }
-
     public function calcularResumen()
     {
-        if (!$this->cajaActual) return;
+        if (!$this->cajaActual || !$this->jornadaAbierta) return;
 
-        $fechaHoy = Carbon::today();
+        // Usar la fecha de la jornada aperturada
+        $fechaJornada = Carbon::parse($this->jornadaAbierta->fecha);
 
         // Obtener el último saldo inicial del día desde apertura_caja
         $ultimaApertura = DB::table('apertura_caja')
             ->where('caja_id', $this->cajaActual->id)
-            ->whereDate('fecha_apertura', $fechaHoy)
+            ->whereDate('fecha_apertura', $fechaJornada)
             ->orderBy('fecha_apertura', 'desc')
             ->first();
 
         $saldoInicial = $ultimaApertura ? $ultimaApertura->balance_apertura : 0;
 
-        // Calcular totales por tipo - EXCLUIR transacciones de apertura_caja
+        // Calcular totales por tipo - EXCLUIR transacciones de apertura_caja usando la fecha de la jornada
         $resumen = DB::table('transaccion')
             ->where('caja_id', $this->cajaActual->id)
-            ->whereDate('created_at', $fechaHoy)
+            ->whereDate('created_at', $fechaJornada)
             ->where('transaccion', '!=', 'apertura_caja') // Excluir apertura_caja
             ->selectRaw('
                 SUM(CASE WHEN efectivo > 0 THEN efectivo ELSE 0 END) as total_efectivo_entrada,
@@ -142,14 +124,15 @@ class CierreDeCaja extends Component
             ->first();
 
         $this->resumenTransacciones = [
-            'saldo_inicial' => $saldoInicial, // Agregar saldo inicial
+            'saldo_inicial' => $saldoInicial,
             'efectivo_entrada' => $resumen->total_efectivo_entrada ?? 0,
             'efectivo_salida' => $resumen->total_efectivo_salida ?? 0,
             'efectivo_neto' => $resumen->total_efectivo_neto ?? 0,
             'tarjeta' => $resumen->total_tarjeta ?? 0,
             'cheque' => $resumen->total_cheque ?? 0,
             'transferencia' => $resumen->total_transferencia ?? 0,
-            'transacciones' => $resumen->total_transacciones ?? 0
+            'transacciones' => $resumen->total_transacciones ?? 0,
+            'fecha_jornada' => $fechaJornada->format('d/m/Y') // Agregar fecha de la jornada
         ];
 
         $this->totalSistema = $this->cajaActual->balance ?? 0;

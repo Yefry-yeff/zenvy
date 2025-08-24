@@ -56,4 +56,9 @@ class RecibidoBodega extends Model
     {
         return $this->belongsTo(Estado::class);
     }
+
+    public function distribucionesStock()
+    {
+        return $this->hasMany(DistribucionStock::class, 'recibido_bodega_id');
+    }
 }

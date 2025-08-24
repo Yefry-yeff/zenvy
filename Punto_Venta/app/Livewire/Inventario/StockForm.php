@@ -97,20 +97,32 @@ class StockForm extends Component
                 $this->recibido = RecibidoBodega::where('producto_id', $productoId)
                     ->where('seccion_id', $seccionId)
                     ->with(['producto', 'seccion.segmento.bodega.tienda'])
-                    ->firstOrFail();
+                    ->first(); // Cambiado de firstOrFail() a first()
 
-                $this->recibidoId = $this->recibido->id;
-                $this->isEditing = true;
-                $this->cargarDatosRecibido();
+                if ($this->recibido) {
+                    $this->recibidoId = $this->recibido->id;
+                    $this->isEditing = true;
+                    $this->cargarDatosRecibido();
 
-                // Pre-seleccionar la bodega actual
-                $this->form['bodega_destino'] = $this->recibido->seccion->segmento->bodega_id ?? '';
-                if ($this->form['bodega_destino']) {
-                    $this->cargarSegmentosPorBodega();
-                    $this->form['segmento_destino'] = $this->recibido->seccion->segmento_id ?? '';
-                    if ($this->form['segmento_destino']) {
-                        $this->cargarSeccionesPorSegmento();
+                    // Pre-seleccionar la bodega actual
+                    $this->form['bodega_destino'] = $this->recibido->seccion->segmento->bodega_id ?? '';
+                    if ($this->form['bodega_destino']) {
+                        $this->cargarSegmentosPorBodega();
+                        $this->form['segmento_destino'] = $this->recibido->seccion->segmento_id ?? '';
+                        if ($this->form['segmento_destino']) {
+                            $this->cargarSeccionesPorSegmento();
+                        }
                     }
+                } else {
+                    // Si no se encuentra el registro, crear valores por defecto
+                    $this->cantidadTotalBodega = 0;
+                    $this->stockDisponible = 0;
+                    $this->totalDistribuido = 0;
+                    Log::warning('No se encontró registro RecibidoBodega', [
+                        'producto_id' => $productoId,
+                        'seccion_id' => $seccionId,
+                        'usuario_id' => Auth::id()
+                    ]);
                 }
             } else {
                 // Si no hay sección, necesitamos calcular para una bodega por defecto
@@ -168,17 +180,25 @@ class StockForm extends Component
             // Calcular cantidad total en toda la bodega para este producto
             $this->calcularCantidadTotalBodega();
 
-            // Inicializar formulario
+            // Inicializar formulario con valores correctos
             $this->form = [
                 'cantidad_asignada_bodega' => $this->cantidadTotalBodega,
                 'cantidad_distribuir' => 0,
-                'precio_unitario' => 0,
+                'precio_unitario' => $this->producto->precio_base ?? 0,
                 'fecha_distribucion' => now()->format('Y-m-d'),
                 'comentario' => '',
                 'bodega_destino' => '',
                 'segmento_destino' => '',
                 'seccion_destino' => '',
             ];
+
+            Log::info('Datos cargados en StockForm', [
+                'cantidad_total_bodega' => $this->cantidadTotalBodega,
+                'stock_disponible' => $this->stockDisponible,
+                'total_distribuido' => $this->totalDistribuido,
+                'cantidad_inicial_seccion' => $this->recibido->cantidad_inicial_seccion ?? 0,
+                'cantidad_disponible_seccion' => $this->recibido->cantidad_disponible ?? 0,
+            ]);
         }
     }
 
