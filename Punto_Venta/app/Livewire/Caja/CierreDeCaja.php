@@ -17,6 +17,7 @@ class CierreDeCaja extends Component
     public $desglose_entradas = [];
     public $desgloseTarjetas = [];
     public $desgloseTransferencias = [];
+    public $desgloseCheques = [];
 
     // Billetes
     public $billetes_500 = 0;
@@ -147,6 +148,7 @@ class CierreDeCaja extends Component
         $this->calcularDesgloseEntradas();
         $this->calcularDesgloseTarjetas();
         $this->calcularDesgloseTransferencias();
+        $this->calcularDesgloseCheques();
     }
 
     public function calcularDesgloseEntradas()
@@ -209,21 +211,19 @@ class CierreDeCaja extends Component
 
             $fecha = $this->jornada->fecha;
             
-            $this->desgloseTarjetas = DB::select("
-                SELECT 
-                    pt.nombre as metodo_pago,
-                    COUNT(fp.id) as cantidad_transacciones,
-                    SUM(fp.cantidad) as total_pagado
-                FROM factura f
-                INNER JOIN factura_has_pago fp ON f.id = fp.factura_id
-                INNER JOIN pago_tipo pt ON fp.pago_tipo_id = pt.id
-                WHERE DATE(f.created_at) = ?
-                AND pt.nombre LIKE '%tarjeta%'
-                GROUP BY pt.id, pt.nombre
-                ORDER BY total_pagado DESC
-            ", [$fecha]);
-
-            $this->desgloseTarjetas = collect($this->desgloseTarjetas);
+            // Buscar en tabla transaccion para pagos con tarjeta de la jornada específica
+            $this->desgloseTarjetas = DB::table('transaccion')
+                ->where('caja_id', $this->cajaActual->id)
+                ->whereDate('created_at', $fecha)
+                ->where('tarjeta', '>', 0)
+                ->selectRaw('
+                    transaccion as metodo_pago,
+                    COUNT(*) as cantidad_transacciones,
+                    SUM(tarjeta) as total_pagado
+                ')
+                ->groupBy('transaccion')
+                ->orderBy('total_pagado', 'desc')
+                ->get();
             
         } catch (\Exception $e) {
             Log::error('Error al calcular desglose de tarjetas: ' . $e->getMessage());
@@ -244,25 +244,56 @@ class CierreDeCaja extends Component
 
             $fecha = $this->jornada->fecha;
             
-            $this->desgloseTransferencias = DB::select("
-                SELECT 
-                    pt.nombre as metodo_pago,
-                    COUNT(fp.id) as cantidad_transacciones,
-                    SUM(fp.cantidad) as total_pagado
-                FROM factura f
-                INNER JOIN factura_has_pago fp ON f.id = fp.factura_id
-                INNER JOIN pago_tipo pt ON fp.pago_tipo_id = pt.id
-                WHERE DATE(f.created_at) = ?
-                AND pt.nombre LIKE '%transferencia%'
-                GROUP BY pt.id, pt.nombre
-                ORDER BY total_pagado DESC
-            ", [$fecha]);
-
-            $this->desgloseTransferencias = collect($this->desgloseTransferencias);
+            // Buscar en tabla transaccion para pagos con transferencia de la jornada específica
+            $this->desgloseTransferencias = DB::table('transaccion')
+                ->where('caja_id', $this->cajaActual->id)
+                ->whereDate('created_at', $fecha)
+                ->where('transferencia', '>', 0)
+                ->selectRaw('
+                    transaccion as metodo_pago,
+                    COUNT(*) as cantidad_transacciones,
+                    SUM(transferencia) as total_pagado
+                ')
+                ->groupBy('transaccion')
+                ->orderBy('total_pagado', 'desc')
+                ->get();
             
         } catch (\Exception $e) {
             Log::error('Error al calcular desglose de transferencias: ' . $e->getMessage());
             $this->desgloseTransferencias = collect();
+        }
+    }
+
+    /**
+     * Calcula el desglose de pagos con cheque
+     */
+    private function calcularDesgloseCheques()
+    {
+        try {
+            if (!$this->jornada) {
+                $this->desgloseCheques = collect();
+                return;
+            }
+
+            $fecha = $this->jornada->fecha;
+            
+            // Buscar en tabla transaccion para pagos con cheque de la jornada específica
+            $this->desgloseCheques = DB::table('transaccion')
+                ->where('caja_id', $this->cajaActual->id)
+                ->whereDate('created_at', $fecha)
+                ->where('cheque', '>', 0)
+                ->selectRaw('
+                    transaccion as metodo_pago,
+                    COUNT(*) as cantidad_transacciones,
+                    SUM(cheque) as total_pagado
+                ')
+                ->groupBy('transaccion')
+                ->orderBy('total_pagado', 'desc')
+                ->get();
+            
+        } catch (\Exception $e) {
+            Log::error('Error al calcular desglose de cheques: ' . $e->getMessage());
+            $this->desgloseCheques = collect();
         }
     }
 
@@ -347,7 +378,7 @@ class CierreDeCaja extends Component
                 'diferencia_efectivo' => $this->safeFloat($this->diferenciaEfectivo),
                 'diferencia_tarjeta' => 0, // No hay diferencia en tarjetas
                 'diferencia_cheque' => 0, // No hay diferencia en cheques
-                'fecha_cierre' => now(),
+                'fecha_cierre' => $this->jornada->fecha, // Fecha de la jornada que se está cerrando
                 'created_at' => now(),
                 'updated_at' => now()
             ];

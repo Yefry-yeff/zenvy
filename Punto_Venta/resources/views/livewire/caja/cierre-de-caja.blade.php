@@ -208,8 +208,8 @@
                                                 @if(isset($desgloseTarjetas) && count($desgloseTarjetas) > 0)
                                                     @foreach($desgloseTarjetas as $tarjeta)
                                                         <div class="flex justify-between px-2 py-1 text-xs border-l-2 border-purple-300 rounded bg-purple-25">
-                                                            <span class="text-purple-600">{{ $tarjeta['tipo'] ?? 'Tarjeta' }} ({{ $tarjeta['cantidad'] ?? 1 }})</span>
-                                                            <span class="font-medium text-purple-700">L.{{ number_format($tarjeta['total'] ?? 0, 2) }}</span>
+                                                            <span class="text-purple-600">{{ $tarjeta->metodo_pago ?? 'Tarjeta' }} ({{ $tarjeta->cantidad_transacciones ?? 1 }})</span>
+                                                            <span class="font-medium text-purple-700">L.{{ number_format($tarjeta->total_pagado ?? 0, 2) }}</span>
                                                         </div>
                                                     @endforeach
                                                 @else
@@ -251,13 +251,56 @@
                                                 @if(isset($desgloseTransferencias) && count($desgloseTransferencias) > 0)
                                                     @foreach($desgloseTransferencias as $transferencia)
                                                         <div class="flex justify-between px-2 py-1 text-xs border-l-2 border-purple-300 rounded bg-purple-25">
-                                                            <span class="text-purple-600">{{ $transferencia['tipo'] ?? 'Transferencia' }} ({{ $transferencia['cantidad'] ?? 1 }})</span>
-                                                            <span class="font-medium text-purple-700">L.{{ number_format($transferencia['total'] ?? 0, 2) }}</span>
+                                                            <span class="text-purple-600">{{ $transferencia->metodo_pago ?? 'Transferencia' }} ({{ $transferencia->cantidad_transacciones ?? 1 }})</span>
+                                                            <span class="font-medium text-purple-700">L.{{ number_format($transferencia->total_pagado ?? 0, 2) }}</span>
                                                         </div>
                                                     @endforeach
                                                 @else
                                                     <div class="px-2 py-1 text-xs text-purple-600 border-l-2 border-purple-300 rounded bg-purple-25">
                                                         No hay transferencias registradas
+                                                    </div>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Desglose de Cheques -->
+                                <div class="mb-3">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <span class="text-xs font-medium text-purple-700">🏦 Cheques:</span>
+                                        <button class="text-xs text-purple-600 hover:text-purple-800"
+                                                x-data="{ show: false }"
+                                                @click="show = !show">
+                                            <span x-text="show ? 'Ocultar' : 'Ver detalles'"></span>
+                                        </button>
+                                    </div>
+
+                                    <div x-data="{ show: false }" class="space-y-1">
+                                        <div @click="show = !show" class="cursor-pointer">
+                                            <div class="flex justify-between p-2 text-xs bg-white border border-purple-100 rounded">
+                                                <span class="text-purple-700">Total Cheques:</span>
+                                                <div class="flex items-center">
+                                                    <span class="font-medium text-purple-800">L.{{ number_format($resumenTransacciones['cheque'] ?? 0, 2) }}</span>
+                                                    <svg class="w-3 h-3 ml-1 text-purple-600" :class="{ 'rotate-180': show }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                                    </svg>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div x-show="show" x-collapse>
+                                            <div class="ml-2 space-y-1">
+                                                @if(isset($desgloseCheques) && count($desgloseCheques) > 0)
+                                                    @foreach($desgloseCheques as $cheque)
+                                                        <div class="flex justify-between px-2 py-1 text-xs border-l-2 border-purple-300 rounded bg-purple-25">
+                                                            <span class="text-purple-600">{{ $cheque->metodo_pago ?? 'Cheque' }} ({{ $cheque->cantidad_transacciones ?? 1 }})</span>
+                                                            <span class="font-medium text-purple-700">L.{{ number_format($cheque->total_pagado ?? 0, 2) }}</span>
+                                                        </div>
+                                                    @endforeach
+                                                @else
+                                                    <div class="px-2 py-1 text-xs text-purple-600 border-l-2 border-purple-300 rounded bg-purple-25">
+                                                        No hay cheques registrados
                                                     </div>
                                                 @endif
                                             </div>
