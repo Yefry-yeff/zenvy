@@ -5,15 +5,18 @@ namespace App\Livewire\Caja;
 use Livewire\Component;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
-use Log;
 
 class CierreDeCaja extends Component
 {
     public $cajaActual = null;
     public $jornadaAbierta = null;
+    public $jornada = null;
     public $resumenTransacciones = [];
     public $desglose_entradas = [];
+    public $desgloseTarjetas = [];
+    public $desgloseTransferencias = [];
 
     // Billetes
     public $billetes_500 = 0;
@@ -65,6 +68,9 @@ class CierreDeCaja extends Component
             ->where('apertura', 1)
             ->where('cierre', 0)
             ->first();
+
+        // Asignar también a la propiedad $jornada para los métodos de desglose
+        $this->jornada = $this->jornadaAbierta;
 
         if (!$this->jornadaAbierta) {
             return false;
@@ -137,20 +143,22 @@ class CierreDeCaja extends Component
 
         $this->totalSistema = $this->cajaActual->balance ?? 0;
 
-        // Calcular desglose de entradas
+        // Calcular todos los desgloses
         $this->calcularDesgloseEntradas();
+        $this->calcularDesgloseTarjetas();
+        $this->calcularDesgloseTransferencias();
     }
 
     public function calcularDesgloseEntradas()
     {
-        if (!$this->cajaActual) return;
+        if (!$this->cajaActual || !$this->jornada) return;
 
-        $fechaHoy = Carbon::today();
+        $fecha = $this->jornada->fecha;
 
         // Obtener desglose por tipo de transacción con efectivo positivo
         $desglose = DB::table('transaccion')
             ->where('caja_id', $this->cajaActual->id)
-            ->whereDate('created_at', $fechaHoy)
+            ->whereDate('created_at', $fecha)
             ->where('transaccion', '!=', 'apertura_caja')
             ->where('efectivo', '>', 0)
             ->selectRaw('
@@ -186,6 +194,76 @@ class CierreDeCaja extends Component
         ];
 
         return $formatos[$tipo] ?? $formatos['default'];
+    }
+
+    /**
+     * Calcula el desglose de pagos con tarjeta
+     */
+    private function calcularDesgloseTarjetas()
+    {
+        try {
+            if (!$this->jornada) {
+                $this->desgloseTarjetas = collect();
+                return;
+            }
+
+            $fecha = $this->jornada->fecha;
+            
+            $this->desgloseTarjetas = DB::select("
+                SELECT 
+                    pt.nombre as metodo_pago,
+                    COUNT(fp.id) as cantidad_transacciones,
+                    SUM(fp.cantidad) as total_pagado
+                FROM factura f
+                INNER JOIN factura_has_pago fp ON f.id = fp.factura_id
+                INNER JOIN pago_tipo pt ON fp.pago_tipo_id = pt.id
+                WHERE DATE(f.created_at) = ?
+                AND pt.nombre LIKE '%tarjeta%'
+                GROUP BY pt.id, pt.nombre
+                ORDER BY total_pagado DESC
+            ", [$fecha]);
+
+            $this->desgloseTarjetas = collect($this->desgloseTarjetas);
+            
+        } catch (\Exception $e) {
+            Log::error('Error al calcular desglose de tarjetas: ' . $e->getMessage());
+            $this->desgloseTarjetas = collect();
+        }
+    }
+
+    /**
+     * Calcula el desglose de transferencias
+     */
+    private function calcularDesgloseTransferencias()
+    {
+        try {
+            if (!$this->jornada) {
+                $this->desgloseTransferencias = collect();
+                return;
+            }
+
+            $fecha = $this->jornada->fecha;
+            
+            $this->desgloseTransferencias = DB::select("
+                SELECT 
+                    pt.nombre as metodo_pago,
+                    COUNT(fp.id) as cantidad_transacciones,
+                    SUM(fp.cantidad) as total_pagado
+                FROM factura f
+                INNER JOIN factura_has_pago fp ON f.id = fp.factura_id
+                INNER JOIN pago_tipo pt ON fp.pago_tipo_id = pt.id
+                WHERE DATE(f.created_at) = ?
+                AND pt.nombre LIKE '%transferencia%'
+                GROUP BY pt.id, pt.nombre
+                ORDER BY total_pagado DESC
+            ", [$fecha]);
+
+            $this->desgloseTransferencias = collect($this->desgloseTransferencias);
+            
+        } catch (\Exception $e) {
+            Log::error('Error al calcular desglose de transferencias: ' . $e->getMessage());
+            $this->desgloseTransferencias = collect();
+        }
     }
 
     public function calcularTotalContado()
