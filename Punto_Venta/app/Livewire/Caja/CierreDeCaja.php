@@ -408,10 +408,10 @@ class CierreDeCaja extends Component
             $transaccionCierre = [
                 'caja_id' => $this->cajaActual->id,
                 'transaccion' => 'cierre',
-                'efectivo' => $this->safeFloat($this->resumenTransacciones['efectivo_neto']),
-                'tarjeta' => $this->safeFloat($this->resumenTransacciones['tarjeta']),
-                'cheque' => $this->safeFloat($this->resumenTransacciones['cheque']),
-                'transferencia' => $this->safeFloat($this->resumenTransacciones['transferencia']),
+                'efectivo' => 0.00,
+                'tarjeta' => 0.00,
+                'cheque' => 0.00,
+                'transferencia' => 0.00,
                 'descripcion' => 'Cierre de caja - Totales de la jornada',
                 'created_at' => $fechaAhora,
                 'update_at' => $fechaAhora
