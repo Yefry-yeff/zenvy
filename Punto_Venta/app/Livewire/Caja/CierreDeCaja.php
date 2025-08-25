@@ -142,7 +142,8 @@ class CierreDeCaja extends Component
             'fecha_jornada' => $fechaJornada->format('d/m/Y') // Agregar fecha de la jornada
         ];
 
-        $this->totalSistema = $this->cajaActual->balance ?? 0;
+        // Calcular el total del sistema: saldo inicial + efectivo neto de transacciones
+        $this->totalSistema = $saldoInicial + ($resumen->total_efectivo_neto ?? 0);
 
         // Calcular todos los desgloses
         $this->calcularDesgloseEntradas();

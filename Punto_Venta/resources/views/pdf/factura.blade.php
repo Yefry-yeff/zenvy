@@ -266,7 +266,7 @@
                     @endif
                 @endif
                 @if($factura->nombre_cliente && $factura->nombre_cliente != 'Consumidor Final')
-                    {{ $factura->nombre_cliente }}
+                    CLIENTE: {{ $factura->nombre_cliente }}
                 @endif
             </div>
         @endif
@@ -304,7 +304,7 @@
                 $descuentoUnitario = $descuentos['Producto'] ?? 0;
                 $descuentoTerceraEdad = $descuentos['3ra edad'] ?? 0;
                 $descuentoCuartaEdad = $descuentos['4ta edad'] ?? 0;
-                
+
                 // Calcular total de descuentos de adulto mayor
                 $descuentoAdultoMayor = $descuentoTerceraEdad + $descuentoCuartaEdad;
             @endphp

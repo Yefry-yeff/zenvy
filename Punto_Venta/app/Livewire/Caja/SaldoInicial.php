@@ -209,7 +209,7 @@ class SaldoInicial extends Component
             $idTransaccion = DB::table('transaccion')->insertGetId([
                 'caja_id' => $cajaId,
                 'transaccion' => 'apertura_caja',
-                'efectivo' => 0.00,
+                'efectivo' => $balanceExistente, // Almacenar el balance de apertura como efectivo
                 'tarjeta' => 0.00,
                 'cheque' => 0.00,
                 'transferencia' => 0.00,

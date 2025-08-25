@@ -62,20 +62,21 @@ class FlujoDeCaja extends Component
         $this->transacciones = $query->orderBy('created_at', 'desc')
             ->get()
             ->map(function ($transaccion) {
-                // No mostrar valores para apertura de caja y cierre
-                $esAperturaOCierre = in_array(strtolower($transaccion->transaccion), ['apertura_caja', 'cierre']);
+                // Solo ocultar valores para cierre, pero mostrar efectivo para apertura_caja
+                $esCierre = strtolower($transaccion->transaccion) === 'cierre';
+                $esApertura = strtolower($transaccion->transaccion) === 'apertura_caja';
 
                 return [
                     'id' => $transaccion->id,
                     'caja_id' => $transaccion->caja_id,
                     'transaccion' => $transaccion->transaccion,
-                    'efectivo' => $esAperturaOCierre ? 0 : ($transaccion->efectivo ?? 0),
-                    'tarjeta' => $esAperturaOCierre ? 0 : ($transaccion->tarjeta ?? 0),
-                    'cheque' => $esAperturaOCierre ? 0 : ($transaccion->cheque ?? 0),
-                    'transferencia' => $esAperturaOCierre ? 0 : ($transaccion->transferencia ?? 0),
+                    'efectivo' => $esCierre ? 0 : ($transaccion->efectivo ?? 0),
+                    'tarjeta' => ($esCierre || $esApertura) ? 0 : ($transaccion->tarjeta ?? 0),
+                    'cheque' => ($esCierre || $esApertura) ? 0 : ($transaccion->cheque ?? 0),
+                    'transferencia' => ($esCierre || $esApertura) ? 0 : ($transaccion->transferencia ?? 0),
                     'descripcion' => $transaccion->descripcion,
                     'created_at' => $transaccion->created_at,
-                    'total' => $esAperturaOCierre ? 0 : (($transaccion->efectivo ?? 0) + ($transaccion->tarjeta ?? 0) + ($transaccion->cheque ?? 0) + ($transaccion->transferencia ?? 0))
+                    'total' => $esCierre ? 0 : (($transaccion->efectivo ?? 0) + (($esCierre || $esApertura) ? 0 : ($transaccion->tarjeta ?? 0)) + (($esCierre || $esApertura) ? 0 : ($transaccion->cheque ?? 0)) + (($esCierre || $esApertura) ? 0 : ($transaccion->transferencia ?? 0)))
                 ];
             })
             ->toArray();
