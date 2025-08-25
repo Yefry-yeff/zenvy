@@ -171,6 +171,52 @@
     </div>
     @endif
 
+    <!-- Modal de stock insuficiente -->
+    @if($mostrarModalSinStock)
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+         @click.self="$wire.cerrarModalSinStock()"
+         @keydown.escape.window="$wire.cerrarModalSinStock()">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-hidden">
+            <!-- Header -->
+            <div class="flex items-center justify-between px-6 py-4 text-white bg-red-600">
+                <h2 class="text-lg font-semibold">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Stock Insuficiente
+                </h2>
+                <button wire:click="cerrarModalSinStock" class="text-white transition-colors hover:text-gray-200">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Content -->
+            <div class="p-6">
+                <div class="text-center">
+                    <div class="mx-auto mb-4 text-red-500">
+                        <i class="fas fa-times-circle fa-4x"></i>
+                    </div>
+                    <h3 class="mb-2 text-lg font-semibold text-gray-800">
+                        No hay suficiente stock disponible
+                    </h3>
+                    <p class="mb-6 text-gray-600">
+                        La cantidad solicitada excede el stock disponible en bodega. Por favor, verifica el inventario o reduce la cantidad.
+                    </p>
+                    
+                    <div class="flex justify-center">
+                        <button 
+                            wire:click="cerrarModalSinStock"
+                            class="px-6 py-2 text-white bg-red-600 border border-red-600 rounded-lg hover:bg-red-700 focus:ring-4 focus:ring-red-200">
+                            <i class="fas fa-check me-2"></i>
+                            Entendido
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
     <!-- CONTENIDO PRINCIPAL: Siempre visible (modo manual por defecto) -->
     <div class="mx-auto max-w-7xl">
             

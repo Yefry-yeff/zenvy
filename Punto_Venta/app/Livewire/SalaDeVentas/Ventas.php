@@ -652,6 +652,11 @@ class Ventas extends Component
         $this->busquedaCliente = '';
     }
 
+    public function cerrarModalSinStock()
+    {
+        $this->mostrarModalSinStock = false;
+    }
+
     public function cargarClientesModal()
     {
         $query = Cliente::with(['tipoPersona', 'tipoCliente'])
@@ -845,7 +850,7 @@ class Ventas extends Component
             $nuevaCantidadTotal = $cantidadEnCarritoSinEsteItem + $nuevaCantidad;
 
             if ($nuevaCantidadTotal > $stockTotal) {
-                $this->dispatch('mostrar-sin-stock');
+                $this->mostrarModalSinStock = true;
                 return;
             }
         }
@@ -1249,15 +1254,32 @@ class Ventas extends Component
             return false;
         }
 
-        // 2. Verificar caja del usuario
+        // 2. Verificar caja del usuario (que esté abierta Y tenga apertura para el día de la jornada)
         $cajaAbierta = DB::table('caja')
             ->where('users_id', $user->id)
             ->where('tienda_id', $tiendaId)
             ->where('estado_caja', 1) // 1 = abierta
-            ->exists();
+            ->first();
 
         if (!$cajaAbierta) {
             session()->flash('error', '❌ No se puede procesar la venta: Su caja debe estar abierta para realizar ventas.');
+            return false;
+        }
+
+        // 3. Verificar que la caja tenga apertura para la fecha de la jornada abierta
+        $fechaJornadaAbierta = DB::table('jornada')
+            ->where('tienda_id', $tiendaId)
+            ->where('apertura', 1)
+            ->where('cierre', 0)
+            ->value('fecha');
+
+        $tieneAperturaCaja = DB::table('apertura_caja')
+            ->where('caja_id', $cajaAbierta->id)
+            ->whereDate('fecha_apertura', $fechaJornadaAbierta)
+            ->exists();
+
+        if (!$tieneAperturaCaja) {
+            session()->flash('error', '❌ No se puede procesar la venta: Su caja debe tener apertura para la fecha de la jornada activa (' . \Carbon\Carbon::parse($fechaJornadaAbierta)->format('d/m/Y') . ').');
             return false;
         }
 
@@ -3034,7 +3056,7 @@ class Ventas extends Component
     public function validarStockProducto($productoId, $cantidadSolicitada)
     {
         if (!$this->tiendaUsuario) {
-            $this->dispatch('mostrar-sin-stock');
+            $this->mostrarModalSinStock = true;
             return false;
         }
 
@@ -3054,7 +3076,7 @@ class Ventas extends Component
 
         // Si no hay stock total disponible
         if ($stockTotal <= 0) {
-            $this->dispatch('mostrar-sin-stock');
+            $this->mostrarModalSinStock = true;
             return false;
         }
 
@@ -3082,7 +3104,7 @@ class Ventas extends Component
 
         // Validar que la nueva cantidad total no exceda el stock total disponible
         if ($nuevaCantidadTotal > $stockTotal) {
-            $this->dispatch('mostrar-sin-stock');
+            $this->mostrarModalSinStock = true;
             return false;
         }
 
