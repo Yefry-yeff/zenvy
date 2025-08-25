@@ -341,9 +341,11 @@ class DashboardDinamico extends Component
                 // Determinar el tipo de estado
                 $esCajaHoy = $tieneAperturaHoy;
 
-                // Calcular balances por tipo de pago basándose en transacciones
+                // Calcular balances por tipo de pago basándose en transacciones del día de la jornada abierta
+                $fechaJornada = $this->obtenerFechaJornadaAbierta();
                 $balancesPorTipo = DB::table('transaccion')
                     ->where('caja_id', $cajaActual->id)
+                    ->whereDate('created_at', $fechaJornada)
                     ->selectRaw('
                         IFNULL(SUM(efectivo), 0) as balance_efectivo,
                         IFNULL(SUM(tarjeta), 0) as balance_tarjeta,
@@ -454,6 +456,34 @@ class DashboardDinamico extends Component
         }
 
         return $this->usuarioTienePermisos($permisos);
+    }
+
+    /**
+     * Obtiene la fecha de la jornada que esté abierta
+     *
+     * @return string
+     */
+    private function obtenerFechaJornadaAbierta()
+    {
+        $usuario = Auth::user();
+
+        if (!$usuario || !$usuario->tienda_id) {
+            return Carbon::now()->format('Y-m-d');
+        }
+
+        // Buscar jornada aperturada (puede ser de cualquier fecha)
+        $jornadaAbierta = DB::table('jornada')
+            ->where('tienda_id', $usuario->tienda_id)
+            ->where('apertura', 1)
+            ->where('cierre', 0)
+            ->first();
+
+        if ($jornadaAbierta) {
+            return Carbon::parse($jornadaAbierta->fecha)->format('Y-m-d');
+        }
+
+        // Si no hay jornada abierta, usar fecha actual
+        return Carbon::now()->format('Y-m-d');
     }
 
     public function render()
