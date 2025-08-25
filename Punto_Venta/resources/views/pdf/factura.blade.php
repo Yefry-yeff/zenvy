@@ -252,13 +252,13 @@
         <!-- DUPLICADO Y RANGOS (solo últimos 8 dígitos) -->
         @if($caiFacturaImpresa)
             <div class="duplicado-rango">
-                (DUPLICADO) {{ substr(str_pad($caiFacturaImpresa['rango_inicio'], 8, '0', STR_PAD_LEFT), -8) }} - {{ substr(str_pad($caiFacturaImpresa['rango_final'], 8, '0', STR_PAD_LEFT), -8) }}
+                {{ substr(str_pad($caiFacturaImpresa['rango_inicio'], 8, '0', STR_PAD_LEFT), -8) }} - {{ substr(str_pad($caiFacturaImpresa['rango_final'], 8, '0', STR_PAD_LEFT), -8) }}
             </div>
         @endif
 
-        <!-- INFORMACIÓN DEL CLIENTE -->
-        @if($factura->rtn || ($factura->nombre_cliente && $factura->nombre_cliente != 'Consumidor Final'))
-            <div class="duplicado-rango" style="margin-top: 4px;">
+        <!-- CONSUMIDOR FINAL / INFORMACIÓN DEL CLIENTE -->
+        <div class="consumidor-final" style="font-weight: normal; font-size: 16px;">
+            @if($factura->rtn || ($factura->nombre_cliente && $factura->nombre_cliente != 'Consumidor Final'))
                 @if($factura->rtn)
                     RTN: {{ $factura->rtn }}
                     @if($factura->nombre_cliente && $factura->nombre_cliente != 'Consumidor Final')
@@ -268,8 +268,10 @@
                 @if($factura->nombre_cliente && $factura->nombre_cliente != 'Consumidor Final')
                     CLIENTE: {{ $factura->nombre_cliente }}
                 @endif
-            </div>
-        @endif
+            @else
+                <strong>CONSUMIDOR FINAL</strong>
+            @endif
+        </div>
 
         <!-- FECHA Y USUARIO -->
         <div class="fecha-usuario">
@@ -277,13 +279,6 @@
         </div>
 
         <div class="separator"></div>
-
-        <!-- CONSUMIDOR FINAL -->
-        <div class="consumidor-final">
-            <strong>CONSUMIDOR FINAL</strong>
-            @if($factura->nombre_cliente && $factura->nombre_cliente != 'CONSUMIDOR FINAL')
-            @endif
-        </div>
 
         <!-- TABLA DE PRODUCTOS -->
         <div class="table-header">
