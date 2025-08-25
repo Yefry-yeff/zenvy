@@ -204,28 +204,31 @@ class SaldoInicial extends Component
                 ->whereDate('fecha_apertura', $fechaActual)
                 ->exists();
 
-            // SIEMPRE crear un nuevo registro en apertura_caja para cada apertura
-            DB::table('apertura_caja')->insert([
-                'caja_id' => $cajaId,
-                'balance_apertura' => $balanceExistente,
-                'fecha_apertura' => now(),
-                'created_at' => now(),
-                'updated_at' => now()
-            ]);
-
-            $tipoOperacion .= $aperturaHoy ? ' (Nueva sesión)' : ' (Primera sesión del día)';
-
-            // Registrar la transacción de apertura de caja
-            DB::table('transaccion')->insert([
+                        // SIEMPRE crear un nuevo registro en apertura_caja para cada apertura
+            // PRIMERO: Registrar transacción de apertura de caja y obtener su ID
+            $idTransaccion = DB::table('transaccion')->insertGetId([
                 'caja_id' => $cajaId,
                 'transaccion' => 'apertura_caja',
                 'efectivo' => 0.00,
                 'tarjeta' => 0.00,
                 'cheque' => 0.00,
+                'transferencia' => 0.00,
                 'descripcion' => $this->descripcion ?: 'Apertura de caja',
                 'created_at' => now(),
                 'update_at' => now()
             ]);
+
+            // SEGUNDO: Crear registro en apertura_caja con referencia a la transacción
+            DB::table('apertura_caja')->insert([
+                'caja_id' => $cajaId,
+                'balance_apertura' => $balanceExistente,
+                'fecha_apertura' => now(),
+                'transaccion_id' => $idTransaccion, // Referencia a la transacción
+                'created_at' => now(),
+                'updated_at' => now()
+            ]);
+
+            $tipoOperacion .= $aperturaHoy ? ' (Nueva sesión)' : ' (Primera sesión del día)';
 
             DB::commit();
 
