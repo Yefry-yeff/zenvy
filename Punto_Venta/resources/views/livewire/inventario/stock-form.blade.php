@@ -77,7 +77,8 @@
                             
                             <!-- Debug temporal -->
                             <div class="mt-2 small text-muted">
-                                <strong>Debug:</strong> ID Recibido: {{ $recibido->id ?? 'N/A' }} | 
+                                <strong>Debug:</strong> Producto ID: {{ $producto->id ?? 'N/A' }} | 
+                                RecibidoBodega ID: {{ $recibido->id ?? 'N/A' }} | 
                                 Cantidad Inicial: {{ $recibido->cantidad_inicial_seccion ?? 'N/A' }} | 
                                 Cantidad Disponible: {{ $recibido->cantidad_disponible ?? 'N/A' }} |
                                 Total Bodega: {{ $cantidadTotalBodega ?? 'N/A' }}
