@@ -302,8 +302,12 @@
                 // Obtener descuentos desde la nueva estructura agrupada
                 $descuentos = $producto['descuentos'] ?? [];
                 $descuentoUnitario = $descuentos['Producto'] ?? 0;
+                $descuentoIndividual = $descuentos['Individual'] ?? 0;
                 $descuentoTerceraEdad = $descuentos['3ra edad'] ?? 0;
                 $descuentoCuartaEdad = $descuentos['4ta edad'] ?? 0;
+
+                // Sumar descuento de producto con descuento individual
+                $descuentoProductoTotal = $descuentoUnitario + $descuentoIndividual;
 
                 // Calcular total de descuentos de adulto mayor
                 $descuentoAdultoMayor = $descuentoTerceraEdad + $descuentoCuartaEdad;
@@ -321,9 +325,9 @@
                         {{ $producto['nombre'] }}<br>
                         <span style="font-size: 13px;">{{ $producto['cantidad'] }} x L. {{ number_format($producto['precio_unidad'], 2) }}</span>
 
-                        @if($descuentoUnitario > 0)
+                        @if($descuentoProductoTotal > 0)
                             <br><span style="font-size: 15px;">
-                                Descuento de producto: L. {{ number_format($descuentoUnitario, 2) }}
+                                Descuento de producto
                             </span>
                         @endif
 
@@ -343,8 +347,8 @@
                         <!-- Importe del producto SIN descuentos -->
                         L. {{ number_format($importeProducto, 2) }}
 
-                        @if($descuentoUnitario > 0)
-                            <br><span style="font-size: 15px;">-L. {{ number_format($descuentoUnitario, 2) }}</span>
+                        @if($descuentoProductoTotal > 0)
+                            <br><span style="font-size: 15px;">-L. {{ number_format($descuentoProductoTotal, 2) }}</span>
                         @endif
 
                         @if($descuentoTerceraEdad > 0)

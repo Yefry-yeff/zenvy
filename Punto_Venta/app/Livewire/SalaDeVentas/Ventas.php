@@ -1536,6 +1536,32 @@ class Ventas extends Component
                     Log::info("DEBUG No se creó descuento porque descuentoUnitario es 0 o null");
                 }
 
+                // Guardar descuento individual si existe
+                $descuentoIndividual = $producto['descuento_individual_aplicado'] ?? 0;
+                if ($descuentoIndividual > 0) {
+                    Log::info("DEBUG Creando descuento individual", [
+                        'factura_id' => $factura->id,
+                        'producto_id' => $producto['id'],
+                        'tipo_descuento' => 'Individual',
+                        'monto_total' => $descuentoIndividual,
+                        'users_id' => Auth::id()
+                    ]);
+
+                    Descuento::create([
+                        'factura_id' => $factura->id,
+                        'producto_id' => $producto['id'],
+                        'Tipo_descuento' => 'Individual',
+                        'monto_unidad' => 0,
+                        'monto_total' => $descuentoIndividual,
+                        'users_id' => Auth::id(),
+                        'created_at' => now()
+                    ]);
+
+                    Log::info("DEBUG Descuento individual creado exitosamente");
+                } else {
+                    Log::info("DEBUG No se creó descuento individual porque es 0 o null");
+                }
+
                 // Guardar descuento de adulto mayor si existe
                 $descuentoAdultoMayor = $producto['descuento_aplicado'] ?? 0;
                 if ($descuentoAdultoMayor > 0) {
