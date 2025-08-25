@@ -596,22 +596,46 @@ class Ventas extends Component
 
     public function obtenerNombreCliente()
     {
-        if ($this->cliente) {
+        Log::info("DEBUG obtenerNombreCliente", [
+            'cliente_existe' => $this->cliente ? 'Sí' : 'No',
+            'nombreClienteManual' => $this->nombreClienteManual,
+            'nombreClienteManual_vacio' => empty($this->nombreClienteManual),
+            'cliente_nombre_completo' => $this->cliente ? $this->cliente->nombre_completo : 'N/A'
+        ]);
+
+        // Prioridad 1: Si hay cliente seleccionado Y tiene nombre válido
+        if ($this->cliente && !empty($this->cliente->nombre_completo) && $this->cliente->nombre_completo !== 'N/A') {
             return $this->cliente->nombre_completo;
-        } elseif ($this->modoClienteManual && !empty($this->nombreCompletoManual)) {
-            return $this->nombreCompletoManual;
-        } else {
+        } 
+        // Prioridad 2: Si hay nombre manual
+        elseif (!empty($this->nombreClienteManual)) {
+            return $this->nombreClienteManual;
+        } 
+        // Por defecto
+        else {
             return 'Consumidor Final';
         }
     }
 
     public function obtenerRtnCliente()
     {
-        if ($this->cliente) {
+        Log::info("DEBUG obtenerRtnCliente", [
+            'cliente_existe' => $this->cliente ? 'Sí' : 'No',
+            'rtnManual' => $this->rtnManual,
+            'rtnManual_vacio' => empty($this->rtnManual),
+            'cliente_rtn' => $this->cliente ? $this->cliente->rtn : 'N/A'
+        ]);
+
+        // Prioridad 1: Si hay cliente seleccionado Y tiene RTN válido
+        if ($this->cliente && !empty($this->cliente->rtn) && $this->cliente->rtn !== 'N/A') {
             return $this->cliente->rtn;
-        } elseif ($this->modoClienteManual && !empty($this->rtnManual)) {
+        } 
+        // Prioridad 2: Si hay RTN manual
+        elseif (!empty($this->rtnManual)) {
             return $this->rtnManual;
-        } else {
+        } 
+        // Por defecto
+        else {
             return null;
         }
     }
@@ -1349,6 +1373,24 @@ class Ventas extends Component
 
         Log::info("DEBUG finalizarVentaConDistribucion INICIO");
 
+        // IMPORTANTE: Obtener los valores del cliente AL INICIO para evitar que se pierdan
+        $nombreClienteParaFactura = $this->obtenerNombreCliente();
+        $rtnClienteParaFactura = $this->obtenerRtnCliente();
+        
+        Log::info("DEBUG Valores de cliente capturados al inicio", [
+            'rtnManual_crudo' => $this->rtnManual,
+            'nombreClienteManual_crudo' => $this->nombreClienteManual,
+            'cliente_objeto' => $this->cliente ? [
+                'id' => $this->cliente->id ?? 'N/A',
+                'nombre_completo' => $this->cliente->nombre_completo ?? 'N/A',
+                'rtn' => $this->cliente->rtn ?? 'N/A'
+            ] : 'No hay cliente seleccionado',
+            'nombre_cliente_capturado' => $nombreClienteParaFactura,
+            'rtn_cliente_capturado' => $rtnClienteParaFactura,
+            'es_vacio_nombre' => empty($nombreClienteParaFactura),
+            'es_vacio_rtn' => empty($rtnClienteParaFactura)
+        ]);
+
         try {
             // VALIDACIÓN CAI ANTES DE FACTURAR
             $caiService = new CAIService();
@@ -1372,13 +1414,44 @@ class Ventas extends Component
 
             Log::info("DEBUG Transacción iniciada");
 
-            // Crear la factura principal usando create para asegurar que todos los campos se incluyan
-            $factura = Factura::create([
-                'numero_factura' => $this->generarNumeroFactura(),
+            // Generar número de factura
+            $numeroFactura = $this->generarNumeroFactura();
+
+            // Crear la transacción primero y obtener su ID
+            $transaccionId = $this->crearTransaccion($numeroFactura);
+            
+            Log::info("DEBUG Resultado de crearTransaccion", [
+                'transaccion_id_retornado' => $transaccionId,
+                'es_null' => $transaccionId === null,
+                'metodosActivosParaPago' => $this->metodosActivosParaPago,
+                'montosPorMetodo' => $this->montosPorMetodo
+            ]);
+            
+            // Si no hay transaccion_id, crear una transacción por defecto
+            if ($transaccionId === null) {
+                Log::warning("DEBUG Transacción fue null, creando transacción por defecto");
+                $transaccionId = DB::table('transaccion')->insertGetId([
+                    'caja_id' => 1, // Valor por defecto
+                    'efectivo' => $this->total,
+                    'tarjeta' => 0,
+                    'cheque' => 0,
+                    'transferencia' => 0,
+                    'transaccion' => 'Facturacion',
+                    'descripcion' => "Factura #$numeroFactura (transacción por defecto)",
+                    'created_at' => now(),
+                    'update_at' => now()
+                ]);
+                Log::info("DEBUG Transacción por defecto creada con ID: " . $transaccionId);
+            }
+
+            // Debug detallado antes de crear la factura
+            $datosFactura = [
+                'numero_factura' => $numeroFactura,
                 'cai_id' => $this->caiActual ? $this->caiActual['cai_id'] : 1,
                 'tipo_facturacion_id' => 1,
-                'nombre_cliente' => $this->obtenerNombreCliente(),
-                'rtn' => $this->obtenerRtnCliente(),
+                'transaccion_id' => $transaccionId,
+                'nombre_cliente' => $nombreClienteParaFactura,
+                'rtn' => $rtnClienteParaFactura,
                 'sub_total' => $this->subtotal,
                 'sub_total_grabado' => $this->subtotal,
                 'sub_total_exento' => 0,
@@ -1388,13 +1461,29 @@ class Ventas extends Component
                 'fecha_emision' => now()->format('Y-m-d'),
                 'estado_factura_id' => 1,
                 'users_id' => Auth::id()
-            ]);
+            ];
+
+            Log::info("DEBUG Datos que se van a insertar en factura", $datosFactura);
+
+            // Crear la factura principal usando los valores capturados al inicio
+            $factura = Factura::create($datosFactura);
 
             Log::info("DEBUG Datos de factura preparados", [
                 'numero_factura' => $factura->numero_factura,
                 'nombre_cliente' => $factura->nombre_cliente,
+                'rtn' => $factura->rtn,
                 'total' => $factura->total,
-                'user_id' => $factura->users_id
+                'user_id' => $factura->users_id,
+                'transaccion_id' => $factura->transaccion_id
+            ]);
+
+            // Debug adicional: verificar qué se guardó realmente en la BD
+            $facturaVerificacion = DB::table('factura')->where('id', $factura->id)->first(['id', 'nombre_cliente', 'rtn', 'transaccion_id']);
+            Log::info("DEBUG Verificación de factura en BD", [
+                'factura_id' => $facturaVerificacion->id,
+                'nombre_cliente_bd' => $facturaVerificacion->nombre_cliente,
+                'rtn_bd' => $facturaVerificacion->rtn,
+                'transaccion_id_bd' => $facturaVerificacion->transaccion_id
             ]);
 
             Log::info("DEBUG Factura guardada con ID: " . $factura->id);
@@ -1573,8 +1662,8 @@ class Ventas extends Component
             // Guardar métodos de pago usando la distribución
             $this->guardarMetodosPagoDistribucion($factura->id);
 
-            // Registrar transacciones por método de pago
-            $this->registrarTransaccionesPorMetodoPago($factura->id, $factura->numero_factura);
+            // La transacción ya fue registrada al crear la factura
+            // $this->registrarTransaccionesPorMetodoPago($factura->id, $factura->numero_factura);
 
             // Guardar datos del descuento de adulto mayor si aplica
             $this->guardarDescuentoAdultoMayor($factura->id);
@@ -1751,6 +1840,137 @@ class Ventas extends Component
             'metodos_guardados' => $metodosGuardados,
             'total_metodos_procesados' => count($metodosParaGuardar)
         ]);
+    }
+
+    /**
+     * Crear transacción y retornar el ID generado
+     */
+    private function crearTransaccion($numeroFactura)
+    {
+        Log::info("DEBUG crearTransaccion INICIO", [
+            'numero_factura' => $numeroFactura
+        ]);
+
+        $user = Auth::user();
+
+        // Obtener el ID de la caja del usuario en su tienda actual
+        $caja = DB::table('caja')
+            ->where('users_id', $user->id)
+            ->where('tienda_id', $user->tienda_id)
+            ->where('estado_caja', 1)
+            ->first();
+
+        if (!$caja) {
+            Log::error("No se encontró caja abierta para el usuario: " . $user->id);
+            return null;
+        }
+
+        $cajaId = $caja->id;
+
+        // Inicializar montos de cada método de pago
+        $montoEfectivo = 0;
+        $montoTarjeta = 0;
+        $montoCheque = 0;
+        $montoTransferencia = 0;
+
+        $metodosParaRegistrar = [];
+
+        // Obtener métodos activos con monto > 0
+        if (!empty($this->metodosActivosParaPago)) {
+            foreach ($this->metodosActivosParaPago as $metodo) {
+                if ($metodo['monto'] > 0) {
+                    $metodosParaRegistrar[] = $metodo;
+                }
+            }
+        } elseif (!empty($this->montosPorMetodo)) {
+            foreach ($this->montosPorMetodo as $tipoId => $monto) {
+                $tipoPago = collect($this->tiposPago)->firstWhere('id', $tipoId);
+                if ($tipoPago && $monto > 0) {
+                    $metodosParaRegistrar[] = [
+                        'id' => $tipoId,
+                        'nombre' => $tipoPago['nombre'],
+                        'monto' => $monto
+                    ];
+                }
+            }
+        }
+
+        // Acumular montos por tipo de pago
+        foreach ($metodosParaRegistrar as $metodo) {
+            $tipoPago = TipoPago::find($metodo['id']);
+            if (!$tipoPago) continue;
+
+            $montoMetodo = $metodo['monto'];
+            $nombreTipoPago = strtolower($tipoPago->nombre);
+
+            switch ($nombreTipoPago) {
+                case 'efectivo':
+                    $montoEfectivo += $montoMetodo;
+                    break;
+                case 'tarjeta':
+                case 'tarjeta(pos)':
+                case 'pos':
+                    $montoTarjeta += $montoMetodo;
+                    break;
+                case 'cheque':
+                    $montoCheque += $montoMetodo;
+                    break;
+                case 'transferencia':
+                case 'transferencia bancaria':
+                case 'transferencia_bancaria':
+                    $montoTransferencia += $montoMetodo;
+                    break;
+                default:
+                    // Para otros tipos de pago, intentar identificar el tipo por palabras clave
+                    if (str_contains($nombreTipoPago, 'tarjeta') || str_contains($nombreTipoPago, 'pos')) {
+                        $montoTarjeta += $montoMetodo;
+                    } elseif (str_contains($nombreTipoPago, 'transfer')) {
+                        $montoTransferencia += $montoMetodo;
+                    } elseif (str_contains($nombreTipoPago, 'cheque')) {
+                        $montoCheque += $montoMetodo;
+                    } elseif (str_contains($nombreTipoPago, 'efectivo')) {
+                        $montoEfectivo += $montoMetodo;
+                    } else {
+                        // Por defecto, asignar a transferencia
+                        $montoTransferencia += $montoMetodo;
+                    }
+                    break;
+            }
+        }
+
+        // Crear registro de transacción y obtener el ID
+        $transaccionId = null;
+        if ($montoEfectivo > 0 || $montoTarjeta > 0 || $montoCheque > 0 || $montoTransferencia > 0) {
+            $transaccionId = DB::table('transaccion')->insertGetId([
+                'caja_id' => $cajaId,
+                'efectivo' => $montoEfectivo,
+                'tarjeta' => $montoTarjeta,
+                'cheque' => $montoCheque,
+                'transferencia' => $montoTransferencia,
+                'transaccion' => 'Facturacion',
+                'descripcion' => "Factura #$numeroFactura",
+                'created_at' => now(),
+                'update_at' => now()
+            ]);
+
+            Log::info("DEBUG Transacción creada", [
+                'transaccion_id' => $transaccionId,
+                'numero_factura' => $numeroFactura,
+                'efectivo' => $montoEfectivo,
+                'tarjeta' => $montoTarjeta,
+                'cheque' => $montoCheque,
+                'transferencia' => $montoTransferencia,
+                'total' => $montoEfectivo + $montoTarjeta + $montoCheque + $montoTransferencia
+            ]);
+
+            // Actualizar balance de caja si hay efectivo
+            if ($montoEfectivo > 0) {
+                $this->actualizarBalanceCaja($montoEfectivo, $cajaId);
+            }
+        }
+
+        Log::info("DEBUG crearTransaccion FINALIZADO con ID: " . $transaccionId);
+        return $transaccionId;
     }
 
     /**

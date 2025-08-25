@@ -74,15 +74,7 @@
                                     <i class="fas fa-cube me-1"></i>{{ $recibido->seccion->descripcion }} ({{ $recibido->seccion->numeracion }})
                                 </span>
                             </div>
-                            
-                            <!-- Debug temporal -->
-                            <div class="mt-2 small text-muted">
-                                <strong>Debug:</strong> Producto ID: {{ $producto->id ?? 'N/A' }} | 
-                                RecibidoBodega ID: {{ $recibido->id ?? 'N/A' }} | 
-                                Cantidad Inicial: {{ $recibido->cantidad_inicial_seccion ?? 'N/A' }} | 
-                                Cantidad Disponible: {{ $recibido->cantidad_disponible ?? 'N/A' }} |
-                                Total Bodega: {{ $cantidadTotalBodega ?? 'N/A' }}
-                            </div>
+
                         </div>
                         @else
                         <div class="p-3 mt-3 rounded bg-warning">
@@ -226,7 +218,7 @@
                         <!-- Tercera fila: Selección de destino (Bodega, Segmento, Sección) -->
                         <div class="row">
                             <div class="col-12">
-                                <h6 class="text-primary mb-3">
+                                <h6 class="mb-3 text-primary">
                                     <i class="fas fa-map-marker-alt me-2"></i>Destino de la Distribución
                                 </h6>
                             </div>
@@ -656,7 +648,7 @@
         <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);" wire:click="cerrarModalSecciones">
             <div class="modal-dialog modal-lg modal-dialog-centered" wire:click.stop>
                 <div class="modal-content">
-                    <div class="modal-header text-white"
+                    <div class="text-white modal-header"
                          :class="{
                              'bg-emerald-600': theme === 'verde',
                              'bg-blue-600': theme === 'azul',

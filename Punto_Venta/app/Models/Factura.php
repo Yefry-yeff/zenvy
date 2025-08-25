@@ -15,6 +15,7 @@ class Factura extends Model
     protected $fillable = [
         'cai_id',
         'tipo_facturacion_id',
+        'transaccion_id',
         'numero_factura',
         'numero_secuencia_cai',
         'nombre_cliente',
