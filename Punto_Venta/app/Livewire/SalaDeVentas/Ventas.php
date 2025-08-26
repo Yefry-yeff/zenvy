@@ -56,6 +56,24 @@ class Ventas extends Component
     public $codigoBarras = '';
     public $cantidad = 1;
 
+    // Setter para asegurar que cantidad siempre sea un entero válido
+    public function updatedCantidad($value)
+    {
+        $this->cantidad = $this->normalizarCantidad($value);
+    }
+
+    /**
+     * Normaliza la cantidad para asegurar que sea un entero positivo válido
+     * 
+     * @param mixed $cantidad La cantidad a normalizar
+     * @return int La cantidad normalizada como entero
+     */
+    private function normalizarCantidad($cantidad)
+    {
+        $cantidadInt = (int)$cantidad;
+        return $cantidadInt > 0 ? $cantidadInt : 1;
+    }
+
     // Productos en la factura
     public $productosFactura = [];
 
@@ -348,8 +366,8 @@ class Ventas extends Component
         $servicioExistente = false;
         foreach ($this->productosFactura as $index => $item) {
             if (isset($item['servicio_id']) && $item['servicio_id'] == $servicio->id) {
-                // Aumentar la cantidad
-                $nuevaCantidad = $this->productosFactura[$index]['cantidad'] + 1;
+                // Aumentar la cantidad - Convertir a entero para evitar errores de tipos
+                $nuevaCantidad = (int)$this->productosFactura[$index]['cantidad'] + 1;
                 $this->productosFactura[$index]['cantidad'] = $nuevaCantidad;
 
                 // Recalcular el descuento unitario aplicado con la nueva cantidad
@@ -734,7 +752,7 @@ class Ventas extends Component
         }
 
         // Validar stock en bodega principal antes de agregar
-        if (!$this->validarStockProducto($producto->id, $this->cantidad)) {
+        if (!$this->validarStockProducto($producto->id, (int)$this->cantidad)) {
             return; // El error ya se muestra en validarStockProducto
         }
 
@@ -742,8 +760,8 @@ class Ventas extends Component
         $productoExistente = false;
         foreach ($this->productosFactura as $index => $item) {
             if ($item['id'] == $producto->id) {
-                // Actualizar la cantidad
-                $cantidadTotal = $item['cantidad'] + $this->cantidad;
+                // Actualizar la cantidad - Convertir a enteros para evitar errores de tipos
+                $cantidadTotal = (int)$item['cantidad'] + (int)$this->cantidad;
                 $this->productosFactura[$index]['cantidad'] = $cantidadTotal;
 
                 // Recalcular el descuento unitario aplicado con la nueva cantidad
@@ -767,12 +785,12 @@ class Ventas extends Component
             $valorIsv = $producto->isv ? $producto->isv->cantidad : 0;
 
             // Calcular descuento unitario automático si existe (valor monetario directo)
-            $subtotalOriginal = $producto->precio_base * $this->cantidad;
+            $subtotalOriginal = $producto->precio_base * (int)$this->cantidad;
             $descuentoUnitarioAplicado = 0;
 
             if (($producto->descuento_unitario ?? 0) > 0) {
                 // El descuento es un valor monetario que se aplica por cantidad
-                $descuentoUnitarioAplicado = $producto->descuento_unitario * $this->cantidad;
+                $descuentoUnitarioAplicado = $producto->descuento_unitario * (int)$this->cantidad;
             }
 
             $this->productosFactura[] = [
@@ -781,7 +799,7 @@ class Ventas extends Component
                 'codigo' => $producto->codigo_barra,
                 'precio' => $producto->precio_base,
                 'isv' => $valorIsv,
-                'cantidad' => $this->cantidad,
+                'cantidad' => (int)$this->cantidad,
                 'descuento_tercera' => $producto->descuento_tercera ?? 0,
                 'descuento_cuarta' => $producto->descuento_cuarta ?? 0,
                 'descuento_unitario_producto' => $producto->descuento_unitario ?? 0,
@@ -822,6 +840,9 @@ class Ventas extends Component
 
     public function modificarCantidad($index, $nuevaCantidad)
     {
+        // Convertir a entero para evitar errores de tipos
+        $nuevaCantidad = (int)$nuevaCantidad;
+        
         if ($nuevaCantidad <= 0) {
             $this->eliminarProducto($index);
             return;
@@ -842,7 +863,7 @@ class Ventas extends Component
             $cantidadEnCarritoSinEsteItem = 0;
             foreach ($this->productosFactura as $i => $itemCarrito) {
                 if ($itemCarrito['id'] == $productoId && $i != $index) {
-                    $cantidadEnCarritoSinEsteItem += $itemCarrito['cantidad'];
+                    $cantidadEnCarritoSinEsteItem += (int)$itemCarrito['cantidad'];
                 }
             }
 
@@ -3055,6 +3076,9 @@ class Ventas extends Component
 
     public function validarStockProducto($productoId, $cantidadSolicitada)
     {
+        // Normalizar cantidad solicitada a entero
+        $cantidadSolicitada = $this->normalizarCantidad($cantidadSolicitada);
+        
         if (!$this->tiendaUsuario) {
             $this->mostrarModalSinStock = true;
             return false;
@@ -3084,7 +3108,7 @@ class Ventas extends Component
         $cantidadEnCarrito = 0;
         foreach ($this->productosFactura as $item) {
             if ($item['id'] == $productoId) {
-                $cantidadEnCarrito += $item['cantidad'];
+                $cantidadEnCarrito += (int)$item['cantidad'];
             }
         }
 
@@ -3213,7 +3237,7 @@ class Ventas extends Component
                     Log::info("Producto existente encontrado en índice {$index}, cantidad actual: {$item['cantidad']}");
 
                     // Verificar que no exceda el stock
-                    $nuevaCantidad = $this->productosFactura[$index]['cantidad'] + $this->cantidad;
+                    $nuevaCantidad = (int)$this->productosFactura[$index]['cantidad'] + (int)$this->cantidad;
                     Log::info("Nueva cantidad será: {$nuevaCantidad}, stock disponible: {$stockDisponible}");
 
                     if ($nuevaCantidad > $stockDisponible) {
@@ -3260,7 +3284,7 @@ class Ventas extends Component
                     'codigo' => $producto->codigo_barra,
                     'precio' => $producto->precio_base,
                     'isv' => $valorIsv,
-                    'cantidad' => $this->cantidad,
+                    'cantidad' => (int)$this->cantidad,
                     'descuento_tercera' => $producto->descuento_tercera ?? 0,
                     'descuento_cuarta' => $producto->descuento_cuarta ?? 0,
                     'descuento_unitario_producto' => $producto->descuento_unitario ?? 0,
