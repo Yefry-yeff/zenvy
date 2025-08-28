@@ -2007,12 +2007,19 @@ class Ventas extends Component
             }
         }
 
+        // Calcular el cambio total para restar del efectivo
+        $totalDistribuido = $montoEfectivo + $montoTarjeta + $montoCheque + $montoTransferencia;
+        $cambioTotal = $totalDistribuido > $this->total ? $totalDistribuido - $this->total : 0;
+        
+        // El efectivo neto es el monto efectivo menos el cambio (ya que el cambio sale de caja)
+        $efectivoNeto = $montoEfectivo - $cambioTotal;
+
         // Crear registro de transacción y obtener el ID
         $transaccionId = null;
-        if ($montoEfectivo > 0 || $montoTarjeta > 0 || $montoCheque > 0 || $montoTransferencia > 0) {
+        if ($efectivoNeto > 0 || $montoTarjeta > 0 || $montoCheque > 0 || $montoTransferencia > 0) {
             $transaccionId = DB::table('transaccion')->insertGetId([
                 'caja_id' => $cajaId,
-                'efectivo' => $montoEfectivo,
+                'efectivo' => $efectivoNeto, // Efectivo neto (sin incluir el cambio)
                 'tarjeta' => $montoTarjeta,
                 'cheque' => $montoCheque,
                 'transferencia' => $montoTransferencia,
@@ -2025,16 +2032,19 @@ class Ventas extends Component
             Log::info("DEBUG Transacción creada", [
                 'transaccion_id' => $transaccionId,
                 'numero_factura' => $numeroFactura,
-                'efectivo' => $montoEfectivo,
+                'efectivo_recibido' => $montoEfectivo,
+                'cambio_calculado' => $cambioTotal,
+                'efectivo_neto' => $efectivoNeto,
                 'tarjeta' => $montoTarjeta,
                 'cheque' => $montoCheque,
                 'transferencia' => $montoTransferencia,
-                'total' => $montoEfectivo + $montoTarjeta + $montoCheque + $montoTransferencia
+                'total_factura' => $this->total,
+                'total_distribuido' => $totalDistribuido
             ]);
 
-            // Actualizar balance de caja si hay efectivo
-            if ($montoEfectivo > 0) {
-                $this->actualizarBalanceCaja($montoEfectivo, $cajaId);
+            // Actualizar balance de caja con el efectivo neto (sin incluir el cambio)
+            if ($efectivoNeto > 0) {
+                $this->actualizarBalanceCaja($efectivoNeto, $cajaId);
             }
         }
 
@@ -2096,7 +2106,7 @@ class Ventas extends Component
             }
         }
 
-        // Acumular montos por tipo de pago
+        // Acumular montos por tipo de pago (sin actualizar balance aún)
         foreach ($metodosParaRegistrar as $metodo) {
             $tipoPago = TipoPago::find($metodo['id']);
             if (!$tipoPago) continue;
@@ -2107,8 +2117,6 @@ class Ventas extends Component
             switch ($nombreTipoPago) {
                 case 'efectivo':
                     $montoEfectivo += $montoMetodo;
-                    // Actualizar balance de caja si hay efectivo
-                    $this->actualizarBalanceCaja($montoMetodo, $cajaId);
                     break;
                 case 'tarjeta':
                 case 'tarjeta(pos)':
@@ -2133,7 +2141,6 @@ class Ventas extends Component
                         $montoCheque += $montoMetodo;
                     } elseif (str_contains($nombreTipoPago, 'efectivo')) {
                         $montoEfectivo += $montoMetodo;
-                        $this->actualizarBalanceCaja($montoMetodo, $cajaId);
                     } else {
                         // Por defecto, asignar a transferencia
                         $montoTransferencia += $montoMetodo;
@@ -2148,11 +2155,18 @@ class Ventas extends Component
             ]);
         }
 
+        // Calcular el cambio total para restar del efectivo
+        $totalDistribuido = $montoEfectivo + $montoTarjeta + $montoCheque + $montoTransferencia;
+        $cambioTotal = $totalDistribuido > $this->total ? $totalDistribuido - $this->total : 0;
+        
+        // El efectivo neto es el monto efectivo menos el cambio
+        $efectivoNeto = $montoEfectivo - $cambioTotal;
+
         // Crear un solo registro de transacción con todos los montos
-        if ($montoEfectivo > 0 || $montoTarjeta > 0 || $montoCheque > 0 || $montoTransferencia > 0) {
+        if ($efectivoNeto > 0 || $montoTarjeta > 0 || $montoCheque > 0 || $montoTransferencia > 0) {
             DB::table('transaccion')->insert([
                 'caja_id' => $cajaId,
-                'efectivo' => $montoEfectivo,
+                'efectivo' => $efectivoNeto, // Efectivo neto (sin incluir el cambio)
                 'tarjeta' => $montoTarjeta,
                 'cheque' => $montoCheque,
                 'transferencia' => $montoTransferencia,
@@ -2164,12 +2178,20 @@ class Ventas extends Component
 
             Log::info("DEBUG Transacción ÚNICA registrada", [
                 'numero_factura' => $numeroFactura,
-                'efectivo' => $montoEfectivo,
+                'efectivo_recibido' => $montoEfectivo,
+                'cambio_calculado' => $cambioTotal,
+                'efectivo_neto' => $efectivoNeto,
                 'tarjeta' => $montoTarjeta,
                 'cheque' => $montoCheque,
                 'transferencia' => $montoTransferencia,
-                'total' => $montoEfectivo + $montoTarjeta + $montoCheque + $montoTransferencia
+                'total_factura' => $this->total,
+                'total_distribuido' => $totalDistribuido
             ]);
+
+            // Actualizar balance de caja con el efectivo neto (sin incluir el cambio)
+            if ($efectivoNeto > 0) {
+                $this->actualizarBalanceCaja($efectivoNeto, $cajaId);
+            }
         }
 
         Log::info("DEBUG registrarTransaccionesPorMetodoPago FINALIZADO");
