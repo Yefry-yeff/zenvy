@@ -6,6 +6,36 @@
 console.log('BarcodeScanner: Iniciando versión simplificada...');
 
 // Crear un escáner básico que siempre funcione
+/**
+ * Sistema de escaneo de códigos de barras optimizado
+ * Versión: 3.0 - Mejorado y optimizado
+ * Requiere: ZXing library
+ */
+
+// Verificar disponibilidad de ZXing al cargar
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🔍 Verificando disponibilidad de ZXing...');
+    
+    // Función para verificar ZXing cada segundo hasta encontrarlo
+    let checkCount = 0;
+    const checkZXing = setInterval(() => {
+        checkCount++;
+        
+        if (typeof ZXing !== 'undefined' && ZXing.BrowserMultiFormatReader) {
+            console.log('✅ ZXing cargado correctamente después de', checkCount, 'intentos');
+            clearInterval(checkZXing);
+            return;
+        }
+        
+        if (checkCount > 10) { // Máximo 10 segundos
+            console.error('❌ ZXing no se cargó en 10 segundos. Verificar conexión a internet.');
+            clearInterval(checkZXing);
+        } else {
+            console.log(`⏳ Esperando ZXing... (${checkCount}/10)`);
+        }
+    }, 1000);
+});
+
 window.BarcodeScanner = {
     isScanning: false,
     currentStream: null,
@@ -41,6 +71,29 @@ window.BarcodeScanner = {
             this.videoElement.srcObject = this.currentStream;
             this.isScanning = true;
 
+            // EVENTOS IMPORTANTES PARA VALIDAR CARGA DEL VIDEO
+            this.videoElement.addEventListener('loadedmetadata', () => {
+                console.log('BarcodeScanner: 📹 Video metadata cargada -', 
+                    this.videoElement.videoWidth + 'x' + this.videoElement.videoHeight);
+            });
+
+            this.videoElement.addEventListener('loadeddata', () => {
+                console.log('BarcodeScanner: 🎬 Video data cargada - listo para procesar');
+            });
+
+            this.videoElement.addEventListener('canplay', () => {
+                console.log('BarcodeScanner: ▶️ Video puede empezar a reproducirse');
+            });
+
+            // Esperar a que el video esté completamente listo
+            await new Promise((resolve) => {
+                if (this.videoElement.readyState >= 3) {
+                    resolve();
+                } else {
+                    this.videoElement.addEventListener('canplay', resolve, { once: true });
+                }
+            });
+
             console.log('BarcodeScanner: ✅ Cámara iniciada correctamente (modo básico)');
             console.log('BarcodeScanner: ⚠️ Detección automática no disponible - use input manual');
             
@@ -71,7 +124,7 @@ window.BarcodeScanner = {
         for (let i = 0; i < 50; i++) { // Esperar hasta 5 segundos
             if (typeof ZXing !== 'undefined' && ZXing.BrowserMultiFormatReader) {
                 console.log('BarcodeScanner: ✅ ZXing disponible, activando detección automática');
-                this.updateScanStatus('Detector listo - Escaneando...', 'scanning');
+                this.updateScanStatus('Listo - Apunte al código', 'success');
                 this.startZXingScanning();
                 return;
             }
@@ -79,18 +132,31 @@ window.BarcodeScanner = {
         }
         
         console.log('BarcodeScanner: ⚠️ ZXing no disponible, solo modo manual');
-        this.updateScanStatus('Modo manual - ZXing no disponible', 'error');
+        this.updateScanStatus('Error: ZXing no cargado', 'error');
     },
 
     startZXingScanning() {
         try {
-            const codeReader = new ZXing.BrowserMultiFormatReader();
+            // CREAR Y ASIGNAR READER CORRECTAMENTE
+            this.codeReader = new ZXing.BrowserMultiFormatReader();
             console.log('BarcodeScanner: 🔍 ZXing reader inicializado');
-            console.log('BarcodeScanner: Métodos disponibles:', Object.getOwnPropertyNames(codeReader));
+            console.log('BarcodeScanner: ✅ CodeReader asignado a this.codeReader');
+            
+            // Verificar métodos disponibles  
+            const methods = Object.getOwnPropertyNames(Object.getPrototypeOf(this.codeReader));
+            const decodeMethods = methods.filter(m => m.includes('decode'));
+            console.log('BarcodeScanner: Métodos de decodificación disponibles:', decodeMethods);
+            console.log('BarcodeScanner: Todos los métodos:', methods.slice(0, 10)); // Solo los primeros 10
+            
+            // Verificar específicamente los métodos que necesitamos
+            console.log('BarcodeScanner: Verificación directa:');
+            console.log('  - decode:', typeof this.codeReader.decode);  
+            console.log('  - decodeOnce:', typeof this.codeReader.decodeOnce);
+            console.log('  - decodeBitmap:', typeof this.codeReader.decodeBitmap);
 
             let scanCount = 0;
             
-            // Escaneo continuo - MÁS RÁPIDO
+            // Escaneo continuo - OPTIMIZADO a 300ms para asegurar video cargado
             const scanInterval = setInterval(() => {
                 scanCount++;
                 
@@ -99,65 +165,127 @@ window.BarcodeScanner = {
                     return;
                 }
 
-                if (this.videoElement.readyState === 4 && this.videoElement.videoWidth > 0) {
+                // VALIDACIÓN COMPLETA DEL VIDEO ANTES DE PROCESAR
+                if (this.videoElement.readyState === 4 && 
+                    this.videoElement.videoWidth > 0 && 
+                    this.videoElement.videoHeight > 0 &&
+                    !this.videoElement.paused &&
+                    !this.videoElement.ended) {
                     
-                    // Log cada 50 intentos para monitoring + status update
-                    if (scanCount % 50 === 0) {
-                        console.log(`BarcodeScanner: 📊 Intento #${scanCount} - Video: ${this.videoElement.videoWidth}x${this.videoElement.videoHeight}`);
-                        this.updateScanStatus(`Escaneando... (${scanCount} intentos)`, 'scanning');
+                    // Log cada 100 intentos para evitar spam
+                    if (scanCount === 1) {
+                        console.log(`BarcodeScanner: 🎯 Iniciando escaneo automático - Video: ${this.videoElement.videoWidth}x${this.videoElement.videoHeight}`);
+                        this.updateScanStatus('Buscando códigos...', 'scanning');
+                    } else if (scanCount % 150 === 0) {
+                        console.log(`BarcodeScanner: 📊 Escaneos: ${scanCount} - Sistema activo`);
+                        // Actualizar UI ocasionalmente
+                        this.updateScanStatus('Escaneando...', 'scanning');
                     }
-                    
-                    const canvas = document.createElement('canvas');
-                    const context = canvas.getContext('2d');
                     
                     // Usar dimensiones reales del video
                     const width = this.videoElement.videoWidth;
                     const height = this.videoElement.videoHeight;
                     
+                    // SEGUNDA VALIDACIÓN: Verificar que las dimensiones sean válidas
+                    if (width <= 0 || height <= 0) {
+                        console.warn('BarcodeScanner: Dimensiones de video inválidas:', width, 'x', height);
+                        return;
+                    }
+                    
+                    const canvas = document.createElement('canvas');
+                    const context = canvas.getContext('2d', { 
+                        willReadFrequently: true // Optimización para getImageData frecuente
+                    });
+                    
+                    if (!context) {
+                        console.error('BarcodeScanner: No se pudo obtener contexto del canvas');
+                        return;
+                    }
+                    
                     canvas.width = width;
                     canvas.height = height;
                     
                     try {
+                        // VALIDACIÓN PREVIA: Asegurarse que el drawImage fue exitoso
                         context.drawImage(this.videoElement, 0, 0, width, height);
                         
-                        // Mejorar contraste para mejor lectura
-                        const imageData = context.getImageData(0, 0, width, height);
-                        const data = imageData.data;
-                        
-                        // Aumentar contraste
-                        for (let i = 0; i < data.length; i += 4) {
-                            const brightness = (data[i] + data[i + 1] + data[i + 2]) / 3;
-                            const contrast = brightness > 120 ? 255 : 0;
-                            data[i] = data[i + 1] = data[i + 2] = contrast;
+                        // VERIFICAR QUE EL CANVAS TIENE CONTENIDO VÁLIDO
+                        if (canvas.width <= 0 || canvas.height <= 0) {
+                            console.warn('BarcodeScanner: Canvas con dimensiones inválidas:', canvas.width, 'x', canvas.height);
+                            return;
                         }
-                        context.putImageData(imageData, 0, 0);
                         
-                        // MÚLTIPLES MÉTODOS DE DETECCIÓN PARA MEJOR COMPATIBILIDAD
+                        // PROCESAMIENTO DE IMAGEN SIMPLIFICADO - Solo si es necesario
                         
-                        // Método 1: decodeFromCanvas (más común)
-                        if (typeof codeReader.decodeFromCanvas === 'function') {
-                            codeReader.decodeFromCanvas(canvas)
-                                .then(result => {
-                                    if (result && result.text) {
-                                        console.log('BarcodeScanner: ✅ Código detectado (decodeFromCanvas):', result.text);
-                                        this.onBarcodeDetected(result.text);
+                        // Solo procesar imagen cada 5to frame para mejor performance
+                        if (scanCount % 5 === 0) {
+                            try {
+                                const imageData = context.getImageData(0, 0, width, height);
+                                const data = imageData.data;
+                                
+                                // Contraste muy rápido - procesar aún menos pixels
+                                for (let i = 0; i < data.length; i += 60) { // Menos procesamiento
+                                    const brightness = (data[i] + data[i + 1] + data[i + 2]) / 3;
+                                    const contrast = brightness > 120 ? 255 : 0;
+                                    data[i] = data[i + 1] = data[i + 2] = contrast;
+                                }
+                                context.putImageData(imageData, 0, 0);
+                            } catch (imageError) {
+                                console.warn('BarcodeScanner: Error procesando imagen:', imageError.message);
+                                // Continuar sin procesamiento de imagen
+                            }
+                        }
+                        
+                        // ESTRATEGIA SEGURA: Solo usar decodeBitmap con ImageData
+                        // Esto evita que ZXing acceda directamente al canvas
+                        
+                        try {
+                            // VALIDACIÓN FINAL antes de getImageData para ZXing
+                            if (width > 0 && height > 0 && context) {
+                                const imageDataForDecoding = context.getImageData(0, 0, width, height);
+                                
+                                // Verificar que ImageData es válido
+                                if (imageDataForDecoding && imageDataForDecoding.data && imageDataForDecoding.data.length > 0) {
+                                    // Solo usar decodeBitmap que es más seguro
+                                    if (this.codeReader.decodeBitmap && typeof this.codeReader.decodeBitmap === 'function') {
+                                        this.codeReader.decodeBitmap(imageDataForDecoding)
+                                            .then(result => {
+                                                if (result && result.text) {
+                                                    console.log('BarcodeScanner: 🎉 CÓDIGO DETECTADO (decodeBitmap):', result.text);
+                                                    this.onBarcodeDetected(result.text);
+                                                }
+                                            })
+                                            .catch(() => {
+                                                // Silencioso - no hay código en este frame
+                                            });
                                     }
-                                })
-                                .catch(() => {
-                                    // Intentar método 2 si falla el primero
-                                    this.tryAlternativeDecoding(canvas, imageData, codeReader);
-                                });
-                        } else {
-                            // Si no existe decodeFromCanvas, usar alternativas directamente
-                            this.tryAlternativeDecoding(canvas, imageData, codeReader);
+                                } else {
+                                    console.warn('BarcodeScanner: ImageData inválido:', imageDataForDecoding);
+                                }
+                            } else {
+                                console.warn('BarcodeScanner: Dimensiones o contexto inválido para ZXing:', width, 'x', height);
+                            }
+                        // Error handling sin spam de logs
+                        } catch (zxingError) {
+                            // Solo mostrar errores importantes, no "No code detected" que es normal
+                            if (scanCount % 500 === 0 && !zxingError.message.includes('No MultiFormat Readers')) { 
+                                console.warn('BarcodeScanner: Error en ZXing processing:', zxingError.message);
+                            }
                         }
                     } catch (error) {
-                        if (scanCount % 100 === 0) { // Log cada 100 errores
-                            console.log('BarcodeScanner: Info frame error:', error.message);
+                        if (scanCount % 200 === 0) { // Log cada 200 errores para evitar spam
+                            console.log('BarcodeScanner: Frame processing info:', error.message);
+                            
+                            // Debug del codeReader si hay problemas
+                            if (!this.codeReader) {
+                                console.error('BarcodeScanner: ❌ codeReader es null/undefined');
+                            } else {
+                                console.log('BarcodeScanner: ✅ codeReader está disponible');
+                            }
                         }
                     }
                 }
-            }, 200); // Más rápido - cada 200ms
+            }, 400); // AUMENTADO: 400ms para reducir violations y mejorar performance
 
         } catch (error) {
             console.error('BarcodeScanner: Error inicializando ZXing:', error);
@@ -251,11 +379,11 @@ window.BarcodeScanner = {
             }[type] || '●';
         }
         
-        // Auto-limpiar después de 3 segundos si es éxito o error
+        // Auto-limpiar después de 2 segundos si es éxito o error
         if (type === 'success' || type === 'error') {
             setTimeout(() => {
-                this.updateScanStatus('Esperando código...', 'waiting');
-            }, 3000);
+                this.updateScanStatus('Listo para escanear', 'waiting');
+            }, 2000);
         }
     },
 
@@ -263,7 +391,7 @@ window.BarcodeScanner = {
         console.log('BarcodeScanner: 🎯 ¡CÓDIGO DETECTADO!', code);
         
         // Actualizar estado visual
-        this.updateScanStatus(`Procesando: ${code}`, 'processing');
+        this.updateScanStatus(`✅ ${code}`, 'success');
         
         // Pausar escaneo para evitar duplicados
         const wasScanning = this.isScanning;
@@ -278,7 +406,6 @@ window.BarcodeScanner = {
             if (window.Livewire && window.Livewire.emit) {
                 window.Livewire.emit('codigoBarrasDetectado', code);
                 console.log('BarcodeScanner: ✅ Evento Livewire emitido');
-                this.updateScanStatus(`✅ Código enviado: ${code}`, 'success');
                 this.playSuccessSound();
                 this.showSuccessFeedback();
                 return;

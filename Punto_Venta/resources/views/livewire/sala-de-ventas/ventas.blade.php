@@ -699,13 +699,10 @@
                                             </div>
                                         </div>
                                         
-                                        <!-- Instrucciones - ACTUALIZADAS CON ESTADO -->
+                                        <!-- Indicador de estado simplificado -->
                                         <div class="absolute bottom-3 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-90 text-white px-4 py-2 rounded-full text-sm font-medium">
-                                            <div class="text-center">
-                                                🎯 Coloque el código de barras en el marco verde
-                                            </div>
-                                            <div id="scan-status" class="text-center text-xs mt-1 font-mono">
-                                                <span class="text-green-400">●</span> <span class="scan-status-text">Esperando código...</span>
+                                            <div id="scan-status" class="text-center font-mono">
+                                                <span class="text-green-400">●</span> <span class="scan-status-text">Listo para escanear</span>
                                             </div>
                                         </div>
                                     </div>
@@ -721,32 +718,85 @@
                                             Cerrar Cámara
                                         </button>
                                         
-                                        <!-- BOTÓN DE PRUEBA PARA VERIFICAR FUNCIONALIDAD -->
+                                        <!-- BOTONES DE PRUEBA Y DEBUG -->
                                         <button type="button" 
                                                 onclick="
-                                                    console.log('🧪 PRUEBA: Simulando código detectado...');
-                                                    const codigoPrueba = '1234567890123';
-                                                    
-                                                    // Test 1: Verificar si BarcodeScanner existe
-                                                    if (window.BarcodeScanner) {
-                                                        console.log('✅ BarcodeScanner disponible');
+                                                    if (window.BarcodeScanner && window.BarcodeScanner.codeReader) {
+                                                        console.log('=== MÉTODOS ZXING DISPONIBLES ===');
+                                                        const reader = window.BarcodeScanner.codeReader;
+                                                        const proto = Object.getPrototypeOf(reader);
+                                                        const methods = Object.getOwnPropertyNames(proto);
                                                         
-                                                        // Test 2: Verificar updateScanStatus
-                                                        if (window.BarcodeScanner.updateScanStatus) {
-                                                            console.log('✅ updateScanStatus disponible');
-                                                            window.BarcodeScanner.updateScanStatus('🧪 Prueba en curso...', 'processing');
-                                                        }
+                                                        console.log('📋 Todos los métodos:', methods);
+                                                        console.log('🔍 Métodos decode:', methods.filter(m => m.toLowerCase().includes('decode')));
+                                                        console.log('📱 Métodos scan:', methods.filter(m => m.toLowerCase().includes('scan')));
+                                                        console.log('📖 Métodos read:', methods.filter(m => m.toLowerCase().includes('read')));
                                                         
-                                                        // Test 3: Verificar onBarcodeDetected
-                                                        if (window.BarcodeScanner.onBarcodeDetected) {
-                                                            console.log('✅ onBarcodeDetected disponible');
-                                                            window.BarcodeScanner.onBarcodeDetected(codigoPrueba);
-                                                        } else {
-                                                            console.error('❌ onBarcodeDetected no disponible');
-                                                        }
+                                                        // Probar existencia de métodos comunes
+                                                        const commonMethods = ['decode', 'decodeFromCanvas', 'decodeFromImageData', 'decodeOnce', 'decodeBitmap'];
+                                                        console.log('🧪 Verificando métodos comunes:');
+                                                        commonMethods.forEach(method => {
+                                                            console.log('   ' + method + ':', typeof reader[method]);
+                                                        });
                                                     } else {
-                                                        console.error('❌ BarcodeScanner no disponible');
-                                                        alert('BarcodeScanner no está disponible. Verifique que el script esté cargado.');
+                                                        console.log('❌ CodeReader no disponible');
+                                                    }
+                                                "
+                                                class="px-2 py-2 bg-yellow-600 text-white text-xs rounded-lg hover:bg-yellow-700 transition-colors">
+                                            📋 Métodos
+                                        </button>
+                                        
+                                        <button type="button" 
+                                                onclick="
+                                                    console.log('🧪 === SISTEMA DE DEBUG ===');
+                                                    
+                                                    // Test 1: Verificar ZXing
+                                                    console.log('1. ZXing disponible:', typeof ZXing !== 'undefined');
+                                                    if (typeof ZXing !== 'undefined') {
+                                                        console.log('   - BrowserMultiFormatReader:', !!ZXing.BrowserMultiFormatReader);
+                                                    }
+                                                    
+                                                    // Test 2: Verificar BarcodeScanner
+                                                    console.log('2. BarcodeScanner:', !!window.BarcodeScanner);
+                                                    if (window.BarcodeScanner) {
+                                                        console.log('   - isScanning:', window.BarcodeScanner.isScanning);
+                                                        console.log('   - videoElement:', !!window.BarcodeScanner.videoElement);
+                                                        console.log('   - codeReader:', !!window.BarcodeScanner.codeReader);
+                                                    }
+                                                    
+                                                    // Test 3: Verificar input
+                                                    const input = document.getElementById('codigo_barras');
+                                                    console.log('3. Input encontrado:', !!input);
+                                                    if (input) {
+                                                        console.log('   - Valor actual:', input.value);
+                                                        console.log('   - Visible:', !input.hidden);
+                                                    }
+                                                    
+                                                    // Test 4: Verificar Livewire
+                                                    console.log('4. Livewire:', !!window.Livewire);
+                                                    if (window.Livewire) {
+                                                        console.log('   - emit function:', typeof window.Livewire.emit);
+                                                    }
+                                                    
+                                                    // Test 5: Simular código
+                                                    console.log('5. 🧪 SIMULANDO CÓDIGO...');
+                                                    const codigoPrueba = '1234567890123';
+                                                    if (window.BarcodeScanner && window.BarcodeScanner.onBarcodeDetected) {
+                                                        window.BarcodeScanner.onBarcodeDetected(codigoPrueba);
+                                                    } else {
+                                                        console.error('❌ onBarcodeDetected no disponible');
+                                                    }
+                                                "
+                                                class="px-3 py-2 bg-purple-600 text-white text-sm rounded-lg hover:bg-purple-700 transition-colors">
+                                            🔍 Debug
+                                        </button>
+                                        
+                                        <button type="button" 
+                                                onclick="
+                                                    const codigoPrueba = prompt('Ingrese código para probar:', '1234567890123');
+                                                    if (codigoPrueba && window.BarcodeScanner) {
+                                                        console.log('🧪 Probando código:', codigoPrueba);
+                                                        window.BarcodeScanner.onBarcodeDetected(codigoPrueba);
                                                     }
                                                 "
                                                 class="px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors">
