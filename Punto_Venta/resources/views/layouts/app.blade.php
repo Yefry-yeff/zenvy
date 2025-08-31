@@ -20,6 +20,8 @@
     {{-- DataTables CSS --}}
     <link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet" />
 
+    {{-- Estilos personalizados para cámara escáner --}}
+    <link href="{{ asset('css/camera-scanner.css') }}" rel="stylesheet" />
 
     {{-- Livewire --}}
     @livewireStyles
@@ -168,6 +170,12 @@
     {{-- Scripts adicionales --}}
     {{-- Bootstrap 5 JS --}}
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    {{-- ZXing Library para escáner de códigos de barras --}}
+    <script src="https://unpkg.com/@zxing/library@latest/umd/index.min.js"></script>
+
+    {{-- Script personalizado para escáner de códigos de barras --}}
+    <script src="{{ asset('js/barcode-scanner.js') }}"></script>
 
     @stack('scripts')
 

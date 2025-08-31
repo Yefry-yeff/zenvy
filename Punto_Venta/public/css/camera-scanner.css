@@ -1,0 +1,224 @@
+/**
+ * Estilos para el Escáner de Cámara
+ * Estilos CSS para el componente de escaneo de códigos de barras
+ */
+
+/* Contenedor principal de la cámara */
+#camera-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.9);
+    z-index: 9999;
+    display: none;
+}
+
+/* Video de la cámara */
+#barcode-video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* Estado activo del input cuando la cámara está encendida */
+.camera-active {
+    border-color: #10b981 !important;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1) !important;
+}
+
+/* Overlay de escaneo */
+.scan-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 300px;
+    height: 200px;
+    border: 2px solid #10b981;
+    border-radius: 8px;
+    background: transparent;
+    z-index: 10000;
+}
+
+/* Línea de escaneo animada */
+.scan-line {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #10b981, transparent);
+    animation: scanAnimation 2s linear infinite;
+}
+
+@keyframes scanAnimation {
+    0% {
+        top: 0;
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+    100% {
+        top: calc(100% - 2px);
+        opacity: 1;
+    }
+}
+
+/* Esquinas del marco de escaneo */
+.scan-overlay::before,
+.scan-overlay::after {
+    content: '';
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border: 3px solid #10b981;
+}
+
+.scan-overlay::before {
+    top: -3px;
+    left: -3px;
+    border-right: none;
+    border-bottom: none;
+}
+
+.scan-overlay::after {
+    top: -3px;
+    right: -3px;
+    border-left: none;
+    border-bottom: none;
+}
+
+/* Botones de control de la cámara */
+.camera-controls {
+    position: absolute;
+    bottom: 50px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 20px;
+    z-index: 10001;
+}
+
+.camera-btn {
+    padding: 12px 20px;
+    background: rgba(255, 255, 255, 0.9);
+    border: none;
+    border-radius: 25px;
+    color: #374151;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.camera-btn:hover {
+    background: #ffffff;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.camera-btn.close-btn {
+    background: rgba(239, 68, 68, 0.9);
+    color: white;
+}
+
+.camera-btn.close-btn:hover {
+    background: #dc2626;
+}
+
+/* Estado de la cámara */
+.camera-status {
+    position: absolute;
+    top: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 12px 20px;
+    border-radius: 20px;
+    font-size: 14px;
+    z-index: 10001;
+    text-align: center;
+}
+
+/* Indicador de éxito */
+.scan-success {
+    background: rgba(16, 185, 129, 0.9) !important;
+    color: white !important;
+}
+
+/* Indicador de error */
+.scan-error {
+    background: rgba(239, 68, 68, 0.9) !important;
+    color: white !important;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .scan-overlay {
+        width: 280px;
+        height: 180px;
+    }
+    
+    .camera-controls {
+        bottom: 30px;
+        gap: 15px;
+    }
+    
+    .camera-btn {
+        padding: 10px 16px;
+        font-size: 14px;
+    }
+    
+    .camera-status {
+        top: 20px;
+        padding: 10px 16px;
+        font-size: 13px;
+    }
+}
+
+@media (max-width: 480px) {
+    .scan-overlay {
+        width: 260px;
+        height: 160px;
+    }
+    
+    .camera-controls {
+        flex-direction: column;
+        align-items: center;
+    }
+}
+
+/* Animación de entrada */
+#camera-container.show {
+    display: block !important;
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+/* Clases de utilidad para el tema */
+.theme-verde .camera-btn {
+    border-color: #059669;
+}
+
+.theme-azul .camera-btn {
+    border-color: #2563eb;
+}
+
+.theme-oscuro .camera-btn {
+    background: rgba(55, 65, 81, 0.9);
+    color: #f9fafb;
+}

@@ -479,16 +479,27 @@
                                 <div class="flex flex-wrap gap-2 mb-4">
                                     <div class="flex-1">
                                         <label for="codigo_barras" class="block mb-1 text-sm font-medium text-gray-700">Escanear código de barras</label>
-                                        <input type="text"
-                                            id="codigo_barras"
-                                            wire:model.defer="codigoBarras"
-                                            wire:keydown.enter="agregarProductoPorCodigo"
-                                            class="w-full form-control"
-                                            placeholder="Escanee el código de barras"
-                                            autocomplete="off"
-                                            @keydown.enter="$event.target.value = ''; $event.target.focus()"
-                                            @enfocar-input-codigo.window="$event.target.focus()"
-                                            autofocus>
+                                        <div class="relative">
+                                            <input type="text"
+                                                id="codigo_barras"
+                                                wire:model.defer="codigoBarras"
+                                                wire:keydown.enter="agregarProductoPorCodigo"
+                                                class="w-full form-control pr-12"
+                                                placeholder="Escanee el código de barras o use la cámara"
+                                                autocomplete="off"
+                                                @keydown.enter="$event.target.value = ''; $event.target.focus()"
+                                                @enfocar-input-codigo.window="$event.target.focus()"
+                                                autofocus>
+                                            <button type="button"
+                                                id="toggle-camera-btn"
+                                                class="absolute inset-y-0 right-0 flex items-center px-3 text-gray-500 hover:text-blue-600 transition-colors"
+                                                title="Activar/Desactivar cámara">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                                </svg>
+                                            </button>
+                                        </div>
                                     </div>
                                     <div class="w-32">
                                         <label for="cantidad" class="block mb-1 text-sm font-medium text-gray-700">Cantidad</label>
@@ -497,6 +508,25 @@
                                             wire:model.live="cantidad"
                                             class="w-full form-control"
                                             min="1">
+                                    </div>
+                                </div>
+                                
+                                <!-- Contenedor de la cámara (oculto por defecto) -->
+                                <div id="camera-container" class="hidden mb-4 p-4 bg-gray-50 border border-gray-300 rounded-lg">
+                                    <div class="flex justify-between items-center mb-2">
+                                        <h4 class="text-sm font-medium text-gray-700">Escáner de Código de Barras</h4>
+                                        <button type="button" id="close-camera-btn" class="text-gray-500 hover:text-red-600">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                    <div class="relative">
+                                        <video id="barcode-video" class="w-full h-64 bg-black rounded" autoplay></video>
+                                        <div id="scan-line" class="absolute left-0 right-0 h-0.5 bg-red-500 opacity-75" style="top: 50%; animation: scan 2s linear infinite;"></div>
+                                    </div>
+                                    <div id="camera-status" class="mt-2 text-sm text-gray-600 text-center">
+                                        Iniciando cámara...
                                     </div>
                                 </div>
                             </form>
@@ -1451,6 +1481,52 @@
             </div>
         </div>
     @endif
+
+    <!-- Estilos específicos para la vista de ventas -->
+    <style>
+    /* Estilos específicos para la vista de ventas */
+    .input-group .form-control:focus {
+        box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+        border-color: #80bdff;
+    }
+
+    .btn-camera {
+        border-left: 1px solid #dee2e6;
+    }
+
+    /* Ajustes específicos para el componente */
+    .factura-container {
+        max-height: 500px;
+        overflow-y: auto;
+    }
+
+    .productos-factura {
+        max-height: 400px;
+    }
+
+    .resumen-totales {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 15px;
+    }
+
+    /* Animación específica para el escáner en esta vista */
+    @keyframes scan {
+        0% {
+            top: 20%;
+        }
+        50% {
+            top: 80%;
+        }
+        100% {
+            top: 20%;
+        }
+    }
+    </style>
+
+    <!-- JavaScript externo para el escáner de códigos de barras -->
+    <script src="https://unpkg.com/@zxing/library@latest/umd/index.min.js"></script>
+    <script src="{{ asset('js/barcode-scanner.js') }}"></script>
 
 </div>
 
