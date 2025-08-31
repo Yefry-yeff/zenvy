@@ -561,18 +561,21 @@
                                             <span>🔴 CÁMARA EN VIVO - Enfoque el código de barras</span>
                                         </h4>
                                         
-                                        <!-- Estado de escaneo -->
+                                        <!-- Estado de escaneo - MÁS PROMINENTE -->
                                         <div class="flex items-center gap-2">
                                             <div class="flex items-center">
-                                                <div class="w-2 h-2 bg-green-400 rounded-full animate-ping mr-2"></div>
-                                                <span class="text-xs text-green-400 font-medium">ESCANEANDO...</span>
+                                                <div class="w-3 h-3 bg-green-400 rounded-full animate-ping mr-2"></div>
+                                                <span class="text-sm text-green-400 font-bold">🔍 BUSCANDO CÓDIGOS...</span>
+                                            </div>
+                                            <div class="text-xs text-green-300 opacity-75">
+                                                Resolución: HD | Fps: 30
                                             </div>
                                         </div>
                                     </div>
                                     
-                                    <!-- Contenedor del video -->
-                                    <div class="relative bg-black rounded-lg overflow-hidden" style="min-height: 240px;">
-                                        <!-- Video principal -->
+                                    <!-- Contenedor del video - MÁS GRANDE PARA MEJOR LECTURA -->
+                                    <div class="relative bg-black rounded-lg overflow-hidden" style="min-height: 280px;">
+                                        <!-- Video principal - AMPLIADO -->
                                         <video id="barcode-video" 
                                                autoplay 
                                                playsinline 
@@ -582,39 +585,133 @@
                                                    visibility: visible !important;
                                                    opacity: 1 !important;
                                                    width: 100% !important; 
-                                                   height: 240px !important; 
+                                                   height: 280px !important; 
                                                    object-fit: cover !important;
                                                    background: #000 !important;
                                                    border-radius: 0.5rem;
                                                "
                                                class="w-full">
+                                            Su navegador no soporta el elemento video.
                                         </video>
                                         
-                                        <!-- Overlay de escaneo -->
-                                        <div class="absolute inset-0 pointer-events-none">
-                                            <!-- Marco de enfoque -->
-                                            <div class="absolute inset-4 border-2 border-green-400 border-dashed rounded-lg opacity-60"></div>
-                                            
-                                            <!-- Línea de escaneo animada -->
-                                            <div class="absolute left-8 right-8 h-0.5 bg-green-400 opacity-80"
-                                                 style="top: 50%; animation: scan 2s linear infinite;">
+                                        <!-- Overlay de escaneo - CENTRADO PERFECTAMENTE -->
+                                        <div class="absolute inset-0 pointer-events-none" style="top: 0; left: 0; width: 100%; height: 100%;">
+                                            <!-- Marco de enfoque principal - MÁS GRANDE -->
+                                            <div class="absolute border-2 border-green-400 border-dashed rounded-lg opacity-70" 
+                                                 style="
+                                                     top: 50%;
+                                                     left: 50%;
+                                                     width: 70%;
+                                                     height: 50%;
+                                                     transform: translate(-50%, -50%);
+                                                 ">
                                             </div>
                                             
-                                            <!-- Esquinas del marco -->
-                                            <div class="absolute top-4 left-4 w-6 h-6 border-l-4 border-t-4 border-green-400"></div>
-                                            <div class="absolute top-4 right-4 w-6 h-6 border-r-4 border-t-4 border-green-400"></div>
-                                            <div class="absolute bottom-4 left-4 w-6 h-6 border-l-4 border-b-4 border-green-400"></div>
-                                            <div class="absolute bottom-4 right-4 w-6 h-6 border-r-4 border-b-4 border-green-400"></div>
+                                            <!-- Marco exterior más sutil -->
+                                            <div class="absolute border border-green-400 border-solid rounded-lg opacity-30" 
+                                                 style="
+                                                     top: 50%;
+                                                     left: 50%;
+                                                     width: 90%;
+                                                     height: 80%;
+                                                     transform: translate(-50%, -50%);
+                                                 ">
+                                            </div>
+                                            
+                                            <!-- Línea de escaneo animada - MÁS ANCHA -->
+                                            <div class="absolute h-0.5 bg-green-400 opacity-90"
+                                                 style="
+                                                     top: 50%; 
+                                                     left: 50%;
+                                                     width: 70%;
+                                                     transform: translate(-50%, -50%);
+                                                     animation: scan 2s linear infinite;
+                                                     box-shadow: 0 0 10px #4ade80;
+                                                 ">
+                                            </div>
+                                            
+                                            <!-- Esquinas del marco - MÁS GRANDES Y MEJOR POSICIONADAS -->
+                                            <div class="absolute w-10 h-10 border-l-4 border-t-4 border-green-400 corner-animation" 
+                                                 style="
+                                                     top: 50%;
+                                                     left: 50%;
+                                                     transform: translate(-50%, -50%) translate(-35%, -25%);
+                                                 ">
+                                            </div>
+                                            <div class="absolute w-10 h-10 border-r-4 border-t-4 border-green-400 corner-animation" 
+                                                 style="
+                                                     top: 50%;
+                                                     left: 50%;
+                                                     transform: translate(-50%, -50%) translate(35%, -25%);
+                                                 ">
+                                            </div>
+                                            <div class="absolute w-10 h-10 border-l-4 border-b-4 border-green-400 corner-animation" 
+                                                 style="
+                                                     top: 50%;
+                                                     left: 50%;
+                                                     transform: translate(-50%, -50%) translate(-35%, 25%);
+                                                 ">
+                                            </div>
+                                            <div class="absolute w-10 h-10 border-r-4 border-b-4 border-green-400 corner-animation" 
+                                                 style="
+                                                     top: 50%;
+                                                     left: 50%;
+                                                     transform: translate(-50%, -50%) translate(35%, 25%);
+                                                 ">
+                                            </div>
+                                            
+                                            <!-- Cruz central de enfoque -->
+                                            <div class="absolute" 
+                                                 style="
+                                                     top: 50%;
+                                                     left: 50%;
+                                                     transform: translate(-50%, -50%);
+                                                 ">
+                                                <!-- Línea vertical -->
+                                                <div class="absolute w-0.5 h-6 bg-green-400 opacity-80" 
+                                                     style="
+                                                         top: 50%;
+                                                         left: 50%;
+                                                         transform: translate(-50%, -50%);
+                                                     ">
+                                                </div>
+                                                <!-- Línea horizontal -->
+                                                <div class="absolute w-6 h-0.5 bg-green-400 opacity-80" 
+                                                     style="
+                                                         top: 50%;
+                                                         left: 50%;
+                                                         transform: translate(-50%, -50%);
+                                                     ">
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- Indicador de código detectado -->
+                                            <div id="barcode-detected-indicator" 
+                                                 class="absolute bg-green-500 text-white px-4 py-2 rounded-full font-bold text-sm
+                                                        opacity-0 transition-opacity duration-500"
+                                                 style="
+                                                     top: 50%;
+                                                     left: 50%;
+                                                     transform: translate(-50%, -50%) translateY(60px);
+                                                     z-index: 50;
+                                                 ">
+                                                ✅ CÓDIGO DETECTADO
+                                            </div>
                                         </div>
                                         
-                                        <!-- Instrucciones -->
-                                        <div class="absolute bottom-2 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-70 text-white px-3 py-1 rounded-full text-xs">
-                                            Enfoque el código de barras en el marco verde
+                                        <!-- Instrucciones - ACTUALIZADAS CON ESTADO -->
+                                        <div class="absolute bottom-3 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-90 text-white px-4 py-2 rounded-full text-sm font-medium">
+                                            <div class="text-center">
+                                                🎯 Coloque el código de barras en el marco verde
+                                            </div>
+                                            <div id="scan-status" class="text-center text-xs mt-1 font-mono">
+                                                <span class="text-green-400">●</span> <span class="scan-status-text">Esperando código...</span>
+                                            </div>
                                         </div>
                                     </div>
                                     
-                                    <!-- Botón para cerrar la cámara -->
-                                    <div class="mt-3 text-center">
+                                    <!-- Botón para cerrar la cámara Y PRUEBAS -->
+                                    <div class="mt-3 text-center flex gap-2 justify-center">
                                         <button type="button" 
                                                 @click="toggleCamera()"
                                                 class="px-4 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors">
@@ -622,6 +719,38 @@
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                                             </svg>
                                             Cerrar Cámara
+                                        </button>
+                                        
+                                        <!-- BOTÓN DE PRUEBA PARA VERIFICAR FUNCIONALIDAD -->
+                                        <button type="button" 
+                                                onclick="
+                                                    console.log('🧪 PRUEBA: Simulando código detectado...');
+                                                    const codigoPrueba = '1234567890123';
+                                                    
+                                                    // Test 1: Verificar si BarcodeScanner existe
+                                                    if (window.BarcodeScanner) {
+                                                        console.log('✅ BarcodeScanner disponible');
+                                                        
+                                                        // Test 2: Verificar updateScanStatus
+                                                        if (window.BarcodeScanner.updateScanStatus) {
+                                                            console.log('✅ updateScanStatus disponible');
+                                                            window.BarcodeScanner.updateScanStatus('🧪 Prueba en curso...', 'processing');
+                                                        }
+                                                        
+                                                        // Test 3: Verificar onBarcodeDetected
+                                                        if (window.BarcodeScanner.onBarcodeDetected) {
+                                                            console.log('✅ onBarcodeDetected disponible');
+                                                            window.BarcodeScanner.onBarcodeDetected(codigoPrueba);
+                                                        } else {
+                                                            console.error('❌ onBarcodeDetected no disponible');
+                                                        }
+                                                    } else {
+                                                        console.error('❌ BarcodeScanner no disponible');
+                                                        alert('BarcodeScanner no está disponible. Verifique que el script esté cargado.');
+                                                    }
+                                                "
+                                                class="px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors">
+                                            🧪 Probar
                                         </button>
                                     </div>
                                 </div>

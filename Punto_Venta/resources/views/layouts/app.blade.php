@@ -174,8 +174,8 @@
     {{-- ZXing Library para escáner de códigos de barras --}}
     <script src="https://unpkg.com/@zxing/library@latest/umd/index.min.js"></script>
 
-    {{-- Script personalizado para escáner de códigos de barras (Alpine.js compatible) --}}
-    <script src="{{ asset('js/barcode-scanner-alpine.js') }}"></script>
+    {{-- Script simplificado para escáner de códigos de barras --}}
+    <script src="{{ asset('js/barcode-scanner-simple.js') }}"></script>
 
     @stack('scripts')
 

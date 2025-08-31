@@ -433,6 +433,32 @@ class Ventas extends Component
         $this->dispatch('enfocar-input-codigo');
     }
 
+    // Método específico para códigos de barras detectados automáticamente por la cámara
+    #[On('codigoBarrasDetectado')]
+    public function procesarCodigoBarrasAutomatico($codigo)
+    {
+        Log::info("DEBUG procesarCodigoBarrasAutomatico", [
+            'codigo_recibido' => $codigo,
+            'cantidad_actual' => $this->cantidad
+        ]);
+
+        // Establecer el código y procesar inmediatamente
+        $this->codigoBarras = $codigo;
+        
+        // Llamar al método existente
+        $this->agregarProductoPorCodigo();
+        
+        // Limpiar el campo para el siguiente escaneo
+        $this->codigoBarras = '';
+        
+        // Enviar evento para enfocar el input nuevamente
+        $this->dispatch('enfocar-input-codigo');
+        
+        Log::info("DEBUG procesarCodigoBarrasAutomatico - completado", [
+            'codigo_procesado' => $codigo
+        ]);
+    }
+
     public function buscarClientePorIdentidad($identidad)
     {
         $cliente = Cliente::select([

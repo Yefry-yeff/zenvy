@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Barcode Scanner</title>
+    <script src="https://unpkg.com/@zxing/library@latest/umd/index.min.js"></script>
+</head>
+<body>
+    <h1>Test de Escáner de Códigos de Barras</h1>
+    
+    <div>
+        <button onclick="startCamera()">Activar Cámara</button>
+        <button onclick="stopCamera()">Detener Cámara</button>
+    </div>
+    
+    <div style="margin: 20px 0;">
+        <video id="test-video" width="320" height="240" autoplay playsinline muted style="border: 2px solid red;">
+            Tu navegador no soporta video
+        </video>
+    </div>
+    
+    <div>
+        <strong>Código detectado:</strong>
+        <input type="text" id="result-input" style="width: 300px;">
+    </div>
+    
+    <div id="log" style="margin-top: 20px; padding: 10px; background: #f0f0f0; white-space: pre-line; height: 200px; overflow-y: scroll;"></div>
+
+    <script>
+        let codeReader = null;
+        let scanning = false;
+        let stream = null;
+        
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            logDiv.textContent += new Date().toLocaleTimeString() + ' - ' + message + '\n';
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+        
+        async function startCamera() {
+            try {
+                log('Iniciando cámara...');
+                
+                // Inicializar ZXing
+                codeReader = new ZXing.BrowserMultiFormatReader();
+                log('ZXing inicializado');
+                
+                // Obtener video element
+                const videoElement = document.getElementById('test-video');
+                log('Elemento de video obtenido');
+                
+                // Obtener stream
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: { width: 640, height: 480 }
+                });
+                log('Stream obtenido: ' + stream.id);
+                
+                // Asignar stream al video
+                videoElement.srcObject = stream;
+                log('Stream asignado al video');
+                
+                // Esperar a que el video esté listo
+                videoElement.addEventListener('loadedmetadata', () => {
+                    log('Video metadata cargada: ' + videoElement.videoWidth + 'x' + videoElement.videoHeight);
+                    startScanning();
+                });
+                
+            } catch (error) {
+                log('ERROR: ' + error.message);
+            }
+        }
+        
+        function startScanning() {
+            if (scanning) return;
+            scanning = true;
+            log('Iniciando escaneo...');
+            
+            const videoElement = document.getElementById('test-video');
+            
+            const scanInterval = setInterval(() => {
+                if (!scanning) {
+                    clearInterval(scanInterval);
+                    return;
+                }
+                
+                try {
+                    const canvas = document.createElement('canvas');
+                    const context = canvas.getContext('2d');
+                    canvas.width = videoElement.videoWidth;
+                    canvas.height = videoElement.videoHeight;
+                    
+                    context.drawImage(videoElement, 0, 0);
+                    
+                    // Intentar decodificar
+                    if (codeReader.decodeFromCanvas) {
+                        codeReader.decodeFromCanvas(canvas)
+                            .then(result => {
+                                if (result && result.text) {
+                                    log('¡CÓDIGO DETECTADO: ' + result.text);
+                                    document.getElementById('result-input').value = result.text;
+                                }
+                            })
+                            .catch(() => {
+                                // Silencioso - normal cuando no hay código
+                            });
+                    }
+                } catch (error) {
+                    log('Error en escaneo: ' + error.message);
+                }
+            }, 300);
+        }
+        
+        function stopCamera() {
+            log('Deteniendo cámara...');
+            scanning = false;
+            
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+                log('Stream detenido');
+            }
+            
+            const videoElement = document.getElementById('test-video');
+            videoElement.srcObject = null;
+            log('Video limpiado');
+        }
+    </script>
+</body>
+</html>

@@ -3,6 +3,48 @@
  * Estilos CSS para el componente de escaneo de códigos de barras
  */
 
+/* Animación de línea de escaneo - MEJORADA Y CENTRADA */
+@keyframes scan {
+    0% {
+        transform: translate(-50%, -50%) translateY(-20px);
+        opacity: 1;
+    }
+    25% {
+        transform: translate(-50%, -50%) translateY(-10px);
+        opacity: 0.8;
+    }
+    50% {
+        transform: translate(-50%, -50%) translateY(0px);
+        opacity: 1;
+        box-shadow: 0 0 15px #4ade80, 0 0 25px #4ade80;
+    }
+    75% {
+        transform: translate(-50%, -50%) translateY(10px);
+        opacity: 0.8;
+    }
+    100% {
+        transform: translate(-50%, -50%) translateY(20px);
+        opacity: 1;
+    }
+}
+
+/* Pulso para las esquinas del marco */
+@keyframes corner-pulse {
+    0%, 100% {
+        opacity: 0.8;
+        filter: brightness(1);
+    }
+    50% {
+        opacity: 1;
+        filter: brightness(1.3);
+    }
+}
+
+/* Aplicar animación a las esquinas */
+.corner-animation {
+    animation: corner-pulse 2s ease-in-out infinite;
+}
+
 /* Contenedor principal de la cámara - MODO FULLSCREEN (no usado actualmente) */
 #camera-container-fullscreen {
     position: fixed;
@@ -235,4 +277,34 @@
 .theme-oscuro .camera-btn {
     background: rgba(55, 65, 81, 0.9);
     color: #f9fafb;
+}
+
+/* Estados del indicador de escaneo */
+.scan-status-waiting { 
+    color: #10b981; /* text-green-500 */
+}
+
+.scan-status-scanning { 
+    color: #f59e0b; /* text-yellow-500 */
+    animation: pulse 1.5s infinite;
+}
+
+.scan-status-success { 
+    color: #10b981; /* text-green-500 */
+    font-weight: bold;
+}
+
+.scan-status-error { 
+    color: #ef4444; /* text-red-500 */
+}
+
+.scan-status-processing { 
+    color: #3b82f6; /* text-blue-500 */
+    animation: pulse 1s infinite;
+}
+
+/* Animación para los indicadores activos */
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
 }
