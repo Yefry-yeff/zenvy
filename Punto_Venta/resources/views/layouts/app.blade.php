@@ -12,7 +12,7 @@
     <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
 
     {{-- Estilos compilados con Vite --}}
-    <link rel="stylesheet" href="{{ asset('build/assets/app-FFQddNSj.css') }}">
+    <link rel="stylesheet" href="{{ asset('build/assets/app-sRVu2muc.css') }}">
 
     {{-- Bootstrap 5 CSS (sin integrity para evitar error) --}}
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -174,8 +174,8 @@
     {{-- ZXing Library para escáner de códigos de barras --}}
     <script src="https://unpkg.com/@zxing/library@latest/umd/index.min.js"></script>
 
-    {{-- Script personalizado para escáner de códigos de barras --}}
-    <script src="{{ asset('js/barcode-scanner.js') }}"></script>
+    {{-- Script personalizado para escáner de códigos de barras (Alpine.js compatible) --}}
+    <script src="{{ asset('js/barcode-scanner-alpine.js') }}"></script>
 
     @stack('scripts')
 

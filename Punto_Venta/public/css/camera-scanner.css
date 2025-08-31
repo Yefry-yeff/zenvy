@@ -3,8 +3,8 @@
  * Estilos CSS para el componente de escaneo de códigos de barras
  */
 
-/* Contenedor principal de la cámara */
-#camera-container {
+/* Contenedor principal de la cámara - MODO FULLSCREEN (no usado actualmente) */
+#camera-container-fullscreen {
     position: fixed;
     top: 0;
     left: 0;
@@ -15,11 +15,25 @@
     display: none;
 }
 
-/* Video de la cámara */
-#barcode-video {
+/* Contenedor de la cámara en la vista normal - SIEMPRE VISIBLE */
+#camera-container {
+    position: relative;
+    /* El resto de estilos los manejamos desde el HTML inline para evitar conflictos */
+}
+
+/* Video de la cámara en modo fullscreen */
+#barcode-video-fullscreen {
     width: 100%;
     height: 100%;
     object-fit: cover;
+}
+
+/* Video de la cámara en la vista normal - FORZAR VISIBILIDAD */
+#barcode-video {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    /* Las dimensiones se manejan desde el HTML inline para máximo control */
 }
 
 /* Estado activo del input cuando la cámara está encendida */

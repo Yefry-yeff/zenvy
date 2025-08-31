@@ -8,20 +8,25 @@ function initializeBarcodeScanner() {
     let codeReader = null;
     let videoElement = document.getElementById('barcode-video');
     let toggleButton = document.getElementById('toggle-camera-btn');
+    let toggleButtonHeader = document.getElementById('toggle-camera-btn-header');
     let closeButton = document.getElementById('close-camera-btn');
     let cameraContainer = document.getElementById('camera-container');
     let cameraStatus = document.getElementById('camera-status');
+    let cameraTitle = document.getElementById('camera-title');
+    let cameraPlaceholder = document.getElementById('camera-placeholder');
+    let scannerElements = document.getElementById('scanner-elements');
     let codigoBarrasInput = document.getElementById('codigo_barras');
     let isScanning = false;
 
-    // Verificar que los elementos existen antes de continuar
+    // Verificar que los elementos esenciales existen
     const elements = {
-        videoElement: document.getElementById('barcode-video'),
-        toggleButton: document.getElementById('toggle-camera-btn'),
-        closeButton: document.getElementById('close-camera-btn'),
-        cameraContainer: document.getElementById('camera-container'),
-        cameraStatus: document.getElementById('camera-status'),
-        codigoBarrasInput: document.getElementById('codigo_barras')
+        videoElement: videoElement,
+        toggleButton: toggleButton,
+        toggleButtonHeader: toggleButtonHeader,
+        closeButton: closeButton,
+        cameraContainer: cameraContainer,
+        codigoBarrasInput: codigoBarrasInput,
+        cameraPlaceholder: cameraPlaceholder
     };
 
     // Debug: mostrar qué elementos están presentes/ausentes
@@ -41,8 +46,9 @@ function initializeBarcodeScanner() {
         console.log('Elementos faltantes:', missingElements);
     }
 
-    if (!videoElement || !toggleButton || !closeButton || !cameraContainer || !codigoBarrasInput) {
-        console.log('Elementos del escáner no encontrados en esta página - reintentando...');
+    // El contenedor de la cámara ahora siempre debe estar visible
+    if (!videoElement || !cameraContainer || !codigoBarrasInput || !cameraPlaceholder) {
+        console.log('Elementos esenciales del escáner no encontrados - reintentando...');
         return false;
     }
 
@@ -52,21 +58,23 @@ function initializeBarcodeScanner() {
     function initializeScanner() {
         if (!window.ZXing) {
             console.error('ZXing library no está cargada');
-            if (cameraStatus) cameraStatus.textContent = 'Error: Librería ZXing no disponible';
+            if (cameraTitle) cameraTitle.textContent = 'Error: Librería ZXing no disponible';
             return;
         }
 
         if (!codeReader) {
             codeReader = new ZXing.BrowserMultiFormatReader();
+            // Optimizar configuraciones para mejor rendimiento
+            codeReader.timeBetweenDecodingAttempts = 300; // 300ms entre intentos
         }
         
-        if (cameraStatus) cameraStatus.textContent = 'Iniciando cámara...';
+        if (cameraTitle) cameraTitle.textContent = 'Iniciando cámara...';
         
         // Obtener dispositivos de cámara
         codeReader.listVideoInputDevices()
             .then(videoInputDevices => {
                 if (videoInputDevices.length === 0) {
-                    if (cameraStatus) cameraStatus.textContent = 'No se encontraron cámaras disponibles';
+                    if (cameraTitle) cameraTitle.textContent = 'No se encontraron cámaras disponibles';
                     return;
                 }
                 
@@ -81,13 +89,28 @@ function initializeBarcodeScanner() {
                     }
                 }
                 
-                if (cameraStatus) cameraStatus.textContent = 'Cámara lista. Apunte hacia el código de barras';
+                if (cameraTitle) cameraTitle.textContent = 'Enfoque el código de barras';
                 
-                // Iniciar escaneo
+                // Configurar constraints para mejor performance
+                const constraints = {
+                    video: {
+                        deviceId: selectedDevice.deviceId,
+                        width: { ideal: 640 },
+                        height: { ideal: 480 },
+                        facingMode: 'environment'
+                    }
+                };
+                
+                // Iniciar escaneo con configuraciones optimizadas
                 codeReader.decodeFromVideoDevice(selectedDevice.deviceId, videoElement, (result, err) => {
                     if (result) {
                         // Código detectado
-                        console.log('Código detectado:', result.text);
+                        console.log('✅ Código detectado:', result.text);
+                        
+                        if (cameraTitle) {
+                            cameraTitle.textContent = `¡Código detectado! ${result.text}`;
+                            cameraTitle.className = 'text-xs font-semibold text-green-600 flex items-center';
+                        }
                         
                         // Poner el código en el input
                         if (codigoBarrasInput) {
@@ -95,21 +118,23 @@ function initializeBarcodeScanner() {
                             
                             // Disparar evento de Livewire para actualizar el modelo
                             codigoBarrasInput.dispatchEvent(new Event('input', { bubbles: true }));
+                            codigoBarrasInput.dispatchEvent(new Event('change', { bubbles: true }));
                             
-                            // Simular Enter para procesar el producto
-                            setTimeout(() => {
-                                codigoBarrasInput.dispatchEvent(new KeyboardEvent('keydown', {
-                                    key: 'Enter',
-                                    keyCode: 13,
-                                    bubbles: true
-                                }));
-                            }, 100);
+                            // Simular Enter para procesar el producto (sin setTimeout excesivo)
+                            const enterEvent = new KeyboardEvent('keydown', {
+                                key: 'Enter',
+                                keyCode: 13,
+                                which: 13,
+                                bubbles: true
+                            });
+                            codigoBarrasInput.dispatchEvent(enterEvent);
                         }
                         
-                        // Cerrar cámara después de escanear
-                        setTimeout(stopCamera, 500);
+                        // Cerrar cámara después de escanear (reducir timeout)
+                        setTimeout(stopCamera, 1500);
                     }
                     
+                    // Solo mostrar errores significativos, no NotFoundException
                     if (err && !(err instanceof ZXing.NotFoundException)) {
                         console.warn('Error de escaneo:', err);
                     }
@@ -120,7 +145,7 @@ function initializeBarcodeScanner() {
             })
             .catch(err => {
                 console.error('Error al acceder a las cámaras:', err);
-                if (cameraStatus) cameraStatus.textContent = 'Error al acceder a la cámara. Verifique los permisos.';
+                if (cameraTitle) cameraTitle.textContent = 'Error al acceder a la cámara';
             });
     }
 
@@ -131,43 +156,84 @@ function initializeBarcodeScanner() {
             isScanning = false;
         }
         
-        if (cameraContainer) {
-            cameraContainer.classList.add('hidden');
+        // Ocultar video y mostrar placeholder
+        if (videoElement) {
+            videoElement.classList.add('hidden');
+        }
+        if (cameraPlaceholder) {
+            cameraPlaceholder.classList.remove('hidden');
+        }
+        if (scannerElements) {
+            scannerElements.classList.add('hidden');
         }
         
+        // Actualizar UI
+        if (cameraTitle) {
+            cameraTitle.textContent = 'Vista previa cámara';
+        }
+        if (closeButton) {
+            closeButton.classList.add('hidden');
+        }
+        if (toggleButtonHeader && toggleButtonHeader.querySelector('svg')) {
+            toggleButtonHeader.querySelector('svg').style.color = '';
+        }
         if (codigoBarrasInput) {
             codigoBarrasInput.classList.remove('camera-active');
         }
         
-        if (toggleButton && toggleButton.querySelector('svg')) {
-            toggleButton.querySelector('svg').style.color = '';
-        }
-        
+        // Actualizar estado si existe
         if (cameraStatus) {
             cameraStatus.textContent = 'Cámara detenida';
+            cameraStatus.className = 'mt-2 text-xs text-gray-500 text-center';
         }
+        
+        console.log('🔴 Cámara detenida');
     }
 
     // Función para iniciar la cámara
     function startCamera() {
-        if (cameraContainer) {
-            cameraContainer.classList.remove('hidden');
+        // Mostrar video y ocultar placeholder
+        if (cameraPlaceholder) {
+            cameraPlaceholder.classList.add('hidden');
+        }
+        if (videoElement) {
+            videoElement.classList.remove('hidden');
+        }
+        if (scannerElements) {
+            scannerElements.classList.remove('hidden');
         }
         
+        // Actualizar UI
+        if (cameraTitle) {
+            cameraTitle.textContent = 'Escáner Activo';
+        }
+        if (closeButton) {
+            closeButton.classList.remove('hidden');
+        }
+        if (toggleButtonHeader && toggleButtonHeader.querySelector('svg')) {
+            toggleButtonHeader.querySelector('svg').style.color = '#10b981';
+        }
         if (codigoBarrasInput) {
             codigoBarrasInput.classList.add('camera-active');
         }
         
-        if (toggleButton && toggleButton.querySelector('svg')) {
-            toggleButton.querySelector('svg').style.color = '#10b981';
-        }
-        
+        console.log('🟢 Iniciando cámara...');
         initializeScanner();
     }
 
-    // Event listeners
+    // Event listeners para los botones
     if (toggleButton) {
         toggleButton.addEventListener('click', function() {
+            if (isScanning) {
+                stopCamera();
+            } else {
+                startCamera();
+            }
+        });
+    }
+
+    if (toggleButtonHeader) {
+        toggleButtonHeader.addEventListener('click', function() {
             if (isScanning) {
                 stopCamera();
             } else {
@@ -182,32 +248,16 @@ function initializeBarcodeScanner() {
         });
     }
 
-    // Auto-activar cámara cuando el input recibe foco
+    // Auto-activar cámara cuando el input recibe foco (solo si el usuario lo desea)
     if (codigoBarrasInput) {
         codigoBarrasInput.addEventListener('focus', function() {
-            if (!isScanning) {
-                // Pequeño delay para dar tiempo al usuario de decidir
-                setTimeout(() => {
-                    if (document.activeElement === codigoBarrasInput && !isScanning) {
-                        startCamera();
-                    }
-                }, 1000); // 1 segundo de delay
-            }
+            // Ya no activamos automáticamente, la cámara siempre está visible
+            // El usuario puede usar el botón para activarla cuando desee
+            console.log('Input enfocado, cámara lista para activar manualmente');
         });
 
-        // Detener cámara cuando el input pierde foco (opcional)
-        codigoBarrasInput.addEventListener('blur', function() {
-            // Solo detener si no se está usando activamente
-            setTimeout(() => {
-                if (document.activeElement !== codigoBarrasInput && 
-                    document.activeElement !== toggleButton && 
-                    (!cameraContainer || !cameraContainer.contains(document.activeElement))) {
-                    if (isScanning) {
-                        stopCamera();
-                    }
-                }
-            }, 200);
-        });
+        // Ya no necesitamos manejar blur para detener la cámara automáticamente
+        // porque ahora el contenedor siempre está visible
     }
 
     // Limpiar al cerrar/refrescar la página
@@ -241,8 +291,8 @@ function initializeBarcodeScanner() {
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM cargado, intentando inicializar escáner...');
     
-    // Función para verificar elementos y reintentar
-    function attemptInitialization(attempt = 1, maxAttempts = 15) {
+    // Función para verificar elementos y reintentar (optimizado)
+    function attemptInitialization(attempt = 1, maxAttempts = 8) {
         console.log(`Intento ${attempt}/${maxAttempts} de inicialización...`);
         
         if (initializeBarcodeScanner()) {
@@ -251,9 +301,12 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         if (attempt < maxAttempts) {
-            setTimeout(() => {
-                attemptInitialization(attempt + 1, maxAttempts);
-            }, 1000);
+            // Usar requestAnimationFrame para mejor performance
+            requestAnimationFrame(() => {
+                setTimeout(() => {
+                    attemptInitialization(attempt + 1, maxAttempts);
+                }, 800); // Reducido de 1000ms a 800ms
+            });
         } else {
             console.log('❌ No se pudo inicializar el escáner después de todos los intentos');
         }

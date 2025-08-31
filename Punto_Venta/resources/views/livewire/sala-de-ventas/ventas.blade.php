@@ -469,13 +469,163 @@
 
                     <!-- Content -->
                     <div class="p-4">
-                        <!-- Escanear producto -->
+                        
+                        <!-- Escanear producto con cámara integrada -->
                         <div x-data="{
                             init() {
                                 this.$el.querySelector('#codigo_barras').focus();
+                            },
+                            cameraActive: false,
+                            scanning: false,
+                            
+                            toggleCamera() {
+                                console.log('🎥 Toggle Camera - Estado actual:', this.cameraActive);
+                                
+                                if (this.cameraActive) {
+                                    // Desactivar cámara
+                                    this.stopCamera();
+                                } else {
+                                    // Activar cámara
+                                    this.startCamera();
+                                }
+                            },
+                            
+                            startCamera() {
+                                console.log('🎥 Iniciando cámara...');
+                                
+                                // Verificar soporte del navegador
+                                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                                    console.error('❌ Navegador no soporta acceso a cámara');
+                                    alert('Error: Tu navegador no soporta acceso a la cámara. Usa un navegador más moderno o accede vía HTTPS.');
+                                    return;
+                                }
+                                
+                                // Verificar que BarcodeScanner esté disponible
+                                if (!window.BarcodeScanner) {
+                                    console.error('❌ BarcodeScanner no está disponible');
+                                    alert('Error: El escáner de códigos no está disponible. Verifica que el archivo JavaScript se esté cargando correctamente.');
+                                    return;
+                                }
+                                
+                                try {
+                                    // Activar el escáner
+                                    window.BarcodeScanner.start();
+                                    
+                                    // Actualizar estados
+                                    this.cameraActive = true;
+                                    this.scanning = true;
+                                    
+                                    console.log('✅ Cámara iniciada correctamente');
+                                } catch (error) {
+                                    console.error('❌ Error iniciando cámara:', error);
+                                    alert('Error iniciando cámara: ' + error.message);
+                                    this.cameraActive = false;
+                                    this.scanning = false;
+                                }
+                            },
+                            
+                            stopCamera() {
+                                console.log('⏹️ Deteniendo cámara...');
+                                
+                                // Detener el escáner
+                                if (window.BarcodeScanner) {
+                                    window.BarcodeScanner.stop();
+                                }
+                                
+                                // Actualizar estados
+                                this.cameraActive = false;
+                                this.scanning = false;
+                                
+                                console.log('✅ Cámara detenida correctamente');
                             }
                         }" class="mb-4">
                             <form wire:submit.prevent="agregarProductoPorCodigo">
+                                
+                                <!-- Vista previa de la cámara - SOLO VISIBLE CUANDO ESTÁ ACTIVA -->
+                                <div x-show="cameraActive" 
+                                     x-transition:enter="transition ease-out duration-300"
+                                     x-transition:enter-start="opacity-0 transform scale-95"
+                                     x-transition:enter-end="opacity-100 transform scale-100"
+                                     x-transition:leave="transition ease-in duration-200"
+                                     x-transition:leave-start="opacity-100 transform scale-100"
+                                     x-transition:leave-end="opacity-0 transform scale-95"
+                                     id="camera-container" 
+                                     class="mb-3 p-3 bg-gray-900 border border-green-400 rounded-lg shadow-lg">
+                                    
+                                    <div class="flex justify-between items-center mb-2">
+                                        <h4 class="text-sm font-medium text-green-400 flex items-center">
+                                            <svg class="w-4 h-4 mr-2 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0118.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                            </svg>
+                                            <span>🔴 CÁMARA EN VIVO - Enfoque el código de barras</span>
+                                        </h4>
+                                        
+                                        <!-- Estado de escaneo -->
+                                        <div class="flex items-center gap-2">
+                                            <div class="flex items-center">
+                                                <div class="w-2 h-2 bg-green-400 rounded-full animate-ping mr-2"></div>
+                                                <span class="text-xs text-green-400 font-medium">ESCANEANDO...</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Contenedor del video -->
+                                    <div class="relative bg-black rounded-lg overflow-hidden" style="min-height: 240px;">
+                                        <!-- Video principal -->
+                                        <video id="barcode-video" 
+                                               autoplay 
+                                               playsinline 
+                                               muted
+                                               style="
+                                                   display: block !important; 
+                                                   visibility: visible !important;
+                                                   opacity: 1 !important;
+                                                   width: 100% !important; 
+                                                   height: 240px !important; 
+                                                   object-fit: cover !important;
+                                                   background: #000 !important;
+                                                   border-radius: 0.5rem;
+                                               "
+                                               class="w-full">
+                                        </video>
+                                        
+                                        <!-- Overlay de escaneo -->
+                                        <div class="absolute inset-0 pointer-events-none">
+                                            <!-- Marco de enfoque -->
+                                            <div class="absolute inset-4 border-2 border-green-400 border-dashed rounded-lg opacity-60"></div>
+                                            
+                                            <!-- Línea de escaneo animada -->
+                                            <div class="absolute left-8 right-8 h-0.5 bg-green-400 opacity-80"
+                                                 style="top: 50%; animation: scan 2s linear infinite;">
+                                            </div>
+                                            
+                                            <!-- Esquinas del marco -->
+                                            <div class="absolute top-4 left-4 w-6 h-6 border-l-4 border-t-4 border-green-400"></div>
+                                            <div class="absolute top-4 right-4 w-6 h-6 border-r-4 border-t-4 border-green-400"></div>
+                                            <div class="absolute bottom-4 left-4 w-6 h-6 border-l-4 border-b-4 border-green-400"></div>
+                                            <div class="absolute bottom-4 right-4 w-6 h-6 border-r-4 border-b-4 border-green-400"></div>
+                                        </div>
+                                        
+                                        <!-- Instrucciones -->
+                                        <div class="absolute bottom-2 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-70 text-white px-3 py-1 rounded-full text-xs">
+                                            Enfoque el código de barras en el marco verde
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Botón para cerrar la cámara -->
+                                    <div class="mt-3 text-center">
+                                        <button type="button" 
+                                                @click="toggleCamera()"
+                                                class="px-4 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors">
+                                            <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                            </svg>
+                                            Cerrar Cámara
+                                        </button>
+                                    </div>
+                                </div>
+
                                 <div class="flex flex-wrap gap-2 mb-4">
                                     <div class="flex-1">
                                         <label for="codigo_barras" class="block mb-1 text-sm font-medium text-gray-700">Escanear código de barras</label>
@@ -485,6 +635,7 @@
                                                 wire:model.defer="codigoBarras"
                                                 wire:keydown.enter="agregarProductoPorCodigo"
                                                 class="w-full form-control pr-12"
+                                                :class="cameraActive ? 'border-green-500 ring-2 ring-green-200' : ''"
                                                 placeholder="Escanee el código de barras o use la cámara"
                                                 autocomplete="off"
                                                 @keydown.enter="$event.target.value = ''; $event.target.focus()"
@@ -492,11 +643,16 @@
                                                 autofocus>
                                             <button type="button"
                                                 id="toggle-camera-btn"
-                                                class="absolute inset-y-0 right-0 flex items-center px-3 text-gray-500 hover:text-blue-600 transition-colors"
-                                                title="Activar/Desactivar cámara">
-                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
+                                                @click="toggleCamera()"
+                                                class="absolute inset-y-0 right-0 flex items-center px-3 transition-colors"
+                                                :class="cameraActive ? 'text-red-600 hover:text-red-700' : 'text-gray-500 hover:text-blue-600'"
+                                                :title="cameraActive ? 'Desactivar cámara' : 'Activar cámara'">
+                                                <svg x-show="!cameraActive" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0118.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                                </svg>
+                                                <svg x-show="cameraActive" class="w-5 h-5 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                                                 </svg>
                                             </button>
                                         </div>
@@ -508,25 +664,6 @@
                                             wire:model.live="cantidad"
                                             class="w-full form-control"
                                             min="1">
-                                    </div>
-                                </div>
-                                
-                                <!-- Contenedor de la cámara (oculto por defecto) -->
-                                <div id="camera-container" class="hidden mb-4 p-4 bg-gray-50 border border-gray-300 rounded-lg">
-                                    <div class="flex justify-between items-center mb-2">
-                                        <h4 class="text-sm font-medium text-gray-700">Escáner de Código de Barras</h4>
-                                        <button type="button" id="close-camera-btn" class="text-gray-500 hover:text-red-600">
-                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                                            </svg>
-                                        </button>
-                                    </div>
-                                    <div class="relative">
-                                        <video id="barcode-video" class="w-full h-64 bg-black rounded" autoplay></video>
-                                        <div id="scan-line" class="absolute left-0 right-0 h-0.5 bg-red-500 opacity-75" style="top: 50%; animation: scan 2s linear infinite;"></div>
-                                    </div>
-                                    <div id="camera-status" class="mt-2 text-sm text-gray-600 text-center">
-                                        Iniciando cámara...
                                     </div>
                                 </div>
                             </form>
@@ -1523,10 +1660,6 @@
         }
     }
     </style>
-
-    <!-- JavaScript externo para el escáner de códigos de barras -->
-    <script src="https://unpkg.com/@zxing/library@latest/umd/index.min.js"></script>
-    <script src="{{ asset('js/barcode-scanner.js') }}"></script>
 
 </div>
 
