@@ -227,6 +227,94 @@
                             </div>
                         </div>
 
+                        <!-- Precios de Venta Valencia (Solo cuando producto_valencia = 1) -->
+                        @if(isset($form['producto_valencia']) && $form['producto_valencia'] == 1)
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="p-3 mb-3 border rounded bg-light">
+                                    <h6 class="mb-3 text-primary"><i class="fas fa-tags me-2"></i>Precios de Venta Valencia</h6>
+                                    <div class="row">
+                                        <div class="mb-3 col-md-3">
+                                            <label for="precio1" class="form-label">Precio A (Venta 1)</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text">L.</span>
+                                                <input type="number" 
+                                                       id="precio1" 
+                                                       class="form-control" 
+                                                       wire:model.defer="form.precio1" 
+                                                       step="0.01" 
+                                                       min="0" 
+                                                       placeholder="0.00"
+                                                       readonly>
+                                            </div>
+                                            @error('form.precio1')
+                                                <div class="mt-1 text-sm text-danger">{{ $message }}</div>
+                                            @enderror
+                                        </div>
+                                        <div class="mb-3 col-md-3">
+                                            <label for="precio2" class="form-label">Precio B (Venta 2)</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text">L.</span>
+                                                <input type="number" 
+                                                       id="precio2" 
+                                                       class="form-control" 
+                                                       wire:model.defer="form.precio2" 
+                                                       step="0.01" 
+                                                       min="0" 
+                                                       placeholder="0.00"
+                                                       readonly>
+                                            </div>
+                                            @error('form.precio2')
+                                                <div class="mt-1 text-sm text-danger">{{ $message }}</div>
+                                            @enderror
+                                        </div>
+                                        <div class="mb-3 col-md-3">
+                                            <label for="precio3" class="form-label">Precio C (Venta 3)</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text">L.</span>
+                                                <input type="number" 
+                                                       id="precio3" 
+                                                       class="form-control" 
+                                                       wire:model.defer="form.precio3" 
+                                                       step="0.01" 
+                                                       min="0" 
+                                                       placeholder="0.00"
+                                                       readonly>
+                                            </div>
+                                            @error('form.precio3')
+                                                <div class="mt-1 text-sm text-danger">{{ $message }}</div>
+                                            @enderror
+                                        </div>
+                                        <div class="mb-3 col-md-3">
+                                            <label for="precio4" class="form-label">Precio D (Venta 4)</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text">L.</span>
+                                                <input type="number" 
+                                                       id="precio4" 
+                                                       class="form-control" 
+                                                       wire:model.defer="form.precio4" 
+                                                       step="0.01" 
+                                                       min="0" 
+                                                       placeholder="0.00"
+                                                       readonly>
+                                            </div>
+                                            @error('form.precio4')
+                                                <div class="mt-1 text-sm text-danger">{{ $message }}</div>
+                                            @enderror
+                                        </div>
+                                    </div>
+                                    <div class="mt-2">
+                                        <small class="text-muted">
+                                            <i class="fas fa-info-circle me-1"></i>
+                                            Estos precios son específicos para productos Valencia y son de solo lectura. 
+                                            Se calculan automáticamente según las configuraciones del sistema.
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        @endif
+
                         <!-- Descuentos Especiales -->
                         <div class="row">
                             <div class="mb-3 col-md-6">

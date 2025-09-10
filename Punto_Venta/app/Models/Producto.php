@@ -29,7 +29,12 @@ class Producto extends Model
         'marca_id',
         'unidad_medida_venta_id',
         'users_id',
-        'imagen'
+        'imagen',
+        'producto_valencia',
+        'precio1',
+        'precio2',
+        'precio3',
+        'precio4'
     ];
 
     // Relationships

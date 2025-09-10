@@ -37,6 +37,11 @@ class ProductoForm extends Component
         'costo_promedio' => 0,
         'unidad_medida_venta_id' => null,
         'users_id' => null,
+        'producto_valencia' => 0,
+        'precio1' => 0,
+        'precio2' => 0,
+        'precio3' => 0,
+        'precio4' => 0,
     ];
 
     // Datos para los selectores
@@ -80,6 +85,11 @@ class ProductoForm extends Component
         'form.ultimo_costo_compra' => 'nullable|numeric|min:0',
         'form.costo_promedio' => 'nullable|numeric|min:0',
         'form.unidad_medida_venta_id' => 'required|integer|exists:unidad_medida,id',
+        'form.producto_valencia' => 'nullable|integer|in:0,1',
+        'form.precio1' => 'nullable|numeric|min:0',
+        'form.precio2' => 'nullable|numeric|min:0',
+        'form.precio3' => 'nullable|numeric|min:0',
+        'form.precio4' => 'nullable|numeric|min:0',
         'imagen' => 'nullable|image|max:5120', // 5MB máximo
     ];
 
@@ -144,6 +154,11 @@ class ProductoForm extends Component
                 'costo_promedio' => $producto->costo_promedio ?? 0,
                 'unidad_medida_venta_id' => $producto->unidad_medida_venta_id,
                 'users_id' => $producto->users_id,
+                'producto_valencia' => $producto->producto_valencia ?? 0,
+                'precio1' => $producto->precio1 ?? 0,
+                'precio2' => $producto->precio2 ?? 0,
+                'precio3' => $producto->precio3 ?? 0,
+                'precio4' => $producto->precio4 ?? 0,
             ];
 
             // Cargar categoría y subcategorías correspondientes
