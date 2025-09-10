@@ -23,7 +23,7 @@ class GestionCai extends Model
         'updated_at'
 
     ];
-
+ /* Nombre del archivo igual que la clase  */
 
 
 }

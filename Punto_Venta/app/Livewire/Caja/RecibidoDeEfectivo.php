@@ -28,14 +28,14 @@ class RecibidoDeEfectivo extends Component
     public function validarJornadaAbierta()
     {
         $usuario = Auth::user();
-        
+
         if (!$usuario->tienda_id) {
             $this->mensajeError = 'Usuario sin tienda asignada. No se pueden realizar operaciones de caja.';
             return false;
         }
 
         $fechaActual = date('Y-m-d');
-        
+
         // Verificar si existe una jornada aperturada para hoy
         $jornadaAbierta = DB::table('jornada')
             ->where('fecha', $fechaActual)
@@ -55,18 +55,24 @@ class RecibidoDeEfectivo extends Component
     public function cargarCajaActual()
     {
         $usuario = Auth::user();
-        
+
         // Verificar que el usuario tenga tienda asignada
         if (!$usuario || !$usuario->tienda_id) {
             $this->cajaActual = null;
             return;
         }
-        
-        $this->cajaActual = DB::table('caja')
-            ->where('users_id', $usuario->id)
-            ->where('tienda_id', $usuario->tienda_id)
-            ->where('estado_caja', 1) // 1 = abierta
-            ->orderBy('created_at', 'desc')
+
+        // Obtener caja actual con la fecha de apertura más reciente
+        $this->cajaActual = DB::table('caja as c')
+            ->leftJoin('apertura_caja as ac', function($join) {
+                $join->on('c.id', '=', 'ac.caja_id')
+                     ->whereDate('ac.fecha_apertura', today());
+            })
+            ->where('c.users_id', $usuario->id)
+            ->where('c.tienda_id', $usuario->tienda_id)
+            ->where('c.estado_caja', 1) // 1 = abierta
+            ->select('c.*', 'ac.fecha_apertura')
+            ->orderBy('c.created_at', 'desc')
             ->first();
     }
 
@@ -117,7 +123,7 @@ class RecibidoDeEfectivo extends Component
 
             // Mensaje de éxito
             $this->mensajeExito = "Se han recibido L." . number_format($montoNumerico, 2) . " correctamente. Nuevo saldo: L." . number_format($this->cajaActual->balance, 2);
-            
+
             // Limpiar formulario
             $this->reset(['monto', 'comentarios', 'mensajeError']);
 

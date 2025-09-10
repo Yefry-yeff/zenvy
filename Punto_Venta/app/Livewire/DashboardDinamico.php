@@ -42,34 +42,33 @@ class DashboardDinamico extends Component
     public function cargarEstadisticas()
     {
         $usuario = Auth::user();
-        $rolNombre = $usuario->rol->txt_nombre ?? '';
 
         // Estadísticas básicas para todos
         $this->estadisticas = [
             'facturas_hoy' => DB::table('factura')
                 ->whereDate('created_at', today())
                 ->count(),
-            
+
             'ventas_hoy' => DB::table('factura')
                 ->whereDate('created_at', today())
                 ->sum('total'),
-            
+
             'ventas_mes' => DB::table('factura')
                 ->whereMonth('created_at', now()->month)
                 ->whereYear('created_at', now()->year)
                 ->sum('total'),
-            
+
             'productos_activos' => DB::table('producto')
                 ->where('estado_id', 1)
                 ->count(),
-            
+
             'usuarios_activos' => DB::table('users')
                 ->where('estado_id', 1)
                 ->count(),
         ];
 
-        // Estadísticas específicas por rol
-        if (in_array($rolNombre, ['Admin', 'Administrador'])) {
+        // Estadísticas específicas por permisos
+        if ($this->usuarioTienePermisos(['Configuracion.Usuarios', 'Configuracion.Roles'])) {
             $this->estadisticas = array_merge($this->estadisticas, [
                 'tiendas_activas' => DB::table('tienda')->where('estado_id', 1)->count(),
                 'bodegas_activas' => DB::table('bodega')->where('estado_id', 1)->count(),
@@ -78,28 +77,28 @@ class DashboardDinamico extends Component
             ]);
         }
 
-        if (in_array($rolNombre, ['Inventario', 'Admin', 'Administrador'])) {
+        if ($this->usuarioTienePermisos(['Inventario.Producto', 'Inventario.CompraDeProductos', 'Inventario.Bodegas'])) {
             // Para stock bajo, filtrar por bodegas de la tienda del usuario
             $queryStockBajo = DB::table('recibido_bodega')
                 ->where('cantidad_disponible', '<', 10);
-            
+
             // Si el usuario no es Admin, filtrar por su tienda
-            if (!in_array($rolNombre, ['Admin', 'Administrador']) && $usuario->tienda_id) {
+            if (!$this->usuarioTienePermisos(['Configuracion.Usuarios', 'Configuracion.Roles']) && $usuario->tienda_id) {
                 $queryStockBajo->join('seccion as s', 'recibido_bodega.seccion_id', '=', 's.id')
                     ->join('segmento as seg', 's.segmento_id', '=', 'seg.id')
                     ->join('bodega as b', 'seg.bodega_id', '=', 'b.id')
                     ->where('b.tienda_id', $usuario->tienda_id);
             }
-            
+
             // Para recepciones de productos del mes, filtrar por usuario actual si no es Admin
             $queryRecepciones = DB::table('recibido_bodega')
                 ->whereMonth('created_at', now()->month)
                 ->whereYear('created_at', now()->year);
-            
-            if (!in_array($rolNombre, ['Admin', 'Administrador'])) {
+
+            if (!$this->usuarioTienePermisos(['Configuracion.Usuarios', 'Configuracion.Roles'])) {
                 $queryRecepciones->where('users_registro_id', $usuario->id);
             }
-            
+
             $this->estadisticas = array_merge($this->estadisticas, [
                 'stock_bajo' => $queryStockBajo->count(),
                 'recepciones_mes' => $queryRecepciones->count(),
@@ -110,10 +109,9 @@ class DashboardDinamico extends Component
     public function cargarDatosPorRol()
     {
         $usuario = Auth::user();
-        $rolNombre = $usuario->rol->txt_nombre ?? '';
 
-        // Ventas recientes (para roles de ventas y admin)
-        if (in_array($rolNombre, ['Facturador', 'Admin', 'Administrador', 'Inventario'])) {
+        // Ventas recientes (para usuarios con permisos de ventas y admin)
+        if ($this->usuarioTienePermisos(['SalaDeVentas.Ventas', 'Inventario.Producto'])) {
             $this->ventasRecientes = DB::table('factura as f')
                 ->join('users as u', 'f.users_id', '=', 'u.id')
                 ->select(
@@ -128,8 +126,8 @@ class DashboardDinamico extends Component
                 ->get();
         }
 
-        // Productos con stock bajo (para inventario y admin)
-        if (in_array($rolNombre, ['Inventario', 'Admin', 'Administrador'])) {
+        // Productos con stock bajo (para usuarios con permisos de inventario y admin)
+        if ($this->usuarioTienePermisos(['Inventario.Producto', 'Inventario.CompraDeProductos', 'Inventario.Bodegas'])) {
             $queryProductosStockBajo = DB::table('recibido_bodega as rb')
                 ->join('producto as p', 'rb.producto_id', '=', 'p.id')
                 ->join('seccion as s', 'rb.seccion_id', '=', 's.id')
@@ -137,12 +135,12 @@ class DashboardDinamico extends Component
                 ->join('bodega as b', 'seg.bodega_id', '=', 'b.id')
                 ->where('rb.cantidad_disponible', '<', 10)
                 ->where('rb.cantidad_disponible', '>', 0);
-            
-            // Si el usuario no es Admin, filtrar por su tienda
-            if (!in_array($rolNombre, ['Admin', 'Administrador']) && $usuario->tienda_id) {
+
+            // Si el usuario no tiene permisos administrativos, filtrar por su tienda
+            if (!$this->usuarioTienePermisos(['Configuracion.Usuarios', 'Configuracion.Roles']) && $usuario->tienda_id) {
                 $queryProductosStockBajo->where('b.tienda_id', $usuario->tienda_id);
             }
-            
+
             $this->productosStockBajo = $queryProductosStockBajo
                 ->select(
                     'p.nombre as producto',
@@ -156,7 +154,7 @@ class DashboardDinamico extends Component
         }
 
         // Actividad reciente del sistema (para admin)
-        if (in_array($rolNombre, ['Admin', 'Administrador'])) {
+        if ($this->usuarioTienePermisos(['Configuracion.Usuarios', 'Configuracion.Roles'])) {
             $this->actividad = collect([
                 [
                     'tipo' => 'factura',
@@ -186,27 +184,38 @@ class DashboardDinamico extends Component
     public function cargarEstadoJornada()
     {
         $usuario = Auth::user();
-        
+
         // Solo cargar estado de jornada si el usuario tiene tienda asignada
         if ($usuario->tienda_id) {
             $fechaActual = date('Y-m-d');
-            
-            // Buscar la jornada del día actual para la tienda del usuario
-            $jornadaActual = DB::table('jornada')
+
+            // Buscar la jornada más reciente para la tienda del usuario (no solo de hoy)
+            $jornadaReciente = DB::table('jornada')
+                ->where('tienda_id', $usuario->tienda_id)
+                ->orderBy('fecha', 'desc')
+                ->orderBy('created_at', 'desc')
+                ->first();
+
+            // También buscar específicamente la jornada de hoy
+            $jornadaHoy = DB::table('jornada')
                 ->where('fecha', $fechaActual)
                 ->where('tienda_id', $usuario->tienda_id)
                 ->orderBy('created_at', 'desc')
                 ->first();
 
+            // Usar la jornada de hoy si existe, si no, usar la más reciente
+            $jornadaActual = $jornadaHoy ?? $jornadaReciente;
+
             if ($jornadaActual) {
                 // Determinar el estado de la jornada
                 $estado = 'cerrada'; // Por defecto cerrada
                 $estado_codigo = 0;
-                
+                $esJornadaHoy = ($jornadaActual->fecha == $fechaActual);
+
                 if ($jornadaActual->apertura == 1 && $jornadaActual->cierre == 0) {
                     $estado = 'abierta';
                     $estado_codigo = 1;
-                } elseif ($jornadaActual->apertura == 0 && $jornadaActual->cierre == 1) {
+                } elseif ($jornadaActual->apertura == 1 && $jornadaActual->cierre == 1) {
                     $estado = 'cerrada';
                     $estado_codigo = 2;
                 } elseif ($jornadaActual->apertura == 0 && $jornadaActual->cierre == 0) {
@@ -214,17 +223,23 @@ class DashboardDinamico extends Component
                     $estado_codigo = 0;
                 }
 
+                // Si no es jornada de hoy y no hay jornada para hoy, mostrar estado especial
+                if (!$esJornadaHoy && !$jornadaHoy) {
+                    $estado = 'sin_jornada_hoy';
+                    $estado_codigo = -1;
+                }
+
                 // Obtener información del usuario que aperturó y cerró
                 $usuarioApertura = null;
                 $usuarioCierre = null;
-                
+
                 if ($jornadaActual->user_id_apertura) {
                     $usuarioApertura = DB::table('users')
                         ->where('id', $jornadaActual->user_id_apertura)
                         ->select('name')
                         ->first();
                 }
-                
+
                 if ($jornadaActual->user_id_cierre) {
                     $usuarioCierre = DB::table('users')
                         ->where('id', $jornadaActual->user_id_cierre)
@@ -235,22 +250,27 @@ class DashboardDinamico extends Component
                 $this->estadoJornada = [
                     'id' => $jornadaActual->id,
                     'fecha' => $jornadaActual->fecha,
+                    'es_jornada_hoy' => $esJornadaHoy,
                     'estado' => $estado,
                     'estado_codigo' => $estado_codigo,
-                    'estado_texto' => $this->obtenerTextoEstadoJornada($estado),
+                    'estado_texto' => $this->obtenerTextoEstadoJornada($estado, $esJornadaHoy),
                     'apertura' => $jornadaActual->apertura,
                     'cierre' => $jornadaActual->cierre,
                     'usuario_apertura' => $usuarioApertura->name ?? null,
                     'usuario_cierre' => $usuarioCierre->name ?? null,
                     'comentario' => $jornadaActual->comentario,
                     'fecha_creacion' => $jornadaActual->created_at,
-                    'fecha_actualizacion' => $jornadaActual->updated_at
+                    'fecha_actualizacion' => $jornadaActual->updated_at,
+                    // Información adicional para el estado actual
+                    'fecha_apertura' => $jornadaActual->apertura == 1 ? $jornadaActual->updated_at : null,
+                    'fecha_cierre' => $jornadaActual->cierre == 1 ? $jornadaActual->updated_at : null
                 ];
             } else {
-                // No hay jornada para hoy
+                // No hay ninguna jornada
                 $this->estadoJornada = [
                     'id' => null,
                     'fecha' => $fechaActual,
+                    'es_jornada_hoy' => false,
                     'estado' => 'sin_jornada',
                     'estado_codigo' => -1,
                     'estado_texto' => 'Sin jornada creada',
@@ -260,19 +280,22 @@ class DashboardDinamico extends Component
                     'usuario_cierre' => null,
                     'comentario' => null,
                     'fecha_creacion' => null,
-                    'fecha_actualizacion' => null
+                    'fecha_actualizacion' => null,
+                    'fecha_apertura' => null,
+                    'fecha_cierre' => null
                 ];
             }
         }
     }
 
-    private function obtenerTextoEstadoJornada($estado)
+    private function obtenerTextoEstadoJornada($estado, $esJornadaHoy = true)
     {
         return match($estado) {
-            'abierta' => 'Abierta',
-            'cerrada' => 'Cerrada',
-            'sin_aperturar' => 'Sin aperturar',
+            'abierta' => $esJornadaHoy ? 'Abierta' : 'Abierta (anterior)',
+            'cerrada' => $esJornadaHoy ? 'Cerrada' : 'Cerrada (anterior)',
+            'sin_aperturar' => $esJornadaHoy ? 'Sin aperturar' : 'Sin aperturar (anterior)',
             'sin_jornada' => 'Sin jornada',
+            'sin_jornada_hoy' => 'Sin jornada hoy',
             default => 'Desconocido'
         };
     }
@@ -280,54 +303,187 @@ class DashboardDinamico extends Component
     public function cargarEstadoCaja()
     {
         $usuario = Auth::user();
-        $rolNombre = $usuario->rol->txt_nombre ?? '';
 
-        // Solo cargar estado de caja si el usuario tiene permisos de caja
-        // Verificar si el rol tiene permisos relacionados con caja
-        $rolesCaja = ['Cajero', 'Facturador', 'Admin', 'Administrador'];
-        
-        if (in_array($rolNombre, $rolesCaja)) {
+        // Verificar si el usuario tiene permisos específicos para ver estado de caja
+        $tienePermisosCaja = $this->usuarioTienePermisos([
+            'SalaDeVentas.Ventas',
+            'Caja.RecibidoDeEfectivo',
+            'Caja.EntregaDeEfectivo',
+            'Caja.SaldoInicial',
+            'Caja.CierreDeCaja'
+        ]);
+
+        if ($tienePermisosCaja && $usuario->tienda_id) {
             // Obtener la tienda actual del usuario
             $tiendaId = $usuario->tienda_id;
-            
+
             // Fecha actual para filtrar por día en transcurso
             $fechaHoy = date('Y-m-d');
-            
-            // Buscar la caja del usuario en la tienda actual y fecha actual
+
+            // Buscar la caja actual del usuario en la tienda
             $cajaActual = DB::table('caja')
                 ->where('users_id', $usuario->id)
                 ->where('tienda_id', $tiendaId)
-                ->whereDate('created_at', $fechaHoy)
-                ->orderBy('created_at', 'desc')
+                ->orderBy('updated_at', 'desc')
                 ->first();
 
             if ($cajaActual) {
+                // Obtener la última apertura de caja para obtener la fecha
+                $ultimaApertura = DB::table('apertura_caja')
+                    ->where('caja_id', $cajaActual->id)
+                    ->orderBy('fecha_apertura', 'desc')
+                    ->first();
+
+                // Verificar si tiene caja abierta hoy
+                $tieneAperturaHoy = $ultimaApertura &&
+                    date('Y-m-d', strtotime($ultimaApertura->fecha_apertura)) == $fechaHoy;
+
+                // Determinar el tipo de estado
+                $esCajaHoy = $tieneAperturaHoy;
+
+                // Calcular balances por tipo de pago basándose en transacciones del día de la jornada abierta
+                $fechaJornada = $this->obtenerFechaJornadaAbierta();
+                $balancesPorTipo = DB::table('transaccion')
+                    ->where('caja_id', $cajaActual->id)
+                    ->whereDate('created_at', $fechaJornada)
+                    ->selectRaw('
+                        IFNULL(SUM(efectivo), 0) as balance_efectivo,
+                        IFNULL(SUM(tarjeta), 0) as balance_tarjeta,
+                        IFNULL(SUM(cheque), 0) as balance_cheque,
+                        IFNULL(SUM(transferencia), 0) as balance_transferencia
+                    ')
+                    ->first();
+
+                // Balance total
+                $balanceTotal = ($balancesPorTipo->balance_efectivo ?? 0) +
+                               ($balancesPorTipo->balance_tarjeta ?? 0) +
+                               ($balancesPorTipo->balance_cheque ?? 0) +
+                               ($balancesPorTipo->balance_transferencia ?? 0);
+
                 $this->estadoCaja = [
                     'id' => $cajaActual->id,
                     'estado' => $cajaActual->estado_caja,
-                    'estado_texto' => $this->obtenerTextoEstado($cajaActual->estado_caja),
+                    'estado_texto' => $this->obtenerTextoEstadoCaja($cajaActual->estado_caja, $esCajaHoy),
                     'balance' => $cajaActual->balance,
-                    'fecha_creacion' => $cajaActual->created_at,
+                    'balance_efectivo' => $balancesPorTipo->balance_efectivo ?? 0,
+                    'balance_tarjeta' => $balancesPorTipo->balance_tarjeta ?? 0,
+                    'balance_cheque' => $balancesPorTipo->balance_cheque ?? 0,
+                    'balance_transferencia' => $balancesPorTipo->balance_transferencia ?? 0,
+                    'balance_total_calculado' => $balanceTotal,
+                    'fecha_apertura' => $ultimaApertura ? $ultimaApertura->fecha_apertura : null,
                     'fecha_actualizacion' => $cajaActual->updated_at,
-                    'tienda_id' => $cajaActual->tienda_id
+                    'tienda_id' => $cajaActual->tienda_id,
+                    'es_caja_hoy' => $esCajaHoy,
+                    'tiene_caja_hoy' => $tieneAperturaHoy
                 ];
             } else {
-                // Si no se encuentra caja, establecer mensaje apropiado
+                // Si no se encuentra ninguna caja
                 $this->estadoCaja = [
-                    'mensaje' => 'No se encontró caja para el usuario en esta tienda hoy'
+                    'id' => null,
+                    'estado' => 0,
+                    'estado_texto' => 'Sin caja creada',
+                    'balance' => 0,
+                    'balance_efectivo' => 0,
+                    'balance_tarjeta' => 0,
+                    'balance_cheque' => 0,
+                    'balance_transferencia' => 0,
+                    'balance_total_calculado' => 0,
+                    'fecha_apertura' => null,
+                    'fecha_actualizacion' => null,
+                    'tienda_id' => $tiendaId,
+                    'es_caja_hoy' => false,
+                    'tiene_caja_hoy' => false,
+                    'mensaje' => 'No se encontró caja para el usuario en esta tienda'
                 ];
             }
         }
     }
 
-    private function obtenerTextoEstado($estado)
+    private function obtenerTextoEstadoCaja($estado, $esCajaHoy = true)
     {
+        $suffix = $esCajaHoy ? '' : ' (anterior)';
+
         return match($estado) {
-            0 => 'Sin usar',
-            1 => 'Abierta',
-            2 => 'Cerrada',
-            default => 'Desconocido'
+            1 => 'Abierta' . $suffix,
+            2 => 'Cerrada' . $suffix,
+            0 => 'Sin usar' . $suffix,
+            default => 'Desconocido' . $suffix
         };
+    }
+
+    /**
+     * Verifica si el usuario tiene alguno de los permisos especificados
+     * @param array $permisos Array de routes/permisos a verificar
+     * @return bool
+     */
+    private function usuarioTienePermisos($permisos)
+    {
+        $usuario = Auth::user();
+
+        if (!$usuario || !$usuario->roles_id) {
+            return false;
+        }
+
+        // Verificar si es admin (tiene acceso a todo)
+        $rolNombre = $usuario->rol->txt_nombre ?? '';
+        $esAdmin = in_array($rolNombre, ['Admin', 'Administrador']);
+
+        if ($esAdmin) {
+            return true;
+        }
+
+        // Verificar permisos específicos a través de la tabla rol_permiso y menu
+        $tienePermiso = DB::table('menu')
+            ->join('rol_permiso', 'menu.id', '=', 'rol_permiso.menu_id')
+            ->where('rol_permiso.rol_id', $usuario->roles_id)
+            ->where('rol_permiso.estado', 1)
+            ->where('menu.estado_id', 1)
+            ->whereIn('menu.route', $permisos)
+            ->exists();
+
+        return $tienePermiso;
+    }
+
+    /**
+     * Método público para verificar permisos desde la vista Blade
+     * @param array|string $permisos Permiso o array de permisos a verificar
+     * @return bool
+     */
+    public function tienePermiso($permisos)
+    {
+        if (is_string($permisos)) {
+            $permisos = [$permisos];
+        }
+
+        return $this->usuarioTienePermisos($permisos);
+    }
+
+    /**
+     * Obtiene la fecha de la jornada que esté abierta
+     *
+     * @return string
+     */
+    private function obtenerFechaJornadaAbierta()
+    {
+        $usuario = Auth::user();
+
+        if (!$usuario || !$usuario->tienda_id) {
+            return Carbon::now()->format('Y-m-d');
+        }
+
+        // Buscar jornada aperturada (puede ser de cualquier fecha)
+        $jornadaAbierta = DB::table('jornada')
+            ->where('tienda_id', $usuario->tienda_id)
+            ->where('apertura', 1)
+            ->where('cierre', 0)
+            ->first();
+
+        if ($jornadaAbierta) {
+            return Carbon::parse($jornadaAbierta->fecha)->format('Y-m-d');
+        }
+
+        // Si no hay jornada abierta, usar fecha actual
+        return Carbon::now()->format('Y-m-d');
     }
 
     public function render()

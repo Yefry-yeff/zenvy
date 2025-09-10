@@ -236,7 +236,7 @@ class BodegaForm extends Component
 
     public function volverALista()
     {
-        $this->dispatch('cambiarVista', ruta: 'Inventario.bodegas');
+        $this->dispatch('cambiarVista', ruta: 'Inventario.Bodegas');
     }
 
     // ===== MÉTODOS DE VALIDACIÓN EN TIEMPO REAL =====

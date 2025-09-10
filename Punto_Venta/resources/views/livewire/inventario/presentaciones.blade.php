@@ -25,33 +25,21 @@
                 <table id="unidadesTable" class="table mb-0 align-middle table-sm table-hover table-bordered">
                     <thead class="table-light">
                         <tr class="text-center align-middle">
-                            <th style="width: 100px;">Unidad</th>
                             <th>Nombre</th>
                             <th style="width: 100px;">Símbolo</th>
                             <th style="width: 150px;">Fecha Creación</th>
-                            <th style="width: 60px;">Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse($unidades as $unidad)
                             <tr class="text-center align-middle hover:bg-gray-50">
-                                <td class="cursor-pointer" wire:click="editar({{ $unidad->id }})">{{ $unidad->unidad }}</td>
                                 <td class="text-start cursor-pointer" wire:click="editar({{ $unidad->id }})">{{ $unidad->nombre }}</td>
                                 <td class="cursor-pointer" wire:click="editar({{ $unidad->id }})">{{ $unidad->simbolo }}</td>
                                 <td class="cursor-pointer" wire:click="editar({{ $unidad->id }})">{{ $unidad->created_at ? $unidad->created_at->format('d/m/Y') : 'N/A' }}</td>
-                                <td>
-                                    <button type="button" class="btn btn-link p-0" wire:click="confirmarEliminar({{ $unidad->id }})" title="Eliminar" onclick="event.stopPropagation();">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 7v12a2 2 0 002 2h8a2 2 0 002-2V7M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2m-7 0h10" style="color:#e3342f;" />
-                                            <line x1="10" y1="11" x2="10" y2="17" stroke="#e3342f" stroke-width="2"/>
-                                            <line x1="14" y1="11" x2="14" y2="17" stroke="#e3342f" stroke-width="2"/>
-                                        </svg>
-                                    </button>
-                                </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="5" class="py-4 text-center text-muted">No hay unidades de medida disponibles.</td>
+                                <td colspan="3" class="py-4 text-center text-muted">No hay unidades de medida disponibles.</td>
                             </tr>
                         @endforelse
                     </tbody>
@@ -84,11 +72,11 @@
                     </div>
                     <div class="modal-body">
                         <form wire:submit.prevent="guardar">
-                            <div class="mb-3">
+                            <div class="mb-3" style="display: none;">
                                 <label for="unidadId" class="form-label">ID</label>
                                 <input type="text" id="unidadId" class="form-control" wire:model="form.id" readonly>
                             </div>
-                            <div class="mb-3">
+                            <div class="mb-3" style="display: none;">
                                 <label for="unidadCantidad" class="form-label">Unidad</label>
                                 <input type="number" id="unidadCantidad" class="form-control" wire:model.defer="form.unidad">
                                 @error('form.unidad')
@@ -97,7 +85,8 @@
                             </div>
                             <div class="mb-3">
                                 <label for="unidadNombre" class="form-label">Nombre</label>
-                                <input type="text" id="unidadNombre" class="form-control" wire:model.defer="form.nombre">
+                                <input type="text" id="unidadNombre" class="form-control bg-gray-100" wire:model.defer="form.nombre" readonly>
+                                <small class="text-muted">El nombre no se puede modificar</small>
                                 @error('form.nombre')
                                     <div class="text-danger mt-1 text-sm">{{ $message }}</div>
                                 @enderror
@@ -153,7 +142,7 @@
                     </div>
                     <div class="modal-body">
                         <form wire:submit.prevent="crearUnidad">
-                            <div class="mb-3">
+                            <div class="mb-3" style="display: none;">
                                 <label for="nuevaUnidadCantidad" class="form-label">Unidad</label>
                                 <input type="number" id="nuevaUnidadCantidad" class="form-control" wire:model.defer="nuevaUnidad">
                                 @error('nuevaUnidad')
@@ -195,32 +184,6 @@
         </div>
     </div>
 
-    <!-- Modal Confirmar Eliminación -->
-    <div wire:key="modal-confirmar-eliminar">
-        <div class="modal fade show"
-             tabindex="-1"
-             style="display: @if($modalEliminarAbierto) block @else none @endif; background: rgba(0,0,0,0.5); z-index: 1000;"
-             aria-modal="true"
-             role="dialog"
-             @click.self="@this.cerrarModalEliminar()"
-        >
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content">
-                    <div class="modal-header bg-danger text-white">
-                        <h5 class="modal-title">¿Eliminar unidad de medida?</h5>
-                    </div>
-                    <div class="modal-body">
-                        <p>¿Estás seguro que deseas eliminar esta unidad de medida? Esta acción no se puede deshacer.</p>
-                        <div class="flex justify-end gap-2 mt-4">
-                            <button type="button" class="btn btn-secondary" wire:click="cerrarModalEliminar">No</button>
-                            <button type="button" class="btn btn-danger" wire:click="eliminarUnidad">Sí, eliminar</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
     @if (session()->has('mensaje'))
         <div x-data="{ show: true }" x-show="show"
              @click.window="show = false"
@@ -228,6 +191,16 @@
              @mousemove.window="show = false"
              class="alert alert-success mt-3 mb-0 transition-opacity duration-300">
             {{ session('mensaje') }}
+        </div>
+    @endif
+
+    @if (session()->has('error'))
+        <div x-data="{ show: true }" x-show="show"
+             @click.window="show = false"
+             @keydown.window="show = false"
+             @mousemove.window="show = false"
+             class="alert alert-danger mt-3 mb-0 transition-opacity duration-300">
+            {{ session('error') }}
         </div>
     @endif
 

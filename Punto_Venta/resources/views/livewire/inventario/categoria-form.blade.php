@@ -19,9 +19,7 @@
             ← Volver
         </button>
         <h5>{{ $categoriaId ? 'Editar Categoría' : 'Crear Categoría' }}</h5>
-        <button wire:click="guardar" class="px-3 py-1 text-sm text-gray-800 bg-white rounded hover:bg-gray-100">
-            💾 Guardar
-        </button>
+        <div></div> <!-- Spacer para mantener el centrado -->
     </div>
 
     <!-- DATOS DE LA CATEGORÍA -->
@@ -36,79 +34,213 @@
                     <span class="text-sm text-red-600">{{ $message }}</span>
                 @enderror
             </div>
+
+            @if(!$categoriaId)
+                <!-- Botón para proceder a subcategorías (solo en modo agregar) -->
+                <div class="flex justify-end">
+                    <button
+                        wire:click="procederASubcategorias"
+                        class="px-4 py-2 text-white rounded"
+                        :class="{
+                            'bg-emerald-600 hover:bg-emerald-700': theme === 'verde',
+                            'bg-blue-600 hover:bg-blue-700': theme === 'azul',
+                            'bg-gray-900 hover:bg-gray-800': theme === 'oscuro',
+                            'bg-slate-700 hover:bg-slate-800': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
+                        }"
+                    >
+                        📂 Ingresar Subcategoría
+                    </button>
+                </div>
+            @endif
         </div>
     </div>
 
     <!-- SUBCATEGORÍAS -->
-    @if($categoriaId)
-    <div class="p-4">
+    <div class="p-4" x-data="{ mostrarSubcategorias: @entangle('mostrarSeccionSubcategorias') }">
         <div class="p-4 bg-white border shadow rounded-xl">
             <h2 class="mb-4 text-lg font-semibold text-gray-700">📂 Subcategorías</h2>
 
-            <!-- Agregar nueva subcategoría -->
-            <div class="flex gap-2 mb-4">
-                <input
-                    type="text"
-                    wire:model.defer="nuevaSubcategoria"
-                    placeholder="Nombre de la nueva subcategoría"
-                    class="flex-1 px-3 py-2 border rounded"
-                />
-                <button
-                    wire:click="agregarSubcategoria"
-                    class="px-4 py-2 text-white rounded"
-                    :class="{
-                        'bg-emerald-600 hover:bg-emerald-700': theme === 'verde',
-                        'bg-blue-600 hover:bg-blue-700': theme === 'azul',
-                        'bg-gray-900 hover:bg-gray-800': theme === 'oscuro',
-                        'bg-slate-700 hover:bg-slate-800': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
-                    }"
-                >
-                    ➕ Agregar
-                </button>
-            </div>
-            @error('nuevaSubcategoria')
-                <span class="text-sm text-red-600">{{ $message }}</span>
-            @enderror
+            @if($categoriaId)
+                <!-- Agregar nueva subcategoría (solo en modo editar) -->
+                <div class="flex gap-2 mb-4">
+                    <input
+                        type="text"
+                        wire:model.defer="nuevaSubcategoria"
+                        placeholder="Nombre de la nueva subcategoría"
+                        class="flex-1 px-3 py-2 border rounded"
+                    />
+                    <button
+                        wire:click="agregarSubcategoria"
+                        class="px-4 py-2 text-white rounded"
+                        :class="{
+                            'bg-emerald-600 hover:bg-emerald-700': theme === 'verde',
+                            'bg-blue-600 hover:bg-blue-700': theme === 'azul',
+                            'bg-gray-900 hover:bg-gray-800': theme === 'oscuro',
+                            'bg-slate-700 hover:bg-slate-800': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
+                        }"
+                    >
+                        ➕ Agregar
+                    </button>
+                </div>
+                @error('nuevaSubcategoria')
+                    <span class="text-sm text-red-600">{{ $message }}</span>
+                @enderror
 
-            <!-- Lista de subcategorías -->
-            @if ($subcategorias->count() > 0)
-                <table id="subcategoriaTable" class="w-full text-sm text-left border border-gray-300">
-                    <thead class="bg-gray-100">
-                        <tr>
-                            <th class="px-3 py-2 border">ID</th>
-                            <th class="px-3 py-2 border">Nombre</th>
-                            <th class="px-3 py-2 border">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach ($subcategorias as $subcategoria)
-                            <tr class="hover:bg-gray-50">
-                                <td class="px-3 py-2 border cursor-pointer" wire:click="editarSubcategoria({{ $subcategoria->id }})">{{ $subcategoria->id }}</td>
-                                <td class="px-3 py-2 border cursor-pointer" wire:click="editarSubcategoria({{ $subcategoria->id }})">{{ $subcategoria->nombre }}</td>
-                                <td class="px-3 py-2 border">
-                                    <button
-                                        wire:click="eliminarSubcategoria({{ $subcategoria->id }})"
-                                        class="p-0 btn btn-link"
-                                        title="Eliminar"
-                                        onclick="event.stopPropagation();"
-                                    >
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 7v12a2 2 0 002 2h8a2 2 0 002-2V7M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2m-7 0h10" style="color:#e3342f;" />
-                                            <line x1="10" y1="11" x2="10" y2="17" stroke="#e3342f" stroke-width="2"/>
-                                            <line x1="14" y1="11" x2="14" y2="17" stroke="#e3342f" stroke-width="2"/>
-                                        </svg>
-                                    </button>
-                                </td>
+                <!-- Lista de subcategorías (solo en modo editar) -->
+                @if ($subcategorias->count() > 0)
+                    <table id="subcategoriaTable" class="w-full text-sm text-left border border-gray-300">
+                        <thead class="bg-gray-100">
+                            <tr>
+                                <th class="px-3 py-2 border">ID</th>
+                                <th class="px-3 py-2 border">Nombre</th>
+                                <th class="px-3 py-2 border">Acciones</th>
                             </tr>
-                        @endforeach
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            @foreach ($subcategorias as $subcategoria)
+                                <tr class="hover:bg-gray-50">
+                                    <td class="px-3 py-2 border cursor-pointer" wire:click="editarSubcategoria({{ $subcategoria->id }})">{{ $subcategoria->id }}</td>
+                                    <td class="px-3 py-2 border cursor-pointer" wire:click="editarSubcategoria({{ $subcategoria->id }})">{{ $subcategoria->nombre }}</td>
+                                    <td class="px-3 py-2 border">
+                                        <button
+                                            wire:click="eliminarSubcategoria({{ $subcategoria->id }})"
+                                            class="p-0 btn btn-link"
+                                            title="Eliminar"
+                                            onclick="event.stopPropagation();"
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 7v12a2 2 0 002 2h8a2 2 0 002-2V7M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2m-7 0h10" style="color:#e3342f;" />
+                                                <line x1="10" y1="11" x2="10" y2="17" stroke="#e3342f" stroke-width="2"/>
+                                                <line x1="14" y1="11" x2="14" y2="17" stroke="#e3342f" stroke-width="2"/>
+                                            </svg>
+                                        </button>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                @else
+                    <p class="italic text-gray-600">No hay subcategorías asignadas a esta categoría.</p>
+                @endif
+
+                <!-- Botón guardar para modo editar -->
+                <div class="flex justify-end mt-4">
+                    <button
+                        wire:click="guardar"
+                        class="px-6 py-2 font-medium text-white rounded"
+                        :class="{
+                            'bg-emerald-600 hover:bg-emerald-700': theme === 'verde',
+                            'bg-blue-600 hover:bg-blue-700': theme === 'azul',
+                            'bg-gray-900 hover:bg-gray-800': theme === 'oscuro',
+                            'bg-slate-700 hover:bg-slate-800': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
+                        }"
+                    >
+                        💾 Guardar Categoría
+                    </button>
+                </div>
             @else
-                <p class="italic text-gray-600">No hay subcategorías asignadas a esta categoría.</p>
+                <!-- Modo agregar -->
+                <div x-show="!mostrarSubcategorias">
+                    <!-- Mensaje informativo inicial -->
+                    <div class="p-4 text-center border-2 border-gray-300 border-dashed rounded-lg bg-gray-50">
+                        <div class="text-gray-500">
+                            <i class="mb-2 text-2xl fas fa-info-circle"></i>
+                            <p class="text-sm font-medium">Las subcategorías se podrán gestionar después de crear la categoría</p>
+                            <p class="mt-1 text-xs text-gray-400">Guarda primero la categoría principal para agregar subcategorías</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div x-show="mostrarSubcategorias" x-transition>
+                    <!-- Sección habilitada para agregar subcategorías -->
+                    <div class="p-4 mb-4 border border-green-200 rounded-lg bg-green-50">
+                        <div class="text-center text-green-700">
+                            <i class="mb-2 text-xl fas fa-check-circle"></i>
+                            <p class="text-sm font-medium">¡Perfecto! Ahora puedes agregar subcategorías (opcional)</p>
+                            <p class="mt-1 text-xs">Puedes agregar subcategorías o guardar directamente la categoría</p>
+                        </div>
+                    </div>
+
+                    <!-- Campo para nueva subcategoría -->
+                    <div class="flex gap-2 mb-4">
+                        <input
+                            type="text"
+                            wire:model.defer="nuevaSubcategoria"
+                            placeholder="Nombre de la nueva subcategoría (opcional)"
+                            class="flex-1 px-3 py-2 border rounded"
+                        />
+                        <button
+                            wire:click="agregarSubcategoriaTemporal"
+                            class="px-4 py-2 text-white rounded"
+                            :class="{
+                                'bg-emerald-600 hover:bg-emerald-700': theme === 'verde',
+                                'bg-blue-600 hover:bg-blue-700': theme === 'azul',
+                                'bg-gray-900 hover:bg-gray-800': theme === 'oscuro',
+                                'bg-slate-700 hover:bg-slate-800': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
+                            }"
+                        >
+                            ➕ Agregar
+                        </button>
+                    </div>
+
+                    <!-- Lista temporal de subcategorías -->
+                    @if(!empty($subcategoriasTemporales))
+                        <div class="mb-4">
+                            <h4 class="mb-2 text-sm font-medium text-gray-700">Subcategorías a crear:</h4>
+                            <table id="subcategoriaTable" class="w-full text-sm text-left border border-gray-300">
+                                <thead class="bg-gray-100">
+                                    <tr>
+                                        <th class="px-3 py-2 border">#</th>
+                                        <th class="px-3 py-2 border">Nombre</th>
+                                        <th class="px-3 py-2 border">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($subcategoriasTemporales as $index => $subcategoria)
+                                        <tr class="hover:bg-gray-50">
+                                            <td class="px-3 py-2 border">{{ $index + 1 }}</td>
+                                            <td class="px-3 py-2 border">{{ $subcategoria }}</td>
+                                            <td class="px-3 py-2 border">
+                                                <button
+                                                    wire:click="eliminarSubcategoriaTemporal({{ $index }})"
+                                                    class="p-0 btn btn-link"
+                                                    title="Eliminar"
+                                                >
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 7v12a2 2 0 002 2h8a2 2 0 002-2V7M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2m-7 0h10" style="color:#e3342f;" />
+                                                        <line x1="10" y1="11" x2="10" y2="17" stroke="#e3342f" stroke-width="2"/>
+                                                        <line x1="14" y1="11" x2="14" y2="17" stroke="#e3342f" stroke-width="2"/>
+                                                    </svg>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @else
+                        <p class="mb-4 italic text-gray-600">No hay subcategorías agregadas aún.</p>
+                    @endif
+
+                    <!-- Botón guardar para modo agregar -->
+                    <div class="flex justify-end">
+                        <button
+                            wire:click="guardar"
+                            class="px-6 py-2 font-medium text-white rounded"
+                            :class="{
+                                'bg-emerald-600 hover:bg-emerald-700': theme === 'verde',
+                                'bg-blue-600 hover:bg-blue-700': theme === 'azul',
+                                'bg-gray-900 hover:bg-gray-800': theme === 'oscuro',
+                                'bg-slate-700 hover:bg-slate-800': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
+                            }"
+                        >
+                            💾 Guardar Categoría
+                        </button>
+                    </div>
+                </div>
             @endif
         </div>
     </div>
-    @endif
 
     <!-- MENSAJE DE ÉXITO -->
     @if ($mostrarMensaje)
@@ -116,15 +248,15 @@
         x-data="{ show: true }"
         x-show="show"
         class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
-        @click.outside="show = false; Livewire.dispatch('cambiarVista', { ruta: 'Inventario.categoria' })"
-        @keydown.window.escape="show = false; Livewire.dispatch('cambiarVista', { ruta: 'Inventario.categoria' })"
+        @click.outside="show = false; Livewire.dispatch('cambiarVista', { ruta: 'Inventario.Categoria' })"
+        @keydown.window.escape="show = false; Livewire.dispatch('cambiarVista', { ruta: 'Inventario.Categoria' })"
     >
         <div class="w-full max-w-sm p-6 text-center bg-white rounded-lg shadow-lg">
             <h2 class="mb-2 text-lg font-semibold text-green-700">✅ Categoría guardada correctamente</h2>
             <p class="text-sm text-gray-600">Los cambios se han guardado exitosamente.</p>
             <button
                 class="px-4 py-2 mt-4 text-sm text-white rounded bg-emerald-600 hover:bg-emerald-700"
-                @click="show = false; Livewire.dispatch('cambiarVista', { ruta: 'Inventario.categoria' })"
+                @click="show = false; Livewire.dispatch('cambiarVista', { ruta: 'Inventario.Categoria' })"
             >
                 Cerrar
             </button>

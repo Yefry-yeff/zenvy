@@ -5,10 +5,11 @@ namespace App\Livewire\Caja;
 use Livewire\Component;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
+use Carbon\Carbon;
 
 class SaldoInicial extends Component
 {
-    public $monto = '';
     public $descripcion = '';
     public $cajaActual;
     public $mensaje = '';
@@ -17,13 +18,14 @@ class SaldoInicial extends Component
     public function mount()
     {
         $this->validarJornadaAbierta();
+        $this->verificarOCrearRegistroCaja();
         $this->cargarCajaActual();
     }
 
     public function validarJornadaAbierta()
     {
         $usuario = Auth::user();
-        
+
         if (!$usuario->tienda_id) {
             $this->mensaje = 'Usuario sin tienda asignada. No se pueden realizar operaciones de caja.';
             $this->tipoMensaje = 'error';
@@ -31,7 +33,7 @@ class SaldoInicial extends Component
         }
 
         $fechaActual = date('Y-m-d');
-        
+
         // Verificar si existe una jornada aperturada para hoy
         $jornadaAbierta = DB::table('jornada')
             ->where('fecha', $fechaActual)
@@ -49,10 +51,44 @@ class SaldoInicial extends Component
         return true;
     }
 
+    public function verificarOCrearRegistroCaja()
+    {
+        $usuario = Auth::user();
+
+        // Verificar que el usuario tenga tienda asignada
+        if (!$usuario || !$usuario->tienda_id) {
+            return;
+        }
+
+        // Verificar si existe un registro de caja para este usuario y tienda
+        $cajaExistente = DB::table('caja')
+            ->where('users_id', $usuario->id)
+            ->where('tienda_id', $usuario->tienda_id)
+            ->first();
+
+        // Si no existe registro de caja, crear uno
+        if (!$cajaExistente) {
+            try {
+                DB::table('caja')->insert([
+                    'users_id' => $usuario->id,
+                    'tienda_id' => $usuario->tienda_id,
+                    'balance' => 0.00,
+                    'estado_caja' => 2, // Cerrado
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ]);
+
+                Log::info("Registro de caja creado automáticamente para usuario {$usuario->id} en tienda {$usuario->tienda_id}");
+            } catch (\Exception $e) {
+                Log::error("Error al crear registro de caja: " . $e->getMessage());
+            }
+        }
+    }
+
     public function cargarCajaActual()
     {
         $usuario = Auth::user();
-        
+
         // Verificar que el usuario tenga tienda asignada
         if (!$usuario || !$usuario->tienda_id) {
             $this->cajaActual = null;
@@ -61,86 +97,153 @@ class SaldoInicial extends Component
             return;
         }
 
-        // Buscar la caja del usuario actual en su tienda actual que esté cerrada (estado_caja = 2)
+        // Buscar caja del usuario
         $this->cajaActual = DB::table('caja')
             ->where('users_id', $usuario->id)
             ->where('tienda_id', $usuario->tienda_id)
-            ->where('estado_caja', 2) // Cajas cerradas (listas para abrir)
-            ->orderBy('created_at', 'desc')
             ->first();
-        
-        // Si no se encuentra caja, establecer mensaje informativo
+
+        // Verificar estado de la caja
         if (!$this->cajaActual) {
-            $this->mensaje = 'No se encontró caja en estado cerrado (estado 2) para el usuario en la sucursal actual.';
+            // No existe registro de caja - Se puede aperturar
+            $this->mensaje = 'No existe registro de caja. Se creará uno nuevo al aperturar.';
             $this->tipoMensaje = 'info';
-        } else {
-            // Limpiar mensaje si se encuentra caja
+        } elseif ($this->cajaActual->estado_caja == 1) {
+            // Caja ya está abierta - No se puede aperturar
+            $this->cajaActual = null;
+            $this->mensaje = 'La caja ya está abierta. No es necesario aperturarla nuevamente.';
+            $this->tipoMensaje = 'info';
+        } elseif ($this->cajaActual->estado_caja == 2) {
+            // Caja está cerrada - Se puede aperturar
             $this->mensaje = '';
             $this->tipoMensaje = '';
+        } else {
+            // Estado no reconocido
+            $this->cajaActual = null;
+            $this->mensaje = 'Estado de caja no reconocido. Contacte al administrador.';
+            $this->tipoMensaje = 'error';
         }
     }
 
-    public function establecerSaldoInicial()
+    public function validarYProcesarApertura()
+    {
+        try {
+            // Validación simplificada - solo verificar que la jornada esté abierta
+            return $this->validarJornadaAbierta();
+
+        } catch (\Exception $e) {
+            Log::error("Error en validación de apertura de caja: " . $e->getMessage());
+            $this->mensaje = 'Error en validación: ' . $e->getMessage();
+            $this->tipoMensaje = 'error';
+            return false;
+        }
+    }
+
+    public function aperturarCaja()
     {
         // Validar que la jornada esté abierta antes de proceder
         if (!$this->validarJornadaAbierta()) {
             return;
         }
 
+        // Validar que no haya jornadas o cajas sin cerrar de días anteriores
+        if (!$this->validarYProcesarApertura()) {
+            return;
+        }
+
         $this->validate([
-            'monto' => 'required|numeric|min:0.01',
             'descripcion' => 'nullable|string|max:255'
         ], [
-            'monto.required' => 'El monto es obligatorio',
-            'monto.numeric' => 'El monto debe ser un número válido',
-            'monto.min' => 'El monto debe ser mayor a 0',
             'descripcion.max' => 'La descripción no puede exceder 255 caracteres'
         ]);
 
-        if (!$this->cajaActual) {
-            $this->mensaje = 'No se encontró una caja cerrada (estado 2) para abrir.';
-            $this->tipoMensaje = 'error';
-            return;
-        }
+        $usuario = Auth::user();
+        $fechaActual = date('Y-m-d');
 
         try {
             DB::beginTransaction();
 
-            // Actualizar la caja: establecer saldo inicial y cambiar estado a abierto (1)
-            DB::table('caja')
-                ->where('id', $this->cajaActual->id)
-                ->update([
-                    'balance' => floatval($this->monto),
+            $balanceExistente = 0;
+            $cajaId = null;
+
+            // Caso 1: No existe registro de caja - Crear nuevo
+            if (!$this->cajaActual) {
+                $cajaId = DB::table('caja')->insertGetId([
+                    'users_id' => $usuario->id,
+                    'tienda_id' => $usuario->tienda_id,
+                    'balance' => 0.00,
                     'estado_caja' => 1, // Abierto
+                    'created_at' => now(),
                     'updated_at' => now()
                 ]);
+                $balanceExistente = 0;
+                $tipoOperacion = 'Nueva caja creada y aperturada';
+            }
+            // Caso 2: Existe caja cerrada - Aperturar
+            elseif ($this->cajaActual->estado_caja == 2) {
+                $cajaId = $this->cajaActual->id;
+                $balanceExistente = floatval($this->cajaActual->balance ?? 0);
 
-            // Registrar la transacción de saldo inicial
-            DB::table('transaccion')->insert([
-                'caja_id' => $this->cajaActual->id,
-                'transaccion' => 'saldo_inicial',
-                'efectivo' => floatval($this->monto),
-                'tarjeta' => 0,
-                'cheque' => 0,
-                'descripcion' => $this->descripcion ?: 'Establecimiento de saldo inicial',
+                // Cambiar estado de la caja a abierto
+                DB::table('caja')
+                    ->where('id', $cajaId)
+                    ->update([
+                        'estado_caja' => 1, // Abierto
+                        'updated_at' => now()
+                    ]);
+
+                $tipoOperacion = 'Caja aperturada';
+            }
+            else {
+                throw new \Exception('La caja debe estar cerrada (estado 2) para poder aperturarla.');
+            }
+
+            // Verificar si ya hubo cierre hoy (existe registro en apertura_caja para hoy)
+            $aperturaHoy = DB::table('apertura_caja')
+                ->where('caja_id', $cajaId)
+                ->whereDate('fecha_apertura', $fechaActual)
+                ->exists();
+
+                        // SIEMPRE crear un nuevo registro en apertura_caja para cada apertura
+            // PRIMERO: Registrar transacción de apertura de caja y obtener su ID
+            $idTransaccion = DB::table('transaccion')->insertGetId([
+                'caja_id' => $cajaId,
+                'transaccion' => 'apertura_caja',
+                'efectivo' => $balanceExistente, // Almacenar el balance de apertura como efectivo
+                'tarjeta' => 0.00,
+                'cheque' => 0.00,
+                'transferencia' => 0.00,
+                'descripcion' => $this->descripcion ?: 'Apertura de caja',
                 'created_at' => now(),
                 'update_at' => now()
             ]);
 
+            // SEGUNDO: Crear registro en apertura_caja con referencia a la transacción
+            DB::table('apertura_caja')->insert([
+                'caja_id' => $cajaId,
+                'balance_apertura' => $balanceExistente,
+                'fecha_apertura' => now(),
+                'transaccion_id' => $idTransaccion, // Referencia a la transacción
+                'created_at' => now(),
+                'updated_at' => now()
+            ]);
+
+            $tipoOperacion .= $aperturaHoy ? ' (Nueva sesión)' : ' (Primera sesión del día)';
+
             DB::commit();
 
-            $this->mensaje = 'Saldo inicial establecido correctamente. La caja está ahora abierta con L. ' . number_format($this->monto, 2);
+            $this->mensaje = $tipoOperacion . ' correctamente con L. ' . number_format($balanceExistente, 2) . '. La caja está ahora disponible para operar.';
             $this->tipoMensaje = 'success';
-            
+
             // Limpiar formulario
-            $this->reset(['monto', 'descripcion']);
-            
+            $this->reset(['descripcion']);
+
             // Recargar información de la caja
             $this->cargarCajaActual();
 
         } catch (\Exception $e) {
             DB::rollBack();
-            $this->mensaje = 'Error al establecer el saldo inicial: ' . $e->getMessage();
+            $this->mensaje = 'Error al aperturar la caja: ' . $e->getMessage();
             $this->tipoMensaje = 'error';
         }
     }

@@ -5,10 +5,10 @@
             <div class="flex items-center justify-between">
                 <div>
                     <h1 class="text-2xl font-bold flex items-center">
-                        <i class="fas fa-cash-register mr-3"></i>
-                        Establecer Saldo Inicial
+                        <i class="fas fa-unlock mr-3"></i>
+                        Apertura de Caja
                     </h1>
-                    <p class="text-green-100 mt-1">Abrir caja con saldo inicial</p>
+                    <p class="text-green-100 mt-1">Aperturar caja con saldo inicial</p>
                 </div>
                 <div class="text-right">
                     <div class="text-sm text-green-100">Usuario</div>
@@ -33,7 +33,7 @@
             <div class="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
                 <h3 class="text-lg font-semibold text-blue-800 mb-2">
                     <i class="fas fa-info-circle mr-2"></i>
-                    Estado Actual de la Caja
+                    Estado de la Caja
                 </h3>
                 @if($cajaActual)
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
@@ -43,49 +43,43 @@
                         </div>
                         <div>
                             <span class="text-gray-600">Estado:</span>
-                            <span class="px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-xs font-medium ml-2">Cerrada</span>
+                            <span class="px-2 py-1 bg-red-100 text-red-800 rounded text-xs font-medium ml-2">Cerrada</span>
                         </div>
                         <div>
-                            <span class="text-gray-600">Balance Actual:</span>
+                            <span class="text-gray-600">Balance Anterior:</span>
                             <span class="font-semibold text-blue-800 ml-2">L. {{ number_format($cajaActual->balance ?? 0, 2) }}</span>
                         </div>
+                    </div>
+                    <div class="mt-3 text-sm text-blue-700">
+                        <i class="fas fa-check-circle mr-1"></i>
+                        Caja disponible para aperturar
                     </div>
                 @else
                     <div class="text-yellow-700">
                         <i class="fas fa-exclamation-triangle mr-2"></i>
-                        No se encontró una caja cerrada para abrir
+                        No hay caja disponible para aperturar
                     </div>
                 @endif
             </div>
 
             <!-- Formulario -->
             @if($cajaActual)
-                <form wire:submit.prevent="establecerSaldoInicial" class="space-y-6">
-                    <!-- Monto -->
-                    <div>
-                        <label for="monto" class="block text-sm font-medium text-gray-700 mb-2">
-                            <i class="fas fa-money-bill-wave text-green-500 mr-2"></i>
-                            Monto del Saldo Inicial (Lempiras)
-                        </label>
-                        <div class="relative">
-                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <span class="text-gray-500 sm:text-sm">L.</span>
-                            </div>
-                            <input 
-                                type="number" 
-                                step="0.01" 
-                                id="monto"
-                                wire:model="monto"
-                                class="block w-full pl-8 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-lg"
-                                placeholder="0.00"
-                                required
-                            >
+                <div class="mb-6 p-4 bg-green-50 rounded-lg border border-green-200">
+                    <h3 class="text-lg font-semibold text-green-800 mb-2">
+                        <i class="fas fa-money-bill-wave text-green-600 mr-2"></i>
+                        Balance de Apertura
+                    </h3>
+                    <div class="text-center">
+                        <div class="text-3xl font-bold text-green-700 mb-2">
+                            L. {{ number_format($cajaActual->balance ?? 0, 2) }}
                         </div>
-                        @error('monto')
-                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                        @enderror
+                        <p class="text-sm text-green-600">
+                            La caja se aperturará con el balance anterior
+                        </p>
                     </div>
+                </div>
 
+                <form wire:submit.prevent="aperturarCaja" class="space-y-6">
                     <!-- Descripción -->
                     <div>
                         <label for="descripcion" class="block text-sm font-medium text-gray-700 mb-2">
@@ -97,7 +91,7 @@
                             wire:model="descripcion"
                             rows="3"
                             class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                            placeholder="Descripción del saldo inicial..."
+                            placeholder="Descripción de la apertura de caja..."
                         ></textarea>
                         @error('descripcion')
                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
@@ -118,16 +112,16 @@
                             type="submit"
                             class="px-8 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 font-medium shadow-lg transform hover:scale-105 transition-all duration-200"
                         >
-                            <i class="fas fa-play-circle mr-2"></i>
-                            Abrir Caja con Saldo Inicial
+                            <i class="fas fa-unlock mr-2"></i>
+                            Aperturar Caja
                         </button>
                     </div>
                 </form>
             @else
                 <div class="text-center py-8">
                     <i class="fas fa-times-circle text-yellow-500 text-4xl mb-4"></i>
-                    <h3 class="text-lg font-medium text-gray-900 mb-2">No hay caja disponible</h3>
-                    <p class="text-gray-600 mb-4">No se encontró una caja cerrada para establecer el saldo inicial.</p>
+                    <h3 class="text-lg font-medium text-gray-900 mb-2">No hay caja disponible para aperturar</h3>
+                    <p class="text-gray-600 mb-4">No se encontró una caja cerrada disponible para aperturar, o ya tienes una caja abierta para hoy.</p>
                     <button 
                         onclick="window.history.back()"
                         class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
@@ -147,10 +141,10 @@
             Información Importante
         </h4>
         <ul class="text-sm text-gray-600 space-y-1">
-            <li><i class="fas fa-check text-green-500 mr-2"></i>El saldo inicial abrirá la caja para el día</li>
+            <li><i class="fas fa-check text-green-500 mr-2"></i>Solo puedes aperturar caja cuando está cerrada</li>
             <li><i class="fas fa-check text-green-500 mr-2"></i>Se registrará una transacción de apertura</li>
             <li><i class="fas fa-check text-green-500 mr-2"></i>El estado de la caja cambiará a "Abierta"</li>
-            <li><i class="fas fa-check text-green-500 mr-2"></i>Podrás realizar operaciones después de establecer el saldo</li>
+            <li><i class="fas fa-check text-green-500 mr-2"></i>Si ya cerraste una caja hoy, se creará un nuevo registro</li>
         </ul>
     </div>
 </div>

@@ -63,7 +63,7 @@ class RecibirProductoCompra extends Component
             $this->detallesCompra = CompraHasProducto::with([
                 'producto.marca',
                 'producto.unidadMedidaCompra',
-                'unidadCompra'
+                'unidadMedida'
             ])
             ->where('compra_id', $this->compraId)
             ->get()
@@ -73,7 +73,7 @@ class RecibirProductoCompra extends Component
                     'codigo_producto' => $detalle->producto->codigo ?? 'N/A',
                     'nombre_producto' => $detalle->producto->nombre ?? 'N/A',
                     'marca' => $detalle->producto->marca->nombre ?? 'Sin marca',
-                    'unidad_medida' => $detalle->unidadCompra->nombre ?? 'N/A',
+                    'unidad_medida' => $detalle->unidadMedida->nombre ?? 'N/A',
                     'precio_unitario' => $detalle->precio,
                     'cantidad_comprada' => $detalle->cantidad_ingresada,
                     'cantidad_sin_asignar' => $detalle->cantidad_sin_asignar,
@@ -82,7 +82,7 @@ class RecibirProductoCompra extends Component
                     'total' => $detalle->precio_total,
                     'fecha_vencimiento' => $detalle->fecha_expiracion,
                     'producto_id' => $detalle->producto_id,
-                    'unidad_compra_id' => $detalle->unidad_compra_id
+                    'unidad_medida_id' => $detalle->unidad_medida_id
                 ];
             })->toArray();
 
@@ -344,7 +344,7 @@ class RecibirProductoCompra extends Component
                 'fecha_expiracion' => $detalleCompra->fecha_expiracion,
                 'comentario' => $this->comentarioDistribucion,
                 'unidades_compra' => $cantidadDistribuir,
-                'unidad_compra_id' => $detalleCompra->unidad_compra_id,
+                'unidad_medida_id' => $detalleCompra->unidad_medida_id,
                 'users_registro_id' => Auth::id(),
                 'estado_id' => 1 // Estado activo
             ]);
@@ -359,8 +359,14 @@ class RecibirProductoCompra extends Component
                 ->where('cantidad_sin_asignar', '>', 0)
                 ->count();
 
-            // Si no hay productos con cantidad pendiente, cambiar estado a "Distribuido"
+            // Verificar si hay productos con distribución parcial (cantidad original > cantidad sin asignar > 0)
+            $productosConDistribucionParcial = $compra->detallesCompra()
+                ->whereRaw('cantidad_sin_asignar > 0 AND cantidad_sin_asignar < cantidad_ingresada')
+                ->count();
+
+            // Actualizar estado según la distribución
             if ($productosConCantidadPendiente == 0) {
+                // Todos los productos están completamente distribuidos
                 $compra->estado_id = 3; // Estado "Distribuido"
                 $compra->save();
 
@@ -373,6 +379,21 @@ class RecibirProductoCompra extends Component
                 // Emitir eventos para notificar a otros componentes
                 $this->dispatch('compra-distribuida', $compra->id);
                 $this->dispatch('estado-compra-actualizado', $compra->id, 'distribuido');
+                $this->dispatch('compra-actualizada', $compra->id);
+            } elseif ($productosConDistribucionParcial > 0 && $compra->estado_id == 1) {
+                // Hay productos con distribución parcial y la compra está en estado "Activo"
+                $compra->estado_id = 5; // Estado "Pendiente"
+                $compra->save();
+
+                Log::info('Compra marcada como pendiente por distribución parcial', [
+                    'compra_id' => $compra->id,
+                    'numero_factura' => $compra->numero_factura,
+                    'productos_con_distribucion_parcial' => $productosConDistribucionParcial,
+                    'nuevo_estado_id' => 5
+                ]);
+
+                // Emitir eventos para notificar a otros componentes
+                $this->dispatch('estado-compra-actualizado', $compra->id, 'pendiente');
                 $this->dispatch('compra-actualizada', $compra->id);
             }
 
@@ -433,7 +454,7 @@ class RecibirProductoCompra extends Component
 
     public function volver()
     {
-        $this->dispatch('cambiarVista', ruta: 'Inventario.compradeproductos');
+        $this->dispatch('cambiarVista', ruta: 'Inventario.CompraDeProductos');
     }
 
     public function render()

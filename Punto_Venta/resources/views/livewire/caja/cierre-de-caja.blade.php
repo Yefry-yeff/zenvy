@@ -1,52 +1,51 @@
-<div class="min-h-screen bg-gradient-to-br from-purple-50 via-white to-indigo-50 p-6">
-    <div class="max-w-7xl mx-auto">
+<div class="min-h-screen p-6 bg-gradient-to-br from-purple-50 via-white to-indigo-50">
+    <div class="mx-auto max-w-7xl">
         <!-- Header -->
-        <div class="bg-white rounded-2xl shadow-lg border border-gray-200 mb-6 p-6">
+        <div class="p-6 mb-6 bg-white border border-gray-200 shadow-lg rounded-2xl">
             <div class="flex items-center justify-between">
                 <div class="flex items-center space-x-4">
-                    <div class="bg-purple-100 p-3 rounded-full">
+                    <div class="p-3 bg-purple-100 rounded-full">
                         <svg class="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                         </svg>
                     </div>
                     <div>
                         <h1 class="text-2xl font-bold text-gray-800">Cierre de Caja</h1>
-                        <p class="text-gray-600">Resumen del día y conteo de efectivo</p>
+                        <p class="text-gray-600">
+                            Resumen del día y conteo de efectivo
+                            @if(isset($resumenTransacciones['fecha_jornada']))
+                                - Jornada: {{ $resumenTransacciones['fecha_jornada'] }}
+                            @endif
+                        </p>
                     </div>
                 </div>
                 <div class="flex space-x-3">
                     @if($cierreProcesado)
-                        <span class="bg-green-100 text-green-800 text-sm font-semibold px-3 py-2 rounded-lg">
+                        <span class="px-3 py-2 text-sm font-semibold text-green-800 bg-green-100 rounded-lg">
                             ✅ Caja Cerrada
                         </span>
                     @endif
-                    <button wire:click="$dispatch('cambiarVista', 'dashboard')" 
-                            class="bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200 flex items-center space-x-2">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-                        </svg>
-                        <span>Volver</span>
-                    </button>
+
                 </div>
             </div>
         </div>
 
         @if(!$cajaActual)
             <!-- No hay caja abierta -->
-            <div class="bg-red-50 border border-red-200 rounded-2xl p-8 text-center">
-                <svg class="w-16 h-16 text-red-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="p-8 text-center border border-red-200 bg-red-50 rounded-2xl">
+                <svg class="w-16 h-16 mx-auto mb-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
                 </svg>
-                <h2 class="text-xl font-bold text-red-800 mb-2">No hay caja abierta</h2>
+                <h2 class="mb-2 text-xl font-bold text-red-800">No hay caja abierta</h2>
                 <p class="text-red-600">Debe tener una caja abierta para realizar el cierre.</p>
             </div>
         @else
             <!-- Mensajes -->
             @if($mensajeExito)
-                <div class="bg-green-50 border border-green-200 rounded-2xl p-4 mb-6" x-data="{ show: true }" x-show="show">
+                <div class="p-4 mb-6 border border-green-200 bg-green-50 rounded-2xl" x-data="{ show: true }" x-show="show">
                     <div class="flex items-center justify-between">
                         <div class="flex items-center">
-                            <svg class="w-5 h-5 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg class="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                             </svg>
                             <p class="text-sm font-medium text-green-800">{{ $mensajeExito }}</p>
@@ -61,10 +60,10 @@
             @endif
 
             @if($mensajeError)
-                <div class="bg-red-50 border border-red-200 rounded-2xl p-4 mb-6" x-data="{ show: true }" x-show="show">
+                <div class="p-4 mb-6 border border-red-200 bg-red-50 rounded-2xl" x-data="{ show: true }" x-show="show">
                     <div class="flex items-center justify-between">
                         <div class="flex items-center">
-                            <svg class="w-5 h-5 text-red-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg class="w-5 h-5 mr-2 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                             </svg>
                             <p class="text-sm font-medium text-red-800">{{ $mensajeError }}</p>
@@ -78,19 +77,28 @@
                 </div>
             @endif
 
-            <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+            <div class="grid grid-cols-1 gap-6 xl:grid-cols-3">
                 <!-- Resumen del día -->
                 <div class="xl:col-span-1">
-                    <div class="bg-white rounded-2xl shadow-lg border border-gray-200 p-6 mb-6">
-                        <h2 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                            <svg class="w-5 h-5 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="p-6 mb-6 bg-white border border-gray-200 shadow-lg rounded-2xl">
+                        <h2 class="flex items-center mb-4 text-lg font-semibold text-gray-800">
+                            <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
                             </svg>
                             Resumen del Día
                         </h2>
 
                         <div class="space-y-4">
-                            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                            <div class="p-4 border border-orange-200 rounded-lg bg-orange-50">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm font-medium text-orange-800">💰 Saldo Inicial:</span>
+                                    <span class="text-lg font-bold text-orange-600">
+                                        L.{{ number_format($resumenTransacciones['saldo_inicial'] ?? 0, 2) }}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div class="p-4 border border-blue-200 rounded-lg bg-blue-50">
                                 <div class="flex items-center justify-between mb-2">
                                     <span class="text-sm font-medium text-blue-800">Balance Sistema:</span>
                                     <span class="text-lg font-bold text-blue-600">
@@ -105,8 +113,52 @@
                                 </div>
                             </div>
 
-                            <div class="bg-green-50 border border-green-200 rounded-lg p-4">
-                                <h3 class="text-sm font-semibold text-green-800 mb-2">💰 Efectivo</h3>
+                            <div class="p-4 border border-green-200 rounded-lg bg-green-50">
+                                <h3 class="mb-3 text-sm font-semibold text-green-800">💰 Efectivo</h3>
+
+                                <!-- Desglose de Entradas - Mostrar siempre, aunque esté vacío -->
+                                <div class="mb-3">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <span class="text-xs font-medium text-green-700">📊 Desglose Entradas:</span>
+                                        <button class="text-xs text-green-600 hover:text-green-800"
+                                                x-data="{ show: false }"
+                                                @click="show = !show">
+                                            <span x-text="show ? 'Ocultar' : 'Ver detalles'"></span>
+                                        </button>
+                                    </div>
+
+                                    <div x-data="{ show: false }" class="space-y-1">
+                                        <div @click="show = !show" class="cursor-pointer">
+                                            <div class="flex justify-between p-2 text-xs bg-white border border-green-100 rounded">
+                                                <span class="text-green-700">Total Entradas:</span>
+                                                <div class="flex items-center">
+                                                    <span class="font-medium text-green-800">L.{{ number_format($resumenTransacciones['efectivo_entrada'] ?? 0, 2) }}</span>
+                                                    <svg class="w-3 h-3 ml-1 text-green-600" :class="{ 'rotate-180': show }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                                    </svg>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div x-show="show" x-collapse>
+                                            <div class="ml-2 space-y-1">
+                                                @if(count($desglose_entradas) > 0)
+                                                    @foreach($desglose_entradas as $entrada)
+                                                        <div class="flex justify-between px-2 py-1 text-xs border-l-2 border-green-300 rounded bg-green-25">
+                                                            <span class="text-green-600">{{ $entrada['tipo'] }} ({{ $entrada['cantidad'] }})</span>
+                                                            <span class="font-medium text-green-700">L.{{ number_format($entrada['total'], 2) }}</span>
+                                                        </div>
+                                                    @endforeach
+                                                @else
+                                                    <div class="px-2 py-1 text-xs text-green-600 border-l-2 border-green-300 rounded bg-green-25">
+                                                        No hay entradas registradas
+                                                    </div>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <div class="space-y-1 text-sm">
                                     <div class="flex justify-between">
                                         <span class="text-green-700">Entradas:</span>
@@ -116,23 +168,163 @@
                                         <span class="text-green-700">Salidas:</span>
                                         <span class="font-medium">L.{{ number_format($resumenTransacciones['efectivo_salida'] ?? 0, 2) }}</span>
                                     </div>
-                                    <div class="flex justify-between border-t pt-1">
+                                    <div class="flex justify-between pt-1 border-t">
                                         <span class="font-semibold text-green-800">Neto:</span>
                                         <span class="font-bold">L.{{ number_format($resumenTransacciones['efectivo_neto'] ?? 0, 2) }}</span>
                                     </div>
                                 </div>
                             </div>
 
-                            <div class="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                                <h3 class="text-sm font-semibold text-purple-800 mb-2">💳 Otros Pagos</h3>
-                                <div class="space-y-1 text-sm">
+                            <!-- Otros Métodos de Pago - DESGLOSADOS -->
+                            <div class="p-4 border border-purple-200 rounded-lg bg-purple-50">
+                                <h3 class="mb-3 text-sm font-semibold text-purple-800">💳 Otros Métodos de Pago</h3>
+                                
+                                <!-- Desglose de Tarjetas -->
+                                <div class="mb-3">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <span class="text-xs font-medium text-purple-700">💳 Tarjetas:</span>
+                                        <button class="text-xs text-purple-600 hover:text-purple-800"
+                                                x-data="{ show: false }"
+                                                @click="show = !show">
+                                            <span x-text="show ? 'Ocultar' : 'Ver detalles'"></span>
+                                        </button>
+                                    </div>
+
+                                    <div x-data="{ show: false }" class="space-y-1">
+                                        <div @click="show = !show" class="cursor-pointer">
+                                            <div class="flex justify-between p-2 text-xs bg-white border border-purple-100 rounded">
+                                                <span class="text-purple-700">Total Tarjetas:</span>
+                                                <div class="flex items-center">
+                                                    <span class="font-medium text-purple-800">L.{{ number_format($resumenTransacciones['tarjeta'] ?? 0, 2) }}</span>
+                                                    <svg class="w-3 h-3 ml-1 text-purple-600" :class="{ 'rotate-180': show }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                                    </svg>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div x-show="show" x-collapse>
+                                            <div class="ml-2 space-y-1">
+                                                @if(isset($desgloseTarjetas) && count($desgloseTarjetas) > 0)
+                                                    @foreach($desgloseTarjetas as $tarjeta)
+                                                        <div class="flex justify-between px-2 py-1 text-xs border-l-2 border-purple-300 rounded bg-purple-25">
+                                                            <span class="text-purple-600">{{ $tarjeta->metodo_pago ?? 'Tarjeta' }} ({{ $tarjeta->cantidad_transacciones ?? 1 }})</span>
+                                                            <span class="font-medium text-purple-700">L.{{ number_format($tarjeta->total_pagado ?? 0, 2) }}</span>
+                                                        </div>
+                                                    @endforeach
+                                                @else
+                                                    <div class="px-2 py-1 text-xs text-purple-600 border-l-2 border-purple-300 rounded bg-purple-25">
+                                                        No hay transacciones con tarjeta registradas
+                                                    </div>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Desglose de Transferencias -->
+                                <div class="mb-3">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <span class="text-xs font-medium text-purple-700">🏦 Transferencias:</span>
+                                        <button class="text-xs text-purple-600 hover:text-purple-800"
+                                                x-data="{ show: false }"
+                                                @click="show = !show">
+                                            <span x-text="show ? 'Ocultar' : 'Ver detalles'"></span>
+                                        </button>
+                                    </div>
+
+                                    <div x-data="{ show: false }" class="space-y-1">
+                                        <div @click="show = !show" class="cursor-pointer">
+                                            <div class="flex justify-between p-2 text-xs bg-white border border-purple-100 rounded">
+                                                <span class="text-purple-700">Total Transferencias:</span>
+                                                <div class="flex items-center">
+                                                    <span class="font-medium text-purple-800">L.{{ number_format($resumenTransacciones['transferencia'] ?? 0, 2) }}</span>
+                                                    <svg class="w-3 h-3 ml-1 text-purple-600" :class="{ 'rotate-180': show }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                                    </svg>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div x-show="show" x-collapse>
+                                            <div class="ml-2 space-y-1">
+                                                @if(isset($desgloseTransferencias) && count($desgloseTransferencias) > 0)
+                                                    @foreach($desgloseTransferencias as $transferencia)
+                                                        <div class="flex justify-between px-2 py-1 text-xs border-l-2 border-purple-300 rounded bg-purple-25">
+                                                            <span class="text-purple-600">{{ $transferencia->metodo_pago ?? 'Transferencia' }} ({{ $transferencia->cantidad_transacciones ?? 1 }})</span>
+                                                            <span class="font-medium text-purple-700">L.{{ number_format($transferencia->total_pagado ?? 0, 2) }}</span>
+                                                        </div>
+                                                    @endforeach
+                                                @else
+                                                    <div class="px-2 py-1 text-xs text-purple-600 border-l-2 border-purple-300 rounded bg-purple-25">
+                                                        No hay transferencias registradas
+                                                    </div>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Desglose de Cheques -->
+                                <div class="mb-3">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <span class="text-xs font-medium text-purple-700">🏦 Cheques:</span>
+                                        <button class="text-xs text-purple-600 hover:text-purple-800"
+                                                x-data="{ show: false }"
+                                                @click="show = !show">
+                                            <span x-text="show ? 'Ocultar' : 'Ver detalles'"></span>
+                                        </button>
+                                    </div>
+
+                                    <div x-data="{ show: false }" class="space-y-1">
+                                        <div @click="show = !show" class="cursor-pointer">
+                                            <div class="flex justify-between p-2 text-xs bg-white border border-purple-100 rounded">
+                                                <span class="text-purple-700">Total Cheques:</span>
+                                                <div class="flex items-center">
+                                                    <span class="font-medium text-purple-800">L.{{ number_format($resumenTransacciones['cheque'] ?? 0, 2) }}</span>
+                                                    <svg class="w-3 h-3 ml-1 text-purple-600" :class="{ 'rotate-180': show }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                                    </svg>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div x-show="show" x-collapse>
+                                            <div class="ml-2 space-y-1">
+                                                @if(isset($desgloseCheques) && count($desgloseCheques) > 0)
+                                                    @foreach($desgloseCheques as $cheque)
+                                                        <div class="flex justify-between px-2 py-1 text-xs border-l-2 border-purple-300 rounded bg-purple-25">
+                                                            <span class="text-purple-600">{{ $cheque->metodo_pago ?? 'Cheque' }} ({{ $cheque->cantidad_transacciones ?? 1 }})</span>
+                                                            <span class="font-medium text-purple-700">L.{{ number_format($cheque->total_pagado ?? 0, 2) }}</span>
+                                                        </div>
+                                                    @endforeach
+                                                @else
+                                                    <div class="px-2 py-1 text-xs text-purple-600 border-l-2 border-purple-300 rounded bg-purple-25">
+                                                        No hay cheques registrados
+                                                    </div>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Resumen de Otros Pagos -->
+                                <div class="space-y-1 text-sm border-t border-purple-200 pt-2">
                                     <div class="flex justify-between">
                                         <span class="text-purple-700">Tarjetas:</span>
                                         <span class="font-medium">L.{{ number_format($resumenTransacciones['tarjeta'] ?? 0, 2) }}</span>
                                     </div>
                                     <div class="flex justify-between">
+                                        <span class="text-purple-700">Transferencias:</span>
+                                        <span class="font-medium">L.{{ number_format($resumenTransacciones['transferencia'] ?? 0, 2) }}</span>
+                                    </div>
+                                    <div class="flex justify-between">
                                         <span class="text-purple-700">Cheques:</span>
                                         <span class="font-medium">L.{{ number_format($resumenTransacciones['cheque'] ?? 0, 2) }}</span>
+                                    </div>
+                                    <div class="flex justify-between pt-1 border-t">
+                                        <span class="font-semibold text-purple-800">Total Otros:</span>
+                                        <span class="font-bold">L.{{ number_format(($resumenTransacciones['tarjeta'] ?? 0) + ($resumenTransacciones['transferencia'] ?? 0) + ($resumenTransacciones['cheque'] ?? 0), 2) }}</span>
                                     </div>
                                 </div>
                             </div>
@@ -140,20 +332,20 @@
                     </div>
 
                     <!-- Comparación -->
-                    <div class="bg-white rounded-2xl shadow-lg border border-gray-200 p-6">
-                        <h2 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                            <svg class="w-5 h-5 text-orange-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="p-6 bg-white border border-gray-200 shadow-lg rounded-2xl">
+                        <h2 class="flex items-center mb-4 text-lg font-semibold text-gray-800">
+                            <svg class="w-5 h-5 mr-2 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
                             </svg>
                             Comparación
                         </h2>
 
                         <div class="space-y-3">
-                            <div class="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
+                            <div class="flex items-center justify-between p-3 rounded-lg bg-blue-50">
                                 <span class="text-sm font-medium text-blue-800">Sistema:</span>
                                 <span class="text-lg font-bold text-blue-600">L.{{ number_format($totalSistema, 2) }}</span>
                             </div>
-                            <div class="flex justify-between items-center p-3 bg-green-50 rounded-lg">
+                            <div class="flex items-center justify-between p-3 rounded-lg bg-green-50">
                                 <span class="text-sm font-medium text-green-800">Contado:</span>
                                 <span class="text-lg font-bold text-green-600">L.{{ number_format($totalContado, 2) }}</span>
                             </div>
@@ -169,22 +361,22 @@
 
                 <!-- Conteo de Billetes y Monedas -->
                 <div class="xl:col-span-2">
-                    <div class="bg-white rounded-2xl shadow-lg border border-gray-200 p-6">
-                        <h2 class="text-lg font-semibold text-gray-800 mb-6 flex items-center">
-                            <svg class="w-5 h-5 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="p-6 bg-white border border-gray-200 shadow-lg rounded-2xl">
+                        <h2 class="flex items-center mb-6 text-lg font-semibold text-gray-800">
+                            <svg class="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
                             </svg>
                             Conteo de Efectivo
                         </h2>
 
-                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
                             <!-- Billetes -->
                             <div class="space-y-4">
-                                <h3 class="text-lg font-semibold text-gray-700 flex items-center">
-                                    <span class="text-2xl mr-2">💵</span>
+                                <h3 class="flex items-center text-lg font-semibold text-gray-700">
+                                    <span class="mr-2 text-2xl">💵</span>
                                     Billetes
                                 </h3>
-                                
+
                                 @php
                                     $billetes = [
                                         ['value' => 500, 'label' => 'L.500', 'model' => 'billetes_500'],
@@ -200,18 +392,19 @@
                                 @endphp
 
                                 @foreach($billetes as $billete)
-                                    <div class="flex items-center space-x-3 p-3 bg-green-50 rounded-lg">
+                                    <div class="flex items-center p-3 space-x-3 rounded-lg bg-green-50">
                                         <div class="w-16 text-sm font-semibold text-green-800">{{ $billete['label'] }}</div>
                                         <div class="text-gray-600">×</div>
-                                        <input wire:model.live="{{ $billete['model'] }}" 
-                                               type="number" 
-                                               min="0" 
+                                        <input wire:model.live="{{ $billete['model'] }}"
+                                               type="number"
+                                               min="0"
+                                               value="{{ $this->{$billete['model']} ?? 0 }}"
                                                placeholder="0"
                                                @if($cierreProcesado) disabled @endif
                                                class="w-20 px-3 py-2 border border-gray-300 rounded-lg text-center font-semibold {{ $cierreProcesado ? 'bg-gray-100' : 'focus:ring-2 focus:ring-green-500 focus:border-green-500' }}">
                                         <div class="text-gray-600">=</div>
                                         <div class="text-right font-bold text-green-600 min-w-[80px]">
-                                            L.{{ number_format($this->{$billete['model']} * $billete['value'], 2) }}
+                                            L.{{ number_format(is_numeric($this->{$billete['model']}) ? ($this->{$billete['model']} * $billete['value']) : 0, 2) }}
                                         </div>
                                     </div>
                                 @endforeach
@@ -219,8 +412,8 @@
 
                             <!-- Monedas -->
                             <div class="space-y-4">
-                                <h3 class="text-lg font-semibold text-gray-700 flex items-center">
-                                    <span class="text-2xl mr-2">🪙</span>
+                                <h3 class="flex items-center text-lg font-semibold text-gray-700">
+                                    <span class="mr-2 text-2xl">🪙</span>
                                     Monedas
                                 </h3>
 
@@ -236,18 +429,19 @@
                                 @endphp
 
                                 @foreach($monedas as $moneda)
-                                    <div class="flex items-center space-x-3 p-3 bg-yellow-50 rounded-lg">
+                                    <div class="flex items-center p-3 space-x-3 rounded-lg bg-yellow-50">
                                         <div class="w-16 text-sm font-semibold text-yellow-800">{{ $moneda['label'] }}</div>
                                         <div class="text-gray-600">×</div>
-                                        <input wire:model.live="{{ $moneda['model'] }}" 
-                                               type="number" 
-                                               min="0" 
+                                        <input wire:model.live="{{ $moneda['model'] }}"
+                                               type="number"
+                                               min="0"
+                                               value="{{ $this->{$moneda['model']} ?? 0 }}"
                                                placeholder="0"
                                                @if($cierreProcesado) disabled @endif
                                                class="w-20 px-3 py-2 border border-gray-300 rounded-lg text-center font-semibold {{ $cierreProcesado ? 'bg-gray-100' : 'focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500' }}">
                                         <div class="text-gray-600">=</div>
                                         <div class="text-right font-bold text-yellow-600 min-w-[80px]">
-                                            L.{{ number_format($this->{$moneda['model']} * $moneda['value'], 2) }}
+                                            L.{{ number_format(is_numeric($this->{$moneda['model']}) ? ($this->{$moneda['model']} * $moneda['value']) : 0, 2) }}
                                         </div>
                                     </div>
                                 @endforeach
@@ -263,9 +457,9 @@
 
                         <!-- Botón de Cierre -->
                         @if(!$cierreProcesado)
-                            <div class="mt-8 pt-6 border-t border-gray-200">
-                                <button wire:click="procesarCierre" 
-                                        class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 px-6 rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2">
+                            <div class="pt-6 mt-8 border-t border-gray-200">
+                                <button wire:click="procesarCierre"
+                                        class="flex items-center justify-center w-full px-6 py-4 space-x-2 font-bold text-white transition-colors duration-200 bg-purple-600 rounded-lg hover:bg-purple-700">
                                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                     </svg>
@@ -273,8 +467,8 @@
                                 </button>
                             </div>
                         @else
-                            <div class="mt-8 pt-6 border-t border-gray-200 text-center">
-                                <div class="bg-green-100 text-green-800 font-semibold py-3 px-6 rounded-lg inline-flex items-center space-x-2">
+                            <div class="pt-6 mt-8 text-center border-t border-gray-200">
+                                <div class="inline-flex items-center px-6 py-3 space-x-2 font-semibold text-green-800 bg-green-100 rounded-lg">
                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                     </svg>

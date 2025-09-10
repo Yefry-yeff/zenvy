@@ -81,6 +81,53 @@
                     </div>
                 </div>
 
+                <!-- Imagen del Producto -->
+                <div class="p-4">
+                    <div class="p-4 bg-white border shadow rounded-xl">
+                        <h2 class="mb-4 text-lg font-semibold text-gray-700">📷 Imagen del Producto</h2>
+                        <div class="row">
+                            <div class="mb-3 col-md-6">
+                                <label for="imagen" class="form-label">Seleccionar imagen</label>
+                                <input type="file" 
+                                       id="imagen" 
+                                       class="form-control" 
+                                       wire:model="imagen"
+                                       accept="image/*">
+                                <div wire:loading wire:target="imagen" class="mt-1 text-sm text-info">
+                                    📤 Subiendo imagen...
+                                </div>
+                                @error('imagen') 
+                                    <div class="mt-1 text-sm text-danger">{{ $message }}</div> 
+                                @enderror
+                                <small class="text-muted">Formatos permitidos: JPG, PNG, GIF. Tamaño máximo: 5MB</small>
+                            </div>
+                            <div class="mb-3 col-md-6">
+                                <label class="form-label">Vista previa</label>
+                                <div class="border rounded p-3 text-center" style="min-height: 150px; display: flex; align-items: center; justify-content: center;">
+                                    @if($this->getImagenMiniatura())
+                                        <div class="position-relative">
+                                            <img src="{{ $this->getImagenMiniatura() }}" 
+                                                 alt="Vista previa" 
+                                                 class="img-fluid rounded"
+                                                 style="max-height: 120px; max-width: 100%; object-fit: cover;">
+                                            <button type="button" 
+                                                    wire:click="removerImagen"
+                                                    class="btn btn-danger btn-sm position-absolute top-0 end-0 rounded-circle"
+                                                    style="width: 25px; height: 25px; font-size: 12px; line-height: 1;"
+                                                    title="Remover imagen">×</button>
+                                        </div>
+                                    @else
+                                        <div class="text-muted">
+                                            <i class="fas fa-image fa-2x mb-2"></i><br>
+                                            <small>No hay imagen seleccionada</small>
+                                        </div>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Categorización -->
                 <div class="p-4">
                     <div class="p-4 bg-white border shadow rounded-xl">

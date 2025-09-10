@@ -33,13 +33,13 @@ class Usuarios extends Component
     public function irADetalle($id)
     {
         session(['usuario_editar_id' => $id]);
-        $this->dispatch('cambiarVista', 'Configuracion.usuariosform');
+        $this->dispatch('cambiarVista', 'Configuracion.Usuariosform');
     }
 
     public function editar($id)
     {
         session(['usuario_editar_id' => $id]);
-        $this->dispatch('cambiarVista', 'Configuracion.usuariosform');
+        $this->dispatch('cambiarVista', 'Configuracion.Usuariosform');
     }
 
     public function render()

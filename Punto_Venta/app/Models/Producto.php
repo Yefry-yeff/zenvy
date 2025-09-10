@@ -28,7 +28,8 @@ class Producto extends Model
         'subcategoria_id',
         'marca_id',
         'unidad_medida_venta_id',
-        'users_id'
+        'users_id',
+        'imagen'
     ];
 
     // Relationships
@@ -50,6 +51,11 @@ class Producto extends Model
     public function isv()
     {
         return $this->belongsTo(Isv::class, 'isv_id');
+    }
+
+    public function estado()
+    {
+        return $this->belongsTo(Estado::class, 'estado_id');
     }
 
     // Relación con compras
@@ -100,7 +106,7 @@ class Producto extends Model
     public static function crearProducto($datos)
     {
         try {
-            return DB::statement('CALL sp_crud_producto(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
+            return DB::statement('CALL sp_crud_producto(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
                 1, // Acción: crear
                 null, // ID (se genera automáticamente)
                 $datos['nombre'] ?? '',
@@ -122,7 +128,8 @@ class Producto extends Model
                 $datos['users_id'] ?? null,
                 $datos['descuento_unitario'] ?? 0,
                 $datos['descuento_tercera'] ?? 0, // SP normaliza a 0/1 automáticamente
-                $datos['descuento_cuarta'] ?? 0   // SP normaliza a 0/1 automáticamente
+                $datos['descuento_cuarta'] ?? 0,   // SP normaliza a 0/1 automáticamente
+                $datos['imagen'] ?? null // Nuevo parámetro imagen
             ]);
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error('Error en crearProducto: ' . $e->getMessage(), ['datos' => $datos]);
@@ -133,7 +140,7 @@ class Producto extends Model
     public static function actualizarProducto($id, $datos)
     {
         try {
-            return DB::statement('CALL sp_crud_producto(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
+            return DB::statement('CALL sp_crud_producto(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
                 2, // Acción: actualizar
                 $id,
                 $datos['nombre'] ?? '',
@@ -155,7 +162,8 @@ class Producto extends Model
                 $datos['users_id'] ?? null,
                 $datos['descuento_unitario'] ?? 0,
                 $datos['descuento_tercera'] ?? 0, // SP normaliza a 0/1 automáticamente
-                $datos['descuento_cuarta'] ?? 0   // SP normaliza a 0/1 automáticamente
+                $datos['descuento_cuarta'] ?? 0,   // SP normaliza a 0/1 automáticamente
+                $datos['imagen'] ?? null // Nuevo parámetro imagen
             ]);
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error('Error en actualizarProducto: ' . $e->getMessage(), ['id' => $id, 'datos' => $datos]);
@@ -165,19 +173,19 @@ class Producto extends Model
 
     public static function eliminarProducto($id)
     {
-        return DB::statement('CALL sp_crud_producto(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
+        return DB::statement('CALL sp_crud_producto(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
             3, // Acción: eliminar
             $id,
-            null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null
+            null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null
         ]);
     }
 
     public static function consultarDetallado($id)
     {
-        return DB::select('CALL sp_crud_producto(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
+        return DB::select('CALL sp_crud_producto(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
             4, // Acción: consultar detallado
             $id,
-            null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null
+            null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null
         ]);
     }
 }

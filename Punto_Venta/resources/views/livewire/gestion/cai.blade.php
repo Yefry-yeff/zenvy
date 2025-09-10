@@ -1,4 +1,24 @@
 <div>
+    <style>
+        /* Estilos para tabla CAI */
+        .cai-row-active {
+            background-color: rgba(34, 197, 94, 0.05) !important;
+        }
+        .cai-row-inactive {
+            background-color: rgba(239, 68, 68, 0.05) !important;
+            opacity: 0.7;
+        }
+        .badge-active {
+            background-color: #22c55e !important;
+            color: white;
+            font-weight: 600;
+        }
+        .badge-inactive {
+            background-color: #ef4444 !important;
+            color: white;
+            font-weight: 600;
+        }
+    </style>
 
     @if (session()->has('mensaje'))
     <div x-data="{ show: true }" x-init="$nextTick(() => show = true)"
@@ -8,8 +28,8 @@
     >
         <div class="modal fade show d-block" tabindex="-1" role="dialog" @click.away="show = false">
             <div class="modal-dialog modal-dialog-centered" @click.stop>
-                <div class="modal-content border-success shadow">
-                    <div class="modal-header bg-success text-white">
+                <div class="shadow modal-content border-success">
+                    <div class="text-white modal-header bg-success">
                         <h5 class="modal-title">Éxito</h5>
                         <button type="button" class="btn-close" @click="show = false"></button>
                     </div>
@@ -61,55 +81,42 @@
                             <th>Estado</th>
                             <th>Registro</th>
                             <th>Ult. Modificación</th>
-                            <th >Acciones</th>
                         </tr>
                     </thead>
 
                     <tbody>
                         @forelse($cai as $item)
-                            <tr class="text-center align-middle hover:bg-gray-50">
-                                <td class="fw-semibold cursor-pointer" wire:click="editar({{ $item->id }})">{{ $item->id }}</td>
-                                <td class="text-start cursor-pointer" wire:click="editar({{ $item->id }})">{{ $item->tipo_documento_fiscal }}</td>
-                                <td class="text-start cursor-pointer" wire:click="editar({{ $item->id }})">{{ $item->denominacion_social }}</td>
-                                <td class="text-start cursor-pointer" wire:click="editar({{ $item->id }})">{{ $item->cai }}</td>
-                                <td class="text-start cursor-pointer" wire:click="editar({{ $item->id }})">{{ $item->rango_inicio }}</td>
-                                <td class="text-start cursor-pointer" wire:click="editar({{ $item->id }})">{{ $item->rango_final }}</td>
-                                <td class="text-start cursor-pointer" wire:click="editar({{ $item->id }})">{{ $item->fecha_limite_emision }}</td>
-                                <td class="text-start cursor-pointer" wire:click="editar({{ $item->id }})">{{ $item->fecha_solicitud }}</td>
-                                <td class="text-start cursor-pointer" wire:click="editar({{ $item->id }})">{{ $item->punto_emision }}</td>
-                                <td class="text-start cursor-pointer" wire:click="editar({{ $item->id }})">{{ $item->cantidad_solicitada }}</td>
-                                <td class="text-start cursor-pointer" wire:click="editar({{ $item->id }})">{{ $item->cantidad_otorgada }}</td>
-                                <td class="text-start cursor-pointer" wire:click="editar({{ $item->id }})">{{ $item->users_registro }}</td>
-                                <td class="text-start cursor-pointer" wire:click="editar({{ $item->id }})">
-                                    <span class="badge {{ $item->estado_id == 1 ? 'bg-success' : 'bg-danger' }}">
+                            <tr class="text-center align-middle hover:bg-gray-50 {{ $item->estado_id == 1 ? 'cai-row-active' : 'cai-row-inactive' }}">
+                                <td class="fw-semibold">{{ $item->id }}</td>
+                                <td class="text-start">{{ $item->tipo_documento_fiscal }}</td>
+                                <td class="text-start">{{ $item->denominacion_social }}</td>
+                                <td class="text-start">{{ $item->cai }}</td>
+                                <td class="text-start">{{ $item->rango_inicio }}</td>
+                                <td class="text-start">{{ $item->rango_final }}</td>
+                                <td class="text-start">{{ $item->fecha_limite_emision }}</td>
+                                <td class="text-start">{{ $item->fecha_solicitud }}</td>
+                                <td class="text-start">{{ $item->punto_emision }}</td>
+                                <td class="text-start">{{ $item->cantidad_solicitada }}</td>
+                                <td class="text-start">{{ $item->cantidad_otorgada }}</td>
+                                <td class="text-start">{{ $item->users_registro }}</td>
+                                <td class="text-start">
+                                    <span class="badge {{ $item->estado_id == 1 ? 'badge-active' : 'badge-inactive' }}">
                                         {{ $item->estado_id == 1 ? 'Activo' : 'Inactivo' }}
                                     </span>
                                 </td>
 
-                                <td class="text-start cursor-pointer" wire:click="editar({{ $item->id }})">{{ $item->created_at }}</td>
-                                <td class="text-start cursor-pointer" wire:click="editar({{ $item->id }})">{{ $item->updated_at }}</td>
-                                <td>
-                                    <button type="button" class="btn btn-link p-0" wire:click="confirmarEliminar({{ $item->id }})" title="Eliminar" onclick="event.stopPropagation();">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 7v12a2 2 0 002 2h8a2 2 0 002-2V7M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2m-7 0h10" style="color:#e3342f;" />
-                                            <line x1="10" y1="11" x2="10" y2="17" stroke="#e3342f" stroke-width="2"/>
-                                            <line x1="14" y1="11" x2="14" y2="17" stroke="#e3342f" stroke-width="2"/>
-                                        </svg>
-                                    </button>
-                                </td>
+                                <td class="text-start">{{ $item->created_at }}</td>
+                                <td class="text-start">{{ $item->updated_at }}</td>
                             </tr>
                         @empty
                             <tr>
-                                 <td colspan="16" class="text-center">No hay registros disponibles.</td>
+                                 <td colspan="14" class="text-center">No hay registros disponibles.</td>
                             </tr>
                         @endforelse
 
                     </tbody>
                 </table>
             </div>
-                <div class="mt-3">
-                    {{ $cai->links() }}
-                </div>
         </div>
 
     </div>
@@ -143,7 +150,7 @@
                                     <label for="nuevoCai" class="form-label">CAI</label>
                                     <input type="text" id="nuevoCai" class="form-control" wire:model.defer="nuevoCai"  title="El CAI debe tener el formato ####-####-####-####-####-####" maxlength="39">
                                     @error('nuevoCai')
-                                        <div class="text-danger mt-1 text-sm">{{ $message }}</div>
+                                        <div class="mt-1 text-sm text-danger">{{ $message }}</div>
                                     @enderror
                                 </div>
 
@@ -151,7 +158,7 @@
                                     <label for="nuevoFechaLimite" class="form-label">Fecha límite</label>
                                     <input type="date" id="nuevoFechaLimite" class="form-control" wire:model.defer="nuevoFechaLimite" title="Debe seleccionar una fecha límite de vigencia de este CAI.">
                                     @error('nuevoFechaLimite')
-                                        <div class="text-danger mt-1 text-sm">{{ $message }}</div>
+                                        <div class="mt-1 text-sm text-danger">{{ $message }}</div>
                                     @enderror
                                 </div>
 
@@ -160,7 +167,7 @@
                                     <label for="nuevoFechaSolicitud" class="form-label">Fecha de Solicitud</label>
                                     <input type="date" id="nuevoFechaSolicitud" class="form-control" wire:model.defer="nuevoFechaSolicitud" title="Debe seleccionar una fecha límite de vigencia de este CAI.">
                                     @error('nuevoFechaSolicitud')
-                                        <div class="text-danger mt-1 text-sm">{{ $message }}</div>
+                                        <div class="mt-1 text-sm text-danger">{{ $message }}</div>
                                     @enderror
                                 </div>
 
@@ -169,7 +176,7 @@
                                     <label for="nuevoPuntoEmision" class="form-label">Punto de Emisión</label>
                                     <input type="text" id="nuevoPuntoEmision" class="form-control" wire:model.defer="nuevoPuntoEmision" title="Debe seleccionar una fecha límite de vigencia de este CAI.">
                                     @error('nuevoPuntoEmision')
-                                        <div class="text-danger mt-1 text-sm">{{ $message }}</div>
+                                        <div class="mt-1 text-sm text-danger">{{ $message }}</div>
                                     @enderror
                                 </div>
 
@@ -182,7 +189,7 @@
                                         @endforeach
                                     </select>
                                     @error('tipoDocumentoSeleccionado')
-                                        <div class="text-danger mt-1 text-sm">{{ $message }}</div>
+                                        <div class="mt-1 text-sm text-danger">{{ $message }}</div>
                                     @enderror
                                 </div>
 
@@ -227,7 +234,7 @@
 
                                     <input type="text"
                                         placeholder="Buscar..."
-                                        class="form-control mb-1"
+                                        class="mb-1 form-control"
                                         x-model="search"
                                         @focus="open = true; clearSearch()"
                                         @input="open = true"
@@ -243,7 +250,7 @@
                                     </ul>
 
                                     @error('tiendaSeleccionado')
-                                        <div class="text-danger mt-1 text-sm">{{ $message }}</div>
+                                        <div class="mt-1 text-sm text-danger">{{ $message }}</div>
                                     @enderror
                                 </div>
 
@@ -251,7 +258,7 @@
                                     <label for="nuevoCantidadSolicitada" class="form-label">Cantidad Solicitada</label>
                                     <input type="number" id="nuevoCantidadSolicitada" step="1" min="0" oninput="this.value = this.value.replace(/[^0-9]/g, '')" class="form-control" wire:model.defer="nuevoCantidadSolicitada" title="Debe ingresar un numero entero.">
                                     @error('nuevoCantidadSolicitada')
-                                        <div class="text-danger mt-1 text-sm">{{ $message }}</div>
+                                        <div class="mt-1 text-sm text-danger">{{ $message }}</div>
                                     @enderror
                                 </div>
 
@@ -259,7 +266,7 @@
                                     <label for="nuevoCantidadOtorgada" class="form-label">Cantidad Otorgada</label>
                                     <input type="number" id="nuevoCantidadOtorgada" step="1" min="0" oninput="this.value = this.value.replace(/[^0-9]/g, '')" class="form-control" wire:model.defer="nuevoCantidadOtorgada" title="Debe ingresar un numero entero.">
                                     @error('nuevoCantidadOtorgada')
-                                        <div class="text-danger mt-1 text-sm">{{ $message }}</div>
+                                        <div class="mt-1 text-sm text-danger">{{ $message }}</div>
                                     @enderror
                                 </div>
 
@@ -267,7 +274,7 @@
                                     <label for="nuevoRangoInicial" class="form-label">Rango Inicial</label>
                                     <input type="text" id="nuevoRangoInicial" step="1" class="form-control" wire:model.defer="nuevoRangoInicial" title="Debe contener el formato correcto.">
                                     @error('nuevoRangoInicial')
-                                        <div class="text-danger mt-1 text-sm">{{ $message }}</div>
+                                        <div class="mt-1 text-sm text-danger">{{ $message }}</div>
                                     @enderror
                                 </div>
 
@@ -275,7 +282,7 @@
                                     <label for="nuevoRangoFinal" class="form-label">Rando Final</label>
                                     <input type="text" id="nuevoRangoFinal" class="form-control" wire:model.defer="nuevoRangoFinal" title="Debe contener el formato correcto.">
                                     @error('nuevoRangoFinal')
-                                        <div class="text-danger mt-1 text-sm">{{ $message }}</div>
+                                        <div class="mt-1 text-sm text-danger">{{ $message }}</div>
                                     @enderror
                                 </div>
 
@@ -335,7 +342,7 @@
                                 <input type="text" id="marcaNombre" class="form-control"
                                        wire:model.defer="form.nombre">
                                 @error('form.nombre')
-                                    <div class="text-danger mt-1 text-sm">{{ $message }}</div>
+                                    <div class="mt-1 text-sm text-danger">{{ $message }}</div>
                                 @enderror
                             </div>
                             <div class="flex justify-end mt-4">
@@ -370,7 +377,7 @@
         >
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content">
-                    <div class="modal-header bg-danger text-white">
+                    <div class="text-white modal-header bg-danger">
                         <h5 class="modal-title">¿Eliminar marca?</h5>
                     </div>
                     <div class="modal-body">

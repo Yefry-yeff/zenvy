@@ -5,9 +5,13 @@ namespace App\Livewire\SalaDeVentas;
 use Livewire\Component;
 use App\Models\Cliente;
 use App\Models\Producto;
+use App\Models\Servicio;
 use App\Models\TipoPago;
+use App\Models\TipoPersona;
+use App\Models\TipoCliente;
 use App\Models\Factura;
 use App\Models\Bodega;
+use App\Models\Descuento;
 use App\Models\DescuentoAdulto;
 use App\Services\CAIService;
 use Livewire\Attributes\On;
@@ -25,24 +29,76 @@ class Ventas extends Component
     public $busquedaCliente = '';
     public $clientesModal;
 
+    // Cliente manual - campos editables
+    public $rtnManual = '';
+    public $nombreCompletoManual = '';
+    public $telefonoManual = '';
+    public $correoManual = '';
+    public $direccionManual = '';
+    public $modoClienteManual = false;
+
+    // Propiedades adicionales para cliente manual (para compatibilidad con el blade)
+    public $nombreClienteManual = '';
+    public $correoClienteManual = '';
+    public $telefonoClienteManual = '';
+    public $direccionClienteManual = '';
+    public $tipoPersonaId = 1; // Nueva propiedad para tipo de persona
+    public $tipoClienteId = 1; // Nueva propiedad para tipo de cliente
+
+    // Datos para los selectores
+    public $tiposPersona = [];
+    public $tiposCliente = [];
+
+    // Control de estado de campos
+    public $camposBloqueados = false;
+
     // Búsqueda de productos
     public $codigoBarras = '';
     public $cantidad = 1;
 
+    // Setter para asegurar que cantidad siempre sea un entero válido
+    public function updatedCantidad($value)
+    {
+        $this->cantidad = $this->normalizarCantidad($value);
+    }
+
+    /**
+     * Normaliza la cantidad para asegurar que sea un entero positivo válido
+     * 
+     * @param mixed $cantidad La cantidad a normalizar
+     * @return int La cantidad normalizada como entero
+     */
+    private function normalizarCantidad($cantidad)
+    {
+        $cantidadInt = (int)$cantidad;
+        return $cantidadInt > 0 ? $cantidadInt : 1;
+    }
+
     // Productos en la factura
     public $productosFactura = [];
 
+    // Productos y Servicios para selección visual
+    public $productos = [];
+    public $servicios = [];
+    public $busquedaProductosServicios = '';
+    public $mostrarProductosServicios = false; // Panel unificado
+    public $tipoSeleccion = 'todos'; // 'productos', 'servicios', 'todos'
+
     // Totales
     public $subtotal = 0;
+    public $subtotalBruto = 0; // Suma de cantidad * precio unitario (sin descuentos)
     public $isv = 15; // Porcentaje de ISV
     public $totalIsv = 0;
     public $total = 0;
     public $isvPorTasa = []; // Nuevo: ISV agrupado por tasa
-    
+
     // Descuentos por edad
     public $descuentoTerceraEdad = false;
     public $descuentoCuartaEdad = false;
     public $totalDescuentos = 0;
+
+    // Descuentos guardados en BD (para mostrar en facturas guardadas)
+    public $descuentosGuardados = [];
 
     // Variables para procesamiento de pagos
     public $mostrarModalPagoFlag = false;
@@ -88,6 +144,15 @@ class Ventas extends Component
     public $edadAdulto = null;
     public $datosDescuentoAdulto = []; // Para mantener en memoria
 
+    // Modal y datos de descuento por producto
+    public $modalDescuentoProductoVisible = false;
+
+    // Control de visibilidad del catálogo visual basado en permisos de menú
+    public $mostrarCatalogoVisual = true;
+    public $indiceProductoSeleccionado = null;
+    public $productoSeleccionadoDescuento = null;
+    public $porcentajeDescuentoProducto = 0;
+
     public function mount()
     {
         $this->clientesModal = collect(); // Inicializar como colección vacía
@@ -104,8 +169,72 @@ class Ventas extends Component
                                           ->first();
         }
 
+        // Activar modo cliente manual directamente sin modal
+        $this->modoClienteManual = true;
+        $this->limpiarCamposManual();
+
         $this->cargarTiposPago();
+        $this->cargarTiposPersonaYCliente(); // Nueva función
         $this->verificarCAI();
+        // Cargar productos y servicios para la interfaz unificada
+        $this->cargarProductosYServicios();
+
+        // Verificar si el menú de servicios está activo para mostrar el catálogo visual
+        $this->verificarEstadoMenuServicios();
+
+        // Cargar descuentos guardados si hay una factura específica
+        $this->cargarDescuentosGuardados();
+    }
+
+    /**
+     * Función para depurar productos con descuento unitario
+     */
+    public function verificarProductosConDescuento()
+    {
+        $productos = DB::table('producto')
+            ->where('descuento_unitario', '>', 0)
+            ->where('estado_id', 1)
+            ->get();
+
+        Log::info("Productos con descuento unitario en BD", [
+            'cantidad' => $productos->count(),
+            'productos' => $productos->toArray()
+        ]);
+
+        session()->flash('info', 'Verificación completada. Revisa los logs.');
+    }
+
+    /**
+     * Nuevo método para cargar tipos de persona y cliente
+     */
+    public function cargarTiposPersonaYCliente()
+    {
+        try {
+            // Cargar tipos de persona desde la base de datos
+            $this->tiposPersona = TipoPersona::select('id', 'nombre')->get();
+
+            // Cargar tipos de cliente desde la base de datos
+            $this->tiposCliente = TipoCliente::select('id', 'nombre')->get();
+
+        } catch (Exception $e) {
+            Log::error('Error al cargar tipos de persona y cliente: ' . $e->getMessage());
+            // Valores por defecto si hay error
+            $this->tiposPersona = collect([]);
+            $this->tiposCliente = collect([]);
+        }
+    }
+
+    /**
+     * Cargar descuentos guardados de la base de datos para una factura específica
+     */
+    public function cargarDescuentosGuardados($facturaId = null)
+    {
+        if ($facturaId) {
+            $descuentos = Descuento::where('factura_id', $facturaId)->get();
+            $this->descuentosGuardados = $descuentos->keyBy('producto_id')->toArray();
+        } else {
+            $this->descuentosGuardados = [];
+        }
     }
 
     public function verificarCAI()
@@ -119,18 +248,27 @@ class Ventas extends Component
                 Log::info("CAIs vencidos desactivados: $caisDesactivados");
             }
 
-            // Verificar disponibilidad
-            if (!$caiService->verificarDisponibilidadCAI()) {
-                $this->alertaCAI = "¡CRÍTICO! No hay CAI activos disponibles para facturar. Contacte al administrador.";
-            } else {
-                // Obtener información de CAIs
-                $this->informacionCAI = $caiService->obtenerInformacionCAIs();
+            // Verificar disponibilidad específica para la tienda del usuario
+            $validacionTienda = $caiService->validarCAIParaTienda($this->tiendaUsuario);
 
-                // Verificar si algún CAI está por agotarse
-                foreach ($this->informacionCAI as $cai) {
-                    if ($cai->cantidad_no_utilizada <= 10 && $cai->cantidad_no_utilizada > 0) {
-                        $this->alertaCAI = "¡AVISO! El CAI {$cai->numero_base} tiene solo {$cai->cantidad_no_utilizada} facturas restantes.";
-                        break;
+            if (!$validacionTienda['valido']) {
+                $this->alertaCAI = "¡CRÍTICO! " . $validacionTienda['mensaje'] . " - " . $validacionTienda['detalle'];
+                $this->caiActual = null;
+            } else {
+                // Verificar disponibilidad general (método anterior como respaldo)
+                if (!$caiService->verificarDisponibilidadCAI($this->tiendaUsuario)) {
+                    $this->alertaCAI = "¡CRÍTICO! No hay CAI activos disponibles para facturar en su tienda. Contacte al administrador.";
+                    $this->caiActual = null;
+                } else {
+                    // Obtener información de CAIs de la tienda
+                    $this->informacionCAI = $caiService->obtenerInformacionCAIs();
+                    $this->caiActual = $validacionTienda['cai_info'];
+
+                    // Verificar si algún CAI está por agotarse
+                    if ($validacionTienda['cai_info']['cantidad_disponible'] <= 10) {
+                        $this->alertaCAI = "¡AVISO! Su CAI tiene solo {$validacionTienda['cai_info']['cantidad_disponible']} facturas restantes.";
+                    } else {
+                        $this->alertaCAI = null; // Todo está bien
                     }
                 }
             }
@@ -138,12 +276,155 @@ class Ventas extends Component
         } catch (\Exception $e) {
             Log::error("Error al verificar CAI: " . $e->getMessage());
             $this->alertaCAI = "Error al verificar CAI: " . $e->getMessage();
+            $this->caiActual = null;
         }
     }
 
     public function cargarTiposPago()
     {
         $this->tiposPago = TipoPago::all();
+    }
+
+    public function cargarServicios()
+    {
+        $this->servicios = Servicio::with(['isv', 'estado'])
+            ->select('id', 'nombre', 'descripcion', 'precio_base', 'estado_id', 'isv_id',
+                    'descuento_unitario', 'descuento_tercera', 'descuento_cuarta') // Excluir 'imagen'
+            ->where('estado_id', 1) // Solo servicios activos
+            ->when($this->busquedaProductosServicios, function ($query) {
+                $query->where('nombre', 'like', '%' . $this->busquedaProductosServicios . '%')
+                      ->orWhere('descripcion', 'like', '%' . $this->busquedaProductosServicios . '%');
+            })
+            ->orderBy('nombre')
+            ->get();
+    }
+
+    public function cargarProductos()
+    {
+        $this->productos = Producto::with(['isv', 'estado'])
+            ->select('id', 'nombre', 'descripcion', 'precio_base', 'estado_id', 'isv_id',
+                    'descuento_unitario', 'descuento_tercera', 'descuento_cuarta', 'codigo_barra') // Excluir 'imagen'
+            ->where('estado_id', 1) // Solo productos activos
+            ->when($this->busquedaProductosServicios, function ($query) {
+                $query->where('nombre', 'like', '%' . $this->busquedaProductosServicios . '%')
+                      ->orWhere('descripcion', 'like', '%' . $this->busquedaProductosServicios . '%')
+                      ->orWhere('codigo_barra', 'like', '%' . $this->busquedaProductosServicios . '%');
+            })
+            ->orderBy('nombre')
+            ->get();
+    }
+
+    public function cargarProductosYServicios()
+    {
+        if ($this->tipoSeleccion === 'productos' || $this->tipoSeleccion === 'todos') {
+            $this->cargarProductos();
+        }
+
+        if ($this->tipoSeleccion === 'servicios' || $this->tipoSeleccion === 'todos') {
+            $this->cargarServicios();
+        }
+    }
+
+    public function updatedBusquedaProductosServicios()
+    {
+        $this->cargarProductosYServicios();
+    }
+
+    public function updatedTipoSeleccion()
+    {
+        $this->cargarProductosYServicios();
+    }
+
+    /**
+     * Obtener la imagen de un servicio específico como base64
+     */
+    public function getServicioImagen($servicioId)
+    {
+        $servicio = Servicio::select('imagen')->find($servicioId);
+        return $servicio && $servicio->imagen ? base64_encode($servicio->imagen) : null;
+    }
+
+    /**
+     * Obtener la imagen de un producto específico como base64
+     */
+    public function getProductoImagen($productoId)
+    {
+        $producto = Producto::select('imagen')->find($productoId);
+        return $producto && $producto->imagen ? base64_encode($producto->imagen) : null;
+    }
+
+    public function agregarServicio($servicioId)
+    {
+        $servicio = Servicio::with('isv')->find($servicioId);
+
+        if (!$servicio) {
+            $this->dispatch('mostrar-error', ['mensaje' => 'Servicio no encontrado']);
+            return;
+        }
+
+        // Verificar si el servicio ya está en la factura
+        $servicioExistente = false;
+        foreach ($this->productosFactura as $index => $item) {
+            if (isset($item['servicio_id']) && $item['servicio_id'] == $servicio->id) {
+                // Aumentar la cantidad - Convertir a entero para evitar errores de tipos
+                $nuevaCantidad = (int)$this->productosFactura[$index]['cantidad'] + 1;
+                $this->productosFactura[$index]['cantidad'] = $nuevaCantidad;
+
+                // Recalcular el descuento unitario aplicado con la nueva cantidad
+                $descuentoUnitarioProducto = $item['descuento_unitario_producto'] ?? 0;
+                if ($descuentoUnitarioProducto > 0) {
+                    $this->productosFactura[$index]['descuento_unitario_aplicado'] = $descuentoUnitarioProducto * $nuevaCantidad;
+                }
+
+                // Recalcular subtotal con descuento para este item
+                $subtotalOriginal = $item['precio'] * $nuevaCantidad;
+                $descuentoUnitarioAplicado = $this->productosFactura[$index]['descuento_unitario_aplicado'] ?? 0;
+                $this->productosFactura[$index]['subtotal_con_descuento'] = $subtotalOriginal - $descuentoUnitarioAplicado;
+
+                $servicioExistente = true;
+                break;
+            }
+        }
+
+        if (!$servicioExistente) {
+            // Obtener el valor de ISV desde la relación
+            $valorIsv = $servicio->isv ? $servicio->isv->cantidad : 0;
+
+            // Calcular descuento unitario automático si existe
+            $subtotalOriginal = $servicio->precio_base;
+            $descuentoUnitarioAplicado = 0;
+
+            if (($servicio->descuento_unitario ?? 0) > 0) {
+                $descuentoUnitarioAplicado = $servicio->descuento_unitario;
+            }
+
+            $this->productosFactura[] = [
+                'servicio_id' => $servicio->id,
+                'id' => null, // NULL para diferenciarlo de productos
+                'nombre' => $servicio->nombre,
+                'codigo' => 'SRV-' . $servicio->id, // Código especial para servicios
+                'precio' => $servicio->precio_base,
+                'isv' => $valorIsv,
+                'cantidad' => 1, // Los servicios siempre cantidad 1 inicialmente
+                'descuento_tercera' => $servicio->descuento_tercera ?? 0,
+                'descuento_cuarta' => $servicio->descuento_cuarta ?? 0,
+                'descuento_unitario_producto' => $servicio->descuento_unitario ?? 0,
+                'descuento_unitario_aplicado' => $descuentoUnitarioAplicado,
+                'descuento_aplicado' => 0,
+                'subtotal_con_descuento' => $subtotalOriginal - $descuentoUnitarioAplicado,
+                'tipo' => 'servicio' // Identificador para diferenciar en la vista
+            ];
+
+            // Mostrar mensaje si se aplicó descuento automático
+            if (($servicio->descuento_unitario ?? 0) > 0) {
+                session()->flash('success', 'Servicio aplicado con descuento');
+            }
+        }
+
+        $this->calcularTotales();
+
+        // Forzar actualización de la vista
+        $this->dispatch('$refresh');
     }
 
     #[On('enfocar-codigo-barras')]
@@ -155,26 +436,226 @@ class Ventas extends Component
     public function buscarClientePorIdentidad($identidad)
     {
         $cliente = Cliente::select([
-                'cliente.*',
-                DB::raw("CONCAT_WS(', ',
-                    NULLIF(direccion.colonia, ''),
-                    NULLIF(direccion.calle_blv, ''),
-                    NULLIF(direccion.sector_zona, ''),
-                    NULLIF(direccion.bloque, '')
-                ) as direccion_completa")
+                'cliente.*'
             ])
-            ->leftJoin('direccion', 'cliente.direccion_id', '=', 'direccion.id')
-            ->where('cliente.identidad', $identidad)
+            ->where(function($q) use ($identidad) {
+                $q->where('cliente.identidad', $identidad)
+                  ->orWhere('cliente.rtn', $identidad);
+            })
             ->first();
 
         if ($cliente) {
             $this->cliente = $cliente;
+            $this->modoClienteManual = false;
+            $this->limpiarCamposManual();
             session()->forget('cliente_no_encontrado');
         } else {
             $this->cliente = null;
             session()->flash('cliente_no_encontrado', 'No existe un cliente con esa identidad.');
         }
         $this->dispatch('cerrar-modal-busqueda');
+    }
+
+    public function activarModoClienteManual()
+    {
+        $this->cliente = null;
+        $this->modoClienteManual = true;
+        $this->limpiarCamposManual();
+        $this->dispatch('cerrar-modal-busqueda');
+    }
+
+    public function limpiarCamposManual()
+    {
+        $this->rtnManual = '';
+        $this->nombreCompletoManual = '';
+        $this->telefonoManual = '';
+        $this->correoManual = '';
+        $this->direccionManual = '';
+
+        // También limpiar las propiedades adicionales
+        $this->nombreClienteManual = '';
+        $this->correoClienteManual = '';
+        $this->telefonoClienteManual = '';
+        $this->direccionClienteManual = '';
+        $this->tipoPersonaId = 1;
+        $this->tipoClienteId = 1;
+
+        // Desbloquear campos
+        $this->camposBloqueados = false;
+    }
+
+    public function limpiarDatosCliente()
+    {
+        $this->cliente = null;
+        $this->modoClienteManual = true;
+        $this->limpiarCamposManual();
+        session()->flash('success', 'Datos del cliente limpiados correctamente.');
+    }
+
+    public function desactivarModoClienteManual()
+    {
+        $this->modoClienteManual = false;
+        $this->limpiarCamposManual();
+    }
+
+    public function guardarClienteManual()
+    {
+        // Validar que el nombre esté presente
+        if (empty($this->nombreClienteManual)) {
+            session()->flash('error', 'El nombre del cliente es requerido');
+            return;
+        }
+
+        // Validar que el teléfono esté presente
+        if (empty($this->telefonoClienteManual)) {
+            session()->flash('error', 'Telefono debe ser obligatorio');
+            $this->dispatch('marcarCampoError', 'telefonoClienteManual');
+            return;
+        }
+
+        try {
+            // Crear cliente con los datos ingresados según la estructura real de la tabla
+            $clienteData = [
+                'nombre' => $this->nombreClienteManual,
+                'identidad' => $this->rtnManual, // Campo unificado RTN/Identidad
+                'telefono' => $this->telefonoClienteManual,
+                'correo' => $this->correoClienteManual,
+                'direccion' => $this->direccionClienteManual, // Campo correcto según la tabla
+                'estado_id' => 1, // Siempre 1 como indicaste
+                'tipo_cliente_id' => $this->tipoClienteId ?? 1, // Nueva propiedad
+                'tipo_persona_id' => $this->tipoPersonaId ?? 1, // Nueva propiedad
+                'users_id' => Auth::id(), // Usuario actual que crea el cliente
+            ];
+
+            $nuevoCliente = Cliente::create($clienteData);
+
+            // Seleccionar el cliente recién creado
+            $this->cliente = $nuevoCliente;
+
+            // Bloquear campos después de guardar (en lugar de limpiarlos)
+            $this->camposBloqueados = true;
+
+            session()->flash('success', 'Cliente guardado exitosamente ');
+
+        } catch (Exception $e) {
+            Log::error('Error al guardar cliente manual: ' . $e->getMessage());
+            session()->flash('error', 'Error al guardar el cliente: ' . $e->getMessage());
+        }
+    }
+
+    // Nueva función para buscar cliente por RTN automáticamente
+    public function buscarClientePorRtn()
+    {
+        if (empty($this->rtnManual)) {
+            $this->limpiarCamposManual();
+            return;
+        }
+
+        try {
+            // Buscar cliente por identidad (campo unificado RTN/Identidad)
+            $clienteEncontrado = Cliente::with(['tipoPersona', 'tipoCliente'])
+                ->where('identidad', $this->rtnManual)
+                ->first();
+
+            if ($clienteEncontrado) {
+                // Cliente encontrado, llenar los campos
+                $this->nombreClienteManual = $clienteEncontrado->nombre;
+                $this->telefonoClienteManual = $clienteEncontrado->telefono ?? '';
+                $this->correoClienteManual = $clienteEncontrado->correo ?? '';
+                $this->direccionClienteManual = $clienteEncontrado->direccion ?? '';
+                $this->tipoPersonaId = $clienteEncontrado->tipo_persona_id ?? 1;
+                $this->tipoClienteId = $clienteEncontrado->tipo_cliente_id ?? 1;
+                $this->cliente = $clienteEncontrado;
+
+                // Bloquear campos cuando se encuentra un cliente
+                $this->camposBloqueados = true;
+
+                session()->flash('success', 'Cliente encontrado: ' . $clienteEncontrado->nombre);
+            } else {
+                // Cliente no encontrado - mantener RTN y limpiar solo otros campos
+                $rtnTemp = $this->rtnManual; // Guardar el RTN ingresado antes de limpiar
+                
+                // Limpiar solo los otros campos, no el RTN
+                $this->nombreClienteManual = '';
+                $this->telefonoClienteManual = '';
+                $this->correoClienteManual = '';
+                $this->direccionClienteManual = '';
+                $this->tipoPersonaId = 1;
+                $this->tipoClienteId = 1;
+                
+                $this->rtnManual = $rtnTemp; // Restaurar el RTN ingresado
+                $this->cliente = null;
+                $this->camposBloqueados = false; // Permitir edición para nuevo cliente
+                
+                session()->flash('error', 'Cliente con RTN/Identidad "' . $rtnTemp . '" no existe. Puede crear un nuevo cliente con estos datos.');
+            }
+        } catch (Exception $e) {
+            Log::error('Error al buscar cliente: ' . $e->getMessage());
+            session()->flash('error', 'Error al buscar el cliente');
+        }
+    }
+
+    public function cancelarFactura()
+    {
+        // Limpiar todos los datos de la factura
+        $this->cliente = null;
+        $this->modoClienteManual = false;
+        $this->limpiarCamposManual();
+        $this->productosFactura = [];
+        $this->descuentoTerceraEdad = false;
+        $this->descuentoCuartaEdad = false;
+        $this->totalDescuentos = 0;
+        $this->datosDescuentoAdulto = [];
+        $this->calcularTotales();
+
+        // Redirigir al dashboard
+        return redirect()->route('dashboard');
+    }
+
+    public function obtenerNombreCliente()
+    {
+        Log::info("DEBUG obtenerNombreCliente", [
+            'cliente_existe' => $this->cliente ? 'Sí' : 'No',
+            'nombreClienteManual' => $this->nombreClienteManual,
+            'nombreClienteManual_vacio' => empty($this->nombreClienteManual),
+            'cliente_nombre_completo' => $this->cliente ? $this->cliente->nombre_completo : 'N/A'
+        ]);
+
+        // Prioridad 1: Si hay cliente seleccionado Y tiene nombre válido
+        if ($this->cliente && !empty($this->cliente->nombre_completo) && $this->cliente->nombre_completo !== 'N/A') {
+            return $this->cliente->nombre_completo;
+        } 
+        // Prioridad 2: Si hay nombre manual
+        elseif (!empty($this->nombreClienteManual)) {
+            return $this->nombreClienteManual;
+        } 
+        // Por defecto
+        else {
+            return 'Consumidor Final';
+        }
+    }
+
+    public function obtenerRtnCliente()
+    {
+        Log::info("DEBUG obtenerRtnCliente", [
+            'cliente_existe' => $this->cliente ? 'Sí' : 'No',
+            'rtnManual' => $this->rtnManual,
+            'rtnManual_vacio' => empty($this->rtnManual),
+            'cliente_rtn' => $this->cliente ? $this->cliente->rtn : 'N/A'
+        ]);
+
+        // Prioridad 1: Si hay cliente seleccionado Y tiene RTN válido
+        if ($this->cliente && !empty($this->cliente->rtn) && $this->cliente->rtn !== 'N/A') {
+            return $this->cliente->rtn;
+        } 
+        // Prioridad 2: Si hay RTN manual
+        elseif (!empty($this->rtnManual)) {
+            return $this->rtnManual;
+        } 
+        // Por defecto
+        else {
+            return null;
+        }
     }
 
     public function mostrarModalClientes()
@@ -189,25 +670,20 @@ class Ventas extends Component
         $this->busquedaCliente = '';
     }
 
+    public function cerrarModalSinStock()
+    {
+        $this->mostrarModalSinStock = false;
+    }
+
     public function cargarClientesModal()
     {
-        $query = Cliente::select([
-                'cliente.*',
-                DB::raw("CONCAT_WS(', ',
-                    NULLIF(direccion.colonia, ''),
-                    NULLIF(direccion.calle_blv, ''),
-                    NULLIF(direccion.sector_zona, ''),
-                    NULLIF(direccion.bloque, '')
-                ) as direccion_completa")
-            ])
-            ->leftJoin('direccion', 'cliente.direccion_id', '=', 'direccion.id')
+        $query = Cliente::with(['tipoPersona', 'tipoCliente'])
             ->where('cliente.estado_id', 1); // Solo clientes activos
 
         if (!empty($this->busquedaCliente)) {
             $query->where(function($q) {
                 $q->where('cliente.nombre', 'LIKE', "%{$this->busquedaCliente}%")
                   ->orWhere('cliente.identidad', 'LIKE', "%{$this->busquedaCliente}%")
-                  ->orWhere('cliente.rtn', 'LIKE', "%{$this->busquedaCliente}%")
                   ->orWhere('cliente.correo', 'LIKE', "%{$this->busquedaCliente}%");
             });
         }
@@ -223,22 +699,28 @@ class Ventas extends Component
 
     public function seleccionarClienteModal($clienteId)
     {
-        $cliente = Cliente::select([
-                'cliente.*',
-                DB::raw("CONCAT_WS(', ',
-                    NULLIF(direccion.colonia, ''),
-                    NULLIF(direccion.calle_blv, ''),
-                    NULLIF(direccion.sector_zona, ''),
-                    NULLIF(direccion.bloque, '')
-                ) as direccion_completa")
-            ])
-            ->leftJoin('direccion', 'cliente.direccion_id', '=', 'direccion.id')
+        $cliente = Cliente::with(['tipoPersona', 'tipoCliente'])
             ->where('cliente.id', $clienteId)
             ->first();
 
         if ($cliente) {
             $this->cliente = $cliente;
+
+            // Llenar los campos manuales con los datos del cliente seleccionado
+            $this->rtnManual = $cliente->identidad ?? '';
+            $this->nombreClienteManual = $cliente->nombre ?? '';
+            $this->telefonoClienteManual = $cliente->telefono ?? '';
+            $this->correoClienteManual = $cliente->correo ?? '';
+            $this->direccionClienteManual = $cliente->direccion ?? '';
+            $this->tipoPersonaId = $cliente->tipo_persona_id ?? 1;
+            $this->tipoClienteId = $cliente->tipo_cliente_id ?? 1;
+
+            // Bloquear campos al seleccionar cliente desde el modal
+            $this->camposBloqueados = true;
+            $this->modoClienteManual = false;
             $this->cerrarModalClientes();
+
+            session()->flash('success', 'Cliente seleccionado: ' . $cliente->nombre);
         }
     }
 
@@ -270,7 +752,7 @@ class Ventas extends Component
         }
 
         // Validar stock en bodega principal antes de agregar
-        if (!$this->validarStockProducto($producto->id, $this->cantidad)) {
+        if (!$this->validarStockProducto($producto->id, (int)$this->cantidad)) {
             return; // El error ya se muestra en validarStockProducto
         }
 
@@ -278,8 +760,21 @@ class Ventas extends Component
         $productoExistente = false;
         foreach ($this->productosFactura as $index => $item) {
             if ($item['id'] == $producto->id) {
-                $cantidadTotal = $item['cantidad'] + $this->cantidad;
+                // Actualizar la cantidad - Convertir a enteros para evitar errores de tipos
+                $cantidadTotal = (int)$item['cantidad'] + (int)$this->cantidad;
                 $this->productosFactura[$index]['cantidad'] = $cantidadTotal;
+
+                // Recalcular el descuento unitario aplicado con la nueva cantidad
+                $descuentoUnitarioProducto = $item['descuento_unitario_producto'] ?? 0;
+                if ($descuentoUnitarioProducto > 0) {
+                    $this->productosFactura[$index]['descuento_unitario_aplicado'] = $descuentoUnitarioProducto * $cantidadTotal;
+                }
+
+                // Recalcular subtotal con descuento para este item
+                $subtotalOriginal = $item['precio'] * $cantidadTotal;
+                $descuentoUnitarioAplicado = $this->productosFactura[$index]['descuento_unitario_aplicado'] ?? 0;
+                $this->productosFactura[$index]['subtotal_con_descuento'] = $subtotalOriginal - $descuentoUnitarioAplicado;
+
                 $productoExistente = true;
                 break;
             }
@@ -288,19 +783,35 @@ class Ventas extends Component
         if (!$productoExistente) {
             // Obtener el valor de ISV desde la relación
             $valorIsv = $producto->isv ? $producto->isv->cantidad : 0;
-            
+
+            // Calcular descuento unitario automático si existe (valor monetario directo)
+            $subtotalOriginal = $producto->precio_base * (int)$this->cantidad;
+            $descuentoUnitarioAplicado = 0;
+
+            if (($producto->descuento_unitario ?? 0) > 0) {
+                // El descuento es un valor monetario que se aplica por cantidad
+                $descuentoUnitarioAplicado = $producto->descuento_unitario * (int)$this->cantidad;
+            }
+
             $this->productosFactura[] = [
                 'id' => $producto->id,
                 'nombre' => $producto->nombre,
                 'codigo' => $producto->codigo_barra,
                 'precio' => $producto->precio_base,
                 'isv' => $valorIsv,
-                'cantidad' => $this->cantidad,
+                'cantidad' => (int)$this->cantidad,
                 'descuento_tercera' => $producto->descuento_tercera ?? 0,
                 'descuento_cuarta' => $producto->descuento_cuarta ?? 0,
+                'descuento_unitario_producto' => $producto->descuento_unitario ?? 0,
+                'descuento_unitario_aplicado' => $descuentoUnitarioAplicado,
                 'descuento_aplicado' => 0,
-                'subtotal_con_descuento' => 0
+                'subtotal_con_descuento' => $subtotalOriginal - $descuentoUnitarioAplicado
             ];
+
+            // Mostrar mensaje si se aplicó descuento automático
+            if (($producto->descuento_unitario ?? 0) > 0) {
+                session()->flash('success', 'Producto aplicado con descuento');
+            }
         }
 
         // Limpiar campos y mantener el foco en el input
@@ -314,6 +825,9 @@ class Ventas extends Component
         ]);
 
         $this->calcularTotales();
+
+        // Forzar actualización de la vista
+        $this->dispatch('$refresh');
     }
 
     public function eliminarProducto($index)
@@ -326,65 +840,131 @@ class Ventas extends Component
 
     public function modificarCantidad($index, $nuevaCantidad)
     {
+        // Convertir a entero para evitar errores de tipos
+        $nuevaCantidad = (int)$nuevaCantidad;
+        
         if ($nuevaCantidad <= 0) {
             $this->eliminarProducto($index);
             return;
         }
 
-        // Validar stock con la nueva cantidad total
-        $productoId = $this->productosFactura[$index]['id'];
-        $stockTotal = $this->obtenerStockTotal($productoId);
+        // Obtener el item actual
+        $item = $this->productosFactura[$index];
 
-        // Calcular cuánto hay en el carrito SIN incluir este item que estamos modificando
-        $cantidadEnCarritoSinEsteItem = 0;
-        foreach ($this->productosFactura as $i => $item) {
-            if ($item['id'] == $productoId && $i != $index) {
-                $cantidadEnCarritoSinEsteItem += $item['cantidad'];
+        // Solo validar stock si es un producto (no servicio)
+        $esServicio = isset($item['servicio_id']) && $item['servicio_id'] !== null;
+
+        if (!$esServicio) {
+            // Validar stock con la nueva cantidad total
+            $productoId = $item['id'];
+            $stockTotal = $this->obtenerStockTotal($productoId);
+
+            // Calcular cuánto hay en el carrito SIN incluir este item que estamos modificando
+            $cantidadEnCarritoSinEsteItem = 0;
+            foreach ($this->productosFactura as $i => $itemCarrito) {
+                if ($itemCarrito['id'] == $productoId && $i != $index) {
+                    $cantidadEnCarritoSinEsteItem += (int)$itemCarrito['cantidad'];
+                }
+            }
+
+            // La nueva cantidad total sería: cantidad en carrito (sin este item) + nueva cantidad de este item
+            $nuevaCantidadTotal = $cantidadEnCarritoSinEsteItem + $nuevaCantidad;
+
+            if ($nuevaCantidadTotal > $stockTotal) {
+                $this->mostrarModalSinStock = true;
+                return;
             }
         }
 
-        // La nueva cantidad total sería: cantidad en carrito (sin este item) + nueva cantidad de este item
-        $nuevaCantidadTotal = $cantidadEnCarritoSinEsteItem + $nuevaCantidad;
+        // Actualizar la cantidad
+        $this->productosFactura[$index]['cantidad'] = $nuevaCantidad;
 
-        if ($nuevaCantidadTotal > $stockTotal) {
-            $this->dispatch('mostrar-sin-stock');
-            return;
+        // Recalcular el descuento unitario aplicado con la nueva cantidad
+        $descuentoUnitarioProducto = $item['descuento_unitario_producto'] ?? 0;
+        if ($descuentoUnitarioProducto > 0) {
+            $this->productosFactura[$index]['descuento_unitario_aplicado'] = $descuentoUnitarioProducto * $nuevaCantidad;
         }
 
-        $this->productosFactura[$index]['cantidad'] = $nuevaCantidad;
+        // Recalcular subtotal con descuento para este item
+        $subtotalOriginal = $item['precio'] * $nuevaCantidad;
+        $descuentoUnitarioAplicado = $this->productosFactura[$index]['descuento_unitario_aplicado'] ?? 0;
+        $this->productosFactura[$index]['subtotal_con_descuento'] = $subtotalOriginal - $descuentoUnitarioAplicado;
+
+        // Recalcular todos los totales
         $this->calcularTotales();
+
+        // Forzar actualización de la vista
+        $this->dispatch('$refresh');
+    }
+
+    public function toggleProductosServicios()
+    {
+        $this->mostrarProductosServicios = !$this->mostrarProductosServicios;
+        if ($this->mostrarProductosServicios) {
+            $this->cargarProductosYServicios();
+        }
     }
 
     public function calcularTotales()
     {
         $this->subtotal = 0;
+        $this->subtotalBruto = 0; // Resetear subtotal bruto
         $this->totalIsv = 0;
         $this->totalDescuentos = 0;
         $isvPorTasa = []; // Agrupamos ISV por tasa
 
         foreach ($this->productosFactura as $index => $producto) {
             $subtotalProducto = $producto['precio'] * $producto['cantidad'];
-            
-            // Aplicar descuentos por edad al subtotal del producto
+
+            // Acumular subtotal bruto (cantidad * precio unitario sin descuentos)
+            $this->subtotalBruto += $subtotalProducto;
+
+            // Aplicar descuento unitario automático del producto primero (valor monetario)
+            $descuentoUnitario = $producto['descuento_unitario_aplicado'] ?? 0;
+
+            // Si el producto cambió de cantidad, recalcular el descuento unitario automático
+            if (($producto['descuento_unitario_producto'] ?? 0) > 0) {
+                // El descuento es un valor monetario que se multiplica por la cantidad
+                $descuentoUnitario = ($producto['descuento_unitario_producto'] ?? 0) * $producto['cantidad'];
+                $this->productosFactura[$index]['descuento_unitario_aplicado'] = $descuentoUnitario;
+            }
+
+            // Aplicar el descuento unitario al subtotal
+            $subtotalConDescuentoUnitario = $subtotalProducto - $descuentoUnitario;
+
+            // Aplicar descuento individual por producto (porcentaje)
+            $descuentoIndividual = 0;
+            if (isset($producto['porcentaje_descuento']) && $producto['porcentaje_descuento'] > 0) {
+                $descuentoIndividual = $subtotalProducto * ($producto['porcentaje_descuento'] / 100);
+                $this->productosFactura[$index]['descuento_monto'] = $descuentoIndividual;
+            }
+
+            // Aplicar descuentos por edad al subtotal ORIGINAL (sin descuento unitario aplicado)
             $descuentoProducto = 0;
-            
+
             // Verificar descuento de tercera edad (25%) - solo si el producto lo permite
             if ($this->descuentoTerceraEdad && ($producto['descuento_tercera'] ?? 0) == 1) {
-                $descuentoProducto = $subtotalProducto * 0.25; // 25%
+                $descuentoProducto = $subtotalProducto * 0.25; // 25% sobre precio original
             }
             // Verificar descuento de cuarta edad (35%) - solo si el producto lo permite y no hay descuento de tercera edad
             elseif ($this->descuentoCuartaEdad && ($producto['descuento_cuarta'] ?? 0) == 1) {
-                $descuentoProducto = $subtotalProducto * 0.35; // 35%
+                $descuentoProducto = $subtotalProducto * 0.35; // 35% sobre precio original
             }
-            
-            // Calcular subtotal con descuento aplicado
-            $subtotalConDescuento = $subtotalProducto - $descuentoProducto;
+
+            // Calcular subtotal final restando todos los descuentos del subtotal original
+            $subtotalConDescuento = $subtotalProducto - $descuentoUnitario - $descuentoIndividual - $descuentoProducto;
             $this->subtotal += $subtotalConDescuento;
-            $this->totalDescuentos += $descuentoProducto;
-            
-            // Actualizar el producto con la información del descuento aplicado
+
+            // Sumar todos los tipos de descuentos al total de descuentos
+            $this->totalDescuentos += ($descuentoUnitario + $descuentoIndividual + $descuentoProducto);
+
+            // Actualizar el producto con la información de los descuentos aplicados
             $this->productosFactura[$index]['descuento_aplicado'] = $descuentoProducto;
+            $this->productosFactura[$index]['descuento_individual_aplicado'] = $descuentoIndividual;
             $this->productosFactura[$index]['subtotal_con_descuento'] = $subtotalConDescuento;
+            
+            // Actualizar el total del producto en el array
+            $this->productosFactura[$index]['total'] = $subtotalConDescuento;
 
             // Calcular ISV sobre el subtotal con descuento
             $tasaIsv = $producto['isv'];
@@ -418,13 +998,13 @@ class Ventas extends Component
             session()->flash('warning', 'Ya hay un descuento de cuarta edad aplicado. Solo se permite un descuento por edad a la vez.');
             return;
         }
-        
+
         // Verificar que hay productos en la factura
         if (empty($this->productosFactura)) {
             session()->flash('error', 'No hay productos en la factura para aplicar el descuento.');
             return;
         }
-        
+
         // Si el descuento ya está activo, removerlo
         if ($this->descuentoTerceraEdad) {
             $this->descuentoTerceraEdad = false;
@@ -433,22 +1013,22 @@ class Ventas extends Component
             session()->flash('success', 'Descuento de tercera edad removido');
             return;
         }
-        
+
         // Verificar que hay productos elegibles para descuento de tercera edad
         $productosElegibles = collect($this->productosFactura)->filter(function($producto) {
             return ($producto['descuento_tercera'] ?? 0) == 1;
         });
-        
+
         if ($productosElegibles->isEmpty()) {
             session()->flash('warning', 'Ningún producto en la factura permite descuento de tercera edad.');
             return;
         }
-        
+
         // Abrir modal para capturar datos del adulto mayor
         $this->tipoDescuentoActual = 'tercera';
         $this->mostrarModalDescuentoAdulto = true;
     }
-    
+
     public function aplicarDescuentoCuartaEdad()
     {
         // Si ya hay un descuento de tercera edad activo, no permitir
@@ -456,13 +1036,13 @@ class Ventas extends Component
             session()->flash('warning', 'Ya hay un descuento de tercera edad aplicado. Solo se permite un descuento por edad a la vez.');
             return;
         }
-        
+
         // Verificar que hay productos en la factura
         if (empty($this->productosFactura)) {
             session()->flash('error', 'No hay productos en la factura para aplicar el descuento.');
             return;
         }
-        
+
         // Si el descuento ya está activo, removerlo
         if ($this->descuentoCuartaEdad) {
             $this->descuentoCuartaEdad = false;
@@ -471,22 +1051,22 @@ class Ventas extends Component
             session()->flash('success', 'Descuento de cuarta edad removido');
             return;
         }
-        
+
         // Verificar que hay productos elegibles para descuento de cuarta edad
         $productosElegibles = collect($this->productosFactura)->filter(function($producto) {
             return ($producto['descuento_cuarta'] ?? 0) == 1;
         });
-        
+
         if ($productosElegibles->isEmpty()) {
             session()->flash('warning', 'Ningún producto en la factura permite descuento de cuarta edad.');
             return;
         }
-        
+
         // Abrir modal para capturar datos del adulto mayor
         $this->tipoDescuentoActual = 'cuarta';
         $this->mostrarModalDescuentoAdulto = true;
     }
-    
+
     // Funciones para manejar el modal de descuento de adulto mayor
     public function cerrarModalDescuentoAdulto()
     {
@@ -494,14 +1074,14 @@ class Ventas extends Component
         $this->tipoDescuentoActual = null;
         $this->limpiarDatosModalAdulto();
     }
-    
+
     public function limpiarDatosModalAdulto()
     {
         $this->dniAdulto = '';
         $this->nombreAdulto = '';
         $this->edadAdulto = null;
     }
-    
+
     public function confirmarDescuentoAdulto()
     {
         // Validar campos requeridos
@@ -509,18 +1089,18 @@ class Ventas extends Component
             session()->flash('error', 'Todos los campos son obligatorios');
             return;
         }
-        
+
         // Validar edad según el tipo de descuento
         if ($this->tipoDescuentoActual === 'tercera' && ($this->edadAdulto < 60 || $this->edadAdulto > 64)) {
             session()->flash('error', 'Para descuento de tercera edad, la edad debe estar entre 60 y 64 años');
             return;
         }
-        
+
         if ($this->tipoDescuentoActual === 'cuarta' && $this->edadAdulto < 65) {
             session()->flash('error', 'Para descuento de cuarta edad, la edad debe ser de 65 años o más');
             return;
         }
-        
+
         // Guardar datos en memoria
         $this->datosDescuentoAdulto = [
             'dni' => $this->dniAdulto,
@@ -528,7 +1108,7 @@ class Ventas extends Component
             'edad' => $this->edadAdulto,
             'tipo_descuento' => $this->tipoDescuentoActual
         ];
-        
+
         // Aplicar el descuento correspondiente
         if ($this->tipoDescuentoActual === 'tercera') {
             $this->descuentoTerceraEdad = true;
@@ -537,26 +1117,94 @@ class Ventas extends Component
             $this->descuentoCuartaEdad = true;
             $porcentaje = 35;
         }
-        
+
         $this->calcularTotales();
-        
+
         // Mensaje de éxito
         $tipoTexto = $this->tipoDescuentoActual === 'tercera' ? 'tercera' : 'cuarta';
         session()->flash('success', "Descuento del {$porcentaje}% para {$tipoTexto} edad aplicado correctamente para {$this->nombreAdulto}");
-        
+
         // Cerrar modal
         $this->cerrarModalDescuentoAdulto();
     }
-    
+
+    // Métodos para descuento por producto
+    public function mostrarModalDescuentoProducto($indice)
+    {
+        // Validar que el índice sea válido
+        if (!isset($this->productosFactura[$indice])) {
+            session()->flash('error', 'Producto no encontrado');
+            return;
+        }
+
+        $this->indiceProductoSeleccionado = $indice;
+        $this->productoSeleccionadoDescuento = $this->productosFactura[$indice];
+        $this->porcentajeDescuentoProducto = $this->productoSeleccionadoDescuento['porcentaje_descuento'] ?? 0;
+        $this->modalDescuentoProductoVisible = true;
+    }
+
+    public function aplicarDescuentoProducto()
+    {
+        // Validaciones
+        if ($this->porcentajeDescuentoProducto < 0 || $this->porcentajeDescuentoProducto > 100) {
+            session()->flash('error', 'El porcentaje de descuento debe estar entre 0 y 100');
+            return;
+        }
+
+        if ($this->indiceProductoSeleccionado === null || !isset($this->productosFactura[$this->indiceProductoSeleccionado])) {
+            session()->flash('error', 'Producto no válido para aplicar descuento');
+            return;
+        }
+
+        // Aplicar el descuento al producto
+        $producto = &$this->productosFactura[$this->indiceProductoSeleccionado];
+        
+        // Guardar el porcentaje de descuento
+        $producto['porcentaje_descuento'] = $this->porcentajeDescuentoProducto;
+        
+        // Calcular el descuento basado en el precio unitario (lógica original)
+        $precioUnitario = $producto['precio'];
+        $descuentoPorUnidad = $precioUnitario * ($this->porcentajeDescuentoProducto / 100);
+        $producto['descuento_monto'] = $descuentoPorUnidad; // Solo el descuento por unidad
+        
+        // El descuento se aplica al subtotal actual (precio × cantidad)
+        $subtotalActual = $producto['cantidad'] * $producto['precio'];
+        $producto['total'] = $subtotalActual - $descuentoPorUnidad;
+
+        // Recalcular totales generales
+        $this->calcularTotales();
+
+        // Mensaje de éxito
+        $nombreProducto = $producto['nombre'];
+        session()->flash('success', "Descuento del {$this->porcentajeDescuentoProducto}% (basado en precio unitario) aplicado a {$nombreProducto}");
+
+        // Cerrar modal y limpiar datos
+        $this->cerrarModalDescuentoProducto();
+    }
+
+    public function cerrarModalDescuentoProducto()
+    {
+        $this->modalDescuentoProductoVisible = false;
+        $this->indiceProductoSeleccionado = null;
+        $this->productoSeleccionadoDescuento = null;
+        $this->porcentajeDescuentoProducto = 0;
+    }
+
     // Método para resetear completamente la factura
     public function resetearFactura()
     {
         $this->cliente = null;
+        $this->modoClienteManual = false;
+        $this->limpiarCamposManual();
         $this->productosFactura = [];
         $this->descuentoTerceraEdad = false;
         $this->descuentoCuartaEdad = false;
         $this->totalDescuentos = 0;
         $this->datosDescuentoAdulto = []; // Limpiar datos del adulto mayor
+        
+        // Limpiar datos del descuento por producto
+        $this->cerrarModalDescuentoProducto();
+        
         $this->calcularTotales();
     }
 
@@ -579,25 +1227,6 @@ class Ventas extends Component
     public function getIsvPorTasaComputedProperty()
     {
         return $this->isvPorTasa;
-    }
-
-    public function guardarFactura()
-    {
-        if (count($this->productosFactura) === 0) {
-            session()->flash('error', 'Debe agregar al menos un producto a la factura');
-            return;
-        }
-
-        try {
-            // Aquí implementaremos la lógica para guardar la factura
-            // Por ahora solo mostraremos un mensaje de éxito
-            session()->flash('success', 'Factura guardada exitosamente');
-
-            // Limpiar el estado
-            $this->resetearFactura();
-        } catch (\Exception $e) {
-            session()->flash('error', 'Error al guardar la factura: ' . $e->getMessage());
-        }
     }
 
     // Métodos para procesamiento de pagos
@@ -646,15 +1275,32 @@ class Ventas extends Component
             return false;
         }
 
-        // 2. Verificar caja del usuario
+        // 2. Verificar caja del usuario (que esté abierta Y tenga apertura para el día de la jornada)
         $cajaAbierta = DB::table('caja')
             ->where('users_id', $user->id)
             ->where('tienda_id', $tiendaId)
             ->where('estado_caja', 1) // 1 = abierta
-            ->exists();
+            ->first();
 
         if (!$cajaAbierta) {
             session()->flash('error', '❌ No se puede procesar la venta: Su caja debe estar abierta para realizar ventas.');
+            return false;
+        }
+
+        // 3. Verificar que la caja tenga apertura para la fecha de la jornada abierta
+        $fechaJornadaAbierta = DB::table('jornada')
+            ->where('tienda_id', $tiendaId)
+            ->where('apertura', 1)
+            ->where('cierre', 0)
+            ->value('fecha');
+
+        $tieneAperturaCaja = DB::table('apertura_caja')
+            ->where('caja_id', $cajaAbierta->id)
+            ->whereDate('fecha_apertura', $fechaJornadaAbierta)
+            ->exists();
+
+        if (!$tieneAperturaCaja) {
+            session()->flash('error', '❌ No se puede procesar la venta: Su caja debe tener apertura para la fecha de la jornada activa (' . \Carbon\Carbon::parse($fechaJornadaAbierta)->format('d/m/Y') . ').');
             return false;
         }
 
@@ -767,21 +1413,88 @@ class Ventas extends Component
         }
 
         $this->procesandoVenta = true;
-        
+
         Log::info("DEBUG finalizarVentaConDistribucion INICIO");
 
+        // IMPORTANTE: Obtener los valores del cliente AL INICIO para evitar que se pierdan
+        $nombreClienteParaFactura = $this->obtenerNombreCliente();
+        $rtnClienteParaFactura = $this->obtenerRtnCliente();
+        
+        Log::info("DEBUG Valores de cliente capturados al inicio", [
+            'rtnManual_crudo' => $this->rtnManual,
+            'nombreClienteManual_crudo' => $this->nombreClienteManual,
+            'cliente_objeto' => $this->cliente ? [
+                'id' => $this->cliente->id ?? 'N/A',
+                'nombre_completo' => $this->cliente->nombre_completo ?? 'N/A',
+                'rtn' => $this->cliente->rtn ?? 'N/A'
+            ] : 'No hay cliente seleccionado',
+            'nombre_cliente_capturado' => $nombreClienteParaFactura,
+            'rtn_cliente_capturado' => $rtnClienteParaFactura,
+            'es_vacio_nombre' => empty($nombreClienteParaFactura),
+            'es_vacio_rtn' => empty($rtnClienteParaFactura)
+        ]);
+
         try {
+            // VALIDACIÓN CAI ANTES DE FACTURAR
+            $caiService = new CAIService();
+            $validacionCAI = $caiService->validarCAIParaTienda($this->tiendaUsuario);
+
+            if (!$validacionCAI['valido']) {
+                $this->procesandoVenta = false;
+                session()->flash('error', '❌ No se puede facturar: ' . $validacionCAI['mensaje']);
+                $this->dispatch('mostrar-error-cai', [
+                    'titulo' => 'Error de CAI',
+                    'mensaje' => $validacionCAI['mensaje'],
+                    'detalle' => $validacionCAI['detalle']
+                ]);
+                return;
+            }
+
+            // Actualizar información de CAI actual
+            $this->caiActual = $validacionCAI['cai_info'];
+
             DB::beginTransaction();
 
             Log::info("DEBUG Transacción iniciada");
 
-            // Crear la factura principal usando create para asegurar que todos los campos se incluyan
-            $factura = Factura::create([
-                'numero_factura' => $this->generarNumeroFactura(),
+            // Generar número de factura
+            $numeroFactura = $this->generarNumeroFactura();
+
+            // Crear la transacción primero y obtener su ID
+            $transaccionId = $this->crearTransaccion($numeroFactura);
+            
+            Log::info("DEBUG Resultado de crearTransaccion", [
+                'transaccion_id_retornado' => $transaccionId,
+                'es_null' => $transaccionId === null,
+                'metodosActivosParaPago' => $this->metodosActivosParaPago,
+                'montosPorMetodo' => $this->montosPorMetodo
+            ]);
+            
+            // Si no hay transaccion_id, crear una transacción por defecto
+            if ($transaccionId === null) {
+                Log::warning("DEBUG Transacción fue null, creando transacción por defecto");
+                $transaccionId = DB::table('transaccion')->insertGetId([
+                    'caja_id' => 1, // Valor por defecto
+                    'efectivo' => $this->total,
+                    'tarjeta' => 0,
+                    'cheque' => 0,
+                    'transferencia' => 0,
+                    'transaccion' => 'Facturacion',
+                    'descripcion' => "Factura #$numeroFactura (transacción por defecto)",
+                    'created_at' => now(),
+                    'update_at' => now()
+                ]);
+                Log::info("DEBUG Transacción por defecto creada con ID: " . $transaccionId);
+            }
+
+            // Debug detallado antes de crear la factura
+            $datosFactura = [
+                'numero_factura' => $numeroFactura,
                 'cai_id' => $this->caiActual ? $this->caiActual['cai_id'] : 1,
                 'tipo_facturacion_id' => 1,
-                'nombre_cliente' => $this->cliente ? $this->cliente->nombre_completo : 'Consumidor Final',
-                'rtn' => $this->cliente ? $this->cliente->rtn : null,
+                'transaccion_id' => $transaccionId,
+                'nombre_cliente' => $nombreClienteParaFactura,
+                'rtn' => $rtnClienteParaFactura,
                 'sub_total' => $this->subtotal,
                 'sub_total_grabado' => $this->subtotal,
                 'sub_total_exento' => 0,
@@ -790,31 +1503,236 @@ class Ventas extends Component
                 'credito' => 0,
                 'fecha_emision' => now()->format('Y-m-d'),
                 'estado_factura_id' => 1,
-                'users_id' => Auth::id(),
-                'descuentos_id' => 1
-            ]);
+                'users_id' => Auth::id()
+            ];
+
+            Log::info("DEBUG Datos que se van a insertar en factura", $datosFactura);
+
+            // Crear la factura principal usando los valores capturados al inicio
+            $factura = Factura::create($datosFactura);
 
             Log::info("DEBUG Datos de factura preparados", [
                 'numero_factura' => $factura->numero_factura,
                 'nombre_cliente' => $factura->nombre_cliente,
+                'rtn' => $factura->rtn,
                 'total' => $factura->total,
-                'user_id' => $factura->users_id
+                'user_id' => $factura->users_id,
+                'transaccion_id' => $factura->transaccion_id
+            ]);
+
+            // Debug adicional: verificar qué se guardó realmente en la BD
+            $facturaVerificacion = DB::table('factura')->where('id', $factura->id)->first(['id', 'nombre_cliente', 'rtn', 'transaccion_id']);
+            Log::info("DEBUG Verificación de factura en BD", [
+                'factura_id' => $facturaVerificacion->id,
+                'nombre_cliente_bd' => $facturaVerificacion->nombre_cliente,
+                'rtn_bd' => $facturaVerificacion->rtn,
+                'transaccion_id_bd' => $facturaVerificacion->transaccion_id
             ]);
 
             Log::info("DEBUG Factura guardada con ID: " . $factura->id);
 
+            // Separar productos y servicios para procesamiento diferenciado
+            $productos = array_filter($this->productosFactura, function($item) {
+                return !isset($item['servicio_id']) || $item['servicio_id'] === null;
+            });
+
+            $servicios = array_filter($this->productosFactura, function($item) {
+                return isset($item['servicio_id']) && $item['servicio_id'] !== null;
+            });
+
             // Guardar productos de la factura con distribución FIFO por secciones
             $indice = 1;
-            foreach ($this->productosFactura as $producto) {
+            foreach ($productos as $producto) {
                 $this->guardarProductoConDistribucionSecciones($factura->id, $producto, $indice);
+
+                // Log para debug del producto
+                Log::info("DEBUG Producto en factura", [
+                    'producto_id' => $producto['id'],
+                    'nombre' => $producto['nombre'],
+                    'descuento_unitario_aplicado' => $producto['descuento_unitario_aplicado'] ?? 0,
+                    'descuento_unitario_producto' => $producto['descuento_unitario_producto'] ?? 0
+                ]);
+
+                // Guardar descuento unitario si existe
+                $descuentoUnitario = $producto['descuento_unitario_aplicado'] ?? 0;
+                if ($descuentoUnitario > 0) {
+                    Log::info("DEBUG Creando descuento", [
+                        'factura_id' => $factura->id,
+                        'producto_id' => $producto['id'],
+                        'monto_unidad' => $producto['descuento_unitario_producto'] ?? 0,
+                        'monto_total' => $descuentoUnitario,
+                        'users_id' => Auth::id()
+                    ]);
+
+                    Descuento::create([
+                        'factura_id' => $factura->id,
+                        'producto_id' => $producto['id'],
+                        'Tipo_descuento' => 'Producto',
+                        'monto_unidad' => $producto['descuento_unitario_producto'] ?? 0,
+                        'monto_total' => $descuentoUnitario,
+                        'users_id' => Auth::id(),
+                        'created_at' => now()
+                    ]);
+
+                    Log::info("DEBUG Descuento creado exitosamente");
+                } else {
+                    Log::info("DEBUG No se creó descuento porque descuentoUnitario es 0 o null");
+                }
+
+                // Guardar descuento individual si existe
+                $descuentoIndividual = $producto['descuento_individual_aplicado'] ?? 0;
+                if ($descuentoIndividual > 0) {
+                    Log::info("DEBUG Creando descuento individual", [
+                        'factura_id' => $factura->id,
+                        'producto_id' => $producto['id'],
+                        'tipo_descuento' => 'Individual',
+                        'monto_total' => $descuentoIndividual,
+                        'users_id' => Auth::id()
+                    ]);
+
+                    Descuento::create([
+                        'factura_id' => $factura->id,
+                        'producto_id' => $producto['id'],
+                        'Tipo_descuento' => 'Individual',
+                        'monto_unidad' => 0,
+                        'monto_total' => $descuentoIndividual,
+                        'users_id' => Auth::id(),
+                        'created_at' => now()
+                    ]);
+
+                    Log::info("DEBUG Descuento individual creado exitosamente");
+                } else {
+                    Log::info("DEBUG No se creó descuento individual porque es 0 o null");
+                }
+
+                // Guardar descuento de adulto mayor si existe
+                $descuentoAdultoMayor = $producto['descuento_aplicado'] ?? 0;
+                if ($descuentoAdultoMayor > 0) {
+                    // Determinar tipo de descuento basado en los flags activos
+                    $tipoDescuentoAdultoMayor = '';
+                    if ($this->descuentoTerceraEdad) {
+                        $tipoDescuentoAdultoMayor = '3ra edad';
+                    } elseif ($this->descuentoCuartaEdad) {
+                        $tipoDescuentoAdultoMayor = '4ta edad';
+                    }
+
+                    if ($tipoDescuentoAdultoMayor) {
+                        Log::info("DEBUG Creando descuento de adulto mayor", [
+                            'factura_id' => $factura->id,
+                            'producto_id' => $producto['id'],
+                            'tipo_descuento' => $tipoDescuentoAdultoMayor,
+                            'monto_total' => $descuentoAdultoMayor,
+                            'users_id' => Auth::id()
+                        ]);
+
+                        Descuento::create([
+                            'factura_id' => $factura->id,
+                            'producto_id' => $producto['id'],
+                            'Tipo_descuento' => $tipoDescuentoAdultoMayor,
+                            'monto_unidad' => 0, // Los descuentos de adulto mayor no tienen monto_unidad
+                            'monto_total' => $descuentoAdultoMayor,
+                            'users_id' => Auth::id(),
+                            'created_at' => now()
+                        ]);
+
+                        Log::info("DEBUG Descuento de adulto mayor creado exitosamente");
+                    }
+                }
+
+                $indice++;
+            }
+
+            // Guardar servicios de la factura (nueva funcionalidad híbrida)
+            foreach ($servicios as $servicio) {
+                Log::info("DEBUG Servicio en factura", [
+                    'servicio_id' => $servicio['servicio_id'],
+                    'nombre' => $servicio['nombre'],
+                    'cantidad' => $servicio['cantidad'],
+                    'precio' => $servicio['precio'],
+                    'subtotal_con_descuento' => $servicio['subtotal_con_descuento'] ?? 0
+                ]);
+
+                // Calcular valores para el servicio
+                $subtotalOriginal = $servicio['cantidad'] * $servicio['precio'];
+                $descuentoAplicado = $servicio['descuento_aplicado'] ?? 0;
+                $subtotalConDescuento = $servicio['subtotal_con_descuento'] ?? $subtotalOriginal;
+                $isvAplicado = $servicio['isv'] ?? 0;
+                $isvCalculado = $subtotalConDescuento * ($isvAplicado / 100);
+                $totalFinal = $subtotalConDescuento + $isvCalculado;
+
+                // Crear registro en factura_has_producto (usamos la misma tabla pero con servicio_id)
+                DB::table('factura_has_producto')->insert([
+                    'factura_id' => $factura->id,
+                    'producto_id' => null, // NULL para servicios
+                    'Servicios_id' => $servicio['servicio_id'], // ID del servicio
+                    'seccion_id' => null, // Los servicios no tienen secciones
+                    'unidad_medida_id' => $this->obtenerUnidadMedidaDisponible(),
+                    'indice' => $indice, // Continuar numeración después de productos
+                    'numero_unidades_resta_inventario' => 0, // Los servicios no afectan inventario
+                    'unidades_nota_credito_resta_inventario' => 0,
+                    'resta_inventario_total' => 0,
+                    'precio_unidad' => $servicio['precio'],
+                    'cantidad' => $servicio['cantidad'],
+                    'subtotal' => $subtotalConDescuento,
+                    'descuento' => $descuentoAplicado,
+                    'isv_aplicado' => $isvAplicado,
+                    'isv' => $isvCalculado,
+                    'total' => $totalFinal,
+                    'idPrecioSeleccionado' => '0',
+                    'precio_seleccionado' => 0
+                ]);
+
+                // Crear descuento unitario para servicio si aplica
+                $descuentoUnitario = $servicio['descuento_unitario_aplicado'] ?? 0;
+                if ($descuentoUnitario > 0) {
+                    // TODO: Agregar campo servicio_id a tabla descuentos para servicios
+                    /* Descuento::create([
+                        'factura_id' => $factura->id,
+                        'producto_id' => null, // NULL porque es servicio
+                        'Tipo_descuento' => 'Servicio',
+                        'monto_unidad' => $servicio['descuento_unitario_producto'] ?? 0,
+                        'monto_total' => $descuentoUnitario,
+                        'users_id' => Auth::id(),
+                        'created_at' => now()
+                    ]); */
+
+                    Log::info("DEBUG Descuento de servicio omitido (estructura de tabla pendiente)");
+                }
+
+                // Crear descuento de adulto mayor para servicio si aplica
+                $descuentoAdultoMayor = $servicio['descuento_aplicado'] ?? 0;
+                if ($descuentoAdultoMayor > 0) {
+                    $tipoDescuentoAdultoMayor = '';
+                    if ($this->descuentoTerceraEdad) {
+                        $tipoDescuentoAdultoMayor = '3ra edad';
+                    } elseif ($this->descuentoCuartaEdad) {
+                        $tipoDescuentoAdultoMayor = '4ta edad';
+                    }
+
+                    if ($tipoDescuentoAdultoMayor) {
+                        // TODO: Agregar campo servicio_id a tabla descuentos para servicios
+                        /* Descuento::create([
+                            'factura_id' => $factura->id,
+                            'producto_id' => null,
+                            'Tipo_descuento' => $tipoDescuentoAdultoMayor,
+                            'monto_unidad' => 0,
+                            'monto_total' => $descuentoAdultoMayor,
+                            'users_id' => Auth::id(),
+                            'created_at' => now()
+                        ]); */
+
+                        Log::info("DEBUG Descuento de adulto mayor para servicio omitido (estructura de tabla pendiente)");
+                    }
+                }
+
                 $indice++;
             }
 
             // Guardar métodos de pago usando la distribución
             $this->guardarMetodosPagoDistribucion($factura->id);
 
-            // Registrar transacciones por método de pago
-            $this->registrarTransaccionesPorMetodoPago($factura->id, $factura->numero_factura);
+            // La transacción ya fue registrada al crear la factura
+            // $this->registrarTransaccionesPorMetodoPago($factura->id, $factura->numero_factura);
 
             // Guardar datos del descuento de adulto mayor si aplica
             $this->guardarDescuentoAdultoMayor($factura->id);
@@ -843,10 +1761,10 @@ class Ventas extends Component
 
         } catch (\Exception $e) {
             DB::rollBack();
-            
+
             // Resetear bandera de procesamiento en caso de error
             $this->procesandoVenta = false;
-            
+
             Log::error("ERROR en finalizarVentaConDistribucion", [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
@@ -994,31 +1912,36 @@ class Ventas extends Component
     }
 
     /**
-     * Registrar transacciones por método de pago y actualizar balance de caja si hay efectivo
+     * Crear transacción y retornar el ID generado
      */
-    private function registrarTransaccionesPorMetodoPago($facturaId, $numeroFactura)
+    private function crearTransaccion($numeroFactura)
     {
-        Log::info("DEBUG registrarTransaccionesPorMetodoPago INICIO", [
-            'factura_id' => $facturaId,
+        Log::info("DEBUG crearTransaccion INICIO", [
             'numero_factura' => $numeroFactura
         ]);
 
         $user = Auth::user();
-        
+
         // Obtener el ID de la caja del usuario en su tienda actual
         $caja = DB::table('caja')
             ->where('users_id', $user->id)
             ->where('tienda_id', $user->tienda_id)
             ->where('estado_caja', 1)
             ->first();
-            
+
         if (!$caja) {
             Log::error("No se encontró caja abierta para el usuario: " . $user->id);
-            return;
+            return null;
         }
-        
+
         $cajaId = $caja->id;
-        
+
+        // Inicializar montos de cada método de pago
+        $montoEfectivo = 0;
+        $montoTarjeta = 0;
+        $montoCheque = 0;
+        $montoTransferencia = 0;
+
         $metodosParaRegistrar = [];
 
         // Obtener métodos activos con monto > 0
@@ -1041,50 +1964,233 @@ class Ventas extends Component
             }
         }
 
-        // Registrar transacciones para cada método de pago
+        // Acumular montos por tipo de pago
         foreach ($metodosParaRegistrar as $metodo) {
             $tipoPago = TipoPago::find($metodo['id']);
             if (!$tipoPago) continue;
 
-            // Determinar el monto a registrar por método específico
-            $montoTransaccion = 0;
-            $tipoMovimiento = 'entrada';
+            $montoMetodo = $metodo['monto'];
+            $nombreTipoPago = strtolower($tipoPago->nombre);
 
-            switch (strtolower($tipoPago->nombre)) {
+            switch ($nombreTipoPago) {
                 case 'efectivo':
-                    $montoTransaccion = $metodo['monto'];
-                    // Actualizar balance de caja si hay efectivo
-                    $this->actualizarBalanceCaja($montoTransaccion, $cajaId);
+                    $montoEfectivo += $montoMetodo;
                     break;
                 case 'tarjeta':
-                    $montoTransaccion = $metodo['monto'];
+                case 'tarjeta(pos)':
+                case 'pos':
+                    $montoTarjeta += $montoMetodo;
                     break;
                 case 'cheque':
-                    $montoTransaccion = $metodo['monto'];
+                    $montoCheque += $montoMetodo;
+                    break;
+                case 'transferencia':
+                case 'transferencia bancaria':
+                case 'transferencia_bancaria':
+                    $montoTransferencia += $montoMetodo;
                     break;
                 default:
-                    $montoTransaccion = $metodo['monto'];
+                    // Para otros tipos de pago, intentar identificar el tipo por palabras clave
+                    if (str_contains($nombreTipoPago, 'tarjeta') || str_contains($nombreTipoPago, 'pos')) {
+                        $montoTarjeta += $montoMetodo;
+                    } elseif (str_contains($nombreTipoPago, 'transfer')) {
+                        $montoTransferencia += $montoMetodo;
+                    } elseif (str_contains($nombreTipoPago, 'cheque')) {
+                        $montoCheque += $montoMetodo;
+                    } elseif (str_contains($nombreTipoPago, 'efectivo')) {
+                        $montoEfectivo += $montoMetodo;
+                    } else {
+                        // Por defecto, asignar a transferencia
+                        $montoTransferencia += $montoMetodo;
+                    }
+                    break;
+            }
+        }
+
+        // Calcular el cambio total para restar del efectivo
+        $totalDistribuido = $montoEfectivo + $montoTarjeta + $montoCheque + $montoTransferencia;
+        $cambioTotal = $totalDistribuido > $this->total ? $totalDistribuido - $this->total : 0;
+        
+        // El efectivo neto es el monto efectivo menos el cambio (ya que el cambio sale de caja)
+        $efectivoNeto = $montoEfectivo - $cambioTotal;
+
+        // Crear registro de transacción y obtener el ID
+        $transaccionId = null;
+        if ($efectivoNeto > 0 || $montoTarjeta > 0 || $montoCheque > 0 || $montoTransferencia > 0) {
+            $transaccionId = DB::table('transaccion')->insertGetId([
+                'caja_id' => $cajaId,
+                'efectivo' => $efectivoNeto, // Efectivo neto (sin incluir el cambio)
+                'tarjeta' => $montoTarjeta,
+                'cheque' => $montoCheque,
+                'transferencia' => $montoTransferencia,
+                'transaccion' => 'Facturacion',
+                'descripcion' => "Factura #$numeroFactura",
+                'created_at' => now(),
+                'update_at' => now()
+            ]);
+
+            Log::info("DEBUG Transacción creada", [
+                'transaccion_id' => $transaccionId,
+                'numero_factura' => $numeroFactura,
+                'efectivo_recibido' => $montoEfectivo,
+                'cambio_calculado' => $cambioTotal,
+                'efectivo_neto' => $efectivoNeto,
+                'tarjeta' => $montoTarjeta,
+                'cheque' => $montoCheque,
+                'transferencia' => $montoTransferencia,
+                'total_factura' => $this->total,
+                'total_distribuido' => $totalDistribuido
+            ]);
+
+            // Actualizar balance de caja con el efectivo neto (sin incluir el cambio)
+            if ($efectivoNeto > 0) {
+                $this->actualizarBalanceCaja($efectivoNeto, $cajaId);
+            }
+        }
+
+        Log::info("DEBUG crearTransaccion FINALIZADO con ID: " . $transaccionId);
+        return $transaccionId;
+    }
+
+    /**
+     * Registrar transacciones por método de pago y actualizar balance de caja si hay efectivo
+     */
+    private function registrarTransaccionesPorMetodoPago($facturaId, $numeroFactura)
+    {
+        Log::info("DEBUG registrarTransaccionesPorMetodoPago INICIO", [
+            'factura_id' => $facturaId,
+            'numero_factura' => $numeroFactura
+        ]);
+
+        $user = Auth::user();
+
+        // Obtener el ID de la caja del usuario en su tienda actual
+        $caja = DB::table('caja')
+            ->where('users_id', $user->id)
+            ->where('tienda_id', $user->tienda_id)
+            ->where('estado_caja', 1)
+            ->first();
+
+        if (!$caja) {
+            Log::error("No se encontró caja abierta para el usuario: " . $user->id);
+            return;
+        }
+
+        $cajaId = $caja->id;
+
+        // Inicializar montos de cada método de pago
+        $montoEfectivo = 0;
+        $montoTarjeta = 0;
+        $montoCheque = 0;
+        $montoTransferencia = 0;
+
+        $metodosParaRegistrar = [];
+
+        // Obtener métodos activos con monto > 0
+        if (!empty($this->metodosActivosParaPago)) {
+            foreach ($this->metodosActivosParaPago as $metodo) {
+                if ($metodo['monto'] > 0) {
+                    $metodosParaRegistrar[] = $metodo;
+                }
+            }
+        } elseif (!empty($this->montosPorMetodo)) {
+            foreach ($this->montosPorMetodo as $tipoId => $monto) {
+                $tipoPago = collect($this->tiposPago)->firstWhere('id', $tipoId);
+                if ($tipoPago && $monto > 0) {
+                    $metodosParaRegistrar[] = [
+                        'id' => $tipoId,
+                        'nombre' => $tipoPago['nombre'],
+                        'monto' => $monto
+                    ];
+                }
+            }
+        }
+
+        // Acumular montos por tipo de pago (sin actualizar balance aún)
+        foreach ($metodosParaRegistrar as $metodo) {
+            $tipoPago = TipoPago::find($metodo['id']);
+            if (!$tipoPago) continue;
+
+            $montoMetodo = $metodo['monto'];
+            $nombreTipoPago = strtolower($tipoPago->nombre);
+
+            switch ($nombreTipoPago) {
+                case 'efectivo':
+                    $montoEfectivo += $montoMetodo;
+                    break;
+                case 'tarjeta':
+                case 'tarjeta(pos)':
+                case 'pos':
+                    $montoTarjeta += $montoMetodo;
+                    break;
+                case 'cheque':
+                    $montoCheque += $montoMetodo;
+                    break;
+                case 'transferencia':
+                case 'transferencia bancaria':
+                case 'transferencia_bancaria':
+                    $montoTransferencia += $montoMetodo;
+                    break;
+                default:
+                    // Para otros tipos de pago, intentar identificar el tipo por palabras clave
+                    if (str_contains($nombreTipoPago, 'tarjeta') || str_contains($nombreTipoPago, 'pos')) {
+                        $montoTarjeta += $montoMetodo;
+                    } elseif (str_contains($nombreTipoPago, 'transfer')) {
+                        $montoTransferencia += $montoMetodo;
+                    } elseif (str_contains($nombreTipoPago, 'cheque')) {
+                        $montoCheque += $montoMetodo;
+                    } elseif (str_contains($nombreTipoPago, 'efectivo')) {
+                        $montoEfectivo += $montoMetodo;
+                    } else {
+                        // Por defecto, asignar a transferencia
+                        $montoTransferencia += $montoMetodo;
+                    }
                     break;
             }
 
-            // Registrar transacción solo si hay monto
-            if ($montoTransaccion > 0) {
-                DB::table('transaccion')->insert([
-                    'caja_id' => $cajaId,
-                    'efectivo' => strtolower($tipoPago->nombre) === 'efectivo' ? $montoTransaccion : 0,
-                    'tarjeta' => strtolower($tipoPago->nombre) === 'tarjeta' ? $montoTransaccion : 0,
-                    'cheque' => strtolower($tipoPago->nombre) === 'cheque' ? $montoTransaccion : 0,
-                    'transaccion' => 'Facturacion',
-                    'descripcion' => "Factura #$numeroFactura",
-                    'created_at' => now(),
-                    'update_at' => now()
-                ]);
+            Log::info("DEBUG Método procesado", [
+                'tipo_pago' => $tipoPago->nombre,
+                'monto' => $montoMetodo,
+                'asignado_a' => $nombreTipoPago
+            ]);
+        }
 
-                Log::info("DEBUG Transacción registrada", [
-                    'tipo_pago' => $tipoPago->nombre,
-                    'monto' => $montoTransaccion,
-                    'numero_factura' => $numeroFactura
-                ]);
+        // Calcular el cambio total para restar del efectivo
+        $totalDistribuido = $montoEfectivo + $montoTarjeta + $montoCheque + $montoTransferencia;
+        $cambioTotal = $totalDistribuido > $this->total ? $totalDistribuido - $this->total : 0;
+        
+        // El efectivo neto es el monto efectivo menos el cambio
+        $efectivoNeto = $montoEfectivo - $cambioTotal;
+
+        // Crear un solo registro de transacción con todos los montos
+        if ($efectivoNeto > 0 || $montoTarjeta > 0 || $montoCheque > 0 || $montoTransferencia > 0) {
+            DB::table('transaccion')->insert([
+                'caja_id' => $cajaId,
+                'efectivo' => $efectivoNeto, // Efectivo neto (sin incluir el cambio)
+                'tarjeta' => $montoTarjeta,
+                'cheque' => $montoCheque,
+                'transferencia' => $montoTransferencia,
+                'transaccion' => 'Facturacion',
+                'descripcion' => "Factura #$numeroFactura",
+                'created_at' => now(),
+                'update_at' => now()
+            ]);
+
+            Log::info("DEBUG Transacción ÚNICA registrada", [
+                'numero_factura' => $numeroFactura,
+                'efectivo_recibido' => $montoEfectivo,
+                'cambio_calculado' => $cambioTotal,
+                'efectivo_neto' => $efectivoNeto,
+                'tarjeta' => $montoTarjeta,
+                'cheque' => $montoCheque,
+                'transferencia' => $montoTransferencia,
+                'total_factura' => $this->total,
+                'total_distribuido' => $totalDistribuido
+            ]);
+
+            // Actualizar balance de caja con el efectivo neto (sin incluir el cambio)
+            if ($efectivoNeto > 0) {
+                $this->actualizarBalanceCaja($efectivoNeto, $cajaId);
             }
         }
 
@@ -1219,8 +2325,9 @@ class Ventas extends Component
             DB::table('factura_has_producto')->insert([
                 'factura_id' => $facturaId,
                 'producto_id' => $producto['id'],
+                'Servicios_id' => null, // NULL para productos
                 'seccion_id' => $seccion->seccion_id,
-                'unidad_medida_id' => 1, // Valor por defecto
+                'unidad_medida_id' => $this->obtenerUnidadMedidaDisponible(),
                 'indice' => $indice,
                 'numero_unidades_resta_inventario' => $cantidadATomar,
                 'unidades_nota_credito_resta_inventario' => 0,
@@ -1387,30 +2494,46 @@ class Ventas extends Component
         $this->facturaParaImprimir = Factura::with('usuario')->find($facturaId);
 
         // Cargar información del CAI asociado a la factura
-        $this->caiFacturaImpresa = DB::table('cai')
+        $cai = DB::table('cai')
             ->where('id', $this->facturaParaImprimir->cai_id)
             ->first();
 
-        // Cargar productos
+        $this->caiFacturaImpresa = $cai ? (array) $cai : null;
+
+        // Cargar productos y servicios de forma unificada
         $this->productosFacturaImpresa = DB::table('factura_has_producto as fp')
-            ->join('producto as p', 'fp.producto_id', '=', 'p.id')
-            ->join('isv as i', 'p.isv_id', '=', 'i.id')
+            ->leftJoin('producto as p', 'fp.producto_id', '=', 'p.id')
+            ->leftJoin('servicios as s', 'fp.Servicios_id', '=', 's.id')
+            ->leftJoin('isv as i_producto', 'p.isv_id', '=', 'i_producto.id')
+            ->leftJoin('isv as i_servicio', 's.isv_id', '=', 'i_servicio.id')
+            ->leftJoin('descuentos as d', function($join) use ($facturaId) {
+                $join->where('d.factura_id', '=', $facturaId)
+                     ->where(function($query) {
+                         $query->whereNotNull('d.producto_id')
+                               ->orWhere('d.Tipo_descuento', '=', 'Servicio');
+                     });
+            })
             ->where('fp.factura_id', $facturaId)
             ->select(
-                'p.nombre',
-                'p.codigo_barra',
-                'i.cantidad as tasa_isv',
+                DB::raw('COALESCE(p.id, s.id) as item_id'),
+                DB::raw('COALESCE(p.nombre, s.nombre) as nombre'),
+                DB::raw('COALESCE(p.codigo_barra, "SERVICIO") as codigo_barra'),
+                DB::raw('COALESCE(i_producto.cantidad, i_servicio.cantidad, 0) as tasa_isv'),
+                DB::raw('CASE WHEN p.id IS NOT NULL THEN "producto" ELSE "servicio" END as tipo'),
                 'fp.cantidad',
                 'fp.precio_unidad',
                 'fp.subtotal',
                 'fp.descuento',
                 'fp.isv_aplicado',
                 'fp.isv',
-                'fp.total'
+                'fp.total',
+                'd.monto_total as descuento_unitario'
             )
-            ->get()->map(function($item) {
+            ->get()
+            ->map(function($item) {
                 return (array) $item;
-            })->toArray();
+            })
+            ->toArray();
 
         // Cargar métodos de pago
         $this->pagosFacturaImpresa = DB::table('factura_has_pago as fp')
@@ -1620,7 +2743,7 @@ class Ventas extends Component
             // Productos
             $totalDescuentos = 0;
             $isvPorTasa = [];
-            
+
             foreach ($this->productosFacturaImpresa as $producto) {
                 $nombreCorto = substr($producto['nombre'], 0, 25);
                 imagestring($imagen, 2, 30, $y, $nombreCorto, $negro);
@@ -1628,7 +2751,7 @@ class Ventas extends Component
                 imagestring($imagen, 2, 420, $y, "L. " . number_format($producto['precio_unidad'], 2), $negro);
                 imagestring($imagen, 2, 500, $y, "L. " . number_format($producto['total'], 2), $negro);
                 $y += 15;
-                
+
                 // Mostrar descuento si existe
                 if ($producto['descuento'] > 0) {
                     $porcentajeDescuento = ($producto['descuento'] / ($producto['subtotal'] + $producto['descuento'])) * 100;
@@ -1638,7 +2761,7 @@ class Ventas extends Component
                     $y += 12;
                     $totalDescuentos += $producto['descuento'];
                 }
-                
+
                 // Agrupar ISV por tasa
                 $tasaIsv = $producto['isv_aplicado'];
                 if ($tasaIsv > 0) {
@@ -1657,14 +2780,14 @@ class Ventas extends Component
             imagestring($imagen, 3, 350, $y, "Subtotal:", $negro);
             imagestring($imagen, 3, 470, $y, "L. " . number_format((float)$factura->sub_total, 2), $negro);
             $y += 20;
-            
+
             // Mostrar descuentos si existen
             if ($totalDescuentos > 0) {
                 imagestring($imagen, 3, 350, $y, "Descuentos y rebajas:", $rojo);
                 imagestring($imagen, 3, 470, $y, "-L. " . number_format($totalDescuentos, 2), $rojo);
                 $y += 20;
             }
-            
+
             // Mostrar ISV por tasa
             foreach ($isvPorTasa as $tasa => $montoIsv) {
                 if ($tasa > 0 && $montoIsv > 0) {
@@ -1673,14 +2796,14 @@ class Ventas extends Component
                     $y += 20;
                 }
             }
-            
+
             // Si no hay ISV por tasa, mostrar el total de ISV
             if (empty($isvPorTasa) || array_sum($isvPorTasa) == 0) {
                 imagestring($imagen, 3, 350, $y, "ISV:", $negro);
                 imagestring($imagen, 3, 470, $y, "L. " . number_format((float)$factura->isv, 2), $negro);
                 $y += 20;
             }
-            
+
             imagestring($imagen, 4, 350, $y, "TOTAL:", $azul);
             imagestring($imagen, 4, 470, $y, "L. " . number_format((float)$factura->total, 2), $azul);
             $y += 30;
@@ -1820,19 +2943,21 @@ class Ventas extends Component
         $caiService = new CAIService();
 
         try {
-            $resultadoCAI = $caiService->obtenerSiguienteNumeroFactura();
+            // Usar CAI específico de la tienda del usuario
+            $resultadoCAI = $caiService->obtenerSiguienteNumeroFactura($this->tiendaUsuario);
 
             // Guardar información para usar en la factura
             $this->caiActual = $resultadoCAI;
 
             // Si el CAI se agotó, mostrar alerta
             if ($resultadoCAI['cai_agotado']) {
-                $this->alertaCAI = "¡ATENCIÓN! El CAI se ha agotado. Esta es la última factura disponible para este CAI.";
+                $this->alertaCAI = "¡ATENCIÓN! El CAI de su tienda se ha agotado. Esta es la última factura disponible para este CAI.";
             } elseif ($resultadoCAI['cantidad_restante'] <= 10) {
-                $this->alertaCAI = "¡AVISO! Quedan solo {$resultadoCAI['cantidad_restante']} facturas disponibles en el CAI actual.";
+                $this->alertaCAI = "¡AVISO! Quedan solo {$resultadoCAI['cantidad_restante']} facturas disponibles en el CAI de su tienda.";
             }
 
-            Log::info("DEBUG CAI generado", [
+            Log::info("DEBUG CAI generado para tienda", [
+                'tienda_id' => $this->tiendaUsuario,
                 'numero_factura' => $resultadoCAI['numero_factura'],
                 'cai_id' => $resultadoCAI['cai_id'],
                 'cantidad_restante' => $resultadoCAI['cantidad_restante']
@@ -1973,8 +3098,11 @@ class Ventas extends Component
 
     public function validarStockProducto($productoId, $cantidadSolicitada)
     {
+        // Normalizar cantidad solicitada a entero
+        $cantidadSolicitada = $this->normalizarCantidad($cantidadSolicitada);
+        
         if (!$this->tiendaUsuario) {
-            $this->dispatch('mostrar-sin-stock');
+            $this->mostrarModalSinStock = true;
             return false;
         }
 
@@ -1994,7 +3122,7 @@ class Ventas extends Component
 
         // Si no hay stock total disponible
         if ($stockTotal <= 0) {
-            $this->dispatch('mostrar-sin-stock');
+            $this->mostrarModalSinStock = true;
             return false;
         }
 
@@ -2002,7 +3130,7 @@ class Ventas extends Component
         $cantidadEnCarrito = 0;
         foreach ($this->productosFactura as $item) {
             if ($item['id'] == $productoId) {
-                $cantidadEnCarrito += $item['cantidad'];
+                $cantidadEnCarrito += (int)$item['cantidad'];
             }
         }
 
@@ -2022,7 +3150,7 @@ class Ventas extends Component
 
         // Validar que la nueva cantidad total no exceda el stock total disponible
         if ($nuevaCantidadTotal > $stockTotal) {
-            $this->dispatch('mostrar-sin-stock');
+            $this->mostrarModalSinStock = true;
             return false;
         }
 
@@ -2086,6 +3214,126 @@ class Ventas extends Component
             return $stockTotal ?? 0;
         } catch (\Exception $e) {
             return 0;
+        }
+    }
+
+    /**
+     * Obtener la primera unidad de medida disponible
+     */
+    private function obtenerUnidadMedidaDisponible()
+    {
+        try {
+            $unidad = DB::table('unidad_medida')->select('id')->first();
+            return $unidad ? $unidad->id : 3; // Fallback al ID 3 que sabemos que existe
+        } catch (\Exception $e) {
+            return 3; // Fallback al ID 3
+        }
+    }
+
+    public function agregarProductoPorClic($productoId)
+    {
+        try {
+            $producto = Producto::with('isv')->find($productoId);
+
+            if (!$producto) {
+                $this->dispatch('mostrar-error', ['mensaje' => 'Producto no encontrado']);
+                return;
+            }
+
+            // Log para debug
+            Log::info("agregarProductoPorClic - ProductoId: {$productoId}, Cantidad actual: {$this->cantidad}");
+            Log::info("Productos en factura antes: ", $this->productosFactura);
+
+            // Verificar stock disponible
+            $stockDisponible = $this->obtenerStockDisponible($producto->id);
+            if ($stockDisponible <= 0) {
+                $this->dispatch('mostrar-error', ['mensaje' => 'Producto sin stock disponible']);
+                return;
+            }
+
+            // Verificar si el producto ya está en la factura
+            $productoExistente = false;
+            foreach ($this->productosFactura as $index => $item) {
+                if (!isset($item['servicio_id']) && $item['id'] == $producto->id) {
+                    // Log para debug
+                    Log::info("Producto existente encontrado en índice {$index}, cantidad actual: {$item['cantidad']}");
+
+                    // Verificar que no exceda el stock
+                    $nuevaCantidad = (int)$this->productosFactura[$index]['cantidad'] + (int)$this->cantidad;
+                    Log::info("Nueva cantidad será: {$nuevaCantidad}, stock disponible: {$stockDisponible}");
+
+                    if ($nuevaCantidad > $stockDisponible) {
+                        $this->dispatch('mostrar-error', ['mensaje' => 'No se puede agregar más cantidad. Stock limitado a: ' . $stockDisponible]);
+                        return;
+                    }
+
+                    // Actualizar la cantidad
+                    $this->productosFactura[$index]['cantidad'] = $nuevaCantidad;
+
+                    // Recalcular el descuento unitario aplicado con la nueva cantidad
+                    $descuentoUnitarioProducto = $item['descuento_unitario_producto'] ?? 0;
+                    if ($descuentoUnitarioProducto > 0) {
+                        $this->productosFactura[$index]['descuento_unitario_aplicado'] = $descuentoUnitarioProducto * $nuevaCantidad;
+                    }
+
+                    // Recalcular subtotal con descuento para este item
+                    $subtotalOriginal = $item['precio'] * $nuevaCantidad;
+                    $descuentoUnitarioAplicado = $this->productosFactura[$index]['descuento_unitario_aplicado'] ?? 0;
+                    $this->productosFactura[$index]['subtotal_con_descuento'] = $subtotalOriginal - $descuentoUnitarioAplicado;
+
+                    Log::info("Cantidad actualizada a: {$nuevaCantidad}");
+                    $productoExistente = true;
+                    break;
+                }
+            }
+
+            if (!$productoExistente) {
+                // Obtener el valor de ISV desde la relación
+                $valorIsv = $producto->isv ? $producto->isv->cantidad : 0;
+
+                // Calcular descuento unitario automático si existe
+                $subtotalOriginal = $producto->precio_base;
+                $descuentoUnitarioAplicado = 0;
+
+                if (($producto->descuento_unitario ?? 0) > 0) {
+                    $descuentoUnitarioAplicado = $producto->descuento_unitario;
+                }
+
+                $this->productosFactura[] = [
+                    'id' => $producto->id,
+                    'servicio_id' => null,
+                    'nombre' => $producto->nombre,
+                    'codigo' => $producto->codigo_barra,
+                    'precio' => $producto->precio_base,
+                    'isv' => $valorIsv,
+                    'cantidad' => (int)$this->cantidad,
+                    'descuento_tercera' => $producto->descuento_tercera ?? 0,
+                    'descuento_cuarta' => $producto->descuento_cuarta ?? 0,
+                    'descuento_unitario_producto' => $producto->descuento_unitario ?? 0,
+                    'descuento_unitario_aplicado' => $descuentoUnitarioAplicado,
+                    'descuento_aplicado' => 0,
+                    'subtotal_con_descuento' => $subtotalOriginal - $descuentoUnitarioAplicado,
+                    'tipo' => 'producto'
+                ];
+
+                // Mostrar mensaje si se aplicó descuento automático
+                if (($producto->descuento_unitario ?? 0) > 0) {
+                    session()->flash('success', 'Producto agregado con descuento automático');
+                } else {
+                    session()->flash('success', 'Producto agregado exitosamente');
+                }
+            }
+
+            $this->calcularTotales();
+
+            // Forzar actualización de la vista
+            $this->dispatch('$refresh');
+
+            $this->codigoBarras = ''; // Limpiar código de barras
+
+        } catch (\Exception $e) {
+            Log::error('Error al agregar producto por clic: ' . $e->getMessage());
+            $this->dispatch('mostrar-error', ['mensaje' => 'Error al agregar el producto']);
         }
     }
 
@@ -2168,7 +3416,7 @@ class Ventas extends Component
                     'nombre' => $this->datosDescuentoAdulto['nombre'],
                     'edad' => $this->datosDescuentoAdulto['edad']
                 ]);
-                
+
             } catch (\Exception $e) {
                 Log::error("ERROR al guardar descuento adulto mayor", [
                     'factura_id' => $facturaId,
@@ -2177,5 +3425,90 @@ class Ventas extends Component
                 // No lanzar la excepción para no afectar el guardado de la factura
             }
         }
+    }
+
+    /**
+     * Método para obtener productos y servicios filtrados para el catálogo
+     */
+    public function obtenerProductosYServiciosFiltrados()
+    {
+        $query = collect();
+
+        // Obtener productos si se están mostrando
+        if ($this->tipoSeleccion === 'productos' || $this->tipoSeleccion === 'todos') {
+            $productos = Producto::query()
+                ->where('estado_id', 1)
+                ->when($this->busquedaProductosServicios, function ($q) {
+                    $q->where('nombre', 'like', '%' . $this->busquedaProductosServicios . '%')
+                      ->orWhere('codigo_barra', 'like', '%' . $this->busquedaProductosServicios . '%');
+                })
+                ->get()
+                ->map(function ($producto) {
+                    $producto->esServicio = false;
+                    // Calcular stock disponible usando el método existente
+                    $producto->stockDisponible = $this->obtenerStockDisponible($producto->id);
+                    return $producto;
+                });
+
+            $query = $query->merge($productos);
+        }
+
+        // Obtener servicios si se están mostrando
+        if ($this->tipoSeleccion === 'servicios' || $this->tipoSeleccion === 'todos') {
+            $servicios = Servicio::query()
+                ->where('estado_id', 1)
+                ->when($this->busquedaProductosServicios, function ($q) {
+                    $q->where('nombre', 'like', '%' . $this->busquedaProductosServicios . '%')
+                      ->orWhere('descripcion', 'like', '%' . $this->busquedaProductosServicios . '%');
+                })
+                ->get()
+                ->map(function ($servicio) {
+                    $servicio->esServicio = true;
+                    $servicio->stockDisponible = null; // Los servicios no tienen stock
+                    return $servicio;
+                });
+
+            $query = $query->merge($servicios);
+        }
+
+        return $query->sortBy('nombre')->values();
+    }
+
+    /**
+     * Verificar si el menú de servicios está activo para mostrar el catálogo visual
+     */
+    public function verificarEstadoMenuServicios()
+    {
+        try {
+            // Verificar si el menú "Catalogo.Servicios" está activo
+            $menuServicios = DB::table('menu')
+                ->where('route', 'Catalogo.Servicios')
+                ->where('estado_id', 1) // 1 = Activo
+                ->first();
+
+            // Si no existe el menú o está inactivo, ocultar el catálogo visual
+            $this->mostrarCatalogoVisual = $menuServicios !== null;
+
+            Log::info('Verificación estado menú servicios', [
+                'menu_encontrado' => $menuServicios !== null,
+                'mostrar_catalogo' => $this->mostrarCatalogoVisual
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error al verificar estado del menú servicios', [
+                'error' => $e->getMessage()
+            ]);
+            // En caso de error, mantener el catálogo visible por defecto
+            $this->mostrarCatalogoVisual = true;
+        }
+    }
+
+    /**
+     * Método público para refrescar el estado del catálogo visual
+     * Útil si se cambia el estado del menú sin recargar la página
+     */
+    public function refrescarEstadoCatalogo()
+    {
+        $this->verificarEstadoMenuServicios();
     }
 }

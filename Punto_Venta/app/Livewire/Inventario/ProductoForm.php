@@ -3,6 +3,7 @@
 namespace App\Livewire\Inventario;
 
 use Livewire\Component;
+use Livewire\WithFileUploads;
 use App\Models\Producto as ProductoModel;
 use App\Models\Categoria;
 use App\Models\Subcategoria;
@@ -13,6 +14,8 @@ use Illuminate\Support\Facades\DB;
 
 class ProductoForm extends Component
 {
+    use WithFileUploads;
+    
     public $productoId;
     public $isEditing = false;
 
@@ -48,6 +51,10 @@ class ProductoForm extends Component
     public $mostrarAlerta = false;
     public $mensajeAlerta = '';
     public $campoConError = '';
+
+    // Propiedades para manejo de imagen
+    public $imagen;
+    public $tieneImagenAnterior = false; // Solo flag para saber si existe
     public $camposConError = [];
     public $erroresValidacion = [];
 
@@ -73,6 +80,7 @@ class ProductoForm extends Component
         'form.ultimo_costo_compra' => 'nullable|numeric|min:0',
         'form.costo_promedio' => 'nullable|numeric|min:0',
         'form.unidad_medida_venta_id' => 'required|integer|exists:unidad_medida,id',
+        'imagen' => 'nullable|image|max:5120', // 5MB máximo
     ];
 
     protected $messages = [
@@ -91,6 +99,8 @@ class ProductoForm extends Component
         'form.descuento_unitario.min' => 'El descuento unitario no puede ser negativo',
         'form.unidad_medida_venta_id.required' => 'La unidad de medida es obligatoria',
         'form.unidad_medida_venta_id.exists' => 'La unidad de medida seleccionada no existe',
+        'imagen.image' => 'El archivo debe ser una imagen válida',
+        'imagen.max' => 'La imagen no puede ser mayor a 5MB',
     ];
 
     public function mount($id = null)
@@ -144,6 +154,9 @@ class ProductoForm extends Component
                     $this->cargarSubcategorias();
                 }
             }
+
+            // Marcar si tiene imagen anterior (sin cargar los datos BLOB)
+            $this->tieneImagenAnterior = $producto->imagen !== null;
         }
     }
 
@@ -215,6 +228,18 @@ class ProductoForm extends Component
             $datos['descuento_tercera'] = $datos['descuento_tercera'] ? 1 : 0;
             $datos['descuento_cuarta'] = $datos['descuento_cuarta'] ? 1 : 0;
 
+            // Procesar imagen si se subió una nueva
+            if ($this->imagen) {
+                $datos['imagen'] = file_get_contents($this->imagen->getRealPath());
+            } elseif ($this->isEditing && $this->tieneImagenAnterior) {
+                // Si estamos editando y no hay nueva imagen, obtener la anterior de la BD
+                $productoAnterior = ProductoModel::select('imagen')->find($this->productoId);
+                $datos['imagen'] = $productoAnterior ? $productoAnterior->imagen : null;
+            } else {
+                // No hay imagen
+                $datos['imagen'] = null;
+            }
+
             // Log para debugging
             Log::info('Intentando guardar producto', [
                 'datos' => $datos,
@@ -268,7 +293,7 @@ class ProductoForm extends Component
 
     public function volverALista()
     {
-        $this->dispatch('cambiarVista', ruta: 'Inventario.producto');
+        $this->dispatch('cambiarVista', ruta: 'Inventario.Producto');
     }
 
     // ===== MÉTODOS DE VALIDACIÓN EN TIEMPO REAL =====
@@ -426,7 +451,7 @@ class ProductoForm extends Component
         $this->mensajeModalExito = '';
 
         // Redirigir a la tabla de productos después de cerrar el modal
-        $this->dispatch('cambiarVista', ruta: 'Inventario.producto');
+        $this->dispatch('cambiarVista', ruta: 'Inventario.Producto');
     }
 
     public function cerrarModalError()
@@ -504,6 +529,32 @@ class ProductoForm extends Component
         }
         
         return $rules;
+    }
+
+    /**
+     * Remover imagen actual
+     */
+    public function removerImagen()
+    {
+        $this->imagen = null;
+        $this->tieneImagenAnterior = false;
+    }
+
+    /**
+     * Obtener la imagen en formato base64 para mostrar en la vista
+     */
+    public function getImagenMiniatura()
+    {
+        if ($this->imagen) {
+            return 'data:image/*;base64,' . base64_encode(file_get_contents($this->imagen->getRealPath()));
+        } elseif ($this->isEditing && $this->tieneImagenAnterior) {
+            // Obtener imagen anterior de la base de datos
+            $producto = ProductoModel::select('imagen')->find($this->productoId);
+            if ($producto && $producto->imagen) {
+                return 'data:image/*;base64,' . base64_encode($producto->imagen);
+            }
+        }
+        return null;
     }
 
     public function render()

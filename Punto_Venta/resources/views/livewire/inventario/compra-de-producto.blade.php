@@ -234,10 +234,10 @@
 
                                     <!-- Unidad -->
                                     <div class="col-lg-4">
-                                        <label for="unidad_compra" class="form-label"><strong>Unidad de Medida</strong> <span class="text-red-600">*</span></label>
-                                        <select id="unidad_compra" name="unidad_compra_lg" class="form-select" wire:model.live="productoTemporal.unidad_compra_id">
+                                        <label for="unidad_medida" class="form-label"><strong>Unidad de Medida</strong> <span class="text-red-600">*</span></label>
+                                        <select id="unidad_medida" name="unidad_medida_lg" class="form-select" wire:model.live="productoTemporal.unidad_medida_id">
                                             <option value="">Seleccionar unidad</option>
-                                            @foreach($unidadesCompra as $unidad)
+                                            @foreach($unidadesMedida as $unidad)
                                                 <option value="{{ $unidad['id'] }}">{{ $unidad['nombre'] }}</option>
                                             @endforeach
                                         </select>
@@ -367,10 +367,10 @@
                                 <div class="mb-3 row g-3">
                                     <!-- Unidad -->
                                     <div class="col-md-4">
-                                        <label for="unidad_compra_md" class="form-label"><strong>Unidad</strong> <span class="text-red-600">*</span></label>
-                                        <select id="unidad_compra_md" name="unidad_compra_md" class="form-select" wire:model.live="productoTemporal.unidad_compra_id">
+                                        <label for="unidad_medida_md" class="form-label"><strong>Unidad</strong> <span class="text-red-600">*</span></label>
+                                        <select id="unidad_medida_md" name="unidad_medida_md" class="form-select" wire:model.live="productoTemporal.unidad_medida_id">
                                             <option value="">Seleccionar</option>
-                                            @foreach($unidadesCompra as $unidad)
+                                            @foreach($unidadesMedida as $unidad)
                                                 <option value="{{ $unidad['id'] }}">{{ $unidad['nombre'] }}</option>
                                             @endforeach
                                         </select>
@@ -496,10 +496,10 @@
                                         </div>
                                     </div>
                                     <div class="col-6">
-                                        <label for="unidad_compra_mobile" class="form-label"><strong>Unidad</strong> <span class="text-red-600">*</span></label>
-                                        <select id="unidad_compra_mobile" name="unidad_compra_mobile" class="form-select" wire:model.live="productoTemporal.unidad_compra_id">
+                                        <label for="unidad_medida_mobile" class="form-label"><strong>Unidad</strong> <span class="text-red-600">*</span></label>
+                                        <select id="unidad_medida_mobile" name="unidad_medida_mobile" class="form-select" wire:model.live="productoTemporal.unidad_medida_id">
                                             <option value="">Seleccionar</option>
-                                            @foreach($unidadesCompra as $unidad)
+                                            @foreach($unidadesMedida as $unidad)
                                                 <option value="{{ $unidad['id'] }}">{{ $unidad['nombre'] }}</option>
                                             @endforeach
                                         </select>
@@ -620,7 +620,7 @@
                                                     @endif
                                                 </td>
                                                 <td class="text-center">
-                                                    <span class="badge bg-secondary">{{ $producto['unidad_compra_nombre'] }}</span>
+                                                    <span class="badge bg-secondary">{{ $producto['unidad_medida_nombre'] }}</span>
                                                 </td>
                                                 <td class="text-end">
                                                     <span class="fw-semibold">L. {{ number_format($producto['precio'], 2) }}</span>
@@ -709,7 +709,7 @@
                                             <div class="col-4">
                                                 <div class="p-2 text-center border rounded">
                                                     <small class="text-muted d-block">Unidad</small>
-                                                    <span class="fw-semibold">{{ $producto['unidad_compra_nombre'] }}</span>
+                                                    <span class="fw-semibold">{{ $producto['unidad_medida_nombre'] }}</span>
                                                 </div>
                                             </div>
                                             <div class="col-4">
@@ -1434,7 +1434,7 @@
             if (botonAgregar) {
                 const productoId = @this.productoTemporal?.producto_id;
                 const precio = parseFloat(@this.productoTemporal?.precio || 0);
-                const unidadId = @this.productoTemporal?.unidad_compra_id;
+                const unidadId = @this.productoTemporal?.unidad_medida_id;
 
                 const habilitado = productoId && precio > 0 && unidadId;
                 botonAgregar.disabled = !habilitado;
@@ -1468,7 +1468,7 @@
                 else if (activeElement.id === 'precio') {
                     e.preventDefault();
                     setTimeout(() => {
-                        const unidadField = document.getElementById('unidad_compra');
+                        const unidadField = document.getElementById('unidad_medida');
                         if (unidadField) {
                             unidadField.focus();
                         }

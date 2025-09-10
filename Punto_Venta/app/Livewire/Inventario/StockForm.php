@@ -80,15 +80,67 @@ class StockForm extends Component
         'form.seccion_destino.exists' => 'La sección seleccionada no es válida',
     ];
 
-    public function mount($productoId, $seccionId = null)
+    public function mount($productoId = null, $seccionId = null, $recibidoId = null)
     {
         try {
-            // Cargar datos del producto
-            $this->producto = ProductoModel::with(['marca', 'subcategoria.categoria', 'unidadMedidaCompra'])
-                ->findOrFail($productoId);
+            Log::info('StockForm mount iniciado', [
+                'producto_id_recibido' => $productoId,
+                'seccion_id_recibida' => $seccionId,
+                'recibido_id_recibido' => $recibidoId,
+                'usuario_id' => Auth::id()
+            ]);
 
             // Cargar bodegas disponibles
             $this->cargarBodegas();
+
+            // CASO 1: Se especifica recibidoId directamente (nuevo método)
+            if ($recibidoId) {
+                Log::info('Cargando por recibido_id específico', ['recibido_id' => $recibidoId]);
+                
+                $this->recibido = RecibidoBodega::with(['producto.marca', 'producto.subcategoria.categoria', 'producto.unidadMedidaCompra', 'seccion.segmento.bodega.tienda'])
+                    ->findOrFail($recibidoId);
+                
+                $this->producto = $this->recibido->producto;
+                $this->seccionId = $this->recibido->seccion_id;
+                $this->recibidoId = $this->recibido->id;
+                $this->isEditing = true;
+                
+                Log::info('Datos cargados por recibido_id', [
+                    'recibido_id' => $this->recibido->id,
+                    'producto_id' => $this->producto->id,
+                    'producto_nombre' => $this->producto->nombre,
+                    'cantidad_inicial' => $this->recibido->cantidad_inicial_seccion,
+                    'cantidad_disponible' => $this->recibido->cantidad_disponible,
+                    'seccion_id' => $this->seccionId
+                ]);
+
+                // Cargar datos del recibido
+                $this->cargarDatosRecibido();
+
+                // Pre-seleccionar la bodega, segmento y sección actual
+                $this->form['bodega_destino'] = $this->recibido->seccion->segmento->bodega_id ?? '';
+                if ($this->form['bodega_destino']) {
+                    $this->cargarSegmentosPorBodega();
+                    $this->form['segmento_destino'] = $this->recibido->seccion->segmento_id ?? '';
+                    if ($this->form['segmento_destino']) {
+                        $this->cargarSeccionesPorSegmento();
+                    }
+                }
+                
+                // Inicializar fecha de distribución con la fecha actual
+                $this->form['fecha_distribucion'] = now()->format('Y-m-d');
+                
+                return; // Salir temprano del método
+            }
+            
+            // CASO 2: Método anterior por productoId (mantener compatibilidad)
+            if (!$productoId) {
+                throw new \Exception('Debe especificar productoId o recibidoId');
+            }
+
+            // Cargar datos del producto
+            $this->producto = ProductoModel::with(['marca', 'subcategoria.categoria', 'unidadMedidaCompra'])
+                ->findOrFail($productoId);
 
             // Si se pasa seccionId, estamos editando desde ProductosSeccion
             if ($seccionId) {
@@ -97,20 +149,32 @@ class StockForm extends Component
                 $this->recibido = RecibidoBodega::where('producto_id', $productoId)
                     ->where('seccion_id', $seccionId)
                     ->with(['producto', 'seccion.segmento.bodega.tienda'])
-                    ->firstOrFail();
+                    ->first(); // Cambiado de firstOrFail() a first()
 
-                $this->recibidoId = $this->recibido->id;
-                $this->isEditing = true;
-                $this->cargarDatosRecibido();
+                if ($this->recibido) {
+                    $this->recibidoId = $this->recibido->id;
+                    $this->isEditing = true;
+                    $this->cargarDatosRecibido();
 
-                // Pre-seleccionar la bodega actual
-                $this->form['bodega_destino'] = $this->recibido->seccion->segmento->bodega_id ?? '';
-                if ($this->form['bodega_destino']) {
-                    $this->cargarSegmentosPorBodega();
-                    $this->form['segmento_destino'] = $this->recibido->seccion->segmento_id ?? '';
-                    if ($this->form['segmento_destino']) {
-                        $this->cargarSeccionesPorSegmento();
+                    // Pre-seleccionar la bodega actual
+                    $this->form['bodega_destino'] = $this->recibido->seccion->segmento->bodega_id ?? '';
+                    if ($this->form['bodega_destino']) {
+                        $this->cargarSegmentosPorBodega();
+                        $this->form['segmento_destino'] = $this->recibido->seccion->segmento_id ?? '';
+                        if ($this->form['segmento_destino']) {
+                            $this->cargarSeccionesPorSegmento();
+                        }
                     }
+                } else {
+                    // Si no se encuentra el registro, crear valores por defecto
+                    $this->cantidadTotalBodega = 0;
+                    $this->stockDisponible = 0;
+                    $this->totalDistribuido = 0;
+                    Log::warning('No se encontró registro RecibidoBodega', [
+                        'producto_id' => $productoId,
+                        'seccion_id' => $seccionId,
+                        'usuario_id' => Auth::id()
+                    ]);
                 }
             } else {
                 // Si no hay sección, necesitamos calcular para una bodega por defecto
@@ -168,17 +232,25 @@ class StockForm extends Component
             // Calcular cantidad total en toda la bodega para este producto
             $this->calcularCantidadTotalBodega();
 
-            // Inicializar formulario
+            // Inicializar formulario con valores correctos
             $this->form = [
                 'cantidad_asignada_bodega' => $this->cantidadTotalBodega,
                 'cantidad_distribuir' => 0,
-                'precio_unitario' => 0,
+                'precio_unitario' => $this->producto->precio_base ?? 0,
                 'fecha_distribucion' => now()->format('Y-m-d'),
                 'comentario' => '',
                 'bodega_destino' => '',
                 'segmento_destino' => '',
                 'seccion_destino' => '',
             ];
+
+            Log::info('Datos cargados en StockForm', [
+                'cantidad_total_bodega' => $this->cantidadTotalBodega,
+                'stock_disponible' => $this->stockDisponible,
+                'total_distribuido' => $this->totalDistribuido,
+                'cantidad_inicial_seccion' => $this->recibido->cantidad_inicial_seccion ?? 0,
+                'cantidad_disponible_seccion' => $this->recibido->cantidad_disponible ?? 0,
+            ]);
         }
     }
 
@@ -248,7 +320,8 @@ class StockForm extends Component
                     'fecha_recibido' => now(),
                     'users_registro_id' => Auth::id(),
                     'estado_id' => 1,
-                    'unidad_compra_id' => $this->producto->unidad_compra_id ?? $this->recibido->unidad_compra_id ?? 1
+                    'unidades_compra' => '0',
+                    'unidad_medida_id' => $this->producto->unidad_medida_venta_id ?? $this->recibido->unidad_medida_id ?? 1
                 ]);
             }
 

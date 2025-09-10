@@ -11,12 +11,9 @@ use Illuminate\Database\QueryException;
 use Illuminate\Validation\ValidationException;
 use App\Models\GestionCai;
 use Illuminate\Support\Facades\Auth;
-use Livewire\WithPagination;
 
 class Cai extends Component
 {
-
-    use WithPagination; // Usa el trait
 
      public $form = [
         'id' => null,
@@ -80,7 +77,9 @@ class Cai extends Component
                     'A.created_at',
                     'A.updated_at'
                 )
-                ->paginate(5);
+                ->orderBy('A.estado_id', 'ASC') // Activos (1) primero, luego inactivos (2)
+                ->orderBy('A.created_at', 'DESC') // Luego por fecha de creación más reciente
+                ->get();
 
             return view('livewire.gestion.cai', compact('cai'));
     }
@@ -95,19 +94,22 @@ class Cai extends Component
     {
         //dd("entra");
         try {
+            // Validar datos del formulario
             $this->validate([
-                'nuevoCai'             => 'required|string',
-                'nuevoFechaLimite'     => 'required|date',
+                'nuevoCai'             => 'required|string|max:60',
+                'nuevoFechaLimite'     => 'required|date|after:today',
                 'nuevoFechaSolicitud'  => 'required|date',
-                'nuevoPuntoEmision'    => 'required|string|max:255',
+                'nuevoPuntoEmision'    => 'required|string|max:100',
                 'tipoDocumentoSeleccionado' => 'required|exists:tipo_documento_fiscal,id',
                 'tiendaSeleccionado'   => 'required|exists:tienda,id',
+                'nuevoCantidadSolicitada' => 'required|integer|min:1',
                 'nuevoCantidadOtorgada' => 'required|integer|min:1',
-                'nuevoCantidadOtorgada' => 'required|integer|min:1',
-                'nuevoRangoInicial'  => 'required|string',
-                'nuevoRangoFinal'  => 'required|string',
-
+                'nuevoRangoInicial'  => 'required|string|max:45',
+                'nuevoRangoFinal'  => 'required|string|max:45',
             ]);
+
+            // Iniciar transacción para mantener integridad de datos
+            DB::beginTransaction();
 
             $docFiscal = caiModel::where('tipo_documento_fiscal_id', $this->tipoDocumentoSeleccionado)
                         ->where('tienda_id',$this->tiendaSeleccionado)
@@ -149,6 +151,9 @@ class Cai extends Component
                     $nuevoCai->estado_id = 1;
                 $nuevoCai->save();
 
+                // Crear automáticamente el registro en gestion_cai
+                $this->crearGestionCai($nuevoCai->id, $this->nuevoRangoInicial, $this->nuevoRangoFinal);
+
             }else{
                  $nuevoCai = new caiModel();
                     $nuevoCai->cai = $this->nuevoCai;
@@ -164,19 +169,100 @@ class Cai extends Component
                     $nuevoCai->users_registro_id = Auth::user()->id;
                     $nuevoCai->estado_id = 1;
                 $nuevoCai->save();
+                
+                // Crear automáticamente el registro en gestion_cai
+                $this->crearGestionCai($nuevoCai->id, $this->nuevoRangoInicial, $this->nuevoRangoFinal);
             }
 
-            $this->modalCrearAbierto = false;
-            session()->flash('mensaje', 'Cai registrado exitosamente.');
+            // Confirmar transacción
+            DB::commit();
 
+            $this->modalCrearAbierto = false;
+            session()->flash('mensaje', 'CAI y gestión de CAI registrados exitosamente.');
+            
+            // Limpiar el formulario
+            $this->limpiarFormulario();
 
         } catch (ValidationException $e) {
-            dd($e);
+            DB::rollBack();
+            session()->flash('error', 'Error de validación: ' . implode(', ', $e->validator->errors()->all()));
         } catch (QueryException $e) {
-            dd($e);
+            DB::rollBack();
+            session()->flash('error', 'Error de base de datos: ' . $e->getMessage());
         } catch (\Throwable $e) {
-            dd($e);
+            DB::rollBack();
+            session()->flash('error', 'Error inesperado: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Extrae el número actual del rango inicial
+     * Toma el rango_inicio después del último guión y quita los ceros a la izquierda
+     */
+    private function extraerNumeroActual($rangoInicial)
+    {
+        $partes = explode('-', $rangoInicial);
+        $ultimaParte = end($partes);
+        return (int) $ultimaParte; // Convertir a entero elimina los ceros a la izquierda
+    }
+
+    /**
+     * Extrae la cantidad no utilizada del rango final
+     * Toma el rango_final después del último guión
+     */
+    private function extraerCantidadNoUtilizada($rangoFinal)
+    {
+        $partes = explode('-', $rangoFinal);
+        $ultimaParte = end($partes);
+        return (int) $ultimaParte;
+    }
+
+    /**
+     * Extrae el número base del rango inicial
+     * Toma todo hasta el último guión incluyendo el guión
+     */
+    private function extraerNumeroBase($rangoInicial)
+    {
+        $ultimoGuion = strrpos($rangoInicial, '-');
+        if ($ultimoGuion !== false) {
+            return substr($rangoInicial, 0, $ultimoGuion + 1); // Incluye el guión
+        }
+        return $rangoInicial . '-'; // Si no hay guión, agrega uno
+    }
+
+    /**
+     * Crea automáticamente el registro en gestion_cai
+     */
+    private function crearGestionCai($caiId, $rangoInicial, $rangoFinal)
+    {
+        $numeroActual = $this->extraerNumeroActual($rangoInicial);
+        $cantidadNoUtilizada = $this->extraerCantidadNoUtilizada($rangoFinal);
+        $numeroBase = $this->extraerNumeroBase($rangoInicial);
+
+        $gestionCai = new GestionCai();
+        $gestionCai->cai_id = $caiId;
+        $gestionCai->numero_actual = $numeroActual;
+        $gestionCai->cantidad_no_utilizada = $cantidadNoUtilizada;
+        $gestionCai->numero_base = $numeroBase;
+        $gestionCai->estado_id = 1;
+        $gestionCai->save();
+    }
+
+    /**
+     * Limpia el formulario después de crear un CAI
+     */
+    private function limpiarFormulario()
+    {
+        $this->nuevoCai = '';
+        $this->nuevoFechaLimite = '';
+        $this->nuevoFechaSolicitud = '';
+        $this->nuevoPuntoEmision = '';
+        $this->tipoDocumentoSeleccionado = '';
+        $this->nuevoCantidadSolicitada = '';
+        $this->nuevoCantidadOtorgada = '';
+        $this->nuevoRangoInicial = '';
+        $this->nuevoRangoFinal = '';
+        $this->tiendaSeleccionado = '';
     }
 
 
@@ -187,12 +273,12 @@ class Cai extends Component
         $this->nuevoFechaLimite = '';
         $this->nuevoFechaSolicitud = '';
         $this->nuevoPuntoEmision = '';
-        $this->nuevotipoFiscal = '';
+        $this->tipoDocumentoSeleccionado = '';
         $this->nuevoCantidadSolicitada = '';
-        $this->nuevoCantidadOrtorgada = '';
-        $this->nuevoRangoInicio = '';
+        $this->nuevoCantidadOtorgada = '';
+        $this->nuevoRangoInicial = '';
         $this->nuevoRangoFinal = '';
-        $this->nuevoTiendaId = '';
+        $this->tiendaSeleccionado = '';
     }
 
     public function cerrarModalCrear()
