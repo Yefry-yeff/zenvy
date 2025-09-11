@@ -3,6 +3,9 @@
 namespace App\Livewire\Inventario;
 
 use Livewire\Component;
+use App\Services\SincronizacionMarcasService;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 
 class Marca extends Component
 {
@@ -19,10 +22,50 @@ class Marca extends Component
     public $marcaAEliminar = null;
     public $productosVinculados = [];
 
+    private $sincronizacionService;
+
+    public function mount()
+    {
+        $this->sincronizarMarcas();
+    }
+
+    private function getSincronizacionService()
+    {
+        if (!$this->sincronizacionService) {
+            $this->sincronizacionService = app(SincronizacionMarcasService::class);
+        }
+        return $this->sincronizacionService;
+    }
+
+    private function sincronizarMarcas()
+    {
+        try {
+            $resultado = $this->getSincronizacionService()->sincronizarMarcasEnTiempoReal();
+            Log::info('Sincronización de marcas en gestión: ' . json_encode($resultado));
+        } catch (\Exception $e) {
+            Log::error('Error al sincronizar marcas en gestión: ' . $e->getMessage());
+        }
+    }
+
     public function render()
     {
-        $marcas = \App\Models\Marca::all(['id', 'nombre']);
-        return view('livewire.inventario.marca', compact('marcas'));
+        // Obtener marcas propias de Zenvy (que NO están en la tabla de mapeo)
+        $marcasZenvy = \App\Models\Marca::whereNotExists(function ($query) {
+            $query->select(DB::raw(1))
+                  ->from('id_zenvy_valencia')
+                  ->whereRaw('id_zenvy_valencia.id_zenvy = marca.id')
+                  ->where('id_zenvy_valencia.tipo_dato_migrado_id', 2);
+        })->orderBy('nombre')->get(['id', 'nombre']);
+
+        // Obtener marcas de Valencia (que SÍ están en la tabla de mapeo)
+        $marcasValencia = \App\Models\Marca::whereExists(function ($query) {
+            $query->select(DB::raw(1))
+                  ->from('id_zenvy_valencia')
+                  ->whereRaw('id_zenvy_valencia.id_zenvy = marca.id')
+                  ->where('id_zenvy_valencia.tipo_dato_migrado_id', 2);
+        })->orderBy('nombre')->get(['id', 'nombre']);
+
+        return view('livewire.inventario.marca', compact('marcasZenvy', 'marcasValencia'));
     }
 
     public function editar($id)
@@ -119,5 +162,29 @@ class Marca extends Component
             session()->flash('mensaje', 'Marca eliminada exitosamente.');
         }
         $this->cerrarModalEliminar();
+    }
+
+    public function actualizarMarcas()
+    {
+        try {
+            $resultado = $this->getSincronizacionService()->forzarSincronizacion();
+            session()->flash('mensaje', 'Marcas actualizadas exitosamente desde Valencia.');
+            Log::info('Sincronización manual de marcas: ' . json_encode($resultado));
+        } catch (\Exception $e) {
+            session()->flash('error', 'Error al actualizar marcas: ' . $e->getMessage());
+            Log::error('Error en sincronización manual: ' . $e->getMessage());
+        }
+    }
+
+    public function sincronizarMarcasValencia()
+    {
+        try {
+            $resultado = $this->getSincronizacionService()->forzarSincronizacion();
+            session()->flash('mensaje', 'Marcas de Valencia sincronizadas exitosamente. Nuevas: ' . $resultado['nuevas'] . ', Actualizadas: ' . $resultado['actualizadas']);
+            Log::info('Sincronización manual de marcas Valencia: ' . json_encode($resultado));
+        } catch (\Exception $e) {
+            session()->flash('error', 'Error al sincronizar marcas de Valencia: ' . $e->getMessage());
+            Log::error('Error en sincronización Valencia: ' . $e->getMessage());
+        }
     }
 }

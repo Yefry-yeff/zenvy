@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\MarcaExterna;
 use App\Models\Marca;
+use App\Models\IdZenvyValencia;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
@@ -131,7 +132,7 @@ class SincronizacionMarcasService
     }
 
     /**
-     * Procesa una marca individual
+     * Procesa una marca individual usando tabla de mapeo para evitar duplicados
      */
     private function procesarMarcaIndividual($marcaExterna)
     {
@@ -143,31 +144,66 @@ class SincronizacionMarcasService
                 return 'sin_cambios';
             }
 
-            // Buscar si ya existe la marca localmente
-            $marcaLocal = Marca::where('nombre', $nombreLimpio)->first();
-
-            if ($marcaLocal) {
-                // La marca ya existe - verificar si necesita actualización
-                if ($marcaLocal->updated_at < now()->subDays(1)) {
-                    // Actualizar timestamp si tiene más de un día
-                    $marcaLocal->touch();
-                    return 'actualizadas';
-                }
-                return 'sin_cambios';
-            } else {
-                // Crear nueva marca en la tabla local
-                Marca::create([
-                    'nombre' => $nombreLimpio,
-                    'created_at' => now(),
-                    'updated_at' => now()
-                ]);
+            // 1. Verificar si ya existe mapeo por ID de Valencia
+            $mapeoExistente = IdZenvyValencia::buscarPorValencia($marcaExterna->id, IdZenvyValencia::TIPO_MARCA);
+            
+            if ($mapeoExistente) {
+                // Ya existe mapeo, actualizar la marca existente
+                $marcaLocal = Marca::find($mapeoExistente->id_zenvy);
                 
-                Log::info("Nueva marca sincronizada: {$nombreLimpio}");
-                return 'nuevas';
+                if ($marcaLocal) {
+                    // Verificar si el nombre cambió
+                    if ($marcaLocal->nombre !== $nombreLimpio) {
+                        $marcaLocal->update([
+                            'nombre' => $nombreLimpio,
+                            'updated_at' => now()
+                        ]);
+                        
+                        // Actualizar timestamp del mapeo
+                        $mapeoExistente->touch();
+                        
+                        Log::info("Marca actualizada por mapeo: {$nombreLimpio} (ID Valencia: {$marcaExterna->id}, ID Zenvy: {$marcaLocal->id})");
+                        return 'actualizadas';
+                    } else {
+                        // Sin cambios en el nombre
+                        return 'sin_cambios';
+                    }
+                } else {
+                    // El mapeo existe pero la marca local no existe (inconsistencia)
+                    Log::warning("Inconsistencia: Mapeo existe pero marca no encontrada. ID Zenvy: {$mapeoExistente->id_zenvy}");
+                    $mapeoExistente->delete(); // Limpiar mapeo inconsistente
+                }
             }
+            
+            // 2. Verificar si existe marca local por nombre (para crear mapeo retroactivo)
+            $marcaLocal = Marca::where('nombre', $nombreLimpio)->first();
+            
+            if ($marcaLocal) {
+                // Marca existe pero sin mapeo, crear mapeo
+                IdZenvyValencia::crearMapeo($marcaLocal->id, $marcaExterna->id, IdZenvyValencia::TIPO_MARCA);
+                
+                // Actualizar timestamp de la marca
+                $marcaLocal->touch();
+                
+                Log::info("Mapeo creado para marca existente: {$nombreLimpio} (ID Valencia: {$marcaExterna->id}, ID Zenvy: {$marcaLocal->id})");
+                return 'actualizadas';
+            }
+            
+            // 3. Crear nueva marca con mapeo
+            $nuevaMarca = Marca::create([
+                'nombre' => $nombreLimpio,
+                'created_at' => now(),
+                'updated_at' => now()
+            ]);
+            
+            // Crear mapeo para la nueva marca
+            IdZenvyValencia::crearMapeo($nuevaMarca->id, $marcaExterna->id, IdZenvyValencia::TIPO_MARCA);
+            
+            Log::info("Nueva marca creada con mapeo: {$nombreLimpio} (ID Valencia: {$marcaExterna->id}, ID Zenvy: {$nuevaMarca->id})");
+            return 'nuevas';
 
         } catch (\Exception $e) {
-            Log::error("Error procesando marca '{$marcaExterna->nombre}': " . $e->getMessage());
+            Log::error("Error procesando marca '{$marcaExterna->nombre}' (ID: {$marcaExterna->id}): " . $e->getMessage());
             return 'sin_cambios';
         }
     }
@@ -254,37 +290,108 @@ class SincronizacionMarcasService
                 throw new \Exception('Sin conectividad para verificar marcas órfanas');
             }
 
-            // Obtener nombres de marcas externas
-            $nombresExternos = MarcaExterna::pluck('nombre')->filter()->toArray();
+            // Obtener IDs de marcas externas
+            $idsExternos = MarcaExterna::pluck('id')->filter()->toArray();
             
-            if (empty($nombresExternos)) {
-                throw new \Exception('No se pudieron obtener marcas externas para comparar');
+            if (empty($idsExternos)) {
+                throw new \Exception('No se pudieron obtener IDs de marcas externas para comparar');
             }
 
-            // Encontrar marcas locales que no existen externamente
-            $marcasOrfanas = Marca::whereNotIn('nombre', $nombresExternos)->get();
+            // Encontrar mapeos de marcas que no existen externamente
+            $mapeosOrfanos = IdZenvyValencia::where('tipo_dato_migrado_id', IdZenvyValencia::TIPO_MARCA)
+                                          ->whereNotIn('id_valencia', $idsExternos)
+                                          ->get();
             
             $eliminadas = 0;
-            foreach ($marcasOrfanas as $marca) {
-                // Verificar que la marca no esté siendo usada por productos
-                $productosUsando = DB::table('producto')->where('marca_id', $marca->id)->count();
+            foreach ($mapeosOrfanos as $mapeo) {
+                $marca = Marca::find($mapeo->id_zenvy);
                 
-                if ($productosUsando == 0) {
-                    $marca->delete();
-                    $eliminadas++;
-                    Log::info("Marca órfana eliminada: {$marca->nombre}");
+                if ($marca) {
+                    // Verificar que la marca no esté siendo usada por productos
+                    $productosUsando = DB::table('producto')->where('marca_id', $marca->id)->count();
+                    
+                    if ($productosUsando == 0) {
+                        $marca->delete();
+                        $mapeo->delete(); // Eliminar también el mapeo
+                        $eliminadas++;
+                        Log::info("Marca órfana eliminada con mapeo: {$marca->nombre} (ID Valencia: {$mapeo->id_valencia})");
+                    } else {
+                        Log::info("Marca órfana preservada (en uso): {$marca->nombre} (ID Valencia: {$mapeo->id_valencia})");
+                    }
+                } else {
+                    // Mapeo sin marca (inconsistencia), eliminar mapeo
+                    $mapeo->delete();
+                    Log::info("Mapeo huérfano eliminado: ID Valencia {$mapeo->id_valencia}");
                 }
             }
 
             return [
                 'success' => true,
                 'eliminadas' => $eliminadas,
-                'encontradas' => $marcasOrfanas->count(),
-                'message' => "Se eliminaron {$eliminadas} marcas órfanas de {$marcasOrfanas->count()} encontradas"
+                'encontradas' => $mapeosOrfanos->count(),
+                'message' => "Se eliminaron {$eliminadas} marcas órfanas de {$mapeosOrfanos->count()} encontradas (usando mapeos)"
             ];
 
         } catch (\Exception $e) {
             Log::error('Error limpiando marcas órfanas: ' . $e->getMessage());
+            return [
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Crea mapeos retroactivos para marcas ya sincronizadas
+     */
+    public function crearMapeosRetroactivos()
+    {
+        try {
+            $conectividad = $this->verificarConectividad();
+            if (!$conectividad['status']) {
+                throw new \Exception('Sin conectividad para crear mapeos retroactivos');
+            }
+
+            $marcasExternas = MarcaExterna::obtenerMarcasExternas();
+            $mapeosCreados = 0;
+
+            DB::beginTransaction();
+
+            foreach ($marcasExternas as $marcaExterna) {
+                $nombreLimpio = trim($marcaExterna->nombre);
+                
+                if (empty($nombreLimpio)) {
+                    continue;
+                }
+
+                // Verificar si ya existe mapeo
+                $mapeoExistente = IdZenvyValencia::buscarPorValencia($marcaExterna->id, IdZenvyValencia::TIPO_MARCA);
+                
+                if (!$mapeoExistente) {
+                    // Buscar marca local por nombre
+                    $marcaLocal = Marca::where('nombre', $nombreLimpio)->first();
+                    
+                    if ($marcaLocal) {
+                        // Crear mapeo retroactivo
+                        IdZenvyValencia::crearMapeo($marcaLocal->id, $marcaExterna->id, IdZenvyValencia::TIPO_MARCA);
+                        $mapeosCreados++;
+                        
+                        Log::info("Mapeo retroactivo creado: {$nombreLimpio} (ID Valencia: {$marcaExterna->id}, ID Zenvy: {$marcaLocal->id})");
+                    }
+                }
+            }
+
+            DB::commit();
+
+            return [
+                'success' => true,
+                'mapeos_creados' => $mapeosCreados,
+                'message' => "Se crearon {$mapeosCreados} mapeos retroactivos"
+            ];
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error creando mapeos retroactivos: ' . $e->getMessage());
             return [
                 'success' => false,
                 'message' => 'Error: ' . $e->getMessage()

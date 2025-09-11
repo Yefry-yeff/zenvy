@@ -1,45 +1,57 @@
-# 🔄 Sistema de Sincronización de Marcas - ACTUALIZADO
+# 🔄 Sistema de Sincronización de Marcas - CON MAPEO DE IDs
 
-Este sistema permite mantener las marcas sincronizadas **en tiempo real** desde una base de datos externa (`profac_app`) hacia la tabla local `marca` en `db_zenvy`.
+Este sistema permite mantener las marcas sincronizadas **en tiempo real** desde `profac_app` hacia `db_zenvy` usando una **tabla de mapeo** para evitar duplicados y manejar actualizaciones precisas.
 
 ## 📋 Características Principales
 
-### ✅ Sincronización Bidireccional
-- **Lectura en Tiempo Real**: Obtiene marcas desde `profac_app.marca`
-- **Inserción Automática**: Crea nuevas marcas en `db_zenvy.marca`
-- **Actualización Local**: Mantiene la tabla local sincronizada
-- **Fallback Inteligente**: Si falla la conexión, usa marcas locales
+### ✅ Sistema de Mapeo Inteligente
+- **Tabla de Mapeo**: `id_zenvy_valencia` mapea IDs entre sistemas
+- **Evita Duplicados**: Usa IDs de Valencia para identificar marcas únicas
+- **Actualizaciones Precisas**: Actualiza la marca correcta sin crear duplicados
+- **Mapeos Retroactivos**: Crea mapeos para marcas ya sincronizadas
 
-### 🔄 Flujo de Sincronización
+### 🔄 Flujo de Sincronización Mejorado
 
 ```
-profac_app.marca → MarcaExterna → SincronizacionMarcasService → db_zenvy.marca
-                                                             ↘ Cache (1-5 min)
-                                                             ↘ ProductoForm
+profac_app.marca → MarcaExterna → SincronizacionMarcasService 
+                                        ↓
+                              Tabla de Mapeo (id_zenvy_valencia)
+                                        ↓
+                              db_zenvy.marca (sin duplicados)
 ```
 
-## 🛠️ Componentes del Sistema
+## �️ **Sistema de Mapeo:**
 
-#### 1. **Modelos Actualizados**
-- `MarcaExterna.php`: Conexión con `profac_app.marca`
-- `Marca.php`: Modelo local con timestamps habilitados
+### Estructura de `id_zenvy_valencia`:
+- `tipo_dato_migrado_id`: 2 (para marcas)
+- `id_zenvy`: ID de la marca en db_zenvy 
+- `id_valencia`: ID de la marca en profac_app
+- `created_at`/`updated_at`: Control de fechas
 
-#### 2. **Servicio Principal**
-- `SincronizacionMarcasService.php`: 
-  - Obtiene marcas desde sistema externo
-  - **Inserta nuevas marcas en tabla local**
-  - Maneja cache inteligente
-  - Limpia marcas órfanas
+### Lógica de Sincronización:
+1. **Busca mapeo por ID Valencia** → Si existe, actualiza marca local
+2. **Si no hay mapeo** → Busca marca por nombre y crea mapeo
+3. **Si no existe** → Crea nueva marca + mapeo
 
-#### 3. **Comandos Artisan Mejorados**
-- `marcas:sincronizar`: Sincronización con inserción local
-- `marcas:sincronizar --force`: Fuerza sincronización completa
-- `marcas:sincronizar --stats`: Estadísticas detalladas
-- `marcas:limpiar-orfanas`: **NUEVO** - Elimina marcas que no existen externamente
+## 🛠️ Comandos Actualizados
 
-#### 4. **Interface Web Actualizada**
-- Botones de sincronización en formularios
-- **Las marcas se insertan automáticamente en db_zenvy**
+### Comandos Principales:
+```bash
+# Sincronización normal con mapeos
+php artisan marcas:sincronizar
+
+# Forzar sincronización completa
+php artisan marcas:sincronizar --force
+
+# Ver estadísticas detalladas
+php artisan marcas:sincronizar --stats
+
+# 🆕 NUEVO: Crear mapeos retroactivos
+php artisan marcas:sincronizar --mapeos
+
+# Limpiar marcas órfanas (usando mapeos)
+php artisan marcas:limpiar-orfanas
+```
 
 ## ⚙️ Configuración
 

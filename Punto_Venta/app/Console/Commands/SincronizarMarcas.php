@@ -14,7 +14,8 @@ class SincronizarMarcas extends Command
      */
     protected $signature = 'marcas:sincronizar 
                            {--force : Forzar sincronización ignorando cache}
-                           {--stats : Mostrar estadísticas de sincronización}';
+                           {--stats : Mostrar estadísticas de sincronización}
+                           {--mapeos : Crear mapeos retroactivos para marcas existentes}';
 
     /**
      * The console command description.
@@ -43,6 +44,19 @@ class SincronizarMarcas extends Command
 
         if ($this->option('stats')) {
             $this->mostrarEstadisticas($sincronizacionService);
+            return Command::SUCCESS;
+        }
+
+        if ($this->option('mapeos')) {
+            $this->info('🗺️ Creando mapeos retroactivos...');
+            $resultado = $sincronizacionService->crearMapeosRetroactivos();
+            
+            if ($resultado['success']) {
+                $this->info('✅ ' . $resultado['message']);
+            } else {
+                $this->error('❌ ' . $resultado['message']);
+                return Command::FAILURE;
+            }
             return Command::SUCCESS;
         }
 
