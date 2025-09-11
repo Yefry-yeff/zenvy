@@ -4,6 +4,9 @@ namespace App\Livewire\Inventario;
 
 use App\Models\Categoria;
 use App\Models\Subcategoria;
+use App\Models\IdZenvyValencia;
+use App\Services\SincronizacionSubcategoriasService;
+use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 
 class CategoriaForm extends Component
@@ -15,6 +18,12 @@ class CategoriaForm extends Component
     public $subcategorias;
     public $nuevaSubcategoria = '';
     public $mostrarMensaje = false;
+
+    // Propiedades para categorías de Valencia
+    public $esCategoriaValencia = false;
+    
+    // Servicio como propiedad privada (no pública)
+    private $sincronizacionService;
 
     // Propiedades para el flujo de creación
     public $mostrarSeccionSubcategorias = false;
@@ -40,16 +49,75 @@ class CategoriaForm extends Component
             $this->categoriaId = $id;
             $categoria = Categoria::findOrFail($id);
             $this->form['nombre'] = $categoria->nombre;
+            
+            // Verificar si es una categoría de Valencia
+            $this->esCategoriaValencia = $this->verificarSiEsCategoriaValencia($id);
+            
             $this->cargarSubcategorias();
         } else {
             $this->categoriaId = null;
+            $this->esCategoriaValencia = false;
         }
+    }
+
+    private function getSincronizacionService()
+    {
+        if (!$this->sincronizacionService) {
+            $this->sincronizacionService = app(SincronizacionSubcategoriasService::class);
+        }
+        return $this->sincronizacionService;
     }
 
     public function cargarSubcategorias()
     {
         if ($this->categoriaId) {
-            $this->subcategorias = Subcategoria::where('categoria_id', $this->categoriaId)->get();
+            if ($this->esCategoriaValencia) {
+                // Para categorías de Valencia, separar subcategorías por origen
+                $this->subcategorias = [
+                    'zenvy' => Subcategoria::where('categoria_id', $this->categoriaId)
+                        ->whereNotExists(function ($query) {
+                            $query->select(DB::raw(1))
+                                  ->from('id_zenvy_valencia')
+                                  ->whereRaw('id_zenvy_valencia.id_zenvy = subcategoria.id')
+                                  ->where('id_zenvy_valencia.tipo_dato_migrado_id', 4);
+                        })->orderBy('nombre')->get(['id', 'nombre'])->toArray(),
+                    
+                    'valencia' => Subcategoria::where('categoria_id', $this->categoriaId)
+                        ->whereExists(function ($query) {
+                            $query->select(DB::raw(1))
+                                  ->from('id_zenvy_valencia')
+                                  ->whereRaw('id_zenvy_valencia.id_zenvy = subcategoria.id')
+                                  ->where('id_zenvy_valencia.tipo_dato_migrado_id', 4);
+                        })->orderBy('nombre')->get(['id', 'nombre'])->toArray(),
+                ];
+            } else {
+                // Para categorías propias, cargar normalmente
+                $this->subcategorias = Subcategoria::where('categoria_id', $this->categoriaId)
+                    ->get(['id', 'nombre'])->toArray();
+            }
+        }
+    }
+
+    private function verificarSiEsCategoriaValencia($categoriaId)
+    {
+        return IdZenvyValencia::where('id_zenvy', $categoriaId)
+                             ->where('tipo_dato_migrado_id', 3)
+                             ->exists();
+    }
+
+    public function sincronizarSubcategoriasValencia()
+    {
+        if (!$this->esCategoriaValencia) {
+            session()->flash('error', 'Esta función solo está disponible para categorías de Valencia.');
+            return;
+        }
+
+        try {
+            $this->getSincronizacionService()->forzarSincronizacion();
+            $this->cargarSubcategorias(); // Recargar después de sincronizar
+            session()->flash('mensaje', 'Subcategorías sincronizadas exitosamente desde Valencia.');
+        } catch (\Exception $e) {
+            session()->flash('error', 'Error al sincronizar subcategorías: ' . $e->getMessage());
         }
     }
 

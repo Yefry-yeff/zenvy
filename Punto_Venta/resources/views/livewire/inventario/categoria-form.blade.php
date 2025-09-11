@@ -1,5 +1,27 @@
 <div
-    class="overflow-hidden border border-gray-300 rounded shadow"
+    class="overflow-h        <div class="p-4 bg-white border shadow rounded-xl">
+            @if($esCategoriaValencia)
+                <h2 class="mb-4 text-lg font-semibold text-orange-700">🏢 Categoría de Valencia</h2>
+                <p class="mb-4 text-sm text-orange-600">Esta es una categoría sincronizada desde Valencia. El nombre no se puede modificar, pero puedes agregar subcategorías propias de Zenvy.</p>
+            @else
+                <h2 class="mb-4 text-lg font-semibold text-gray-700">✏️ Editar Categoría</h2>
+            @endif
+
+            <!-- Campo nombre - condicional según origen -->
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700">Nombre de la Categoría<span class="text-red-600">*</span></label>
+                @if($esCategoriaValencia)
+                    <div class="w-full px-3 py-2 bg-orange-50 border border-orange-200 rounded text-gray-700">
+                        {{ $form['nombre'] }}
+                        <span class="text-xs text-orange-600 ml-2">(Solo lectura - Sincronizada desde Valencia)</span>
+                    </div>
+                @else
+                    <input type="text" wire:model.defer="form.nombre" class="w-full px-3 py-2 border rounded" />
+                    @error('form.nombre')
+                        <span class="text-sm text-red-600">{{ $message }}</span>
+                    @enderror
+                @endif
+            </div>er border-gray-300 rounded shadow"
     x-data="{ sinCambiosModal: false }"
     x-init="$watch('theme', t => localStorage.setItem('theme', t))"
     x-on:mostrar-sin-cambios.window="sinCambiosModal = true"
@@ -58,7 +80,114 @@
     <!-- SUBCATEGORÍAS -->
     <div class="p-4" x-data="{ mostrarSubcategorias: @entangle('mostrarSeccionSubcategorias') }">
         <div class="p-4 bg-white border shadow rounded-xl">
-            <h2 class="mb-4 text-lg font-semibold text-gray-700">📂 Subcategorías</h2>
+            @if($esCategoriaValencia)
+                <!-- Vista especial para categorías de Valencia -->
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-lg font-semibold text-orange-700">🔗 Gestión de Subcategorías</h2>
+                    <button
+                        wire:click="sincronizarSubcategoriasValencia"
+                        class="px-3 py-2 text-sm text-gray-800 bg-orange-200 rounded hover:bg-orange-300"
+                    >
+                        🔄 Sincronizar Valencia
+                    </button>
+                </div>
+
+                <!-- Subcategorías Propias de Zenvy -->
+                <div class="mb-6">
+                    <h3 class="mb-3 text-md font-semibold text-green-700">📦 Subcategorías Propias de Zenvy</h3>
+                    
+                    <!-- Agregar nueva subcategoría propia -->
+                    <div class="flex gap-2 mb-4">
+                        <input
+                            type="text"
+                            wire:model.defer="nuevaSubcategoria"
+                            placeholder="Nombre de la nueva subcategoría propia"
+                            class="flex-1 px-3 py-2 border rounded"
+                        />
+                        <button
+                            wire:click="agregarSubcategoria"
+                            class="px-4 py-2 text-white bg-green-600 rounded hover:bg-green-700"
+                        >
+                            ➕ Agregar
+                        </button>
+                    </div>
+                    @error('nuevaSubcategoria')
+                        <span class="text-sm text-red-600">{{ $message }}</span>
+                    @enderror
+
+                    <!-- Lista de subcategorías propias -->
+                    @if(isset($subcategorias['zenvy']) && count($subcategorias['zenvy']) > 0)
+                        <table class="w-full text-sm text-left border border-gray-300">
+                            <thead class="bg-green-100">
+                                <tr>
+                                    <th class="px-3 py-2 border">ID</th>
+                                    <th class="px-3 py-2 border">Nombre</th>
+                                    <th class="px-3 py-2 border">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($subcategorias['zenvy'] as $subcategoria)
+                                    <tr class="hover:bg-green-50">
+                                        <td class="px-3 py-2 border cursor-pointer" wire:click="editarSubcategoria({{ $subcategoria['id'] }})">{{ $subcategoria['id'] }}</td>
+                                        <td class="px-3 py-2 border cursor-pointer" wire:click="editarSubcategoria({{ $subcategoria['id'] }})">{{ $subcategoria['nombre'] }}</td>
+                                        <td class="px-3 py-2 border">
+                                            <button
+                                                wire:click="eliminarSubcategoria({{ $subcategoria['id'] }})"
+                                                class="p-0 btn btn-link"
+                                                title="Eliminar"
+                                                onclick="event.stopPropagation();"
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 7v12a2 2 0 002 2h8a2 2 0 002-2V7M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2m-7 0h10" style="color:#e3342f;" />
+                                                    <line x1="10" y1="11" x2="10" y2="17" stroke="#e3342f" stroke-width="2"/>
+                                                    <line x1="14" y1="11" x2="14" y2="17" stroke="#e3342f" stroke-width="2"/>
+                                                </svg>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    @else
+                        <p class="text-gray-500 italic">No hay subcategorías propias de Zenvy para esta categoría.</p>
+                    @endif
+                </div>
+
+                <!-- Subcategorías de Valencia -->
+                <div>
+                    <h3 class="mb-3 text-md font-semibold text-orange-700">🏢 Subcategorías de Valencia (Solo Lectura)</h3>
+                    
+                    @if(isset($subcategorias['valencia']) && count($subcategorias['valencia']) > 0)
+                        <table class="w-full text-sm text-left border border-gray-300">
+                            <thead class="bg-orange-100">
+                                <tr>
+                                    <th class="px-3 py-2 border">ID</th>
+                                    <th class="px-3 py-2 border">Nombre</th>
+                                    <th class="px-3 py-2 border">Estado</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($subcategorias['valencia'] as $subcategoria)
+                                    <tr class="bg-orange-50">
+                                        <td class="px-3 py-2 border">{{ $subcategoria['id'] }}</td>
+                                        <td class="px-3 py-2 border">{{ $subcategoria['nombre'] }}</td>
+                                        <td class="px-3 py-2 border">
+                                            <span class="badge bg-orange-100 text-orange-800 px-2 py-1 rounded text-xs">
+                                                🔒 Sincronizada
+                                            </span>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    @else
+                        <p class="text-gray-500 italic">No hay subcategorías sincronizadas desde Valencia para esta categoría.</p>
+                    @endif
+                </div>
+
+            @else
+                <!-- Vista normal para categorías propias de Zenvy -->
+                <h2 class="mb-4 text-lg font-semibold text-gray-700">📂 Subcategorías</h2>
 
             @if($categoriaId)
                 <!-- Agregar nueva subcategoría (solo en modo editar) -->
@@ -87,7 +216,7 @@
                 @enderror
 
                 <!-- Lista de subcategorías (solo en modo editar) -->
-                @if ($subcategorias->count() > 0)
+                @if (isset($subcategorias['zenvy']) && count($subcategorias['zenvy']) > 0)
                     <table id="subcategoriaTable" class="w-full text-sm text-left border border-gray-300">
                         <thead class="bg-gray-100">
                             <tr>
@@ -97,13 +226,13 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach ($subcategorias as $subcategoria)
+                            @foreach ($subcategorias['zenvy'] as $subcategoria)
                                 <tr class="hover:bg-gray-50">
-                                    <td class="px-3 py-2 border cursor-pointer" wire:click="editarSubcategoria({{ $subcategoria->id }})">{{ $subcategoria->id }}</td>
-                                    <td class="px-3 py-2 border cursor-pointer" wire:click="editarSubcategoria({{ $subcategoria->id }})">{{ $subcategoria->nombre }}</td>
+                                    <td class="px-3 py-2 border cursor-pointer" wire:click="editarSubcategoria({{ $subcategoria['id'] }})">{{ $subcategoria['id'] }}</td>
+                                    <td class="px-3 py-2 border cursor-pointer" wire:click="editarSubcategoria({{ $subcategoria['id'] }})">{{ $subcategoria['nombre'] }}</td>
                                     <td class="px-3 py-2 border">
                                         <button
-                                            wire:click="eliminarSubcategoria({{ $subcategoria->id }})"
+                                            wire:click="eliminarSubcategoria({{ $subcategoria['id'] }})"
                                             class="p-0 btn btn-link"
                                             title="Eliminar"
                                             onclick="event.stopPropagation();"
@@ -238,6 +367,7 @@
                         </button>
                     </div>
                 </div>
+            @endif
             @endif
         </div>
     </div>
