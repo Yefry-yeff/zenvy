@@ -8,6 +8,7 @@ use App\Models\Producto as ProductoModel;
 use App\Models\Categoria;
 use App\Models\Subcategoria;
 use App\Models\Marca;
+use App\Services\SincronizacionMarcasService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
@@ -127,7 +128,11 @@ class ProductoForm extends Component
     public function cargarDatosIniciales()
     {
         $this->categorias = Categoria::orderBy('nombre')->get();
-        $this->marcas = Marca::orderBy('nombre')->get();
+        
+        // Usar el servicio de sincronización para obtener marcas actualizadas
+        $sincronizacionService = new SincronizacionMarcasService();
+        $this->marcas = $sincronizacionService->obtenerMarcasDirectas();
+        
         $this->unidadesMedida = DB::table('unidad_medida')->orderBy('nombre')->get();
         $this->isvs = DB::table('isv')->orderBy('cantidad')->get();
     }
