@@ -14,7 +14,7 @@ class SincronizacionUnidadesService
 {
     private const CACHE_KEY = 'unidades_sincronizadas';
     private const CACHE_DURATION = 300; // 5 minutos
-    private const TIPO_DATO_UNIDADES = 3; // Nuevo tipo para unidades de medida
+    private const TIPO_DATO_UNIDADES = 5; // Tipo para unidades de medida en Valencia
 
     public function sincronizarUnidadesEnTiempoReal()
     {

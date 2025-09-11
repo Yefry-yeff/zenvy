@@ -54,16 +54,16 @@ class Presentaciones extends Component
             $query->select(DB::raw(1))
                   ->from('id_zenvy_valencia')
                   ->whereRaw('id_zenvy_valencia.id_zenvy = unidad_medida.id')
-                  ->where('id_zenvy_valencia.tipo_dato_migrado_id', 3);
-        })->orderBy('nombre')->get(['id', 'unidad', 'nombre', 'simbolo', 'created_at']);
+                  ->where('id_zenvy_valencia.tipo_dato_migrado_id', 5);
+        })->orderBy('nombre')->get(['id', 'nombre', 'simbolo', 'created_at']);
 
         // Obtener unidades de Valencia (que SÍ están en la tabla de mapeo)
         $unidadesValencia = \App\Models\UnidadMedida::whereExists(function ($query) {
             $query->select(DB::raw(1))
                   ->from('id_zenvy_valencia')
                   ->whereRaw('id_zenvy_valencia.id_zenvy = unidad_medida.id')
-                  ->where('id_zenvy_valencia.tipo_dato_migrado_id', 3);
-        })->orderBy('nombre')->get(['id', 'unidad', 'nombre', 'simbolo', 'created_at']);
+                  ->where('id_zenvy_valencia.tipo_dato_migrado_id', 5);
+        })->orderBy('nombre')->get(['id', 'nombre', 'simbolo', 'created_at']);
 
         return view('livewire.inventario.presentaciones', compact('unidadesZenvy', 'unidadesValencia'));
     }
