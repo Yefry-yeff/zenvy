@@ -1,7 +1,9 @@
 <div> {{-- ELEMENTO RAÍZ ÚNICO OBLIGATORIO --}}
-    {{-- Tabla de Categorías --}}
-    <div class="overflow-hidden border border-gray-300 rounded shadow" x-data x-init="$watch('theme', t => localStorage.setItem('theme', t))">
-        <!-- ENCABEZADO -->
+
+    {{-- Sección de Categorías Propias de Zenvy --}}
+    <div class="overflow-hidden border border-gray-300 rounded shadow mb-6" x-data x-init="$watch('theme', t => localStorage.setItem('theme', t))">
+
+        <!-- ENCABEZADO CATEGORÍAS ZENVY -->
         <div class="flex items-center justify-between px-5 py-3 mb-4 font-semibold text-white rounded-t"
             :class="{
                 'bg-emerald-600': theme === 'verde',
@@ -10,16 +12,17 @@
                 'bg-slate-700': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
             }"
         >
-            <h5 class="mb-0 text-lg">Gestión de Categorías</h5>
+            <h5 class="mb-0 text-lg">📂 Categorías Propias de Zenvy</h5>
             <button wire:click="abrirModalCrear"
                 class="inline-flex items-center gap-1 px-3 py-2 text-sm text-gray-800 bg-white rounded hover:bg-gray-100">
                 <span>➕</span> Agregar Categoría
             </button>
         </div>
-        <!-- TABLA -->
+
+        <!-- TABLA CATEGORÍAS ZENVY -->
         <div class="px-4 py-3 pt-0 card-body">
             <div class="table-responsive">
-                <table id="categoriaTable" class="table mb-0 align-middle table-sm table-hover table-bordered">
+                <table id="categoriasZenvyTable" class="table mb-0 align-middle table-sm table-hover table-bordered">
                     <thead class="table-light">
                         <tr class="text-center align-middle">
                             <th style="width: 80px;">ID</th>
@@ -28,7 +31,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse($categorias as $categoria)
+                        @forelse($categoriasZenvy as $categoria)
                             <tr class="text-center align-middle hover:bg-gray-50">
                                 <td class="cursor-pointer fw-semibold" wire:click="editar({{ $categoria->id }})">{{ $categoria->id }}</td>
                                 <td class="cursor-pointer text-start" wire:click="editar({{ $categoria->id }})">{{ $categoria->nombre }}</td>
@@ -44,13 +47,60 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="3" class="py-4 text-center text-muted">No hay categorías disponibles.</td>
+                                <td colspan="3" class="py-4 text-center text-muted">No hay categorías propias de Zenvy.</td>
                             </tr>
                         @endforelse
                     </tbody>
                 </table>
             </div>
         </div>
+
+    </div>
+
+    {{-- Sección de Categorías de Valencia --}}
+    <div class="overflow-hidden border border-orange-300 rounded shadow" x-data x-init="$watch('theme', t => localStorage.setItem('theme', t))">
+
+        <!-- ENCABEZADO CATEGORÍAS VALENCIA -->
+        <div class="flex items-center justify-between px-5 py-3 mb-4 font-semibold text-white rounded-t bg-orange-600">
+            <h5 class="mb-0 text-lg">🏢 Categorías de Valencia (Solo Lectura)</h5>
+            <button wire:click="sincronizarCategoriasValencia"
+                class="inline-flex items-center gap-1 px-3 py-2 text-sm text-gray-800 bg-white rounded hover:bg-gray-100">
+                <span>🔄</span> Sincronizar
+            </button>
+        </div>
+
+        <!-- TABLA CATEGORÍAS VALENCIA -->
+        <div class="px-4 py-3 pt-0 card-body">
+            <div class="table-responsive">
+                <table id="categoriasValenciaTable" class="table mb-0 align-middle table-sm table-hover table-bordered">
+                    <thead class="table-light">
+                        <tr class="text-center align-middle">
+                            <th style="width: 80px;">ID</th>
+                            <th>Nombre</th>
+                            <th style="width: 120px;">Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($categoriasValencia as $categoria)
+                            <tr class="text-center align-middle bg-orange-50">
+                                <td class="fw-semibold">{{ $categoria->id }}</td>
+                                <td class="text-start">{{ $categoria->nombre }}</td>
+                                <td>
+                                    <span class="badge bg-orange-100 text-orange-800 px-2 py-1 rounded text-xs">
+                                        🔒 Sincronizada
+                                    </span>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="3" class="py-4 text-center text-muted">No hay categorías sincronizadas desde Valencia.</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
     </div>
 
     <!-- Modal Agregar Categoría -->
@@ -72,21 +122,22 @@
                             'bg-slate-700 text-white': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
                          }"
                     >
-                        <h5 class="modal-title">Agregar Categoría</h5>
+                        <h5 class="modal-title">Nueva Categoría</h5>
                     </div>
                     <div class="modal-body">
                         <form wire:submit.prevent="crearCategoria">
                             <div class="mb-3">
                                 <label for="nuevaCategoriaNombre" class="form-label">Nombre</label>
-                                <input type="text" id="nuevaCategoriaNombre" class="form-control" wire:model.defer="nuevaCategoriaNombre">
+                                <input type="text" id="nuevaCategoriaNombre" class="form-control" wire:model.defer="nuevaCategoriaNombre" placeholder="Ingrese el nombre de la categoría">
                                 @error('nuevaCategoriaNombre')
                                     <div class="mt-1 text-sm text-danger">{{ $message }}</div>
                                 @enderror
                             </div>
                             <div class="flex justify-end mt-4">
-                                <button
-                                    type="submit"
-                                    class="px-4 py-2 text-white rounded"
+                                <button type="button" class="px-4 py-2 mr-2 text-gray-600 bg-gray-100 rounded hover:bg-gray-200" wire:click="cerrarModalCrear">
+                                    Cancelar
+                                </button>
+                                <button type="submit" class="px-4 py-2 text-white rounded"
                                     :class="{
                                         'bg-emerald-600 hover:bg-emerald-700': theme === 'verde',
                                         'bg-blue-600 hover:bg-blue-700': theme === 'azul',
@@ -94,7 +145,7 @@
                                         'bg-slate-700 hover:bg-slate-800': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
                                     }"
                                 >
-                                    Guardar
+                                    Crear Categoría
                                 </button>
                             </div>
                         </form>
@@ -115,8 +166,8 @@
         >
             <div class="modal-dialog modal-dialog-centered modal-lg">
                 <div class="modal-content">
-                    <div class="text-white modal-header bg-danger">
-                        <h5 class="modal-title">⚠️ ¿Eliminar categoría?</h5>
+                    <div class="modal-header bg-danger text-white">
+                        <h5 class="modal-title">Confirmar Eliminación</h5>
                     </div>
                     <div class="modal-body">
                         @if(count($productosVinculados) > 0)
@@ -187,6 +238,7 @@
         </div>
     </div>
 
+    {{-- Alertas --}}
     @if (session()->has('mensaje'))
         <div x-data="{ show: true }" x-show="show"
              @click.window="show = false"
@@ -206,4 +258,5 @@
             {{ session('error') }}
         </div>
     @endif
+
 </div> {{-- FIN ELEMENTO RAÍZ --}}

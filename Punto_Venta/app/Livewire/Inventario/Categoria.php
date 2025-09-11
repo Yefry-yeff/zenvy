@@ -3,6 +3,9 @@
 namespace App\Livewire\Inventario;
 
 use Livewire\Component;
+use App\Services\SincronizacionCategoriasService;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 
 class Categoria extends Component
 {
@@ -12,10 +15,50 @@ class Categoria extends Component
     public $categoriaAEliminar = null;
     public $productosVinculados = [];
 
+    private $sincronizacionService;
+
+    public function mount()
+    {
+        $this->sincronizarCategorias();
+    }
+
+    private function getSincronizacionService()
+    {
+        if (!$this->sincronizacionService) {
+            $this->sincronizacionService = app(SincronizacionCategoriasService::class);
+        }
+        return $this->sincronizacionService;
+    }
+
+    private function sincronizarCategorias()
+    {
+        try {
+            $resultado = $this->getSincronizacionService()->sincronizarCategoriasEnTiempoReal();
+            Log::info('Sincronización de categorías en gestión: ' . json_encode($resultado));
+        } catch (\Exception $e) {
+            Log::error('Error al sincronizar categorías en gestión: ' . $e->getMessage());
+        }
+    }
+
     public function render()
     {
-        $categorias = \App\Models\Categoria::all(['id', 'nombre']);
-        return view('livewire.inventario.categoria', compact('categorias'));
+        // Obtener categorías propias de Zenvy (que NO están en la tabla de mapeo)
+        $categoriasZenvy = \App\Models\Categoria::whereNotExists(function ($query) {
+            $query->select(DB::raw(1))
+                  ->from('id_zenvy_valencia')
+                  ->whereRaw('id_zenvy_valencia.id_zenvy = categoria.id')
+                  ->where('id_zenvy_valencia.tipo_dato_migrado_id', 3);
+        })->orderBy('nombre')->get(['id', 'nombre']);
+
+        // Obtener categorías de Valencia (que SÍ están en la tabla de mapeo)
+        $categoriasValencia = \App\Models\Categoria::whereExists(function ($query) {
+            $query->select(DB::raw(1))
+                  ->from('id_zenvy_valencia')
+                  ->whereRaw('id_zenvy_valencia.id_zenvy = categoria.id')
+                  ->where('id_zenvy_valencia.tipo_dato_migrado_id', 3);
+        })->orderBy('nombre')->get(['id', 'nombre']);
+
+        return view('livewire.inventario.categoria', compact('categoriasZenvy', 'categoriasValencia'));
     }
 
     public function editar($id)
@@ -105,6 +148,18 @@ class Categoria extends Component
         ]);
         $this->cerrarModalCrear();
         session()->flash('mensaje', 'Categoría creada exitosamente.');
+    }
+
+    public function sincronizarCategoriasValencia()
+    {
+        try {
+            $resultado = $this->getSincronizacionService()->forzarSincronizacion();
+            session()->flash('mensaje', 'Categorías de Valencia sincronizadas exitosamente. Nuevas: ' . $resultado['nuevas'] . ', Actualizadas: ' . $resultado['actualizadas']);
+            Log::info('Sincronización manual de categorías Valencia: ' . json_encode($resultado));
+        } catch (\Exception $e) {
+            session()->flash('error', 'Error al sincronizar categorías de Valencia: ' . $e->getMessage());
+            Log::error('Error en sincronización Valencia: ' . $e->getMessage());
+        }
     }
 }
 
