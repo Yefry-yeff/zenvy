@@ -1,27 +1,5 @@
 <div
-    class="overflow-h        <div class="p-4 bg-white border shadow rounded-xl">
-            @if($esCategoriaValencia)
-                <h2 class="mb-4 text-lg font-semibold text-orange-700">🏢 Categoría de Valencia</h2>
-                <p class="mb-4 text-sm text-orange-600">Esta es una categoría sincronizada desde Valencia. El nombre no se puede modificar, pero puedes agregar subcategorías propias de Zenvy.</p>
-            @else
-                <h2 class="mb-4 text-lg font-semibold text-gray-700">✏️ Editar Categoría</h2>
-            @endif
-
-            <!-- Campo nombre - condicional según origen -->
-            <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700">Nombre de la Categoría<span class="text-red-600">*</span></label>
-                @if($esCategoriaValencia)
-                    <div class="w-full px-3 py-2 bg-orange-50 border border-orange-200 rounded text-gray-700">
-                        {{ $form['nombre'] }}
-                        <span class="text-xs text-orange-600 ml-2">(Solo lectura - Sincronizada desde Valencia)</span>
-                    </div>
-                @else
-                    <input type="text" wire:model.defer="form.nombre" class="w-full px-3 py-2 border rounded" />
-                    @error('form.nombre')
-                        <span class="text-sm text-red-600">{{ $message }}</span>
-                    @enderror
-                @endif
-            </div>er border-gray-300 rounded shadow"
+    class="overflow-hidden border border-gray-300 rounded shadow"
     x-data="{ sinCambiosModal: false }"
     x-init="$watch('theme', t => localStorage.setItem('theme', t))"
     x-on:mostrar-sin-cambios.window="sinCambiosModal = true"
@@ -44,6 +22,16 @@
         <div></div> <!-- Spacer para mantener el centrado -->
     </div>
 
+    <!-- CATEGORÍA VALENCIA/NORMAL -->
+    <div class="p-4">
+        <div class="p-4 bg-white border shadow rounded-xl">
+            @if($esCategoriaValencia)
+                <h2 class="mb-4 text-lg font-semibold text-orange-700">🏢 Categoría de Valencia</h2>
+                <p class="mb-4 text-sm text-orange-600">Esta es una categoría sincronizada desde Valencia. El nombre no se puede modificar, pero puedes agregar subcategorías propias de Zenvy.</p>
+            @else
+                <h2 class="mb-4 text-lg font-semibold text-gray-700">✏️ Editar Categoría</h2>
+            @endif
+
     <!-- DATOS DE LA CATEGORÍA -->
     <div class="p-4">
         <div class="p-4 bg-white border shadow rounded-xl">
@@ -51,10 +39,17 @@
 
             <div class="mb-4">
                 <label class="block text-sm font-medium text-gray-700">Nombre de la Categoría<span class="text-red-600">*</span></label>
-                <input type="text" wire:model.defer="form.nombre" class="w-full px-3 py-2 border rounded" />
-                @error('form.nombre')
-                    <span class="text-sm text-red-600">{{ $message }}</span>
-                @enderror
+                @if($esCategoriaValencia)
+                    <div class="w-full px-3 py-2 bg-orange-50 border border-orange-200 rounded text-gray-700">
+                        {{ $form['nombre'] }}
+                        <span class="text-xs text-orange-600 ml-2">(Solo lectura - Sincronizada desde Valencia)</span>
+                    </div>
+                @else
+                    <input type="text" wire:model.defer="form.nombre" class="w-full px-3 py-2 border rounded" />
+                    @error('form.nombre')
+                        <span class="text-sm text-red-600">{{ $message }}</span>
+                    @enderror
+                @endif
             </div>
 
             @if(!$categoriaId)
