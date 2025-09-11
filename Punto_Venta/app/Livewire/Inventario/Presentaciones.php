@@ -3,6 +3,9 @@
 namespace App\Livewire\Inventario;
 
 use Livewire\Component;
+use App\Services\SincronizacionUnidadesService;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 
 class Presentaciones extends Component
 {
@@ -19,10 +22,50 @@ class Presentaciones extends Component
     public $nuevoNombre = '';
     public $nuevoSimbolo = '';
 
+    private $sincronizacionService;
+
+    public function mount()
+    {
+        $this->sincronizarUnidades();
+    }
+
+    private function getSincronizacionService()
+    {
+        if (!$this->sincronizacionService) {
+            $this->sincronizacionService = app(SincronizacionUnidadesService::class);
+        }
+        return $this->sincronizacionService;
+    }
+
+    private function sincronizarUnidades()
+    {
+        try {
+            $resultado = $this->getSincronizacionService()->sincronizarUnidadesEnTiempoReal();
+            Log::info('Sincronización de unidades en gestión: ' . json_encode($resultado));
+        } catch (\Exception $e) {
+            Log::error('Error al sincronizar unidades en gestión: ' . $e->getMessage());
+        }
+    }
+
     public function render()
     {
-        $unidades = \App\Models\UnidadMedida::all(['id', 'unidad', 'nombre', 'simbolo', 'created_at']);
-        return view('livewire.inventario.presentaciones', compact('unidades'));
+        // Obtener unidades propias de Zenvy (que NO están en la tabla de mapeo)
+        $unidadesZenvy = \App\Models\UnidadMedida::whereNotExists(function ($query) {
+            $query->select(DB::raw(1))
+                  ->from('id_zenvy_valencia')
+                  ->whereRaw('id_zenvy_valencia.id_zenvy = unidad_medida.id')
+                  ->where('id_zenvy_valencia.tipo_dato_migrado_id', 3);
+        })->orderBy('nombre')->get(['id', 'unidad', 'nombre', 'simbolo', 'created_at']);
+
+        // Obtener unidades de Valencia (que SÍ están en la tabla de mapeo)
+        $unidadesValencia = \App\Models\UnidadMedida::whereExists(function ($query) {
+            $query->select(DB::raw(1))
+                  ->from('id_zenvy_valencia')
+                  ->whereRaw('id_zenvy_valencia.id_zenvy = unidad_medida.id')
+                  ->where('id_zenvy_valencia.tipo_dato_migrado_id', 3);
+        })->orderBy('nombre')->get(['id', 'unidad', 'nombre', 'simbolo', 'created_at']);
+
+        return view('livewire.inventario.presentaciones', compact('unidadesZenvy', 'unidadesValencia'));
     }
 
     public function editar($id)
@@ -91,5 +134,17 @@ class Presentaciones extends Component
         ]);
         $this->cerrarModalCrear();
         session()->flash('mensaje', 'Unidad de medida creada exitosamente.');
+    }
+
+    public function sincronizarUnidadesValencia()
+    {
+        try {
+            $resultado = $this->getSincronizacionService()->forzarSincronizacion();
+            session()->flash('mensaje', 'Unidades de Valencia sincronizadas exitosamente. Nuevas: ' . $resultado['nuevas'] . ', Actualizadas: ' . $resultado['actualizadas']);
+            Log::info('Sincronización manual de unidades Valencia: ' . json_encode($resultado));
+        } catch (\Exception $e) {
+            session()->flash('error', 'Error al sincronizar unidades de Valencia: ' . $e->getMessage());
+            Log::error('Error en sincronización Valencia: ' . $e->getMessage());
+        }
     }
 }

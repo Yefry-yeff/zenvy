@@ -1,9 +1,9 @@
 <div> {{-- ELEMENTO RAÍZ ÚNICO OBLIGATORIO --}}
 
-    {{-- Tabla de Unidades de Medida --}}
-    <div class="overflow-hidden border border-gray-300 rounded shadow" x-data x-init="$watch('theme', t => localStorage.setItem('theme', t))">
+    {{-- Sección de Unidades Propias de Zenvy --}}
+    <div class="overflow-hidden border border-gray-300 rounded shadow mb-6" x-data x-init="$watch('theme', t => localStorage.setItem('theme', t))">
 
-        <!-- ENCABEZADO -->
+        <!-- ENCABEZADO UNIDADES ZENVY -->
         <div class="flex items-center justify-between px-5 py-3 mb-4 font-semibold text-white rounded-t"
             :class="{
                 'bg-emerald-600': theme === 'verde',
@@ -12,17 +12,17 @@
                 'bg-slate-700': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
             }"
         >
-            <h5 class="mb-0 text-lg">Gestión de Unidades de Medida</h5>
+            <h5 class="mb-0 text-lg">📏 Unidades de Medida Propias de Zenvy</h5>
             <button wire:click="abrirModalCrear"
                 class="inline-flex items-center gap-1 px-3 py-2 text-sm text-gray-800 bg-white rounded hover:bg-gray-100">
                 <span>➕</span> Agregar Unidad
             </button>
         </div>
 
-        <!-- TABLA -->
+        <!-- TABLA UNIDADES ZENVY -->
         <div class="px-4 py-3 pt-0 card-body">
             <div class="table-responsive">
-                <table id="unidadesTable" class="table mb-0 align-middle table-sm table-hover table-bordered">
+                <table id="unidadesZenvyTable" class="table mb-0 align-middle table-sm table-hover table-bordered">
                     <thead class="table-light">
                         <tr class="text-center align-middle">
                             <th>Nombre</th>
@@ -31,7 +31,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse($unidades as $unidad)
+                        @forelse($unidadesZenvy as $unidad)
                             <tr class="text-center align-middle hover:bg-gray-50">
                                 <td class="text-start cursor-pointer" wire:click="editar({{ $unidad->id }})">{{ $unidad->nombre }}</td>
                                 <td class="cursor-pointer" wire:click="editar({{ $unidad->id }})">{{ $unidad->simbolo }}</td>
@@ -39,7 +39,55 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="3" class="py-4 text-center text-muted">No hay unidades de medida disponibles.</td>
+                                <td colspan="3" class="py-4 text-center text-muted">No hay unidades propias de Zenvy.</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    {{-- Sección de Unidades de Valencia --}}
+    <div class="overflow-hidden border border-orange-300 rounded shadow" x-data x-init="$watch('theme', t => localStorage.setItem('theme', t))">
+
+        <!-- ENCABEZADO UNIDADES VALENCIA -->
+        <div class="flex items-center justify-between px-5 py-3 mb-4 font-semibold text-white rounded-t bg-orange-600">
+            <h5 class="mb-0 text-lg">🏢 Unidades de Valencia (Solo Lectura)</h5>
+            <button wire:click="sincronizarUnidadesValencia"
+                class="inline-flex items-center gap-1 px-3 py-2 text-sm text-gray-800 bg-white rounded hover:bg-gray-100">
+                <span>🔄</span> Sincronizar
+            </button>
+        </div>
+
+        <!-- TABLA UNIDADES VALENCIA -->
+        <div class="px-4 py-3 pt-0 card-body">
+            <div class="table-responsive">
+                <table id="unidadesValenciaTable" class="table mb-0 align-middle table-sm table-hover table-bordered">
+                    <thead class="table-light">
+                        <tr class="text-center align-middle">
+                            <th>Nombre</th>
+                            <th style="width: 100px;">Símbolo</th>
+                            <th style="width: 120px;">Estado</th>
+                            <th style="width: 150px;">Fecha Creación</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($unidadesValencia as $unidad)
+                            <tr class="text-center align-middle bg-orange-50">
+                                <td class="text-start">{{ $unidad->nombre }}</td>
+                                <td>{{ $unidad->simbolo }}</td>
+                                <td>
+                                    <span class="badge bg-orange-100 text-orange-800 px-2 py-1 rounded text-xs">
+                                        🔒 Sincronizada
+                                    </span>
+                                </td>
+                                <td>{{ $unidad->created_at ? $unidad->created_at->format('d/m/Y') : 'N/A' }}</td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="4" class="py-4 text-center text-muted">No hay unidades sincronizadas desde Valencia.</td>
                             </tr>
                         @endforelse
                     </tbody>
