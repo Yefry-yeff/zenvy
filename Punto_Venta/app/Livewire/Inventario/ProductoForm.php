@@ -8,7 +8,9 @@ use App\Models\Producto as ProductoModel;
 use App\Models\Categoria;
 use App\Models\Subcategoria;
 use App\Models\Marca;
+use App\Models\IdZenvyValencia;
 use App\Services\SincronizacionMarcasService;
+use App\Services\SincronizacionProductosService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
@@ -70,6 +72,11 @@ class ProductoForm extends Component
     public $mensajeModalExito = '';
     public $mensajeModalError = '';
 
+    // Propiedades para sincronización con Valencia
+    public $esProductoValencia = false;
+    public $productosValencia = [];
+    private $sincronizacionProductosService;
+
     protected $rules = [
         'form.nombre' => 'required|string|max:80',
         'form.descripcion' => 'nullable|string|max:45',
@@ -122,7 +129,18 @@ class ProductoForm extends Component
             $this->productoId = $id;
             $this->isEditing = true;
             $this->cargarProducto();
+            $this->verificarSiEsProductoValencia();
         }
+        
+        $this->cargarProductosValencia();
+    }
+
+    private function getSincronizacionProductosService()
+    {
+        if (!$this->sincronizacionProductosService) {
+            $this->sincronizacionProductosService = SincronizacionProductosService::obtenerInstancia();
+        }
+        return $this->sincronizacionProductosService;
     }
 
     public function cargarDatosIniciales()
@@ -177,6 +195,70 @@ class ProductoForm extends Component
 
             // Marcar si tiene imagen anterior (sin cargar los datos BLOB)
             $this->tieneImagenAnterior = $producto->imagen !== null;
+        }
+    }
+
+    private function verificarSiEsProductoValencia()
+    {
+        if ($this->productoId) {
+            // Verificar si existe en la tabla de mapeo como producto de Valencia
+            $mapeo = IdZenvyValencia::where('id_zenvy', $this->productoId)
+                ->where('tipo_dato_migrado_id', 1) // 1 para productos
+                ->first();
+            
+            $this->esProductoValencia = $mapeo !== null;
+        }
+    }
+
+    public function cargarProductosValencia()
+    {
+        try {
+            $service = $this->getSincronizacionProductosService();
+            $productos = $service->obtenerProductosValenciaConEstado();
+            $this->productosValencia = ['valencia' => $productos->toArray()];
+        } catch (\Exception $e) {
+            Log::error('Error al cargar productos de Valencia: ' . $e->getMessage());
+            $this->productosValencia = ['valencia' => []];
+        }
+    }
+
+    public function sincronizarProductosValencia()
+    {
+        try {
+            $service = $this->getSincronizacionProductosService();
+            $resultado = $service->sincronizarTodosLosProductos();
+            
+            if ($resultado['sincronizados'] > 0) {
+                session()->flash('message', "Se sincronizaron {$resultado['sincronizados']} productos exitosamente.");
+                $this->cargarProductosValencia();
+                $this->cargarDatosIniciales(); // Recargar para mostrar nuevos datos
+            }
+            
+            if ($resultado['errores'] > 0) {
+                session()->flash('warning', "Hubo {$resultado['errores']} errores durante la sincronización.");
+            }
+            
+        } catch (\Exception $e) {
+            session()->flash('error', 'Error al sincronizar productos: ' . $e->getMessage());
+        }
+    }
+
+    public function sincronizarProductoValencia($idProductoValencia)
+    {
+        try {
+            $service = $this->getSincronizacionProductosService();
+            $resultado = $service->sincronizarProducto($idProductoValencia);
+            
+            if ($resultado['success']) {
+                session()->flash('message', $resultado['mensaje']);
+                $this->cargarProductosValencia();
+                $this->cargarDatosIniciales();
+            } else {
+                session()->flash('error', $resultado['mensaje']);
+            }
+            
+        } catch (\Exception $e) {
+            session()->flash('error', 'Error al sincronizar producto: ' . $e->getMessage());
         }
     }
 
@@ -247,6 +329,34 @@ class ProductoForm extends Component
             // Convertir checkboxes boolean a enteros para el SP
             $datos['descuento_tercera'] = $datos['descuento_tercera'] ? 1 : 0;
             $datos['descuento_cuarta'] = $datos['descuento_cuarta'] ? 1 : 0;
+
+            // Si es producto de Valencia, solo permitir ciertos campos
+            if ($this->isEditing && $this->esProductoValencia) {
+                // Solo actualizar campos permitidos para productos de Valencia
+                $producto = ProductoModel::find($this->productoId);
+                if ($producto) {
+                    $datosPermitidos = [
+                        'precio1' => $datos['precio1'],
+                        'precio2' => $datos['precio2'],
+                        'precio3' => $datos['precio3'],
+                        'precio4' => $datos['precio4'],
+                        'descuento_unitario' => $datos['descuento_unitario'],
+                        'descuento_tercera' => $datos['descuento_tercera'],
+                        'descuento_cuarta' => $datos['descuento_cuarta'],
+                    ];
+                    
+                    // Si hay nueva imagen, procesarla
+                    if ($this->imagen) {
+                        $datosPermitidos['imagen'] = file_get_contents($this->imagen->getRealPath());
+                    }
+                    
+                    ProductoModel::actualizarProducto($this->productoId, $datosPermitidos);
+                    Log::info('Producto Valencia actualizado exitosamente', ['id' => $this->productoId]);
+                    $this->mostrarExito('Producto de Valencia actualizado exitosamente.');
+                    $this->dispatch('redirigirEnTresSeg');
+                    return;
+                }
+            }
 
             // Procesar imagen si se subió una nueva
             if ($this->imagen) {

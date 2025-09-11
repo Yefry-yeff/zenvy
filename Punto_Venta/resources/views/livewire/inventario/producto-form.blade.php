@@ -24,6 +24,70 @@
             </button>
         </div>
 
+        <!-- PRODUCTOS DE VALENCIA (Solo si hay productos disponibles) -->
+        @if(!$isEditing && isset($productosValencia['valencia']) && count($productosValencia['valencia']) > 0)
+            <div class="px-5">
+                <div class="p-4 bg-white border shadow rounded-xl">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-lg font-semibold text-orange-700">🏢 Productos disponibles desde Valencia</h2>
+                        <button
+                            wire:click="sincronizarProductosValencia"
+                            class="px-4 py-2 text-white bg-orange-500 rounded hover:bg-orange-600"
+                        >
+                            🔄 Sincronizar Todos
+                        </button>
+                    </div>
+                    
+                    <!-- Lista de productos de Valencia -->
+                    @if(count($productosValencia['valencia']) > 0)
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm text-left border border-gray-300">
+                                <thead class="bg-orange-100">
+                                    <tr>
+                                        <th class="px-3 py-2 border">ID</th>
+                                        <th class="px-3 py-2 border">Nombre</th>
+                                        <th class="px-3 py-2 border">Descripción</th>
+                                        <th class="px-3 py-2 border">Precio Base</th>
+                                        <th class="px-3 py-2 border">Estado</th>
+                                        <th class="px-3 py-2 border">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($productosValencia['valencia'] as $producto)
+                                        <tr class="hover:bg-orange-50">
+                                            <td class="px-3 py-2 border">{{ $producto['id'] }}</td>
+                                            <td class="px-3 py-2 border">{{ $producto['nombre'] }}</td>
+                                            <td class="px-3 py-2 border">{{ $producto['descripcion'] ?? 'N/A' }}</td>
+                                            <td class="px-3 py-2 border">L. {{ number_format($producto['precio_base'], 2) }}</td>
+                                            <td class="px-3 py-2 border">
+                                                @if($producto['sincronizado'])
+                                                    <span class="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs">Sincronizado</span>
+                                                @else
+                                                    <span class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs">No sincronizado</span>
+                                                @endif
+                                            </td>
+                                            <td class="px-3 py-2 border">
+                                                @if(!$producto['sincronizado'])
+                                                    <button
+                                                        wire:click="sincronizarProductoValencia({{ $producto['id'] }})"
+                                                        class="bg-orange-500 text-white px-3 py-1 rounded hover:bg-orange-600 text-xs"
+                                                    >
+                                                        Sincronizar
+                                                    </button>
+                                                @endif
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @else
+                        <p class="text-gray-500 italic">No hay productos disponibles desde Valencia para sincronizar.</p>
+                    @endif
+                </div>
+            </div>
+        @endif
+
         <!-- FORMULARIO -->
         <div class="px-5 py-4">
             <!-- Alerta de validación backend -->
@@ -41,22 +105,46 @@
                 <div class="p-4">
                     <div class="p-4 bg-white border shadow rounded-xl">
                         <h2 class="mb-4 text-lg font-semibold text-gray-700">📝 Información Básica</h2>
+                        
+                        @if($esProductoValencia)
+                            <div class="mb-4 p-3 bg-orange-50 border border-orange-200 rounded">
+                                <p class="text-sm text-orange-700">
+                                    🏢 <strong>Producto sincronizado desde Valencia</strong> - Los campos principales son de solo lectura. 
+                                    Solo puedes modificar precios, descuentos e imagen.
+                                </p>
+                            </div>
+                        @endif
+                        
                         <div class="row">
                             <div class="mb-3 col-md-6">
                                 <label for="codigo_barra" class="form-label">Código de Barras</label>
-                                <input type="text"
-                                       id="codigo_barra"
-                                       class="form-control {{ $this->getClaseCampo('codigo_barra') }}"
-                                       wire:model="form.codigo_barra"
-                                       onkeydown="if(event.key==='Enter'){event.preventDefault(); return false;}"
-                                       autofocus>
+                                @if($esProductoValencia)
+                                    <div class="form-control bg-orange-50 text-gray-700">
+                                        {{ $form['codigo_barra'] }}
+                                        <span class="text-xs text-orange-600 ml-2">(Solo lectura)</span>
+                                    </div>
+                                @else
+                                    <input type="text"
+                                           id="codigo_barra"
+                                           class="form-control {{ $this->getClaseCampo('codigo_barra') }}"
+                                           wire:model="form.codigo_barra"
+                                           onkeydown="if(event.key==='Enter'){event.preventDefault(); return false;}"
+                                           autofocus>
+                                @endif
                                 @error('form.codigo_barra')
                                     <div class="mt-1 text-sm text-danger">{{ $message }}</div>
                                 @enderror
                             </div>
                             <div class="mb-3 col-md-6">
                                 <label for="codigo_estatal" class="form-label">Código Estatal</label>
-                                <input type="text" id="codigo_estatal" class="form-control" wire:model.defer="form.codigo_estatal">
+                                @if($esProductoValencia)
+                                    <div class="form-control bg-orange-50 text-gray-700">
+                                        {{ $form['codigo_estatal'] }}
+                                        <span class="text-xs text-orange-600 ml-2">(Solo lectura)</span>
+                                    </div>
+                                @else
+                                    <input type="text" id="codigo_estatal" class="form-control" wire:model.defer="form.codigo_estatal">
+                                @endif
                                 @error('form.codigo_estatal')
                                     <div class="mt-1 text-sm text-danger">{{ $message }}</div>
                                 @enderror
@@ -65,14 +153,28 @@
                         <div class="row">
                             <div class="mb-3 col-md-6">
                                 <label for="nombre" class="form-label">Nombre <span class="text-red-600">*</span></label>
-                                <input type="text" id="nombre" class="form-control {{ $this->getClaseCampo('nombre') }}" wire:model.live="form.nombre">
+                                @if($esProductoValencia)
+                                    <div class="form-control bg-orange-50 text-gray-700">
+                                        {{ $form['nombre'] }}
+                                        <span class="text-xs text-orange-600 ml-2">(Solo lectura)</span>
+                                    </div>
+                                @else
+                                    <input type="text" id="nombre" class="form-control {{ $this->getClaseCampo('nombre') }}" wire:model.live="form.nombre">
+                                @endif
                                 @error('form.nombre')
                                     <div class="mt-1 text-sm text-danger">❌ El nombre del producto es obligatorio y no puede estar vacío</div>
                                 @enderror
                             </div>
                             <div class="mb-3 col-md-6">
                                 <label for="descripcion" class="form-label">Descripción</label>
-                                <input type="text" id="descripcion" class="form-control" wire:model.defer="form.descripcion">
+                                @if($esProductoValencia)
+                                    <div class="form-control bg-orange-50 text-gray-700">
+                                        {{ $form['descripcion'] }}
+                                        <span class="text-xs text-orange-600 ml-2">(Solo lectura)</span>
+                                    </div>
+                                @else
+                                    <input type="text" id="descripcion" class="form-control" wire:model.defer="form.descripcion">
+                                @endif
                                 @error('form.descripcion')
                                     <div class="mt-1 text-sm text-danger">{{ $message }}</div>
                                 @enderror
