@@ -82,9 +82,16 @@
                     </thead>
                     <tbody>
                         @forelse($categoriasValencia as $categoria)
-                            <tr class="text-center align-middle bg-orange-50">
+                            <tr class="text-center align-middle bg-orange-50 hover:bg-orange-100 cursor-pointer" 
+                                wire:click="editar({{ $categoria->id }})" 
+                                title="Clic para editar categoría">
                                 <td class="fw-semibold">{{ $categoria->id }}</td>
-                                <td class="text-start">{{ $categoria->nombre }}</td>
+                                <td class="text-start">
+                                    <div class="flex items-center gap-2">
+                                        <span>{{ $categoria->nombre }}</span>
+                                        <small class="text-orange-600">(Clic para editar)</small>
+                                    </div>
+                                </td>
                                 <td>
                                     <span class="badge bg-orange-100 text-orange-800 px-2 py-1 rounded text-xs">
                                         🔒 Sincronizada
