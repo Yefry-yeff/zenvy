@@ -1,9 +1,31 @@
 <div> {{-- ELEMENTO RAÍZ ÚNICO OBLIGATORIO --}}
 
-    {{-- Tabla de Productos --}}
+    <!-- MENSAJES DE SESIÓN -->
+    @if (session()->has('message'))
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <strong>✅ Éxito:</strong> {{ session('message') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
+    @if (session()->has('warning'))
+        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+            <strong>⚠️ Advertencia:</strong> {{ session('warning') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
+    @if (session()->has('error'))
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <strong>❌ Error:</strong> {{ session('error') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
+    {{-- Sección de Productos de Zenvy --}}
     <div class="overflow-hidden border border-gray-300 rounded shadow" x-data x-init="$watch('theme', t => localStorage.setItem('theme', t))">
 
-        <!-- ENCABEZADO -->
+        <!-- ENCABEZADO PRODUCTOS ZENVY -->
         <div class="flex items-center justify-between px-5 py-3 mb-4 font-semibold text-white rounded-t"
             :class="{
                 'bg-emerald-600': theme === 'verde',
@@ -12,17 +34,17 @@
                 'bg-slate-700': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
             }"
         >
-            <h5 class="mb-0 text-lg">Gestión de Productos</h5>
+            <h5 class="mb-0 text-lg">🏠 Productos de Zenvy</h5>
             <button wire:click="abrirModalCrear"
                 class="inline-flex items-center gap-1 px-3 py-2 text-sm text-gray-800 bg-white rounded hover:bg-gray-100">
                 <span>➕</span> Agregar Producto
             </button>
         </div>
 
-        <!-- TABLA -->
+        <!-- TABLA PRODUCTOS ZENVY -->
         <div class="px-4 py-3 pt-0 card-body">
             <div class="table-responsive">
-                <table id="productosTable" class="table mb-0 align-middle table-sm table-hover table-bordered">
+                <table id="productosZenvyTable" class="table mb-0 align-middle table-sm table-hover table-bordered">
                     <thead class="table-light">
                         <tr class="text-center align-middle">
                             <th>Nombre</th>
@@ -35,14 +57,14 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse($productos as $producto)
+                        @forelse($productosZenvy as $producto)
                             <tr class="text-center align-middle hover:bg-gray-50">
                                 <td class="cursor-pointer text-start" wire:click="editar({{ $producto->id }})">{{ $producto->nombre }}</td>
                                 <td class="cursor-pointer text-start" wire:click="editar({{ $producto->id }})">{{ $producto->descripcion ?? 'N/A' }}</td>
                                 <td class="cursor-pointer" wire:click="editar({{ $producto->id }})">{{ $producto->subcategoria->categoria->nombre ?? 'N/A' }}</td>
                                 <td class="cursor-pointer" wire:click="editar({{ $producto->id }})">{{ $producto->subcategoria->nombre ?? 'N/A' }}</td>
                                 <td class="cursor-pointer" wire:click="editar({{ $producto->id }})">{{ $producto->marca->nombre ?? 'N/A' }}</td>
-                                <td class="cursor-pointer" wire:click="editar({{ $producto->id }})">{{ $producto->created_at ? $producto->created_at->format('d/m/Y') : 'N/A' }}</td>
+                                <td class="cursor-pointer" wire:click="editar({{ $producto->id }})">{{ (isset($producto->created_at) && $producto->created_at) ? $producto->created_at->format('d/m/Y') : 'N/A' }}</td>
                                 <td>
                                     <button type="button" class="p-0 btn btn-link" wire:click="confirmarEliminar({{ $producto->id }})" title="Eliminar" onclick="event.stopPropagation();">
                                         <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -55,7 +77,61 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7" class="py-4 text-center text-muted">No hay productos disponibles.</td>
+                                <td colspan="7" class="py-4 text-center text-muted">No hay productos propios de Zenvy.</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    {{-- Sección de Productos de Valencia --}}
+    <div class="overflow-hidden border border-orange-300 rounded shadow" x-data x-init="$watch('theme', t => localStorage.setItem('theme', t))">
+
+        <!-- ENCABEZADO PRODUCTOS VALENCIA -->
+        <div class="flex items-center justify-between px-5 py-3 mb-4 font-semibold text-white bg-orange-600 rounded-t">
+            <h5 class="mb-0 text-lg">🏢 Productos de Valencia (Solo Lectura)</h5>
+            <button wire:click="sincronizarProductosValencia"
+                class="inline-flex items-center gap-1 px-3 py-2 text-sm text-gray-800 bg-white rounded hover:bg-gray-100">
+                <span>🔄</span> Sincronizar
+            </button>
+        </div>
+
+        <!-- TABLA PRODUCTOS VALENCIA -->
+        <div class="px-4 py-3 pt-0 card-body">
+            <div class="table-responsive">
+                <table id="productosValenciaTable" class="table mb-0 align-middle table-sm table-hover table-bordered">
+                    <thead class="table-light">
+                        <tr class="text-center align-middle">
+                            <th>Nombre</th>
+                            <th>Descripción</th>
+                            <th>Categoría</th>
+                            <th>Subcategoría</th>
+                            <th>Marca</th>
+                            <th style="width: 150px;">Fecha Creación</th>
+                            <th style="width: 100px;">Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($productosValencia as $producto)
+                            <tr class="text-center align-middle bg-orange-50 cursor-pointer" wire:click="editar({{ $producto->id }})">
+                                <td class="text-start">{{ $producto->nombre }}</td>
+                                <td class="text-start">{{ $producto->descripcion ?? 'N/A' }}</td>
+                                <td>{{ $producto->subcategoria->categoria->nombre ?? 'N/A' }}</td>
+                                <td>{{ $producto->subcategoria->nombre ?? 'N/A' }}</td>
+                                <td>{{ $producto->marca->nombre ?? 'N/A' }}</td>
+                                <td>{{ (isset($producto->created_at) && $producto->created_at) ? $producto->created_at->format('d/m/Y') : 'N/A' }}</td>
+                                <td>
+                                    <span class="px-2 py-1 text-xs text-orange-800 bg-orange-100 rounded-full font-medium">
+                                        🏢 Valencia
+                                    </span>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="7" class="py-4 text-center text-muted">No hay productos de Valencia sincronizados.</td>
                             </tr>
                         @endforelse
                     </tbody>
@@ -87,23 +163,23 @@
                                 <div class="row">
                                     <div class="col-md-6">
                                         <small><strong>Nombre:</strong></small><br>
-                                        <span>{{ $productoSeleccionado['nombre'] }}</span>
+                                        <span>{{ $productoSeleccionado->nombre ?? '' }}</span>
                                     </div>
                                     <div class="col-md-6">
                                         <small><strong>Código de Barras:</strong></small><br>
-                                        <span>{{ $productoSeleccionado['codigo_barra'] ?: 'Sin código' }}</span>
+                                        <span>{{ $productoSeleccionado->codigo_barra ?? 'Sin código' }}</span>
                                     </div>
                                     <div class="mt-2 col-md-4">
                                         <small><strong>Marca:</strong></small><br>
-                                        <span>{{ $productoSeleccionado['marca'] }}</span>
+                                        <span>{{ $productoSeleccionado->marca ?? 'N/A' }}</span>
                                     </div>
                                     <div class="mt-2 col-md-4">
                                         <small><strong>Categoría:</strong></small><br>
-                                        <span>{{ $productoSeleccionado['categoria'] }}</span>
+                                        <span>{{ $productoSeleccionado->categoria ?? 'N/A' }}</span>
                                     </div>
                                     <div class="mt-2 col-md-4">
                                         <small><strong>Subcategoría:</strong></small><br>
-                                        <span>{{ $productoSeleccionado['subcategoria'] }}</span>
+                                        <span>{{ $productoSeleccionado->subcategoria ?? 'N/A' }}</span>
                                     </div>
                                 </div>
                             </div>
@@ -114,7 +190,7 @@
                                     <p>El producto no cumple con los requisitos para ser eliminado:</p>
                                     <ul class="mb-2">
                                         @if($tieneCodigoBarras)
-                                            <li><strong>Código de barras asignado:</strong> El producto tiene el código "{{ $productoSeleccionado['codigo_barra'] }}" asignado.</li>
+                                            <li><strong>Código de barras asignado:</strong> El producto tiene el código "{{ $productoSeleccionado->codigo_barra ?? '' }}" asignado.</li>
                                         @endif
                                         @if($stockDisponible > 0)
                                             <li><strong>Stock disponible:</strong> El producto tiene {{ $stockDisponible }} unidades disponibles en stock.</li>

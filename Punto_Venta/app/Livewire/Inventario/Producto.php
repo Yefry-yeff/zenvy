@@ -4,7 +4,9 @@ namespace App\Livewire\Inventario;
 
 use Livewire\Component;
 use App\Models\Producto as ProductoModel;
+use App\Services\SincronizacionProductosService;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class Producto extends Component
 {
@@ -16,15 +18,92 @@ class Producto extends Component
     public $puedeEliminar = false;
     public $tieneComprasActivas = false;
 
+    // Propiedades para sincronización con Valencia
+    public $productosValencia = [];
+    private $sincronizacionService;
+
+    private function getSincronizacionService()
+    {
+        if (!$this->sincronizacionService) {
+            $this->sincronizacionService = SincronizacionProductosService::obtenerInstancia();
+        }
+        return $this->sincronizacionService;
+    }
+
+    public function mount()
+    {
+        $this->cargarProductosValencia();
+    }
+
+    public function cargarProductosValencia()
+    {
+        try {
+            $service = $this->getSincronizacionService();
+            $productos = $service->obtenerProductosValenciaConEstado();
+            $this->productosValencia = $productos->toArray();
+        } catch (\Exception $e) {
+            Log::error('Error al cargar productos de Valencia: ' . $e->getMessage());
+            $this->productosValencia = [];
+        }
+    }
+
     public function render()
     {
         // Obtener solo productos activos (estado_id = 1) con sus relaciones para mostrar en la tabla
         $productos = ProductoModel::with(['subcategoria.categoria', 'marca', 'unidadMedidaVenta'])
             ->where('estado_id', 1)
-            ->select('id', 'nombre', 'descripcion', 'precio_base', 'codigo_barra', 'subcategoria_id', 'marca_id', 'unidad_medida_venta_id', 'created_at')
             ->get();
 
-        return view('livewire.inventario.producto', compact('productos'));
+        // Separar productos basado en la columna producto_valencia
+        // producto_valencia = 0 -> Producto de Zenvy
+        // producto_valencia = 1 -> Producto de Valencia
+        $productosZenvy = $productos->filter(function ($producto) {
+            return $producto->producto_valencia == 0;
+        })->values();
+
+        $productosValencia = $productos->filter(function ($producto) {
+            return $producto->producto_valencia == 1;
+        })->values();
+
+        return view('livewire.inventario.producto', compact('productosZenvy', 'productosValencia'));
+    }
+
+    public function sincronizarProductosValencia()
+    {
+        try {
+            $service = $this->getSincronizacionService();
+            $resultado = $service->sincronizarTodosLosProductos();
+            
+            if ($resultado['sincronizados'] > 0) {
+                session()->flash('message', "Se sincronizaron {$resultado['sincronizados']} productos exitosamente.");
+                $this->cargarProductosValencia();
+            }
+            
+            if ($resultado['errores'] > 0) {
+                session()->flash('warning', "Hubo {$resultado['errores']} errores durante la sincronización.");
+            }
+            
+        } catch (\Exception $e) {
+            session()->flash('error', 'Error al sincronizar productos: ' . $e->getMessage());
+        }
+    }
+
+    public function sincronizarProductoValencia($idProductoValencia)
+    {
+        try {
+            $service = $this->getSincronizacionService();
+            $resultado = $service->sincronizarProducto($idProductoValencia);
+            
+            if ($resultado['success']) {
+                session()->flash('message', $resultado['mensaje']);
+                $this->cargarProductosValencia();
+            } else {
+                session()->flash('error', $resultado['mensaje']);
+            }
+            
+        } catch (\Exception $e) {
+            session()->flash('error', 'Error al sincronizar producto: ' . $e->getMessage());
+        }
     }
 
     public function editar($id)
@@ -46,7 +125,7 @@ class Producto extends Component
             ->find($id);
             
         if ($producto) {
-            $this->productoSeleccionado = [
+            $this->productoSeleccionado = (object) [
                 'id' => $producto->id,
                 'nombre' => $producto->nombre,
                 'codigo_barra' => $producto->codigo_barra,
