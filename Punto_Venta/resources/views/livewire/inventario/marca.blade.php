@@ -63,11 +63,37 @@
         <!-- ENCABEZADO MARCAS VALENCIA -->
         <div class="flex items-center justify-between px-5 py-3 mb-4 font-semibold text-white bg-orange-600 rounded-t">
             <h5 class="mb-0 text-lg">🏢 Marcas de Valencia (Solo Lectura)</h5>
-            <button wire:click="sincronizarMarcasValencia"
-                class="inline-flex items-center gap-1 px-3 py-2 text-sm text-gray-800 bg-white rounded hover:bg-gray-100">
-                <span>🔄</span> Sincronizar
-            </button>
+            
+            <!-- Botón de sincronización con estado de carga -->
+            <div class="relative">
+                <button wire:click="sincronizarMarcasValencia"
+                    wire:loading.attr="disabled"
+                    wire:target="sincronizarMarcasValencia"
+                    class="inline-flex items-center gap-1 px-3 py-2 text-sm text-gray-800 bg-white rounded hover:bg-gray-100 disabled:opacity-75 disabled:cursor-not-allowed">
+                    
+                    <!-- Spinner de carga -->
+                    <div wire:loading wire:target="sincronizarMarcasValencia" class="inline-block w-4 h-4 border-2 border-gray-300 border-t-orange-600 rounded-full animate-spin"></div>
+                    
+                    <!-- Icono normal -->
+                    <span wire:loading.remove wire:target="sincronizarMarcasValencia">🔄</span>
+                    
+                    <!-- Texto del botón -->
+                    <span wire:loading.remove wire:target="sincronizarMarcasValencia">Sincronizar</span>
+                    <span wire:loading wire:target="sincronizarMarcasValencia">Sincronizando...</span>
+                </button>
+            </div>
         </div>
+
+        <!-- Barra de progreso para sincronización -->
+        @if($sincronizandoMarcas && $progreso !== null)
+            <div class="px-5 pb-3">
+                <div class="w-full bg-gray-200 rounded-full h-2">
+                    <div class="bg-orange-600 h-2 rounded-full transition-all duration-300" 
+                         style="width: {{ $progreso }}%"></div>
+                </div>
+                <p class="text-sm text-gray-600 mt-1">Sincronizando marcas... {{ $progreso }}%</p>
+            </div>
+        @endif
 
         <!-- TABLA MARCAS VALENCIA -->
         <div class="px-4 py-3 pt-0 card-body">
@@ -309,6 +335,71 @@
              @mousemove.window="show = false"
              class="mt-3 mb-0 transition-opacity duration-300 alert alert-danger">
             {{ session('error') }}
+        </div>
+    @endif
+
+    {{-- Modal de Detalles de Sincronización de Marcas --}}
+    @if($detallesSincronizacion)
+        <div class="fixed inset-0 z-50 flex items-center justify-center">
+            {{-- Overlay --}}
+            <div class="fixed inset-0 bg-black bg-opacity-50" wire:click="cerrarDetallesSincronizacion"></div>
+            
+            {{-- Modal --}}
+            <div class="relative bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-gray-900">📊 Sincronización de Marcas Completada</h3>
+                    <button wire:click="cerrarDetallesSincronizacion" class="text-gray-400 hover:text-gray-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+                
+                <div class="space-y-3">
+                    <div class="flex justify-between items-center p-3 bg-green-50 rounded">
+                        <span class="font-medium text-green-800">✅ Marcas procesadas:</span>
+                        <span class="font-bold text-green-600">{{ $detallesSincronizacion['marcas_sincronizadas'] }}</span>
+                    </div>
+                    
+                    @if($detallesSincronizacion['marcas_nuevas'] > 0)
+                        <div class="flex justify-between items-center p-3 bg-blue-50 rounded">
+                            <span class="font-medium text-blue-800">🆕 Marcas nuevas:</span>
+                            <span class="font-bold text-blue-600">{{ $detallesSincronizacion['marcas_nuevas'] }}</span>
+                        </div>
+                    @endif
+                    
+                    @if($detallesSincronizacion['marcas_actualizadas'] > 0)
+                        <div class="flex justify-between items-center p-3 bg-yellow-50 rounded">
+                            <span class="font-medium text-yellow-800">🔄 Marcas actualizadas:</span>
+                            <span class="font-bold text-yellow-600">{{ $detallesSincronizacion['marcas_actualizadas'] }}</span>
+                        </div>
+                    @endif
+                    
+                    @if($detallesSincronizacion['sin_cambios'] > 0)
+                        <div class="flex justify-between items-center p-3 bg-gray-50 rounded">
+                            <span class="font-medium text-gray-800">⚪ Sin cambios:</span>
+                            <span class="font-bold text-gray-600">{{ $detallesSincronizacion['sin_cambios'] }}</span>
+                        </div>
+                    @endif
+                    
+                    <div class="flex justify-between items-center p-3 bg-orange-50 rounded">
+                        <span class="font-medium text-orange-800">📈 Total procesadas:</span>
+                        <span class="font-bold text-orange-600">{{ $detallesSincronizacion['total_procesadas'] }}</span>
+                    </div>
+                    
+                    <div class="flex justify-between items-center p-3 bg-purple-50 rounded">
+                        <span class="font-medium text-purple-800">⏱️ Tiempo:</span>
+                        <span class="font-bold text-purple-600">{{ $detallesSincronizacion['tiempo_ejecucion'] }}</span>
+                    </div>
+                </div>
+                
+                <div class="mt-6 text-center">
+                    <button wire:click="cerrarDetallesSincronizacion" 
+                            class="px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700 transition-colors">
+                        Cerrar
+                    </button>
+                </div>
+            </div>
         </div>
     @endif
 

@@ -34,7 +34,7 @@
                 'bg-slate-700': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
             }"
         >
-            <h5 class="mb-0 text-lg">🏠 Productos de Zenvy</h5>
+            <h5 class="mb-0 text-lg">🏠 Productos de Paperland</h5>
             <button wire:click="abrirModalCrear"
                 class="inline-flex items-center gap-1 px-3 py-2 text-sm text-gray-800 bg-white rounded hover:bg-gray-100">
                 <span>➕</span> Agregar Producto
@@ -92,7 +92,7 @@
 
         <!-- ENCABEZADO PRODUCTOS VALENCIA -->
         <div class="flex items-center justify-between px-5 py-3 mb-4 font-semibold text-white bg-orange-600 rounded-t">
-            <h5 class="mb-0 text-lg">🏢 Productos de Valencia (Solo Lectura)</h5>
+            <h5 class="mb-0 text-lg">🏢 Productos de Valencia</h5>
             <button wire:click="sincronizarProductosValencia"
                 class="inline-flex items-center gap-1 px-3 py-2 text-sm text-gray-800 bg-white rounded hover:bg-gray-100 disabled:opacity-50"
                 wire:loading.attr="disabled"
@@ -119,7 +119,7 @@
                 </div>
             </div>
             <div class="w-full bg-orange-200 rounded-full h-2">
-                <div class="bg-orange-600 h-2 rounded-full transition-all duration-500 ease-out" 
+                <div class="bg-orange-600 h-2 rounded-full transition-all duration-500 ease-out"
                      style="width: {{ $progreso }}%"></div>
             </div>
         </div>
@@ -302,17 +302,17 @@
 
     <!-- Modal Detalles de Sincronización -->
     @if($detallesSincronizacion)
-    <div class="modal fade show" 
-         tabindex="-1" 
+    <div class="modal fade show"
+         tabindex="-1"
          style="display: block; background: rgba(0,0,0,0.5); z-index: 1050;"
-         aria-modal="true" 
+         aria-modal="true"
          role="dialog"
          x-data="{ autoClose: false, timeoutId: null }"
          x-init="
-            this.timeoutId = setTimeout(() => { 
-                this.autoClose = true; 
+            this.timeoutId = setTimeout(() => {
+                this.autoClose = true;
             }, 5000);
-            $watch('autoClose', value => { 
+            $watch('autoClose', value => {
                 if(value) {
                     if(this.timeoutId) clearTimeout(this.timeoutId);
                     $wire.cerrarDetallesSincronizacion();
@@ -336,11 +336,11 @@
                             <span class="text-2xl">✅</span> Sincronización Completada
                         @endif
                     </h5>
-                    <button type="button" 
-                            class="btn-close btn-close-white" 
+                    <button type="button"
+                            class="btn-close btn-close-white"
                             wire:click="cerrarDetallesSincronizacion"></button>
                 </div>
-                
+
                 <div class="modal-body p-6">
                     @if(isset($detallesSincronizacion['error']) && $detallesSincronizacion['error'])
                         <!-- Error de sincronización -->
@@ -357,25 +357,25 @@
                                 <div class="text-3xl font-bold text-green-600">{{ $detallesSincronizacion['productos_sincronizados'] }}</div>
                                 <div class="text-sm text-green-700 font-medium">Productos Sincronizados</div>
                             </div>
-                            
+
                             <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
                                 <div class="text-3xl font-bold text-blue-600">{{ $detallesSincronizacion['total_procesados'] }}</div>
                                 <div class="text-sm text-blue-700 font-medium">Total Procesados</div>
                             </div>
-                            
+
                             @if($detallesSincronizacion['errores'] > 0)
                             <div class="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
                                 <div class="text-3xl font-bold text-red-600">{{ $detallesSincronizacion['errores'] }}</div>
                                 <div class="text-sm text-red-700 font-medium">Errores Encontrados</div>
                             </div>
                             @endif
-                            
+
                             <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center">
                                 <div class="text-lg font-bold text-gray-600">{{ $detallesSincronizacion['tiempo_ejecucion'] }}</div>
                                 <div class="text-sm text-gray-700 font-medium">Tiempo de Ejecución</div>
                             </div>
                         </div>
-                        
+
                         <!-- Detalles de acciones realizadas -->
                         @if(isset($detallesSincronizacion['productos_creados']) || isset($detallesSincronizacion['productos_actualizados']))
                         <div class="row mb-4">
@@ -387,7 +387,7 @@
                                 </div>
                             </div>
                             @endif
-                            
+
                             @if($detallesSincronizacion['productos_actualizados'] > 0)
                             <div class="col-md-6">
                                 <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 text-center">
@@ -398,7 +398,7 @@
                             @endif
                         </div>
                         @endif
-                        
+
                         <!-- Barra de progreso completa -->
                         <div class="mb-4">
                             <div class="flex justify-between text-sm mb-2">
@@ -409,11 +409,11 @@
                                 <div class="bg-gradient-to-r from-green-400 to-green-600 h-3 rounded-full w-full transition-all duration-1000"></div>
                             </div>
                         </div>
-                        
+
                         <!-- Mensaje de éxito -->
                         <div class="text-center p-4 bg-green-50 border border-green-200 rounded-lg">
                             <p class="text-green-800 font-medium">
-                                🎉 La sincronización se ha completado exitosamente. 
+                                🎉 La sincronización se ha completado exitosamente.
                                 @if(isset($detallesSincronizacion['productos_actualizados']) && $detallesSincronizacion['productos_actualizados'] > 0)
                                     Se actualizaron {{ $detallesSincronizacion['productos_actualizados'] }} productos existentes con los últimos cambios de Valencia.
                                 @endif
@@ -425,11 +425,11 @@
                         </div>
                     @endif
                 </div>
-                
+
                 <div class="modal-footer bg-gray-50">
                     <small class="text-gray-500 mr-auto">Este modal se cerrará automáticamente en 5 segundos</small>
-                    <button type="button" 
-                            class="btn btn-secondary" 
+                    <button type="button"
+                            class="btn btn-secondary"
                             wire:click="cerrarDetallesSincronizacion">
                         Cerrar
                     </button>

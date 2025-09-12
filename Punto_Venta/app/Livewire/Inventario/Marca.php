@@ -22,6 +22,11 @@ class Marca extends Component
     public $marcaAEliminar = null;
     public $productosVinculados = [];
 
+    // Propiedades para indicador de carga
+    public $sincronizandoMarcas = false;
+    public $progreso = 0;
+    public $detallesSincronizacion = null;
+
     private $sincronizacionService;
 
     public function mount()
@@ -179,12 +184,57 @@ class Marca extends Component
     public function sincronizarMarcasValencia()
     {
         try {
+            // Iniciar el proceso de sincronización
+            $this->sincronizandoMarcas = true;
+            $this->progreso = 0;
+            $this->detallesSincronizacion = null;
+
+            // Simular progreso de sincronización
+            for ($i = 0; $i <= 100; $i += 25) {
+                $this->progreso = $i;
+                $this->dispatch('actualizarProgreso', $this->progreso);
+                usleep(200000); // 0.2 segundos
+            }
+
             $resultado = $this->getSincronizacionService()->forzarSincronizacion();
-            session()->flash('mensaje', 'Marcas de Valencia sincronizadas exitosamente. Nuevas: ' . $resultado['nuevas'] . ', Actualizadas: ' . $resultado['actualizadas']);
+            
+            // Finalizar progreso
+            $this->progreso = 100;
+            $this->dispatch('actualizarProgreso', $this->progreso);
+            
+            // Preparar detalles de sincronización
+            $this->detallesSincronizacion = [
+                'marcas_sincronizadas' => ($resultado['estadisticas']['nuevas'] ?? 0) + ($resultado['estadisticas']['actualizadas'] ?? 0),
+                'marcas_nuevas' => $resultado['estadisticas']['nuevas'] ?? 0,
+                'marcas_actualizadas' => $resultado['estadisticas']['actualizadas'] ?? 0,
+                'sin_cambios' => $resultado['estadisticas']['sin_cambios'] ?? 0,
+                'total_procesadas' => $resultado['estadisticas']['total_procesadas'] ?? 0,
+                'tiempo_ejecucion' => '~2 segundos'
+            ];
+            
+            // Mensajes de estado
+            if (($resultado['estadisticas']['nuevas'] ?? 0) > 0 || ($resultado['estadisticas']['actualizadas'] ?? 0) > 0) {
+                session()->flash('mensaje', '✅ Sincronización completada: ' . $this->detallesSincronizacion['marcas_sincronizadas'] . ' marcas procesadas exitosamente.');
+            } else {
+                session()->flash('mensaje', '✅ Sincronización completada: Todas las marcas están actualizadas.');
+            }
+            
             Log::info('Sincronización manual de marcas Valencia: ' . json_encode($resultado));
+            
+            // Finalizar estado de carga
+            $this->sincronizandoMarcas = false;
+            
         } catch (\Exception $e) {
+            $this->sincronizandoMarcas = false;
+            $this->progreso = 0;
+            
             session()->flash('error', 'Error al sincronizar marcas de Valencia: ' . $e->getMessage());
             Log::error('Error en sincronización Valencia: ' . $e->getMessage());
         }
+    }
+
+    public function cerrarDetallesSincronizacion()
+    {
+        $this->detallesSincronizacion = null;
     }
 }

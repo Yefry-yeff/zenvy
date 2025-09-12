@@ -115,7 +115,15 @@ class SincronizacionMarcasService
         try {
             foreach ($marcasExternas as $marcaExterna) {
                 $resultado = $this->procesarMarcaIndividual($marcaExterna);
-                $estadisticas[$resultado]++;
+                
+                // Validar que el resultado sea uno de los valores esperados
+                if (isset($estadisticas[$resultado])) {
+                    $estadisticas[$resultado]++;
+                } else {
+                    Log::warning("Resultado inesperado en procesarMarcaIndividual: '$resultado'");
+                    $estadisticas['sin_cambios']++; // Fallback
+                }
+                
                 $estadisticas['total_procesadas']++;
             }
 
