@@ -302,141 +302,74 @@
 
     <!-- Modal Detalles de Sincronización -->
     @if($detallesSincronizacion)
-    <div class="modal fade show"
-         tabindex="-1"
-         style="display: block; background: rgba(0,0,0,0.5); z-index: 1050;"
-         aria-modal="true"
-         role="dialog"
-         x-data="{ autoClose: false, timeoutId: null }"
-         x-init="
-            this.timeoutId = setTimeout(() => {
-                this.autoClose = true;
-            }, 5000);
-            $watch('autoClose', value => {
-                if(value) {
-                    if(this.timeoutId) clearTimeout(this.timeoutId);
-                    $wire.cerrarDetallesSincronizacion();
-                }
-            });
-            // Limpiar timeout si el modal se cierra manualmente
-            $watch('$wire.detallesSincronizacion', value => {
-                if(!value && this.timeoutId) {
-                    clearTimeout(this.timeoutId);
-                    this.timeoutId = null;
-                }
-            })
-         ">
-        <div class="modal-dialog modal-dialog-centered modal-lg">
-            <div class="modal-content border-0 shadow-lg">
-                <div class="text-white modal-header bg-gradient-to-r from-orange-500 to-orange-600">
-                    <h5 class="modal-title font-bold flex items-center gap-2">
-                        @if(isset($detallesSincronizacion['error']) && $detallesSincronizacion['error'])
-                            <span class="text-2xl">❌</span> Error en Sincronización
-                        @else
-                            <span class="text-2xl">✅</span> Sincronización Completada
-                        @endif
-                    </h5>
-                    <button type="button"
-                            class="btn-close btn-close-white"
-                            wire:click="cerrarDetallesSincronizacion"></button>
+        <div class="fixed inset-0 z-50 flex items-center justify-center">
+            {{-- Overlay --}}
+            <div class="fixed inset-0 bg-black bg-opacity-50" wire:click="cerrarDetallesSincronizacion"></div>
+            
+            {{-- Modal --}}
+            <div class="relative bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-gray-900">📊 Sincronización de Productos Completada</h3>
+                    <button wire:click="cerrarDetallesSincronizacion" class="text-gray-400 hover:text-gray-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
                 </div>
-
-                <div class="modal-body p-6">
-                    @if(isset($detallesSincronizacion['error']) && $detallesSincronizacion['error'])
-                        <!-- Error de sincronización -->
-                        <div class="text-center">
-                            <div class="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-                                <h6 class="text-red-800 font-semibold mb-2">⚠️ Error durante la sincronización</h6>
-                                <p class="text-red-700 text-sm">{{ $detallesSincronizacion['mensaje_error'] ?? 'Error desconocido' }}</p>
-                            </div>
-                        </div>
-                    @else
-                        <!-- Detalles exitosos -->
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                            <div class="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
-                                <div class="text-3xl font-bold text-green-600">{{ $detallesSincronizacion['productos_sincronizados'] }}</div>
-                                <div class="text-sm text-green-700 font-medium">Productos Sincronizados</div>
-                            </div>
-
-                            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
-                                <div class="text-3xl font-bold text-blue-600">{{ $detallesSincronizacion['total_procesados'] }}</div>
-                                <div class="text-sm text-blue-700 font-medium">Total Procesados</div>
-                            </div>
-
-                            @if($detallesSincronizacion['errores'] > 0)
-                            <div class="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
-                                <div class="text-3xl font-bold text-red-600">{{ $detallesSincronizacion['errores'] }}</div>
-                                <div class="text-sm text-red-700 font-medium">Errores Encontrados</div>
-                            </div>
-                            @endif
-
-                            <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center">
-                                <div class="text-lg font-bold text-gray-600">{{ $detallesSincronizacion['tiempo_ejecucion'] }}</div>
-                                <div class="text-sm text-gray-700 font-medium">Tiempo de Ejecución</div>
-                            </div>
-                        </div>
-
-                        <!-- Detalles de acciones realizadas -->
-                        @if(isset($detallesSincronizacion['productos_creados']) || isset($detallesSincronizacion['productos_actualizados']))
-                        <div class="row mb-4">
-                            @if($detallesSincronizacion['productos_creados'] > 0)
-                            <div class="col-md-6">
-                                <div class="bg-emerald-50 border border-emerald-200 rounded-lg p-3 text-center">
-                                    <div class="text-2xl font-bold text-emerald-600">{{ $detallesSincronizacion['productos_creados'] }}</div>
-                                    <div class="text-sm text-emerald-700 font-medium">🆕 Productos Nuevos</div>
-                                </div>
-                            </div>
-                            @endif
-
-                            @if($detallesSincronizacion['productos_actualizados'] > 0)
-                            <div class="col-md-6">
-                                <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 text-center">
-                                    <div class="text-2xl font-bold text-amber-600">{{ $detallesSincronizacion['productos_actualizados'] }}</div>
-                                    <div class="text-sm text-amber-700 font-medium">🔄 Productos Actualizados</div>
-                                </div>
-                            </div>
-                            @endif
-                        </div>
-                        @endif
-
-                        <!-- Barra de progreso completa -->
-                        <div class="mb-4">
-                            <div class="flex justify-between text-sm mb-2">
-                                <span class="font-medium text-gray-700">Progreso de Sincronización</span>
-                                <span class="text-green-600 font-bold">100% Completado</span>
-                            </div>
-                            <div class="w-full bg-gray-200 rounded-full h-3">
-                                <div class="bg-gradient-to-r from-green-400 to-green-600 h-3 rounded-full w-full transition-all duration-1000"></div>
-                            </div>
-                        </div>
-
-                        <!-- Mensaje de éxito -->
-                        <div class="text-center p-4 bg-green-50 border border-green-200 rounded-lg">
-                            <p class="text-green-800 font-medium">
-                                🎉 La sincronización se ha completado exitosamente.
-                                @if(isset($detallesSincronizacion['productos_actualizados']) && $detallesSincronizacion['productos_actualizados'] > 0)
-                                    Se actualizaron {{ $detallesSincronizacion['productos_actualizados'] }} productos existentes con los últimos cambios de Valencia.
-                                @endif
-                                @if(isset($detallesSincronizacion['productos_creados']) && $detallesSincronizacion['productos_creados'] > 0)
-                                    Se agregaron {{ $detallesSincronizacion['productos_creados'] }} productos nuevos de Valencia.
-                                @endif
-                                Los productos están ahora disponibles en el sistema.
-                            </p>
+                
+                <div class="space-y-3">
+                    <div class="flex justify-between items-center p-3 bg-green-50 rounded">
+                        <span class="font-medium text-green-800">✅ Productos procesados:</span>
+                        <span class="font-bold text-green-600">{{ $detallesSincronizacion['productos_sincronizados'] ?? 0 }}</span>
+                    </div>
+                    
+                    @if(($detallesSincronizacion['productos_creados'] ?? 0) > 0)
+                        <div class="flex justify-between items-center p-3 bg-blue-50 rounded">
+                            <span class="font-medium text-blue-800">🆕 Productos nuevos:</span>
+                            <span class="font-bold text-blue-600">{{ $detallesSincronizacion['productos_creados'] }}</span>
                         </div>
                     @endif
+                    
+                    @if(($detallesSincronizacion['productos_actualizados'] ?? 0) > 0)
+                        <div class="flex justify-between items-center p-3 bg-yellow-50 rounded">
+                            <span class="font-medium text-yellow-800">🔄 Productos actualizados:</span>
+                            <span class="font-bold text-yellow-600">{{ $detallesSincronizacion['productos_actualizados'] }}</span>
+                        </div>
+                    @endif
+                    
+                    @if(($detallesSincronizacion['sin_cambios'] ?? 0) > 0)
+                        <div class="flex justify-between items-center p-3 bg-gray-50 rounded">
+                            <span class="font-medium text-gray-800">⚪ Sin cambios:</span>
+                            <span class="font-bold text-gray-600">{{ $detallesSincronizacion['sin_cambios'] }}</span>
+                        </div>
+                    @endif
+                    
+                    <div class="flex justify-between items-center p-3 bg-orange-50 rounded">
+                        <span class="font-medium text-orange-800">📈 Total procesados:</span>
+                        <span class="font-bold text-orange-600">{{ $detallesSincronizacion['total_procesados'] ?? 0 }}</span>
+                    </div>
+                    
+                    @if(($detallesSincronizacion['errores'] ?? 0) > 0)
+                        <div class="flex justify-between items-center p-3 bg-red-50 rounded">
+                            <span class="font-medium text-red-800">❌ Errores:</span>
+                            <span class="font-bold text-red-600">{{ $detallesSincronizacion['errores'] }}</span>
+                        </div>
+                    @endif
+                    
+                    <div class="flex justify-between items-center p-3 bg-purple-50 rounded">
+                        <span class="font-medium text-purple-800">⏱️ Tiempo:</span>
+                        <span class="font-bold text-purple-600">{{ $detallesSincronizacion['tiempo_ejecucion'] ?? '~2 segundos' }}</span>
+                    </div>
                 </div>
-
-                <div class="modal-footer bg-gray-50">
-                    <small class="text-gray-500 mr-auto">Este modal se cerrará automáticamente en 5 segundos</small>
-                    <button type="button"
-                            class="btn btn-secondary"
-                            wire:click="cerrarDetallesSincronizacion">
+                
+                <div class="mt-6 text-center">
+                    <button wire:click="cerrarDetallesSincronizacion" 
+                            class="px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700 transition-colors">
                         Cerrar
                     </button>
                 </div>
             </div>
         </div>
-    </div>
     @endif
 
 </div> {{-- FIN ELEMENTO RAÍZ --}}

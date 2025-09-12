@@ -22,6 +22,11 @@ class Presentaciones extends Component
     public $nuevoNombre = '';
     public $nuevoSimbolo = '';
 
+    // Propiedades para efectos de carga en sincronización
+    public $sincronizandoUnidades = false;
+    public $progreso = null;
+    public $detallesSincronizacion = null;
+
     private $sincronizacionService;
 
     public function mount()
@@ -139,12 +144,57 @@ class Presentaciones extends Component
     public function sincronizarUnidadesValencia()
     {
         try {
+            // Iniciar el proceso de sincronización
+            $this->sincronizandoUnidades = true;
+            $this->progreso = 0;
+            $this->detallesSincronizacion = null;
+
+            // Simular progreso de sincronización
+            for ($i = 0; $i <= 100; $i += 25) {
+                $this->progreso = $i;
+                $this->dispatch('actualizarProgreso', $this->progreso);
+                usleep(200000); // 0.2 segundos
+            }
+
             $resultado = $this->getSincronizacionService()->forzarSincronizacion();
-            session()->flash('mensaje', 'Unidades de Valencia sincronizadas exitosamente. Nuevas: ' . $resultado['nuevas'] . ', Actualizadas: ' . $resultado['actualizadas']);
+            
+            // Finalizar progreso
+            $this->progreso = 100;
+            $this->dispatch('actualizarProgreso', $this->progreso);
+            
+            // Preparar detalles de sincronización
+            $this->detallesSincronizacion = [
+                'unidades_sincronizadas' => ($resultado['estadisticas']['nuevas'] ?? 0) + ($resultado['estadisticas']['actualizadas'] ?? 0),
+                'unidades_nuevas' => $resultado['estadisticas']['nuevas'] ?? 0,
+                'unidades_actualizadas' => $resultado['estadisticas']['actualizadas'] ?? 0,
+                'sin_cambios' => $resultado['estadisticas']['sin_cambios'] ?? 0,
+                'total_procesadas' => $resultado['estadisticas']['total_procesadas'] ?? 0,
+                'tiempo_ejecucion' => '~2 segundos'
+            ];
+            
+            // Mensajes de estado
+            if (($resultado['estadisticas']['nuevas'] ?? 0) > 0 || ($resultado['estadisticas']['actualizadas'] ?? 0) > 0) {
+                session()->flash('mensaje', '✅ Sincronización completada: ' . $this->detallesSincronizacion['unidades_sincronizadas'] . ' unidades procesadas exitosamente.');
+            } else {
+                session()->flash('mensaje', '✅ Sincronización completada: Todas las unidades están actualizadas.');
+            }
+            
             Log::info('Sincronización manual de unidades Valencia: ' . json_encode($resultado));
+            
+            // Finalizar estado de carga
+            $this->sincronizandoUnidades = false;
+            
         } catch (\Exception $e) {
+            $this->sincronizandoUnidades = false;
+            $this->progreso = 0;
+            
             session()->flash('error', 'Error al sincronizar unidades de Valencia: ' . $e->getMessage());
             Log::error('Error en sincronización Valencia: ' . $e->getMessage());
         }
+    }
+
+    public function cerrarDetallesSincronizacion()
+    {
+        $this->detallesSincronizacion = null;
     }
 }

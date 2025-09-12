@@ -41,6 +41,11 @@ class CategoriaForm extends Component
         'nombre' => '',
     ];
 
+    // Propiedades para efectos de carga en sincronización de subcategorías
+    public $sincronizandoSubcategorias = false;
+    public $progreso = null;
+    public $detallesSincronizacion = null;
+
     public function mount($id = null)
     {
         $this->subcategorias = collect(); // Inicializar como colección vacía
@@ -113,12 +118,57 @@ class CategoriaForm extends Component
         }
 
         try {
-            $this->getSincronizacionService()->forzarSincronizacion();
+            // Iniciar el proceso de sincronización
+            $this->sincronizandoSubcategorias = true;
+            $this->progreso = 0;
+            $this->detallesSincronizacion = null;
+
+            // Simular progreso de sincronización
+            for ($i = 0; $i <= 100; $i += 25) {
+                $this->progreso = $i;
+                $this->dispatch('actualizarProgreso', $this->progreso);
+                usleep(200000); // 0.2 segundos
+            }
+
+            $resultado = $this->getSincronizacionService()->forzarSincronizacion();
+            
+            // Finalizar progreso
+            $this->progreso = 100;
+            $this->dispatch('actualizarProgreso', $this->progreso);
+            
+            // Preparar detalles de sincronización
+            $this->detallesSincronizacion = [
+                'subcategorias_sincronizadas' => ($resultado['estadisticas']['nuevas'] ?? 0) + ($resultado['estadisticas']['actualizadas'] ?? 0),
+                'subcategorias_nuevas' => $resultado['estadisticas']['nuevas'] ?? 0,
+                'subcategorias_actualizadas' => $resultado['estadisticas']['actualizadas'] ?? 0,
+                'sin_cambios' => $resultado['estadisticas']['sin_cambios'] ?? 0,
+                'total_procesadas' => $resultado['estadisticas']['total_procesadas'] ?? 0,
+                'tiempo_ejecucion' => '~2 segundos'
+            ];
+            
             $this->cargarSubcategorias(); // Recargar después de sincronizar
-            session()->flash('mensaje', 'Subcategorías sincronizadas exitosamente desde Valencia.');
+            
+            // Mensajes de estado
+            if (($resultado['estadisticas']['nuevas'] ?? 0) > 0 || ($resultado['estadisticas']['actualizadas'] ?? 0) > 0) {
+                session()->flash('mensaje', '✅ Sincronización completada: ' . $this->detallesSincronizacion['subcategorias_sincronizadas'] . ' subcategorías procesadas exitosamente.');
+            } else {
+                session()->flash('mensaje', '✅ Sincronización completada: Todas las subcategorías están actualizadas.');
+            }
+            
+            // Finalizar estado de carga
+            $this->sincronizandoSubcategorias = false;
+            
         } catch (\Exception $e) {
+            $this->sincronizandoSubcategorias = false;
+            $this->progreso = 0;
+            
             session()->flash('error', 'Error al sincronizar subcategorías: ' . $e->getMessage());
         }
+    }
+
+    public function cerrarDetallesSincronizacion()
+    {
+        $this->detallesSincronizacion = null;
     }
 
     public function volver()

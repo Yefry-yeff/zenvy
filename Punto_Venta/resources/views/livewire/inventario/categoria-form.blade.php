@@ -79,13 +79,37 @@
                 <!-- Vista especial para categorías de Valencia -->
                 <div class="flex items-center justify-between mb-4">
                     <h2 class="text-lg font-semibold text-orange-700">🔗 Gestión de Subcategorías</h2>
-                    <button
-                        wire:click="sincronizarSubcategoriasValencia"
-                        class="px-3 py-2 text-sm text-gray-800 bg-orange-200 rounded hover:bg-orange-300"
-                    >
-                        🔄 Sincronizar Valencia
-                    </button>
+                    
+                    <!-- Botón de sincronización con estado de carga -->
+                    <div class="relative">
+                        <button wire:click="sincronizarSubcategoriasValencia"
+                            wire:loading.attr="disabled"
+                            wire:target="sincronizarSubcategoriasValencia"
+                            class="inline-flex items-center gap-1 px-3 py-2 text-sm text-gray-800 bg-orange-200 rounded hover:bg-orange-300 disabled:opacity-75 disabled:cursor-not-allowed">
+                            
+                            <!-- Spinner de carga -->
+                            <div wire:loading wire:target="sincronizarSubcategoriasValencia" class="inline-block w-4 h-4 border-2 border-gray-300 border-t-orange-600 rounded-full animate-spin"></div>
+                            
+                            <!-- Icono normal -->
+                            <span wire:loading.remove wire:target="sincronizarSubcategoriasValencia">🔄</span>
+                            
+                            <!-- Texto del botón -->
+                            <span wire:loading.remove wire:target="sincronizarSubcategoriasValencia">Sincronizar Valencia</span>
+                            <span wire:loading wire:target="sincronizarSubcategoriasValencia">Sincronizando...</span>
+                        </button>
+                    </div>
                 </div>
+
+                <!-- Barra de progreso para sincronización -->
+                @if($sincronizandoSubcategorias && $progreso !== null)
+                    <div class="mb-4">
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div class="bg-orange-600 h-2 rounded-full transition-all duration-300" 
+                                 style="width: {{ $progreso }}%"></div>
+                        </div>
+                        <p class="text-sm text-gray-600 mt-1">Sincronizando subcategorías... {{ $progreso }}%</p>
+                    </div>
+                @endif
 
                 <!-- Subcategorías Propias de Zenvy -->
                 <div class="mb-6">
@@ -486,5 +510,70 @@
             </div>
         </div>
     </div>
+
+    {{-- Modal de Detalles de Sincronización de Subcategorías --}}
+    @if($detallesSincronizacion)
+        <div class="fixed inset-0 z-50 flex items-center justify-center">
+            {{-- Overlay --}}
+            <div class="fixed inset-0 bg-black bg-opacity-50" wire:click="cerrarDetallesSincronizacion"></div>
+            
+            {{-- Modal --}}
+            <div class="relative bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-gray-900">📊 Sincronización de Subcategorías Completada</h3>
+                    <button wire:click="cerrarDetallesSincronizacion" class="text-gray-400 hover:text-gray-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+                
+                <div class="space-y-3">
+                    <div class="flex justify-between items-center p-3 bg-green-50 rounded">
+                        <span class="font-medium text-green-800">✅ Subcategorías procesadas:</span>
+                        <span class="font-bold text-green-600">{{ $detallesSincronizacion['subcategorias_sincronizadas'] }}</span>
+                    </div>
+                    
+                    @if($detallesSincronizacion['subcategorias_nuevas'] > 0)
+                        <div class="flex justify-between items-center p-3 bg-blue-50 rounded">
+                            <span class="font-medium text-blue-800">🆕 Subcategorías nuevas:</span>
+                            <span class="font-bold text-blue-600">{{ $detallesSincronizacion['subcategorias_nuevas'] }}</span>
+                        </div>
+                    @endif
+                    
+                    @if($detallesSincronizacion['subcategorias_actualizadas'] > 0)
+                        <div class="flex justify-between items-center p-3 bg-yellow-50 rounded">
+                            <span class="font-medium text-yellow-800">🔄 Subcategorías actualizadas:</span>
+                            <span class="font-bold text-yellow-600">{{ $detallesSincronizacion['subcategorias_actualizadas'] }}</span>
+                        </div>
+                    @endif
+                    
+                    @if($detallesSincronizacion['sin_cambios'] > 0)
+                        <div class="flex justify-between items-center p-3 bg-gray-50 rounded">
+                            <span class="font-medium text-gray-800">⚪ Sin cambios:</span>
+                            <span class="font-bold text-gray-600">{{ $detallesSincronizacion['sin_cambios'] }}</span>
+                        </div>
+                    @endif
+                    
+                    <div class="flex justify-between items-center p-3 bg-orange-50 rounded">
+                        <span class="font-medium text-orange-800">📈 Total procesadas:</span>
+                        <span class="font-bold text-orange-600">{{ $detallesSincronizacion['total_procesadas'] }}</span>
+                    </div>
+                    
+                    <div class="flex justify-between items-center p-3 bg-purple-50 rounded">
+                        <span class="font-medium text-purple-800">⏱️ Tiempo:</span>
+                        <span class="font-bold text-purple-600">{{ $detallesSincronizacion['tiempo_ejecucion'] }}</span>
+                    </div>
+                </div>
+                
+                <div class="mt-6 text-center">
+                    <button wire:click="cerrarDetallesSincronizacion" 
+                            class="px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700 transition-colors">
+                        Cerrar
+                    </button>
+                </div>
+            </div>
+        </div>
+    @endif
 
 </div>
