@@ -12,7 +12,7 @@
                 'bg-slate-700': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
             }"
         >
-            <h5 class="mb-0 text-lg">📂 Categorías Propias de Zenvy</h5>
+            <h5 class="mb-0 text-lg">📂 Categorías de Paperland</h5>
             <button wire:click="abrirModalCrear"
                 class="inline-flex items-center gap-1 px-3 py-2 text-sm text-gray-800 bg-white rounded hover:bg-gray-100">
                 <span>➕</span> Agregar Categoría
@@ -62,21 +62,21 @@
 
         <!-- ENCABEZADO CATEGORÍAS VALENCIA -->
         <div class="flex items-center justify-between px-5 py-3 mb-4 font-semibold text-white rounded-t bg-orange-600">
-            <h5 class="mb-0 text-lg">🏢 Categorías de Valencia (Solo Lectura)</h5>
-            
+            <h5 class="mb-0 text-lg">🏢 Categorías de Valencia</h5>
+
             <!-- Botón de sincronización con estado de carga -->
             <div class="relative">
                 <button wire:click="sincronizarCategoriasValencia"
                     wire:loading.attr="disabled"
                     wire:target="sincronizarCategoriasValencia"
                     class="inline-flex items-center gap-1 px-3 py-2 text-sm text-gray-800 bg-white rounded hover:bg-gray-100 disabled:opacity-75 disabled:cursor-not-allowed">
-                    
+
                     <!-- Spinner de carga -->
                     <div wire:loading wire:target="sincronizarCategoriasValencia" class="inline-block w-4 h-4 border-2 border-gray-300 border-t-orange-600 rounded-full animate-spin"></div>
-                    
+
                     <!-- Icono normal -->
                     <span wire:loading.remove wire:target="sincronizarCategoriasValencia">🔄</span>
-                    
+
                     <!-- Texto del botón -->
                     <span wire:loading.remove wire:target="sincronizarCategoriasValencia">Sincronizar</span>
                     <span wire:loading wire:target="sincronizarCategoriasValencia">Sincronizando...</span>
@@ -88,7 +88,7 @@
         @if($sincronizandoCategorias && $progreso !== null)
             <div class="px-5 pb-3">
                 <div class="w-full bg-gray-200 rounded-full h-2">
-                    <div class="bg-orange-600 h-2 rounded-full transition-all duration-300" 
+                    <div class="bg-orange-600 h-2 rounded-full transition-all duration-300"
                          style="width: {{ $progreso }}%"></div>
                 </div>
                 <p class="text-sm text-gray-600 mt-1">Sincronizando categorías... {{ $progreso }}%</p>
@@ -108,14 +108,13 @@
                     </thead>
                     <tbody>
                         @forelse($categoriasValencia as $categoria)
-                            <tr class="text-center align-middle bg-orange-50 hover:bg-orange-100 cursor-pointer" 
-                                wire:click="editar({{ $categoria->id }})" 
+                            <tr class="text-center align-middle bg-orange-50 hover:bg-orange-100 cursor-pointer"
+                                wire:click="editar({{ $categoria->id }})"
                                 title="Clic para editar categoría">
                                 <td class="fw-semibold">{{ $categoria->id }}</td>
                                 <td class="text-start">
                                     <div class="flex items-center gap-2">
                                         <span>{{ $categoria->nombre }}</span>
-                                        <small class="text-orange-600">(Clic para editar)</small>
                                     </div>
                                 </td>
                                 <td>
@@ -206,10 +205,10 @@
                         @if(count($productosVinculados) > 0)
                             <div class="alert alert-warning">
                                 <h6><strong>⚠️ No se puede eliminar esta categoría</strong></h6>
-                                <p>Esta categoría tiene <strong>{{ count($productosVinculados) }} producto(s)</strong> vinculado(s) a través de sus subcategorías. 
+                                <p>Esta categoría tiene <strong>{{ count($productosVinculados) }} producto(s)</strong> vinculado(s) a través de sus subcategorías.
                                    Primero debe eliminar o cambiar la subcategoría de estos productos:</p>
                             </div>
-                            
+
                             <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
                                 <table class="table table-sm table-striped">
                                     <thead class="table-light sticky-top">
@@ -234,14 +233,14 @@
                                     </tbody>
                                 </table>
                             </div>
-                            
+
                             <div class="alert alert-info mt-3">
                                 <small>
-                                    <strong>💡 Sugerencia:</strong> 
+                                    <strong>💡 Sugerencia:</strong>
                                     Vaya al módulo de <strong>Productos</strong> y edite cada producto para cambiar su subcategoría o elimínelos.
                                 </small>
                             </div>
-                            
+
                             <div class="flex justify-end gap-2 mt-4">
                                 <button type="button" class="btn btn-secondary" wire:click="cerrarModalEliminar">
                                     <i class="fas fa-times me-1"></i> Cerrar
@@ -252,10 +251,10 @@
                                 <h6><strong>✅ Esta categoría se puede eliminar</strong></h6>
                                 <p>No hay productos vinculados a las subcategorías de esta categoría.</p>
                             </div>
-                            
+
                             <p><strong>¿Estás seguro que deseas eliminar esta categoría?</strong></p>
                             <p class="text-muted">Esta acción eliminará también todas sus subcategorías y no se puede deshacer.</p>
-                            
+
                             <div class="flex justify-end gap-2 mt-4">
                                 <button type="button" class="btn btn-secondary" wire:click="cerrarModalEliminar">
                                     <i class="fas fa-times me-1"></i> No, cancelar
@@ -297,7 +296,7 @@
         <div class="fixed inset-0 z-50 flex items-center justify-center">
             {{-- Overlay --}}
             <div class="fixed inset-0 bg-black bg-opacity-50" wire:click="cerrarDetallesSincronizacion"></div>
-            
+
             {{-- Modal --}}
             <div class="relative bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
                 <div class="flex items-center justify-between mb-4">
@@ -308,47 +307,47 @@
                         </svg>
                     </button>
                 </div>
-                
+
                 <div class="space-y-3">
                     <div class="flex justify-between items-center p-3 bg-green-50 rounded">
                         <span class="font-medium text-green-800">✅ Categorías procesadas:</span>
                         <span class="font-bold text-green-600">{{ $detallesSincronizacion['categorias_sincronizadas'] }}</span>
                     </div>
-                    
+
                     @if($detallesSincronizacion['categorias_nuevas'] > 0)
                         <div class="flex justify-between items-center p-3 bg-blue-50 rounded">
                             <span class="font-medium text-blue-800">🆕 Categorías nuevas:</span>
                             <span class="font-bold text-blue-600">{{ $detallesSincronizacion['categorias_nuevas'] }}</span>
                         </div>
                     @endif
-                    
+
                     @if($detallesSincronizacion['categorias_actualizadas'] > 0)
                         <div class="flex justify-between items-center p-3 bg-yellow-50 rounded">
                             <span class="font-medium text-yellow-800">🔄 Categorías actualizadas:</span>
                             <span class="font-bold text-yellow-600">{{ $detallesSincronizacion['categorias_actualizadas'] }}</span>
                         </div>
                     @endif
-                    
+
                     @if($detallesSincronizacion['sin_cambios'] > 0)
                         <div class="flex justify-between items-center p-3 bg-gray-50 rounded">
                             <span class="font-medium text-gray-800">⚪ Sin cambios:</span>
                             <span class="font-bold text-gray-600">{{ $detallesSincronizacion['sin_cambios'] }}</span>
                         </div>
                     @endif
-                    
+
                     <div class="flex justify-between items-center p-3 bg-orange-50 rounded">
                         <span class="font-medium text-orange-800">📈 Total procesadas:</span>
                         <span class="font-bold text-orange-600">{{ $detallesSincronizacion['total_procesadas'] }}</span>
                     </div>
-                    
+
                     <div class="flex justify-between items-center p-3 bg-purple-50 rounded">
                         <span class="font-medium text-purple-800">⏱️ Tiempo:</span>
                         <span class="font-bold text-purple-600">{{ $detallesSincronizacion['tiempo_ejecucion'] }}</span>
                     </div>
                 </div>
-                
+
                 <div class="mt-6 text-center">
-                    <button wire:click="cerrarDetallesSincronizacion" 
+                    <button wire:click="cerrarDetallesSincronizacion"
                             class="px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700 transition-colors">
                         Cerrar
                     </button>

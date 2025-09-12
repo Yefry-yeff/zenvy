@@ -12,7 +12,7 @@
                 'bg-slate-700': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
             }"
         >
-            <h5 class="mb-0 text-lg">📏 Unidades de Medida Propias de Zenvy</h5>
+            <h5 class="mb-0 text-lg">📏 Unidades de Medida de Paperland</h5>
             <button wire:click="abrirModalCrear"
                 class="inline-flex items-center gap-1 px-3 py-2 text-sm text-gray-800 bg-white rounded hover:bg-gray-100">
                 <span>➕</span> Agregar Unidad
@@ -55,20 +55,20 @@
         <!-- ENCABEZADO UNIDADES VALENCIA -->
         <div class="flex items-center justify-between px-5 py-3 mb-4 font-semibold text-white rounded-t bg-orange-600">
             <h5 class="mb-0 text-lg">🏢 Unidades de Valencia (Solo Lectura)</h5>
-            
+
             <!-- Botón de sincronización con estado de carga -->
             <div class="relative">
                 <button wire:click="sincronizarUnidadesValencia"
                     wire:loading.attr="disabled"
                     wire:target="sincronizarUnidadesValencia"
                     class="inline-flex items-center gap-1 px-3 py-2 text-sm text-gray-800 bg-white rounded hover:bg-gray-100 disabled:opacity-75 disabled:cursor-not-allowed">
-                    
+
                     <!-- Spinner de carga -->
                     <div wire:loading wire:target="sincronizarUnidadesValencia" class="inline-block w-4 h-4 border-2 border-gray-300 border-t-orange-600 rounded-full animate-spin"></div>
-                    
+
                     <!-- Icono normal -->
                     <span wire:loading.remove wire:target="sincronizarUnidadesValencia">🔄</span>
-                    
+
                     <!-- Texto del botón -->
                     <span wire:loading.remove wire:target="sincronizarUnidadesValencia">Sincronizar</span>
                     <span wire:loading wire:target="sincronizarUnidadesValencia">Sincronizando...</span>
@@ -80,7 +80,7 @@
         @if($sincronizandoUnidades && $progreso !== null)
             <div class="px-5 pb-3">
                 <div class="w-full bg-gray-200 rounded-full h-2">
-                    <div class="bg-orange-600 h-2 rounded-full transition-all duration-300" 
+                    <div class="bg-orange-600 h-2 rounded-full transition-all duration-300"
                          style="width: {{ $progreso }}%"></div>
                 </div>
                 <p class="text-sm text-gray-600 mt-1">Sincronizando unidades... {{ $progreso }}%</p>
@@ -283,7 +283,7 @@
         <div class="fixed inset-0 z-50 flex items-center justify-center">
             {{-- Overlay --}}
             <div class="fixed inset-0 bg-black bg-opacity-50" wire:click="cerrarDetallesSincronizacion"></div>
-            
+
             {{-- Modal --}}
             <div class="relative bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
                 <div class="flex items-center justify-between mb-4">
@@ -294,47 +294,47 @@
                         </svg>
                     </button>
                 </div>
-                
+
                 <div class="space-y-3">
                     <div class="flex justify-between items-center p-3 bg-green-50 rounded">
                         <span class="font-medium text-green-800">✅ Unidades procesadas:</span>
                         <span class="font-bold text-green-600">{{ $detallesSincronizacion['unidades_sincronizadas'] }}</span>
                     </div>
-                    
+
                     @if($detallesSincronizacion['unidades_nuevas'] > 0)
                         <div class="flex justify-between items-center p-3 bg-blue-50 rounded">
                             <span class="font-medium text-blue-800">🆕 Unidades nuevas:</span>
                             <span class="font-bold text-blue-600">{{ $detallesSincronizacion['unidades_nuevas'] }}</span>
                         </div>
                     @endif
-                    
+
                     @if($detallesSincronizacion['unidades_actualizadas'] > 0)
                         <div class="flex justify-between items-center p-3 bg-yellow-50 rounded">
                             <span class="font-medium text-yellow-800">🔄 Unidades actualizadas:</span>
                             <span class="font-bold text-yellow-600">{{ $detallesSincronizacion['unidades_actualizadas'] }}</span>
                         </div>
                     @endif
-                    
+
                     @if($detallesSincronizacion['sin_cambios'] > 0)
                         <div class="flex justify-between items-center p-3 bg-gray-50 rounded">
                             <span class="font-medium text-gray-800">⚪ Sin cambios:</span>
                             <span class="font-bold text-gray-600">{{ $detallesSincronizacion['sin_cambios'] }}</span>
                         </div>
                     @endif
-                    
+
                     <div class="flex justify-between items-center p-3 bg-orange-50 rounded">
                         <span class="font-medium text-orange-800">📈 Total procesadas:</span>
                         <span class="font-bold text-orange-600">{{ $detallesSincronizacion['total_procesadas'] }}</span>
                     </div>
-                    
+
                     <div class="flex justify-between items-center p-3 bg-purple-50 rounded">
                         <span class="font-medium text-purple-800">⏱️ Tiempo:</span>
                         <span class="font-bold text-purple-600">{{ $detallesSincronizacion['tiempo_ejecucion'] }}</span>
                     </div>
                 </div>
-                
+
                 <div class="mt-6 text-center">
-                    <button wire:click="cerrarDetallesSincronizacion" 
+                    <button wire:click="cerrarDetallesSincronizacion"
                             class="px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700 transition-colors">
                         Cerrar
                     </button>

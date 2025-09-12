@@ -79,20 +79,20 @@
                 <!-- Vista especial para categorías de Valencia -->
                 <div class="flex items-center justify-between mb-4">
                     <h2 class="text-lg font-semibold text-orange-700">🔗 Gestión de Subcategorías</h2>
-                    
+
                     <!-- Botón de sincronización con estado de carga -->
                     <div class="relative">
                         <button wire:click="sincronizarSubcategoriasValencia"
                             wire:loading.attr="disabled"
                             wire:target="sincronizarSubcategoriasValencia"
                             class="inline-flex items-center gap-1 px-3 py-2 text-sm text-gray-800 bg-orange-200 rounded hover:bg-orange-300 disabled:opacity-75 disabled:cursor-not-allowed">
-                            
+
                             <!-- Spinner de carga -->
                             <div wire:loading wire:target="sincronizarSubcategoriasValencia" class="inline-block w-4 h-4 border-2 border-gray-300 border-t-orange-600 rounded-full animate-spin"></div>
-                            
+
                             <!-- Icono normal -->
                             <span wire:loading.remove wire:target="sincronizarSubcategoriasValencia">🔄</span>
-                            
+
                             <!-- Texto del botón -->
                             <span wire:loading.remove wire:target="sincronizarSubcategoriasValencia">Sincronizar Valencia</span>
                             <span wire:loading wire:target="sincronizarSubcategoriasValencia">Sincronizando...</span>
@@ -104,7 +104,7 @@
                 @if($sincronizandoSubcategorias && $progreso !== null)
                     <div class="mb-4">
                         <div class="w-full bg-gray-200 rounded-full h-2">
-                            <div class="bg-orange-600 h-2 rounded-full transition-all duration-300" 
+                            <div class="bg-orange-600 h-2 rounded-full transition-all duration-300"
                                  style="width: {{ $progreso }}%"></div>
                         </div>
                         <p class="text-sm text-gray-600 mt-1">Sincronizando subcategorías... {{ $progreso }}%</p>
@@ -113,8 +113,8 @@
 
                 <!-- Subcategorías Propias de Zenvy -->
                 <div class="mb-6">
-                    <h3 class="mb-3 text-md font-semibold text-green-700">📦 Subcategorías Propias de Zenvy</h3>
-                    
+                    <h3 class="mb-3 text-md font-semibold text-green-700">📦 Subcategorías de Paperland</h3>
+
                     <!-- Agregar nueva subcategoría propia -->
                     <div class="flex gap-2 mb-4">
                         <input
@@ -168,14 +168,14 @@
                             </tbody>
                         </table>
                     @else
-                        <p class="text-gray-500 italic">No hay subcategorías propias de Zenvy para esta categoría.</p>
+                        <p class="text-gray-500 italic">No hay subcategorías de paperland para esta categoría.</p>
                     @endif
                 </div>
 
                 <!-- Subcategorías de Valencia -->
                 <div>
                     <h3 class="mb-3 text-md font-semibold text-orange-700">🏢 Subcategorías de Valencia (Solo Lectura)</h3>
-                    
+
                     @if(isset($subcategorias['valencia']) && count($subcategorias['valencia']) > 0)
                         <table class="w-full text-sm text-left border border-gray-300">
                             <thead class="bg-orange-100">
@@ -516,7 +516,7 @@
         <div class="fixed inset-0 z-50 flex items-center justify-center">
             {{-- Overlay --}}
             <div class="fixed inset-0 bg-black bg-opacity-50" wire:click="cerrarDetallesSincronizacion"></div>
-            
+
             {{-- Modal --}}
             <div class="relative bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
                 <div class="flex items-center justify-between mb-4">
@@ -527,47 +527,47 @@
                         </svg>
                     </button>
                 </div>
-                
+
                 <div class="space-y-3">
                     <div class="flex justify-between items-center p-3 bg-green-50 rounded">
                         <span class="font-medium text-green-800">✅ Subcategorías procesadas:</span>
                         <span class="font-bold text-green-600">{{ $detallesSincronizacion['subcategorias_sincronizadas'] }}</span>
                     </div>
-                    
+
                     @if($detallesSincronizacion['subcategorias_nuevas'] > 0)
                         <div class="flex justify-between items-center p-3 bg-blue-50 rounded">
                             <span class="font-medium text-blue-800">🆕 Subcategorías nuevas:</span>
                             <span class="font-bold text-blue-600">{{ $detallesSincronizacion['subcategorias_nuevas'] }}</span>
                         </div>
                     @endif
-                    
+
                     @if($detallesSincronizacion['subcategorias_actualizadas'] > 0)
                         <div class="flex justify-between items-center p-3 bg-yellow-50 rounded">
                             <span class="font-medium text-yellow-800">🔄 Subcategorías actualizadas:</span>
                             <span class="font-bold text-yellow-600">{{ $detallesSincronizacion['subcategorias_actualizadas'] }}</span>
                         </div>
                     @endif
-                    
+
                     @if($detallesSincronizacion['sin_cambios'] > 0)
                         <div class="flex justify-between items-center p-3 bg-gray-50 rounded">
                             <span class="font-medium text-gray-800">⚪ Sin cambios:</span>
                             <span class="font-bold text-gray-600">{{ $detallesSincronizacion['sin_cambios'] }}</span>
                         </div>
                     @endif
-                    
+
                     <div class="flex justify-between items-center p-3 bg-orange-50 rounded">
                         <span class="font-medium text-orange-800">📈 Total procesadas:</span>
                         <span class="font-bold text-orange-600">{{ $detallesSincronizacion['total_procesadas'] }}</span>
                     </div>
-                    
+
                     <div class="flex justify-between items-center p-3 bg-purple-50 rounded">
                         <span class="font-medium text-purple-800">⏱️ Tiempo:</span>
                         <span class="font-bold text-purple-600">{{ $detallesSincronizacion['tiempo_ejecucion'] }}</span>
                     </div>
                 </div>
-                
+
                 <div class="mt-6 text-center">
-                    <button wire:click="cerrarDetallesSincronizacion" 
+                    <button wire:click="cerrarDetallesSincronizacion"
                             class="px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700 transition-colors">
                         Cerrar
                     </button>
