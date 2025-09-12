@@ -87,6 +87,23 @@
 
     </div>
 
+    {{-- DEBUG VALENCIA PRODUCTS --}}
+    <div class="p-4 mb-4 bg-yellow-100 border border-yellow-400 rounded">
+        <h3 class="font-bold text-red-600">🔍 DEBUG Valencia:</h3>
+        <p><strong>Count:</strong> {{ count($productosValencia ?? []) }}</p>
+        <p><strong>Variable exists:</strong> {{ isset($productosValencia) ? 'YES' : 'NO' }}</p>
+        <p><strong>Is countable:</strong> {{ is_countable($productosValencia ?? null) ? 'YES' : 'NO' }}</p>
+        @if(isset($productosValencia) && count($productosValencia) > 0)
+            <p><strong>First product:</strong> {{ $productosValencia[0]->nombre ?? 'NO NAME' }}</p>
+            <p><strong>Type:</strong> {{ get_class($productosValencia) }}</p>
+        @else
+            <p class="text-red-600"><strong>NO PRODUCTS FOUND!</strong></p>
+        @endif
+        <button wire:click="debugRefresh" class="px-3 py-1 mt-2 text-white bg-blue-500 rounded">
+            🔄 Force Refresh
+        </button>
+    </div>
+
     {{-- Sección de Productos de Valencia --}}
     <div class="overflow-hidden border border-orange-300 rounded shadow" x-data x-init="$watch('theme', t => localStorage.setItem('theme', t))">
 
@@ -115,13 +132,18 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse($productosValencia as $producto)
+                        {{-- DEBUG: Mostrar count directo --}}
+                        <tr><td colspan="7" class="text-center bg-red-100">
+                            DEBUG DIRECTO: productosValencia tiene {{ count($productosValencia) }} elementos
+                        </td></tr>
+                        
+                        @forelse($productosValencia as $index => $producto)
                             <tr class="text-center align-middle bg-orange-50 cursor-pointer" wire:click="editar({{ $producto->id }})">
-                                <td class="text-start">{{ $producto->nombre }}</td>
+                                <td class="text-start">{{ $producto->nombre ?? 'SIN NOMBRE' }}</td>
                                 <td class="text-start">{{ $producto->descripcion ?? 'N/A' }}</td>
-                                <td>{{ $producto->subcategoria->categoria->nombre ?? 'N/A' }}</td>
-                                <td>{{ $producto->subcategoria->nombre ?? 'N/A' }}</td>
-                                <td>{{ $producto->marca->nombre ?? 'N/A' }}</td>
+                                <td>CATEGORIA (sin relación)</td>
+                                <td>SUBCATEGORIA (sin relación)</td>
+                                <td>MARCA (sin relación)</td>
                                 <td>{{ (isset($producto->created_at) && $producto->created_at) ? $producto->created_at->format('d/m/Y') : 'N/A' }}</td>
                                 <td>
                                     <span class="px-2 py-1 text-xs text-orange-800 bg-orange-100 rounded-full font-medium">
@@ -129,6 +151,7 @@
                                     </span>
                                 </td>
                             </tr>
+                            @if($index >= 4) @break @endif {{-- Solo mostrar primeros 5 para debug --}}
                         @empty
                             <tr>
                                 <td colspan="7" class="py-4 text-center text-muted">No hay productos de Valencia sincronizados.</td>
