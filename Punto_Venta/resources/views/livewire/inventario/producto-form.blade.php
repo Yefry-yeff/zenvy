@@ -24,7 +24,7 @@
             </button>
         </div>
 
-        <!-- PRODUCTOS DE VALENCIA (Solo si hay productos disponibles) -->
+        {{-- PRODUCTOS DE VALENCIA DESHABILITADOS - Solo para productos Zenvy
         @if(!$isEditing && isset($productosValencia['valencia']) && count($productosValencia['valencia']) > 0)
             <div class="px-5">
                 <div class="p-4 bg-white border shadow rounded-xl">
@@ -55,21 +55,21 @@
                                 <tbody>
                                     @foreach($productosValencia['valencia'] as $producto)
                                         <tr class="hover:bg-orange-50">
-                                            <td class="px-3 py-2 border">{{ $producto['id'] }}</td>
-                                            <td class="px-3 py-2 border">{{ $producto['nombre'] }}</td>
-                                            <td class="px-3 py-2 border">{{ $producto['descripcion'] ?? 'N/A' }}</td>
-                                            <td class="px-3 py-2 border">L. {{ number_format($producto['precio_base'], 2) }}</td>
+                                            <td class="px-3 py-2 border">{{ $producto->id }}</td>
+                                            <td class="px-3 py-2 border">{{ $producto->nombre }}</td>
+                                            <td class="px-3 py-2 border">{{ $producto->descripcion ?? 'N/A' }}</td>
+                                            <td class="px-3 py-2 border">L. {{ number_format($producto->precio_base, 2) }}</td>
                                             <td class="px-3 py-2 border">
-                                                @if($producto['sincronizado'])
+                                                @if($producto->sincronizado)
                                                     <span class="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs">Sincronizado</span>
                                                 @else
                                                     <span class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs">No sincronizado</span>
                                                 @endif
                                             </td>
                                             <td class="px-3 py-2 border">
-                                                @if(!$producto['sincronizado'])
+                                                @if(!$producto->sincronizado)
                                                     <button
-                                                        wire:click="sincronizarProductoValencia({{ $producto['id'] }})"
+                                                        wire:click="sincronizarProductoValencia({{ $producto->id }})"
                                                         class="bg-orange-500 text-white px-3 py-1 rounded hover:bg-orange-600 text-xs"
                                                     >
                                                         Sincronizar
@@ -87,6 +87,7 @@
                 </div>
             </div>
         @endif
+        --}}
 
         <!-- FORMULARIO -->
         <div class="px-5 py-4">
@@ -237,36 +238,57 @@
                         <div class="row">
                             <div class="mb-3 col-md-4">
                                 <label for="marca" class="form-label">Marca <span class="text-red-600">*</span></label>
-                                <select id="marca" class="form-select {{ $this->getClaseCampo('marca') }}" wire:model.live="form.marca_id">
-                                    <option value="">Seleccionar marca</option>
-                                    @foreach($marcas as $marca)
-                                        <option value="{{ $marca->id }}">{{ $marca->nombre }}</option>
-                                    @endforeach
-                                </select>
+                                @if($esProductoValencia)
+                                    <div class="form-control bg-orange-50 text-gray-700">
+                                        {{ $marcas->where('id', $form['marca_id'])->first()->nombre ?? 'N/A' }}
+                                        <span class="text-xs text-orange-600 ml-2">(Solo lectura)</span>
+                                    </div>
+                                @else
+                                    <select id="marca" class="form-select {{ $this->getClaseCampo('marca') }}" wire:model.live="form.marca_id">
+                                        <option value="">Seleccionar marca</option>
+                                        @foreach($marcas as $marca)
+                                            <option value="{{ $marca->id }}">{{ $marca->nombre }}</option>
+                                        @endforeach
+                                    </select>
+                                @endif
                                 @error('form.marca_id')
                                     <div class="mt-1 text-sm text-danger">❌ Debe seleccionar una marca válida</div>
                                 @enderror
                             </div>
                             <div class="mb-3 col-md-4">
                                 <label for="categoria" class="form-label">Categoría <span class="text-red-600">*</span></label>
-                                <select id="categoria" class="form-select {{ $this->getClaseCampo('categoria') }}" wire:model.live="categoriaSeleccionada">
-                                    <option value="">Seleccionar categoría</option>
-                                    @foreach($categorias as $categoria)
-                                        <option value="{{ $categoria->id }}">{{ $categoria->nombre }}</option>
-                                    @endforeach
-                                </select>
+                                @if($esProductoValencia)
+                                    <div class="form-control bg-orange-50 text-gray-700">
+                                        {{ $categorias->where('id', $categoriaSeleccionada)->first()->nombre ?? 'N/A' }}
+                                        <span class="text-xs text-orange-600 ml-2">(Solo lectura)</span>
+                                    </div>
+                                @else
+                                    <select id="categoria" class="form-select {{ $this->getClaseCampo('categoria') }}" wire:model.live="categoriaSeleccionada">
+                                        <option value="">Seleccionar categoría</option>
+                                        @foreach($categorias as $categoria)
+                                            <option value="{{ $categoria->id }}">{{ $categoria->nombre }}</option>
+                                        @endforeach
+                                    </select>
+                                @endif
                                 @error('categoriaSeleccionada')
                                     <div class="mt-1 text-sm text-danger">❌ Debe seleccionar una categoría válida</div>
                                 @enderror
                             </div>
                             <div class="mb-3 col-md-4">
                                 <label for="subcategoria" class="form-label">Subcategoría <span class="text-red-600">*</span></label>
-                                <select id="subcategoria" class="form-select {{ $this->getClaseCampo('subcategoria') }}" wire:model.live="form.subcategoria_id">
-                                    <option value="">Seleccionar subcategoría</option>
-                                    @foreach($subcategorias as $subcategoria)
-                                        <option value="{{ $subcategoria->id }}">{{ $subcategoria->nombre }}</option>
-                                    @endforeach
-                                </select>
+                                @if($esProductoValencia)
+                                    <div class="form-control bg-orange-50 text-gray-700">
+                                        {{ $subcategorias->where('id', $form['subcategoria_id'])->first()->nombre ?? 'N/A' }}
+                                        <span class="text-xs text-orange-600 ml-2">(Solo lectura)</span>
+                                    </div>
+                                @else
+                                    <select id="subcategoria" class="form-select {{ $this->getClaseCampo('subcategoria') }}" wire:model.live="form.subcategoria_id">
+                                        <option value="">Seleccionar subcategoría</option>
+                                        @foreach($subcategorias as $subcategoria)
+                                            <option value="{{ $subcategoria->id }}">{{ $subcategoria->nombre }}</option>
+                                        @endforeach
+                                    </select>
+                                @endif
                                 @error('form.subcategoria_id')
                                     <div class="mt-1 text-sm text-danger">❌ Debe seleccionar una subcategoría válida</div>
                                 @enderror
@@ -283,12 +305,20 @@
                         <div class="row">
                             <div class="mb-3 col-md-3">
                                 <label for="unidad_medida_venta" class="form-label">Unidad de Medida <span class="text-red-600">*</span></label>
-                                <select id="unidad_medida_venta" class="form-select {{ $this->getClaseCampo('unidad_medida') }}" wire:model.defer="form.unidad_medida_venta_id">
-                                    <option value="">Seleccionar unidad</option>
-                                    @foreach($unidadesMedida as $unidad)
-                                        <option value="{{ $unidad->id }}">{{ $unidad->nombre }} ({{ $unidad->simbolo }})</option>
-                                    @endforeach
-                                </select>
+                                @if($esProductoValencia)
+                                    <div class="form-control bg-orange-50 text-gray-700">
+                                        {{ $unidadesMedida->where('id', $form['unidad_medida_venta_id'])->first()->nombre ?? 'N/A' }} 
+                                        ({{ $unidadesMedida->where('id', $form['unidad_medida_venta_id'])->first()->simbolo ?? '' }})
+                                        <span class="text-xs text-orange-600 ml-2">(Solo lectura)</span>
+                                    </div>
+                                @else
+                                    <select id="unidad_medida_venta" class="form-select {{ $this->getClaseCampo('unidad_medida') }}" wire:model.defer="form.unidad_medida_venta_id">
+                                        <option value="">Seleccionar unidad</option>
+                                        @foreach($unidadesMedida as $unidad)
+                                            <option value="{{ $unidad->id }}">{{ $unidad->nombre }} ({{ $unidad->simbolo }})</option>
+                                        @endforeach
+                                    </select>
+                                @endif
                                 @error('form.unidad_medida_venta_id')
                                     <div class="mt-1 text-sm text-danger">❌ Debe seleccionar una unidad de medida</div>
                                 @enderror
@@ -298,20 +328,33 @@
                                 <div class="input-group">
                                     <span class="input-group-text">L.</span>
                                     <input type="number" id="precio_base" class="form-control {{ $this->getClaseCampo('precio_base') }}"
-                                           wire:model.live="form.precio_base" step="0.01" min="0" placeholder="0.00">
+                                           wire:model.live="form.precio_base" step="0.01" 
+                                           min="{{ $esProductoValencia ? ($form['precio4'] ?? 0) : 0 }}" placeholder="0.00">
                                 </div>
                                 @error('form.precio_base')
                                     <div class="mt-1 text-sm text-danger">❌ El precio base es obligatorio</div>
                                 @enderror
+                                @if($esProductoValencia && isset($form['precio4']) && $form['precio4'] > 0)
+                                    <small class="text-orange-600">
+                                        ⚠️ Para productos de Valencia, el precio base no puede ser menor que el precio4 (L. {{ number_format($form['precio4'], 2) }})
+                                    </small>
+                                @endif
                             </div>
                             <div class="mb-3 col-md-3">
                                 <label for="isv_id" class="form-label">Tipo de ISV <span class="text-red-600">*</span></label>
-                                <select id="isv_id" class="form-select {{ $this->getClaseCampo('isv_id') }}" wire:model.defer="form.isv_id">
-                                    <option value="">Seleccionar ISV</option>
-                                    @foreach($isvs as $isv)
-                                        <option value="{{ $isv->id }}">{{ $isv->cantidad }}%</option>
-                                    @endforeach
-                                </select>
+                                @if($esProductoValencia)
+                                    <div class="form-control bg-orange-50 text-gray-700">
+                                        {{ $isvs->where('id', $form['isv_id'])->first()->cantidad ?? 'N/A' }}%
+                                        <span class="text-xs text-orange-600 ml-2">(Solo lectura)</span>
+                                    </div>
+                                @else
+                                    <select id="isv_id" class="form-select {{ $this->getClaseCampo('isv_id') }}" wire:model.defer="form.isv_id">
+                                        <option value="">Seleccionar ISV</option>
+                                        @foreach($isvs as $isv)
+                                            <option value="{{ $isv->id }}">{{ $isv->cantidad }}%</option>
+                                        @endforeach
+                                    </select>
+                                @endif
                                 @error('form.isv_id')
                                     <div class="mt-1 text-sm text-danger">❌ Debe seleccionar un tipo de ISV</div>
                                 @enderror
@@ -451,22 +494,36 @@
                         <div class="row">
                             <div class="mb-3 col-md-3">
                                 <label for="ultimo_costo_compra" class="form-label">Último Costo de Compra</label>
-                                <div class="input-group">
-                                    <span class="input-group-text">L.</span>
-                                    <input type="number" id="ultimo_costo_compra" class="form-control"
-                                           wire:model.live="form.ultimo_costo_compra" step="0.01" min="0" placeholder="0.00">
-                                </div>
+                                @if($esProductoValencia)
+                                    <div class="form-control bg-orange-50 text-gray-700">
+                                        L. {{ number_format($form['ultimo_costo_compra'] ?? 0, 2) }}
+                                        <span class="text-xs text-orange-600 ml-2">(Solo lectura)</span>
+                                    </div>
+                                @else
+                                    <div class="input-group">
+                                        <span class="input-group-text">L.</span>
+                                        <input type="number" id="ultimo_costo_compra" class="form-control"
+                                               wire:model.live="form.ultimo_costo_compra" step="0.01" min="0" placeholder="0.00">
+                                    </div>
+                                @endif
                                 @error('form.ultimo_costo_compra')
                                     <div class="mt-1 text-sm text-danger">{{ $message }}</div>
                                 @enderror
                             </div>
                             <div class="mb-3 col-md-3">
                                 <label for="costo_promedio" class="form-label">Costo Promedio</label>
-                                <div class="input-group">
-                                    <span class="input-group-text">L.</span>
-                                    <input type="number" id="costo_promedio" class="form-control"
-                                           wire:model.defer="form.costo_promedio" step="0.01" min="0" placeholder="0.00">
-                                </div>
+                                @if($esProductoValencia)
+                                    <div class="form-control bg-orange-50 text-gray-700">
+                                        L. {{ number_format($form['costo_promedio'] ?? 0, 2) }}
+                                        <span class="text-xs text-orange-600 ml-2">(Solo lectura)</span>
+                                    </div>
+                                @else
+                                    <div class="input-group">
+                                        <span class="input-group-text">L.</span>
+                                        <input type="number" id="costo_promedio" class="form-control"
+                                               wire:model.defer="form.costo_promedio" step="0.01" min="0" placeholder="0.00">
+                                    </div>
+                                @endif
                                 @error('form.costo_promedio')
                                     <div class="mt-1 text-sm text-danger">{{ $message }}</div>
                                 @enderror

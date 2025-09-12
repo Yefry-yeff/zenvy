@@ -283,4 +283,96 @@ class SincronizacionProductosService
             ];
         }
     }
+
+    /**
+     * Actualiza un producto de Valencia ya sincronizado, preservando campos editables
+     * y aplicando reglas especiales para precio_base vs precio4
+     */
+    public function actualizarProductoValencia($idProductoZenvy)
+    {
+        try {
+            // Obtener el mapeo para encontrar el ID de Valencia
+            $mapeo = IdZenvyValencia::where('id_zenvy', $idProductoZenvy)
+                ->where('tipo_dato_migrado_id', 1) // 1 para productos
+                ->first();
+
+            if (!$mapeo) {
+                throw new \Exception("El producto no está sincronizado con Valencia");
+            }
+
+            // Obtener datos actuales del producto en Zenvy
+            $productoZenvy = $this->conexionZenvy
+                ->table('producto')
+                ->where('id', $idProductoZenvy)
+                ->first();
+
+            if (!$productoZenvy) {
+                throw new \Exception("Producto no encontrado en Zenvy");
+            }
+
+            // Obtener datos actualizados de Valencia
+            $productoValencia = $this->conexionProfac
+                ->table('producto')
+                ->where('id', $mapeo->id_valencia)
+                ->first();
+
+            if (!$productoValencia) {
+                throw new \Exception("Producto no encontrado en Valencia");
+            }
+
+            // Campos de SOLO LECTURA (solo se actualizan desde Valencia)
+            $camposSoloLectura = [
+                'nombre' => $productoValencia->nombre,
+                'codigo_estatal' => $productoValencia->codigo_estatal,
+                'descripcion' => $productoValencia->descripcion,
+                'isv_id' => $this->convertirIsvAId($productoValencia->isv),
+                'ultimo_costo_compra' => $productoValencia->ultimo_costo_compra,
+                'costo_promedio' => $productoValencia->costo_promedio,
+                'updated_at' => now()
+            ];
+
+            // Obtener IDs mapeados para relaciones de solo lectura
+            $marcaIdZenvy = $this->obtenerIdZenvy($productoValencia->marca_id, 2);
+            $unidadIdZenvy = $this->obtenerIdZenvy($productoValencia->unidad_medida_compra_id, 5);
+            $subcategoriaIdZenvy = $this->obtenerIdZenvy($productoValencia->sub_categoria_id, 4);
+
+            if ($marcaIdZenvy) {
+                $camposSoloLectura['marca_id'] = $marcaIdZenvy;
+            }
+            if ($unidadIdZenvy) {
+                $camposSoloLectura['unidad_medida_venta_id'] = $unidadIdZenvy;
+            }
+            if ($subcategoriaIdZenvy) {
+                $camposSoloLectura['subcategoria_id'] = $subcategoriaIdZenvy;
+            }
+
+            // REGLA ESPECIAL: Si precio4 > precio_base, actualizar precio_base automáticamente
+            $precio4Valencia = $productoValencia->precio4;
+            $precioBaseActual = $productoZenvy->precio_base;
+
+            if ($precio4Valencia > $precioBaseActual) {
+                $camposSoloLectura['precio_base'] = $precio4Valencia;
+                Log::info("Auto-actualizando precio_base de $precioBaseActual a $precio4Valencia para producto ID: $idProductoZenvy (precio4 mayor)");
+            }
+
+            // Actualizar solo los campos de solo lectura
+            $this->conexionZenvy
+                ->table('producto')
+                ->where('id', $idProductoZenvy)
+                ->update($camposSoloLectura);
+
+            Log::info("Producto de Valencia actualizado exitosamente. Zenvy ID: $idProductoZenvy");
+
+            return [
+                'success' => true,
+                'mensaje' => 'Producto actualizado exitosamente desde Valencia',
+                'campos_actualizados' => array_keys($camposSoloLectura),
+                'precio_base_actualizado' => isset($camposSoloLectura['precio_base'])
+            ];
+
+        } catch (\Exception $e) {
+            Log::error("Error al actualizar producto de Valencia: " . $e->getMessage());
+            throw $e;
+        }
+    }
 }

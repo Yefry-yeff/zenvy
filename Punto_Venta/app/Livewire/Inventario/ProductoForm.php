@@ -658,6 +658,15 @@ class ProductoForm extends Component
             }
         }
         
+        // Validación especial para productos de Valencia: precio_base >= precio4
+        if ($this->esProductoValencia && isset($this->form['precio4']) && $this->form['precio4'] > 0) {
+            $precio4 = $this->form['precio4'];
+            $rules['form.precio_base'] = 'required|numeric|min:' . $precio4;
+            
+            // Agregar mensaje personalizado para esta validación específica
+            $this->messages['form.precio_base.min'] = 'Para productos de Valencia, el precio base no puede ser menor que el precio4 (L. ' . number_format($precio4, 2) . ')';
+        }
+        
         return $rules;
     }
 
