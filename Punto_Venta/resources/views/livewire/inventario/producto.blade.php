@@ -94,10 +94,36 @@
         <div class="flex items-center justify-between px-5 py-3 mb-4 font-semibold text-white bg-orange-600 rounded-t">
             <h5 class="mb-0 text-lg">🏢 Productos de Valencia (Solo Lectura)</h5>
             <button wire:click="sincronizarProductosValencia"
-                class="inline-flex items-center gap-1 px-3 py-2 text-sm text-gray-800 bg-white rounded hover:bg-gray-100">
-                <span>🔄</span> Sincronizar
+                class="inline-flex items-center gap-1 px-3 py-2 text-sm text-gray-800 bg-white rounded hover:bg-gray-100 disabled:opacity-50"
+                wire:loading.attr="disabled"
+                wire:target="sincronizarProductosValencia">
+                <span wire:loading.remove wire:target="sincronizarProductosValencia">🔄</span>
+                <span wire:loading wire:target="sincronizarProductosValencia">
+                    <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                </span>
+                <span wire:loading.remove wire:target="sincronizarProductosValencia">Sincronizar</span>
+                <span wire:loading wire:target="sincronizarProductosValencia">Sincronizando...</span>
             </button>
         </div>
+
+        <!-- BARRA DE PROGRESO -->
+        @if($sincronizandoValencia)
+        <div class="px-5 py-3 bg-orange-50">
+            <div class="mb-2">
+                <div class="flex justify-between text-sm">
+                    <span class="font-medium text-orange-700">Sincronizando productos de Valencia...</span>
+                    <span class="text-orange-600">{{ $progreso }}%</span>
+                </div>
+            </div>
+            <div class="w-full bg-orange-200 rounded-full h-2">
+                <div class="bg-orange-600 h-2 rounded-full transition-all duration-500 ease-out" 
+                     style="width: {{ $progreso }}%"></div>
+            </div>
+        </div>
+        @endif
 
         <!-- TABLA PRODUCTOS VALENCIA -->
         <div class="px-4 py-3 pt-0 card-body">
@@ -272,6 +298,102 @@
              class="mt-3 mb-0 transition-opacity duration-300 alert alert-danger">
             {{ session('error') }}
         </div>
+    @endif
+
+    <!-- Modal Detalles de Sincronización -->
+    @if($detallesSincronizacion)
+    <div class="modal fade show" 
+         tabindex="-1" 
+         style="display: block; background: rgba(0,0,0,0.5); z-index: 1050;"
+         aria-modal="true" 
+         role="dialog"
+         x-data="{ autoClose: false }"
+         x-init="
+            setTimeout(() => { autoClose = true }, 5000);
+            $watch('autoClose', value => { if(value) $wire.cerrarDetallesSincronizacion() })
+         ">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="text-white modal-header bg-gradient-to-r from-orange-500 to-orange-600">
+                    <h5 class="modal-title font-bold flex items-center gap-2">
+                        @if(isset($detallesSincronizacion['error']) && $detallesSincronizacion['error'])
+                            <span class="text-2xl">❌</span> Error en Sincronización
+                        @else
+                            <span class="text-2xl">✅</span> Sincronización Completada
+                        @endif
+                    </h5>
+                    <button type="button" 
+                            class="btn-close btn-close-white" 
+                            wire:click="cerrarDetallesSincronizacion"></button>
+                </div>
+                
+                <div class="modal-body p-6">
+                    @if(isset($detallesSincronizacion['error']) && $detallesSincronizacion['error'])
+                        <!-- Error de sincronización -->
+                        <div class="text-center">
+                            <div class="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                                <h6 class="text-red-800 font-semibold mb-2">⚠️ Error durante la sincronización</h6>
+                                <p class="text-red-700 text-sm">{{ $detallesSincronizacion['mensaje_error'] ?? 'Error desconocido' }}</p>
+                            </div>
+                        </div>
+                    @else
+                        <!-- Detalles exitosos -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            <div class="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
+                                <div class="text-3xl font-bold text-green-600">{{ $detallesSincronizacion['productos_sincronizados'] }}</div>
+                                <div class="text-sm text-green-700 font-medium">Productos Sincronizados</div>
+                            </div>
+                            
+                            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
+                                <div class="text-3xl font-bold text-blue-600">{{ $detallesSincronizacion['total_procesados'] }}</div>
+                                <div class="text-sm text-blue-700 font-medium">Total Procesados</div>
+                            </div>
+                            
+                            @if($detallesSincronizacion['errores'] > 0)
+                            <div class="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
+                                <div class="text-3xl font-bold text-red-600">{{ $detallesSincronizacion['errores'] }}</div>
+                                <div class="text-sm text-red-700 font-medium">Errores Encontrados</div>
+                            </div>
+                            @endif
+                            
+                            <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center">
+                                <div class="text-lg font-bold text-gray-600">{{ $detallesSincronizacion['tiempo_ejecucion'] }}</div>
+                                <div class="text-sm text-gray-700 font-medium">Tiempo de Ejecución</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Barra de progreso completa -->
+                        <div class="mb-4">
+                            <div class="flex justify-between text-sm mb-2">
+                                <span class="font-medium text-gray-700">Progreso de Sincronización</span>
+                                <span class="text-green-600 font-bold">100% Completado</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-3">
+                                <div class="bg-gradient-to-r from-green-400 to-green-600 h-3 rounded-full w-full transition-all duration-1000"></div>
+                            </div>
+                        </div>
+                        
+                        <!-- Mensaje de éxito -->
+                        <div class="text-center p-4 bg-green-50 border border-green-200 rounded-lg">
+                            <p class="text-green-800 font-medium">
+                                🎉 La sincronización se ha completado exitosamente. 
+                                Los productos de Valencia están ahora disponibles en el sistema.
+                            </p>
+                        </div>
+                    @endif
+                </div>
+                
+                <div class="modal-footer bg-gray-50">
+                    <small class="text-gray-500 mr-auto">Este modal se cerrará automáticamente en 5 segundos</small>
+                    <button type="button" 
+                            class="btn btn-secondary" 
+                            wire:click="cerrarDetallesSincronizacion">
+                        Cerrar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
     @endif
 
 </div> {{-- FIN ELEMENTO RAÍZ --}}

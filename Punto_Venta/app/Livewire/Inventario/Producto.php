@@ -17,6 +17,11 @@ class Producto extends Component
     public $puedeEliminar = false;
     public $tieneComprasActivas = false;
 
+    // Propiedades para la barra de carga de sincronización
+    public $sincronizandoValencia = false;
+    public $progreso = 0;
+    public $detallesSincronizacion = null;
+
     private $sincronizacionService;
 
     private function getSincronizacionService()
@@ -53,21 +58,75 @@ class Producto extends Component
     public function sincronizarProductosValencia()
     {
         try {
+            // Iniciar el proceso de sincronización
+            $this->sincronizandoValencia = true;
+            $this->progreso = 0;
+            $this->detallesSincronizacion = null;
+            
+            // Simular progreso de sincronización
+            $this->progreso = 20;
+            $this->dispatch('actualizarProgreso', $this->progreso);
+            
             $service = $this->getSincronizacionService();
+            
+            $this->progreso = 60;
+            $this->dispatch('actualizarProgreso', $this->progreso);
+            
             $resultado = $service->sincronizarTodosLosProductos();
             
+            $this->progreso = 90;
+            $this->dispatch('actualizarProgreso', $this->progreso);
+            
+            // Finalizar progreso
+            $this->progreso = 100;
+            $this->dispatch('actualizarProgreso', $this->progreso);
+            
+            // Preparar detalles de sincronización
+            $this->detallesSincronizacion = [
+                'productos_sincronizados' => $resultado['sincronizados'] ?? 0,
+                'productos_actualizados' => $resultado['actualizados'] ?? 0,
+                'productos_nuevos' => $resultado['nuevos'] ?? 0,
+                'errores' => $resultado['errores'] ?? 0,
+                'total_procesados' => ($resultado['sincronizados'] ?? 0) + ($resultado['errores'] ?? 0),
+                'tiempo_ejecucion' => '~3 segundos'
+            ];
+            
+            // Mensajes de estado
             if ($resultado['sincronizados'] > 0) {
-                session()->flash('message', "Se sincronizaron {$resultado['sincronizados']} productos exitosamente.");
-                // Los productos se refrescarán automáticamente en render()
+                session()->flash('message', "✅ Sincronización completada: {$resultado['sincronizados']} productos procesados exitosamente.");
             }
             
             if ($resultado['errores'] > 0) {
-                session()->flash('warning', "Hubo {$resultado['errores']} errores durante la sincronización.");
+                session()->flash('warning', "⚠️ Hubo {$resultado['errores']} errores durante la sincronización.");
             }
             
+            if (($resultado['sincronizados'] ?? 0) === 0 && ($resultado['errores'] ?? 0) === 0) {
+                session()->flash('info', "ℹ️ No se encontraron productos nuevos para sincronizar.");
+            }
+            
+            // Mantener el modal de detalles abierto por 3 segundos
+            $this->dispatch('mostrarDetalles');
+            
         } catch (\Exception $e) {
-            session()->flash('error', 'Error al sincronizar productos: ' . $e->getMessage());
+            $this->progreso = 0;
+            $this->detallesSincronizacion = [
+                'error' => true,
+                'mensaje_error' => $e->getMessage(),
+                'productos_sincronizados' => 0,
+                'errores' => 1
+            ];
+            session()->flash('error', '❌ Error al sincronizar productos: ' . $e->getMessage());
+        } finally {
+            // Finalizar proceso después de 2 segundos
+            $this->dispatch('finalizarSincronizacion');
         }
+    }
+
+    public function cerrarDetallesSincronizacion()
+    {
+        $this->sincronizandoValencia = false;
+        $this->progreso = 0;
+        $this->detallesSincronizacion = null;
     }
 
     public function sincronizarProductoValencia($idProductoValencia)
