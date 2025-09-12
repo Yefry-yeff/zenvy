@@ -32,19 +32,8 @@ class Producto extends Component
 
     public function mount()
     {
-        $this->cargarProductosValencia();
-    }
-
-    public function cargarProductosValencia()
-    {
-        try {
-            $service = $this->getSincronizacionService();
-            $productos = $service->obtenerProductosValenciaConEstado();
-            $this->productosValencia = $productos->toArray();
-        } catch (\Exception $e) {
-            Log::error('Error al cargar productos de Valencia: ' . $e->getMessage());
-            $this->productosValencia = [];
-        }
+        // Ya no necesitamos cargar productos Valencia por separado
+        // Se obtienen directamente de db_zenvy en render()
     }
 
     public function render()
@@ -76,7 +65,7 @@ class Producto extends Component
             
             if ($resultado['sincronizados'] > 0) {
                 session()->flash('message', "Se sincronizaron {$resultado['sincronizados']} productos exitosamente.");
-                $this->cargarProductosValencia();
+                // Los productos se refrescarán automáticamente en render()
             }
             
             if ($resultado['errores'] > 0) {
@@ -96,7 +85,7 @@ class Producto extends Component
             
             if ($resultado['success']) {
                 session()->flash('message', $resultado['mensaje']);
-                $this->cargarProductosValencia();
+                // Los productos se refrescarán automáticamente en render()
             } else {
                 session()->flash('error', $resultado['mensaje']);
             }
