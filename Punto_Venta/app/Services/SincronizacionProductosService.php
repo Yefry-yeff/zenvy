@@ -159,16 +159,15 @@ class SincronizacionProductosService
                 // ACTUALIZAR producto existente
                 $idProductoZenvy = $mapeoExistente->id_zenvy;
                 
-                // Obtener el producto actual de Zenvy para preservar campos editables localmente
+                // Obtener el producto actual de Zenvy para usar en validaciones
                 $productoZenvyActual = $this->conexionZenvy
                     ->table('producto')
                     ->where('id', $idProductoZenvy)
                     ->first();
                 
-                // Si el producto tiene cambios locales (updated_at más reciente que la última sincronización),
-                // preservar los campos editables (precio_base, codigo_barra, precios y descuentos)
                 if ($productoZenvyActual) {
-                    // Solo actualizar campos que NO son editables localmente para productos de Valencia
+                    // Para actualizaciones, NO sincronizar: codigo_barra, imagen, descuento_unitario
+                    // Para precio_base: solo sincronizar si es necesario ajustarlo al precio4
                     $datosActualizacion = [
                         'nombre' => $productoValencia->nombre,
                         'descripcion' => $productoValencia->descripcion,
@@ -180,25 +179,30 @@ class SincronizacionProductosService
                         'unidad_medida_venta_id' => $unidadIdZenvy,
                         'estado_id' => $productoValencia->estado_producto_id,
                         'subcategoria_id' => $subcategoriaIdZenvy,
+                        // Sincronizar precios 1-4 normalmente
+                        'precio1' => $productoValencia->precio1,
+                        'precio2' => $productoValencia->precio2,
+                        'precio3' => $productoValencia->precio3,
+                        'precio4' => $productoValencia->precio4,
                         'updated_at' => now()
                     ];
                     
-                    // Solo actualizar precio_base y codigo_barra si no han sido modificados localmente
-                    // Si es auto-sincronización, ser más conservador (30 minutos)
-                    // Si es sincronización manual, ser menos conservador (5 minutos)
-                    $minutosConservador = $esAutoSincronizacion ? 30 : 5;
-                    $tiempoUltimaModificacion = $productoZenvyActual->updated_at;
-                    $tiempoLimite = now()->subMinutes($minutosConservador);
+                    // Lógica especial para precio_base: 
+                    // Solo actualizar si precio_base actual es menor que precio4
+                    $precio4Valencia = $productoValencia->precio4 ?? 0;
+                    $precioBaseActual = $productoZenvyActual->precio_base ?? 0;
                     
-                    if ($tiempoUltimaModificacion < $tiempoLimite) {
-                        // El producto no ha sido modificado recientemente, actualizar todo
-                        $datosActualizacion['precio_base'] = $productoValencia->precio_base;
-                        $datosActualizacion['codigo_barra'] = $productoValencia->codigo_barra;
-                        $datosActualizacion['precio1'] = $productoValencia->precio1;
-                        $datosActualizacion['precio2'] = $productoValencia->precio2;
-                        $datosActualizacion['precio3'] = $productoValencia->precio3;
-                        $datosActualizacion['precio4'] = $productoValencia->precio4;
+                    if ($precioBaseActual < $precio4Valencia) {
+                        // Si precio base actual es menor que precio4, actualizarlo al precio4
+                        $datosActualizacion['precio_base'] = $precio4Valencia;
+                        Log::info("Precio base ajustado automáticamente de {$precioBaseActual} a {$precio4Valencia} (precio4) para producto Valencia ID: $idProductoValencia");
                     }
+                    // Si precio_base >= precio4, mantener el valor actual (no sincronizar)
+                    
+                    // Campos que NO se sincronizan en actualizaciones:
+                    // - codigo_barra (mantener valor actual)
+                    // - imagen (mantener valor actual) 
+                    // - descuento_unitario (mantener valor actual)
                     
                     $this->conexionZenvy
                         ->table('producto')
