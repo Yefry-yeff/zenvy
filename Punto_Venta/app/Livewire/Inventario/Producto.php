@@ -6,7 +6,6 @@ use Livewire\Component;
 use App\Models\Producto as ProductoModel;
 use App\Services\SincronizacionProductosService;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Log;
 
 class Producto extends Component
 {
@@ -36,51 +35,19 @@ class Producto extends Component
 
     public function render()
     {
-        // DEBUG TEMPORAL - Log the start
-        Log::info('=== RENDER PRODUCTO COMPONENT START ===');
+        // Obtener productos filtrados con relaciones
+        $productos = ProductoModel::with(['subcategoria.categoria', 'marca'])
+            ->where('estado_id', 1)
+            ->get();
         
-        // Obtener solo productos activos (estado_id = 1) SIN relaciones para debug
-        $productos = ProductoModel::where('estado_id', 1)->get();
-
-        // DEBUG TEMPORAL - Log total products
-        Log::info('Total productos obtenidos SIN relaciones: ' . $productos->count());
-
-        // Separar productos basado en la columna producto_valencia
-        // producto_valencia = 0 -> Producto de Zenvy
-        // producto_valencia = 1 -> Producto de Valencia
-        $productosZenvy = $productos->filter(function ($producto) {
-            return $producto->producto_valencia == 0;
-        })->values();
-
-        $productosValencia = $productos->filter(function ($producto) {
-            return $producto->producto_valencia == 1;
-        })->values();
-
-        // DEBUG TEMPORAL - Log counts
-        Log::info('Productos Zenvy: ' . $productosZenvy->count());
-        Log::info('Productos Valencia: ' . $productosValencia->count());
-        
-        // DEBUG ADICIONAL - Verificar que los datos lleguen a la vista
-        Log::info('DEBUG CRITICO - Datos que van a la vista:');
-        Log::info('productosZenvy count: ' . $productosZenvy->count());
-        Log::info('productosValencia count: ' . $productosValencia->count());
-        Log::info('productosValencia es Collection: ' . ($productosValencia instanceof \Illuminate\Support\Collection ? 'SI' : 'NO'));
-        
-        if ($productosValencia->count() > 0) {
-            Log::info('Primer producto Valencia: ' . $productosValencia->first()->nombre);
-        }
+        // Separar productos por origen
+        $productosValencia = $productos->where('producto_valencia', 1);
+        $productosZenvy = $productos->where('producto_valencia', 0);
 
         return view('livewire.inventario.producto', [
             'productosZenvy' => $productosZenvy,
             'productosValencia' => $productosValencia
         ]);
-    }
-
-    // Método temporal para debug
-    public function debugRefresh()
-    {
-        session()->flash('message', 'Componente refrescado manualmente');
-        return $this->render();
     }
 
     public function sincronizarProductosValencia()
