@@ -342,7 +342,7 @@ class ProductoForm extends Component
                         'nombre' => $producto->nombre,
                         'descripcion' => $producto->descripcion,
                         'isv_id' => $producto->isv_id,
-                        'precio_base' => $producto->precio_base,
+                        'precio_base' => $datos['precio_base'], // Permitir edición del precio base
                         'ultimo_costo_compra' => $producto->ultimo_costo_compra,
                         'costo_promedio' => $producto->costo_promedio,
                         'codigo_barra' => $datos['codigo_barra'], // Permitir edición del código de barras
