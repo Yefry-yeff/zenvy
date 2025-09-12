@@ -332,10 +332,28 @@ class ProductoForm extends Component
 
             // Si es producto de Valencia, solo permitir ciertos campos
             if ($this->isEditing && $this->esProductoValencia) {
-                // Solo actualizar campos permitidos para productos de Valencia
+                // Para productos de Valencia, mantener todos los campos requeridos por el SP
+                // pero solo actualizar los campos permitidos
                 $producto = ProductoModel::find($this->productoId);
                 if ($producto) {
+                    // Mantener todos los valores originales y solo actualizar los permitidos
                     $datosPermitidos = [
+                        // Campos requeridos por el SP (mantener valores originales)
+                        'nombre' => $producto->nombre,
+                        'descripcion' => $producto->descripcion,
+                        'isv_id' => $producto->isv_id,
+                        'precio_base' => $producto->precio_base,
+                        'ultimo_costo_compra' => $producto->ultimo_costo_compra,
+                        'costo_promedio' => $producto->costo_promedio,
+                        'codigo_barra' => $datos['codigo_barra'], // Permitir edición del código de barras
+                        'codigo_estatal' => $producto->codigo_estatal,
+                        'estado_id' => $producto->estado_id,
+                        'subcategoria_id' => $producto->subcategoria_id,
+                        'marca_id' => $producto->marca_id,
+                        'unidad_medida_venta_id' => $producto->unidad_medida_venta_id,
+                        'users_id' => $producto->users_id,
+                        
+                        // Campos permitidos para edición (valores del formulario)
                         'precio1' => $datos['precio1'],
                         'precio2' => $datos['precio2'],
                         'precio3' => $datos['precio3'],
@@ -348,6 +366,9 @@ class ProductoForm extends Component
                     // Si hay nueva imagen, procesarla
                     if ($this->imagen) {
                         $datosPermitidos['imagen'] = file_get_contents($this->imagen->getRealPath());
+                    } else {
+                        // Mantener la imagen existente
+                        $datosPermitidos['imagen'] = $producto->imagen;
                     }
                     
                     ProductoModel::actualizarProducto($this->productoId, $datosPermitidos);

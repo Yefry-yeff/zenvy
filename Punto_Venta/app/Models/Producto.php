@@ -160,10 +160,10 @@ class Producto extends Model
                 $datos['subcategoria_id'] ?? null,
                 $datos['marca_id'] ?? null,
                 $datos['unidad_medida_venta_id'] ?? null,
-                0, // precio1
-                0, // precio2
-                0, // precio3
-                0, // precio4
+                $datos['precio1'] ?? 0, // precio1
+                $datos['precio2'] ?? 0, // precio2
+                $datos['precio3'] ?? 0, // precio3
+                $datos['precio4'] ?? 0, // precio4
                 $datos['users_id'] ?? null,
                 $datos['descuento_unitario'] ?? 0,
                 $datos['descuento_tercera'] ?? 0, // SP normaliza a 0/1 automáticamente

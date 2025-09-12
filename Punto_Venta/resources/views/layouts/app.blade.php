@@ -125,17 +125,37 @@
         x-data="{
             showModal: false,
             timeout: null,
+            lastActivity: Date.now(),
+            sessionTimeout: 10 * 60 * 1000, // 10 minutos
             resetTimer() {
-                clearTimeout(this.timeout);
-                this.timeout = setTimeout(() => this.showModal = true, 10 * 60 * 1000); // 10 minutos
+                if (this.timeout) {
+                    clearTimeout(this.timeout);
+                    this.timeout = null;
+                }
+                this.lastActivity = Date.now();
+                this.timeout = setTimeout(() => {
+                    // Verificar si realmente pasó el tiempo sin optimizar
+                    if (Date.now() - this.lastActivity >= this.sessionTimeout) {
+                        this.showModal = true;
+                    }
+                }, this.sessionTimeout);
             },
             cerrarSesion() {
                 window.location.href = '{{ route('logout') }}';
             },
             init() {
                 this.resetTimer();
+                // Usar throttling para evitar resetear el timer muy frecuentemente
+                let throttle = false;
+                const throttledReset = () => {
+                    if (!throttle) {
+                        throttle = true;
+                        this.resetTimer();
+                        setTimeout(() => { throttle = false; }, 1000); // Throttle de 1 segundo
+                    }
+                };
                 ['mousemove', 'keydown', 'click', 'scroll'].forEach(evt =>
-                    window.addEventListener(evt, () => this.resetTimer())
+                    window.addEventListener(evt, throttledReset, { passive: true })
                 );
             }
         }"

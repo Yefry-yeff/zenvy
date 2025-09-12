@@ -119,19 +119,12 @@
                         <div class="row">
                             <div class="mb-3 col-md-6">
                                 <label for="codigo_barra" class="form-label">Código de Barras</label>
-                                @if($esProductoValencia)
-                                    <div class="form-control bg-orange-50 text-gray-700">
-                                        {{ $form['codigo_barra'] }}
-                                        <span class="text-xs text-orange-600 ml-2">(Solo lectura)</span>
-                                    </div>
-                                @else
-                                    <input type="text"
-                                           id="codigo_barra"
-                                           class="form-control {{ $this->getClaseCampo('codigo_barra') }}"
-                                           wire:model="form.codigo_barra"
-                                           onkeydown="if(event.key==='Enter'){event.preventDefault(); return false;}"
-                                           autofocus>
-                                @endif
+                                <input type="text"
+                                       id="codigo_barra"
+                                       class="form-control {{ $this->getClaseCampo('codigo_barra') }}"
+                                       wire:model="form.codigo_barra"
+                                       onkeydown="if(event.key==='Enter'){event.preventDefault(); return false;}"
+                                       autofocus>
                                 @error('form.codigo_barra')
                                     <div class="mt-1 text-sm text-danger">{{ $message }}</div>
                                 @enderror
@@ -139,10 +132,13 @@
                             <div class="mb-3 col-md-6">
                                 <label for="codigo_estatal" class="form-label">Código Estatal</label>
                                 @if($esProductoValencia)
-                                    <div class="form-control bg-orange-50 text-gray-700">
-                                        {{ $form['codigo_estatal'] }}
-                                        <span class="text-xs text-orange-600 ml-2">(Solo lectura)</span>
-                                    </div>
+                                    <input type="text" 
+                                           id="codigo_estatal" 
+                                           class="form-control bg-gray-100 text-gray-600" 
+                                           value="{{ $form['codigo_estatal'] }}" 
+                                           readonly 
+                                           style="cursor: not-allowed;" 
+                                           title="Campo solo de lectura">
                                 @else
                                     <input type="text" id="codigo_estatal" class="form-control" wire:model.defer="form.codigo_estatal">
                                 @endif
@@ -155,10 +151,13 @@
                             <div class="mb-3 col-md-6">
                                 <label for="nombre" class="form-label">Nombre <span class="text-red-600">*</span></label>
                                 @if($esProductoValencia)
-                                    <div class="form-control bg-orange-50 text-gray-700">
-                                        {{ $form['nombre'] }}
-                                        <span class="text-xs text-orange-600 ml-2">(Solo lectura)</span>
-                                    </div>
+                                    <input type="text" 
+                                           id="nombre" 
+                                           class="form-control bg-gray-100 text-gray-600" 
+                                           value="{{ $form['nombre'] }}" 
+                                           readonly 
+                                           style="cursor: not-allowed;" 
+                                           title="Campo solo de lectura">
                                 @else
                                     <input type="text" id="nombre" class="form-control {{ $this->getClaseCampo('nombre') }}" wire:model.live="form.nombre">
                                 @endif
@@ -169,10 +168,13 @@
                             <div class="mb-3 col-md-6">
                                 <label for="descripcion" class="form-label">Descripción</label>
                                 @if($esProductoValencia)
-                                    <div class="form-control bg-orange-50 text-gray-700">
-                                        {{ $form['descripcion'] }}
-                                        <span class="text-xs text-orange-600 ml-2">(Solo lectura)</span>
-                                    </div>
+                                    <input type="text" 
+                                           id="descripcion" 
+                                           class="form-control bg-gray-100 text-gray-600" 
+                                           value="{{ $form['descripcion'] }}" 
+                                           readonly 
+                                           style="cursor: not-allowed;" 
+                                           title="Campo solo de lectura">
                                 @else
                                     <input type="text" id="descripcion" class="form-control" wire:model.defer="form.descripcion">
                                 @endif
@@ -239,10 +241,13 @@
                             <div class="mb-3 col-md-4">
                                 <label for="marca" class="form-label">Marca <span class="text-red-600">*</span></label>
                                 @if($esProductoValencia)
-                                    <div class="form-control bg-orange-50 text-gray-700">
-                                        {{ $marcas->where('id', $form['marca_id'])->first()->nombre ?? 'N/A' }}
-                                        <span class="text-xs text-orange-600 ml-2">(Solo lectura)</span>
-                                    </div>
+                                    <select id="marca" 
+                                            class="form-select bg-gray-100 text-gray-600" 
+                                            disabled 
+                                            style="cursor: not-allowed;" 
+                                            title="Campo solo de lectura">
+                                        <option value="{{ $form['marca_id'] }}">{{ $marcas->where('id', $form['marca_id'])->first()->nombre ?? 'N/A' }}</option>
+                                    </select>
                                 @else
                                     <select id="marca" class="form-select {{ $this->getClaseCampo('marca') }}" wire:model.live="form.marca_id">
                                         <option value="">Seleccionar marca</option>
@@ -258,10 +263,13 @@
                             <div class="mb-3 col-md-4">
                                 <label for="categoria" class="form-label">Categoría <span class="text-red-600">*</span></label>
                                 @if($esProductoValencia)
-                                    <div class="form-control bg-orange-50 text-gray-700">
-                                        {{ $categorias->where('id', $categoriaSeleccionada)->first()->nombre ?? 'N/A' }}
-                                        <span class="text-xs text-orange-600 ml-2">(Solo lectura)</span>
-                                    </div>
+                                    <select id="categoria" 
+                                            class="form-select bg-gray-100 text-gray-600" 
+                                            disabled 
+                                            style="cursor: not-allowed;" 
+                                            title="Campo solo de lectura">
+                                        <option value="{{ $categoriaSeleccionada }}">{{ $categorias->where('id', $categoriaSeleccionada)->first()->nombre ?? 'N/A' }}</option>
+                                    </select>
                                 @else
                                     <select id="categoria" class="form-select {{ $this->getClaseCampo('categoria') }}" wire:model.live="categoriaSeleccionada">
                                         <option value="">Seleccionar categoría</option>
@@ -277,10 +285,13 @@
                             <div class="mb-3 col-md-4">
                                 <label for="subcategoria" class="form-label">Subcategoría <span class="text-red-600">*</span></label>
                                 @if($esProductoValencia)
-                                    <div class="form-control bg-orange-50 text-gray-700">
-                                        {{ $subcategorias->where('id', $form['subcategoria_id'])->first()->nombre ?? 'N/A' }}
-                                        <span class="text-xs text-orange-600 ml-2">(Solo lectura)</span>
-                                    </div>
+                                    <select id="subcategoria" 
+                                            class="form-select bg-gray-100 text-gray-600" 
+                                            disabled 
+                                            style="cursor: not-allowed;" 
+                                            title="Campo solo de lectura">
+                                        <option value="{{ $form['subcategoria_id'] }}">{{ $subcategorias->where('id', $form['subcategoria_id'])->first()->nombre ?? 'N/A' }}</option>
+                                    </select>
                                 @else
                                     <select id="subcategoria" class="form-select {{ $this->getClaseCampo('subcategoria') }}" wire:model.live="form.subcategoria_id">
                                         <option value="">Seleccionar subcategoría</option>
@@ -306,11 +317,16 @@
                             <div class="mb-3 col-md-3">
                                 <label for="unidad_medida_venta" class="form-label">Unidad de Medida <span class="text-red-600">*</span></label>
                                 @if($esProductoValencia)
-                                    <div class="form-control bg-orange-50 text-gray-700">
-                                        {{ $unidadesMedida->where('id', $form['unidad_medida_venta_id'])->first()->nombre ?? 'N/A' }} 
-                                        ({{ $unidadesMedida->where('id', $form['unidad_medida_venta_id'])->first()->simbolo ?? '' }})
-                                        <span class="text-xs text-orange-600 ml-2">(Solo lectura)</span>
-                                    </div>
+                                    <select id="unidad_medida_venta" 
+                                            class="form-select bg-gray-100 text-gray-600" 
+                                            disabled 
+                                            style="cursor: not-allowed;" 
+                                            title="Campo solo de lectura">
+                                        <option value="{{ $form['unidad_medida_venta_id'] }}">
+                                            {{ $unidadesMedida->where('id', $form['unidad_medida_venta_id'])->first()->nombre ?? 'N/A' }} 
+                                            ({{ $unidadesMedida->where('id', $form['unidad_medida_venta_id'])->first()->simbolo ?? '' }})
+                                        </option>
+                                    </select>
                                 @else
                                     <select id="unidad_medida_venta" class="form-select {{ $this->getClaseCampo('unidad_medida') }}" wire:model.defer="form.unidad_medida_venta_id">
                                         <option value="">Seleccionar unidad</option>
@@ -343,10 +359,13 @@
                             <div class="mb-3 col-md-3">
                                 <label for="isv_id" class="form-label">Tipo de ISV <span class="text-red-600">*</span></label>
                                 @if($esProductoValencia)
-                                    <div class="form-control bg-orange-50 text-gray-700">
-                                        {{ $isvs->where('id', $form['isv_id'])->first()->cantidad ?? 'N/A' }}%
-                                        <span class="text-xs text-orange-600 ml-2">(Solo lectura)</span>
-                                    </div>
+                                    <select id="isv_id" 
+                                            class="form-select bg-gray-100 text-gray-600" 
+                                            disabled 
+                                            style="cursor: not-allowed;" 
+                                            title="Campo solo de lectura">
+                                        <option value="{{ $form['isv_id'] }}">{{ $isvs->where('id', $form['isv_id'])->first()->cantidad ?? 'N/A' }}%</option>
+                                    </select>
                                 @else
                                     <select id="isv_id" class="form-select {{ $this->getClaseCampo('isv_id') }}" wire:model.defer="form.isv_id">
                                         <option value="">Seleccionar ISV</option>
@@ -495,9 +514,15 @@
                             <div class="mb-3 col-md-3">
                                 <label for="ultimo_costo_compra" class="form-label">Último Costo de Compra</label>
                                 @if($esProductoValencia)
-                                    <div class="form-control bg-orange-50 text-gray-700">
-                                        L. {{ number_format($form['ultimo_costo_compra'] ?? 0, 2) }}
-                                        <span class="text-xs text-orange-600 ml-2">(Solo lectura)</span>
+                                    <div class="input-group">
+                                        <span class="input-group-text">L.</span>
+                                        <input type="number" 
+                                               id="ultimo_costo_compra" 
+                                               class="form-control bg-gray-100 text-gray-600" 
+                                               value="{{ number_format($form['ultimo_costo_compra'] ?? 0, 2) }}" 
+                                               readonly 
+                                               style="cursor: not-allowed;" 
+                                               title="Campo solo de lectura">
                                     </div>
                                 @else
                                     <div class="input-group">
@@ -513,9 +538,15 @@
                             <div class="mb-3 col-md-3">
                                 <label for="costo_promedio" class="form-label">Costo Promedio</label>
                                 @if($esProductoValencia)
-                                    <div class="form-control bg-orange-50 text-gray-700">
-                                        L. {{ number_format($form['costo_promedio'] ?? 0, 2) }}
-                                        <span class="text-xs text-orange-600 ml-2">(Solo lectura)</span>
+                                    <div class="input-group">
+                                        <span class="input-group-text">L.</span>
+                                        <input type="number" 
+                                               id="costo_promedio" 
+                                               class="form-control bg-gray-100 text-gray-600" 
+                                               value="{{ number_format($form['costo_promedio'] ?? 0, 2) }}" 
+                                               readonly 
+                                               style="cursor: not-allowed;" 
+                                               title="Campo solo de lectura">
                                     </div>
                                 @else
                                     <div class="input-group">
@@ -808,23 +839,32 @@
         });
 
         // Auto-focus en el campo de código de barras al cargar el componente
-        document.addEventListener('DOMContentLoaded', function() {
-            setTimeout(() => {
+        // Optimizado para evitar múltiples setTimeout
+        let focusAttempted = false;
+        const focusCodigoBarra = () => {
+            if (!focusAttempted) {
+                focusAttempted = true;
                 const codigoBarraField = document.getElementById('codigo_barra');
-                if (codigoBarraField) {
+                if (codigoBarraField && document.activeElement !== codigoBarraField) {
                     codigoBarraField.focus();
                 }
-            }, 100);
+                // Reset flag después de un tiempo para permitir re-focus si es necesario
+                setTimeout(() => { focusAttempted = false; }, 1000);
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Usar requestAnimationFrame en lugar de setTimeout cuando sea posible
+            requestAnimationFrame(() => {
+                setTimeout(focusCodigoBarra, 50); // Reducido de 100ms a 50ms
+            });
         });
 
         // También enfocar cuando Livewire termina de cargar
         document.addEventListener('livewire:navigated', () => {
-            setTimeout(() => {
-                const codigoBarraField = document.getElementById('codigo_barra');
-                if (codigoBarraField) {
-                    codigoBarraField.focus();
-                }
-            }, 100);
+            requestAnimationFrame(() => {
+                setTimeout(focusCodigoBarra, 50); // Reducido de 100ms a 50ms
+            });
         });
     </script>
 

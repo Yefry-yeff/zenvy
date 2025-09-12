@@ -307,10 +307,24 @@
          style="display: block; background: rgba(0,0,0,0.5); z-index: 1050;"
          aria-modal="true" 
          role="dialog"
-         x-data="{ autoClose: false }"
+         x-data="{ autoClose: false, timeoutId: null }"
          x-init="
-            setTimeout(() => { autoClose = true }, 5000);
-            $watch('autoClose', value => { if(value) $wire.cerrarDetallesSincronizacion() })
+            this.timeoutId = setTimeout(() => { 
+                this.autoClose = true; 
+            }, 5000);
+            $watch('autoClose', value => { 
+                if(value) {
+                    if(this.timeoutId) clearTimeout(this.timeoutId);
+                    $wire.cerrarDetallesSincronizacion();
+                }
+            });
+            // Limpiar timeout si el modal se cierra manualmente
+            $watch('$wire.detallesSincronizacion', value => {
+                if(!value && this.timeoutId) {
+                    clearTimeout(this.timeoutId);
+                    this.timeoutId = null;
+                }
+            })
          ">
         <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content border-0 shadow-lg">
