@@ -92,7 +92,7 @@ class SincronizacionProductosService
     /**
      * Sincroniza un producto específico desde Valencia a Zenvy
      */
-    public function sincronizarProducto($idProductoValencia)
+    public function sincronizarProducto($idProductoValencia, $esAutoSincronizacion = false)
     {
         try {
             // Obtener producto de Valencia
@@ -106,13 +106,9 @@ class SincronizacionProductosService
             }
 
             // Verificar si ya está sincronizado
-            $yaExiste = IdZenvyValencia::where('id_valencia', $idProductoValencia)
+            $mapeoExistente = IdZenvyValencia::where('id_valencia', $idProductoValencia)
                 ->where('tipo_dato_migrado_id', 1) // 1 para productos
-                ->exists();
-
-            if ($yaExiste) {
-                throw new \Exception("El producto ya está sincronizado");
-            }
+                ->first();
 
             // Obtener IDs mapeados para relaciones
             $marcaIdZenvy = $this->obtenerIdZenvy($productoValencia->marca_id, 2); // 2 para marcas
@@ -130,7 +126,7 @@ class SincronizacionProductosService
                 throw new \Exception("Subcategoría no sincronizada. Sincroniza primero la subcategoría con ID: {$productoValencia->sub_categoria_id}");
             }
 
-            // Preparar datos para insertar en Zenvy
+            // Preparar datos para insertar/actualizar en Zenvy
             $datosProductoZenvy = [
                 'nombre' => $productoValencia->nombre,
                 'descripcion' => $productoValencia->descripcion,
@@ -153,29 +149,96 @@ class SincronizacionProductosService
                 'descuento_tercera' => 1, // Por defecto
                 'descuento_cuarta' => 1, // Por defecto
                 'producto_valencia' => 1, // Marcado como producto de Valencia
-                'created_at' => now(),
                 'updated_at' => now()
             ];
 
-            // Insertar en Zenvy
-            $idProductoZenvy = $this->conexionZenvy
-                ->table('producto')
-                ->insertGetId($datosProductoZenvy);
+            $accion = '';
+            $idProductoZenvy = null;
 
-            // Crear mapeo en tabla de relaciones
-            IdZenvyValencia::create([
-                'id_zenvy' => $idProductoZenvy,
-                'id_valencia' => $idProductoValencia,
-                'tipo_dato_migrado_id' => 1, // 1 para productos
-                'created_at' => now(),
-                'updated_at' => now()
-            ]);
+            if ($mapeoExistente) {
+                // ACTUALIZAR producto existente
+                $idProductoZenvy = $mapeoExistente->id_zenvy;
+                
+                // Obtener el producto actual de Zenvy para preservar campos editables localmente
+                $productoZenvyActual = $this->conexionZenvy
+                    ->table('producto')
+                    ->where('id', $idProductoZenvy)
+                    ->first();
+                
+                // Si el producto tiene cambios locales (updated_at más reciente que la última sincronización),
+                // preservar los campos editables (precio_base, codigo_barra, precios y descuentos)
+                if ($productoZenvyActual) {
+                    // Solo actualizar campos que NO son editables localmente para productos de Valencia
+                    $datosActualizacion = [
+                        'nombre' => $productoValencia->nombre,
+                        'descripcion' => $productoValencia->descripcion,
+                        'isv_id' => $this->convertirIsvAId($productoValencia->isv),
+                        'ultimo_costo_compra' => $productoValencia->ultimo_costo_compra,
+                        'costo_promedio' => $productoValencia->costo_promedio,
+                        'codigo_estatal' => $productoValencia->codigo_estatal,
+                        'marca_id' => $marcaIdZenvy,
+                        'unidad_medida_venta_id' => $unidadIdZenvy,
+                        'estado_id' => $productoValencia->estado_producto_id,
+                        'subcategoria_id' => $subcategoriaIdZenvy,
+                        'updated_at' => now()
+                    ];
+                    
+                    // Solo actualizar precio_base y codigo_barra si no han sido modificados localmente
+                    // Si es auto-sincronización, ser más conservador (30 minutos)
+                    // Si es sincronización manual, ser menos conservador (5 minutos)
+                    $minutosConservador = $esAutoSincronizacion ? 30 : 5;
+                    $tiempoUltimaModificacion = $productoZenvyActual->updated_at;
+                    $tiempoLimite = now()->subMinutes($minutosConservador);
+                    
+                    if ($tiempoUltimaModificacion < $tiempoLimite) {
+                        // El producto no ha sido modificado recientemente, actualizar todo
+                        $datosActualizacion['precio_base'] = $productoValencia->precio_base;
+                        $datosActualizacion['codigo_barra'] = $productoValencia->codigo_barra;
+                        $datosActualizacion['precio1'] = $productoValencia->precio1;
+                        $datosActualizacion['precio2'] = $productoValencia->precio2;
+                        $datosActualizacion['precio3'] = $productoValencia->precio3;
+                        $datosActualizacion['precio4'] = $productoValencia->precio4;
+                    }
+                    
+                    $this->conexionZenvy
+                        ->table('producto')
+                        ->where('id', $idProductoZenvy)
+                        ->update($datosActualizacion);
+                } else {
+                    // Si no existe el producto en Zenvy (caso raro), usar datos completos
+                    $this->conexionZenvy
+                        ->table('producto')
+                        ->where('id', $idProductoZenvy)
+                        ->update($datosProductoZenvy);
+                }
+                
+                $accion = 'actualizado';
+                Log::info("Producto actualizado exitosamente. Valencia ID: $idProductoValencia, Zenvy ID: $idProductoZenvy");
+            } else {
+                // CREAR nuevo producto
+                $datosProductoZenvy['created_at'] = now();
+                
+                $idProductoZenvy = $this->conexionZenvy
+                    ->table('producto')
+                    ->insertGetId($datosProductoZenvy);
 
-            Log::info("Producto sincronizado exitosamente. Valencia ID: $idProductoValencia, Zenvy ID: $idProductoZenvy");
+                // Crear mapeo en tabla de relaciones
+                IdZenvyValencia::create([
+                    'id_zenvy' => $idProductoZenvy,
+                    'id_valencia' => $idProductoValencia,
+                    'tipo_dato_migrado_id' => 1, // 1 para productos
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ]);
+                
+                $accion = 'creado';
+                Log::info("Producto creado exitosamente. Valencia ID: $idProductoValencia, Zenvy ID: $idProductoZenvy");
+            }
 
             return [
                 'success' => true,
-                'mensaje' => 'Producto sincronizado exitosamente',
+                'mensaje' => "Producto $accion exitosamente",
+                'accion' => $accion,
                 'id_zenvy' => $idProductoZenvy,
                 'datos' => $datosProductoZenvy
             ];
@@ -197,6 +260,8 @@ class SincronizacionProductosService
         $productosValencia = $this->obtenerProductosValencia();
         $resultados = [
             'sincronizados' => 0,
+            'creados' => 0,
+            'actualizados' => 0,
             'errores' => 0,
             'mensajes' => []
         ];
@@ -206,6 +271,13 @@ class SincronizacionProductosService
             
             if ($resultado['success']) {
                 $resultados['sincronizados']++;
+                if (isset($resultado['accion'])) {
+                    if ($resultado['accion'] === 'creado') {
+                        $resultados['creados']++;
+                    } elseif ($resultado['accion'] === 'actualizado') {
+                        $resultados['actualizados']++;
+                    }
+                }
             } else {
                 $resultados['errores']++;
                 $resultados['mensajes'][] = "ID {$producto->id}: {$resultado['mensaje']}";

@@ -376,6 +376,29 @@
                             </div>
                         </div>
                         
+                        <!-- Detalles de acciones realizadas -->
+                        @if(isset($detallesSincronizacion['productos_creados']) || isset($detallesSincronizacion['productos_actualizados']))
+                        <div class="row mb-4">
+                            @if($detallesSincronizacion['productos_creados'] > 0)
+                            <div class="col-md-6">
+                                <div class="bg-emerald-50 border border-emerald-200 rounded-lg p-3 text-center">
+                                    <div class="text-2xl font-bold text-emerald-600">{{ $detallesSincronizacion['productos_creados'] }}</div>
+                                    <div class="text-sm text-emerald-700 font-medium">🆕 Productos Nuevos</div>
+                                </div>
+                            </div>
+                            @endif
+                            
+                            @if($detallesSincronizacion['productos_actualizados'] > 0)
+                            <div class="col-md-6">
+                                <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 text-center">
+                                    <div class="text-2xl font-bold text-amber-600">{{ $detallesSincronizacion['productos_actualizados'] }}</div>
+                                    <div class="text-sm text-amber-700 font-medium">🔄 Productos Actualizados</div>
+                                </div>
+                            </div>
+                            @endif
+                        </div>
+                        @endif
+                        
                         <!-- Barra de progreso completa -->
                         <div class="mb-4">
                             <div class="flex justify-between text-sm mb-2">
@@ -391,7 +414,13 @@
                         <div class="text-center p-4 bg-green-50 border border-green-200 rounded-lg">
                             <p class="text-green-800 font-medium">
                                 🎉 La sincronización se ha completado exitosamente. 
-                                Los productos de Valencia están ahora disponibles en el sistema.
+                                @if(isset($detallesSincronizacion['productos_actualizados']) && $detallesSincronizacion['productos_actualizados'] > 0)
+                                    Se actualizaron {{ $detallesSincronizacion['productos_actualizados'] }} productos existentes con los últimos cambios de Valencia.
+                                @endif
+                                @if(isset($detallesSincronizacion['productos_creados']) && $detallesSincronizacion['productos_creados'] > 0)
+                                    Se agregaron {{ $detallesSincronizacion['productos_creados'] }} productos nuevos de Valencia.
+                                @endif
+                                Los productos están ahora disponibles en el sistema.
                             </p>
                         </div>
                     @endif

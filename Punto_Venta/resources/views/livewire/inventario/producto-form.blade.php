@@ -14,10 +14,22 @@
             <h5 class="mb-0 text-lg">
                 @if($isEditing)
                     Editar Producto
+                    @if($esProductoValencia)
+                        <span class="ml-2 px-2 py-1 text-xs bg-orange-100 text-orange-700 rounded-full">🏢 Valencia</span>
+                    @endif
                 @else
                     Nuevo Producto
                 @endif
             </h5>
+            
+            <!-- Indicador de sincronización automática -->
+            @if($sincronizandoValencia)
+            <div class="flex items-center gap-2 px-3 py-2 text-sm text-blue-700 bg-blue-50 rounded-md border border-blue-200">
+                <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                <span>🔄 Sincronizando con Valencia...</span>
+            </div>
+            @endif
+            
             <button wire:click="volverALista"
                 class="inline-flex items-center gap-1 px-3 py-2 text-sm text-gray-800 bg-white rounded hover:bg-gray-100">
                 <span>←</span> Volver
@@ -97,6 +109,22 @@
                     <strong>⚠️ Campo Obligatorio</strong>
                     <button wire:click="cerrarAlerta" style="float: right; background: none; border: none; font-size: 18px; cursor: pointer;">×</button>
                     <br><small>{{ $mensajeAlerta }}</small>
+                </div>
+            @endif
+
+            <!-- Notificaciones Flash (no intrusivas) -->
+            @if(session('info'))
+                <div class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-blue-800 text-sm"
+                     x-data="{ show: true }" 
+                     x-show="show" 
+                     x-init="setTimeout(() => show = false, 4000)"
+                     x-transition:leave="transition ease-in duration-300"
+                     x-transition:leave-start="opacity-100"
+                     x-transition:leave-end="opacity-0">
+                    <div class="flex items-center justify-between">
+                        <span>{{ session('info') }}</span>
+                        <button @click="show = false" class="ml-2 text-blue-600 hover:text-blue-800">×</button>
+                    </div>
                 </div>
             @endif
 
@@ -835,6 +863,11 @@
             // Solo logging para debug, la redirección se maneja al cerrar el modal
             Livewire.on('redirigirEnTresSeg', () => {
                 console.log('Producto guardado exitosamente');
+            });
+            
+            // Escuchar evento de sincronización automática
+            Livewire.on('mostrarSincronizacion', () => {
+                console.log('Sincronizando producto de Valencia automáticamente...');
             });
         });
 

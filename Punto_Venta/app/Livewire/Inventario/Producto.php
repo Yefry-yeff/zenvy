@@ -84,8 +84,8 @@ class Producto extends Component
             // Preparar detalles de sincronización
             $this->detallesSincronizacion = [
                 'productos_sincronizados' => $resultado['sincronizados'] ?? 0,
+                'productos_creados' => $resultado['creados'] ?? 0,
                 'productos_actualizados' => $resultado['actualizados'] ?? 0,
-                'productos_nuevos' => $resultado['nuevos'] ?? 0,
                 'errores' => $resultado['errores'] ?? 0,
                 'total_procesados' => ($resultado['sincronizados'] ?? 0) + ($resultado['errores'] ?? 0),
                 'tiempo_ejecucion' => '~3 segundos'

@@ -75,6 +75,7 @@ class ProductoForm extends Component
     // Propiedades para sincronización con Valencia
     public $esProductoValencia = false;
     public $productosValencia = [];
+    public $sincronizandoValencia = false;
     private $sincronizacionProductosService;
 
     protected $rules = [
@@ -160,6 +161,47 @@ class ProductoForm extends Component
         $producto = ProductoModel::find($this->productoId);
 
         if ($producto) {
+            // Verificar si es un producto de Valencia antes de cargar
+            $this->verificarSiEsProductoValencia();
+            
+            // Si es producto de Valencia, sincronizar automáticamente primero
+            if ($this->esProductoValencia) {
+                try {
+                    $mapeo = IdZenvyValencia::where('id_zenvy', $this->productoId)
+                        ->where('tipo_dato_migrado_id', 1) // 1 para productos
+                        ->first();
+                    
+                    if ($mapeo) {
+                        $this->sincronizandoValencia = true;
+                        $this->dispatch('mostrarSincronizacion'); // Evento para UI
+                        
+                        Log::info("Sincronizando automáticamente producto de Valencia antes de editar. Valencia ID: {$mapeo->id_valencia}, Zenvy ID: {$this->productoId}");
+                        
+                        $service = $this->getSincronizacionProductosService();
+                        $resultado = $service->sincronizarProducto($mapeo->id_valencia, true); // true = auto-sincronización
+                        
+                        $this->sincronizandoValencia = false;
+                        
+                        if ($resultado['success']) {
+                            // Recargar el producto después de la sincronización
+                            $producto = ProductoModel::find($this->productoId);
+                            Log::info("Producto de Valencia sincronizado exitosamente antes de editar: " . $resultado['mensaje']);
+                            
+                            // NO mostrar modal de éxito para sincronización automática
+                            // Solo agregar mensaje en log o sesión flash temporal
+                            session()->flash('info', "🔄 Producto sincronizado automáticamente con Valencia.");
+                        } else {
+                            Log::warning("No se pudo sincronizar el producto de Valencia: " . $resultado['mensaje']);
+                            // No mostramos error al usuario para no interrumpir la edición
+                        }
+                    }
+                } catch (\Exception $e) {
+                    $this->sincronizandoValencia = false;
+                    Log::error("Error en sincronización automática: " . $e->getMessage());
+                    // Continuar con la carga normal del producto
+                }
+            }
+            
             $this->form = [
                 'nombre' => $producto->nombre,
                 'descripcion' => $producto->descripcion,
