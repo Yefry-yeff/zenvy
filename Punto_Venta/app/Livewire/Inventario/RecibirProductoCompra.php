@@ -70,7 +70,7 @@ class RecibirProductoCompra extends Component
             ->map(function($detalle) {
                 return [
                     'id' => $detalle->id,
-                    'codigo_producto' => $detalle->producto->codigo ?? 'N/A',
+                    'codigo_producto' => $detalle->producto->id ?? 'N/A',
                     'nombre_producto' => $detalle->producto->nombre ?? 'N/A',
                     'marca' => $detalle->producto->marca->nombre ?? 'Sin marca',
                     'unidad_medida' => $detalle->unidadMedida->nombre ?? 'N/A',
