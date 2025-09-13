@@ -6,6 +6,7 @@ use Livewire\Component;
 use Livewire\WithPagination;
 use App\Models\Compra;
 use App\Models\Estado;
+use App\Services\SincronizacionComprasService;
 use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\On;
 
@@ -30,6 +31,13 @@ class CompraDeProductos extends Component
     // Propiedades para modal de detalle
     public $mostrarModalDetalle = false;
     public $compraDetalle = null;
+
+    // Propiedades para efectos de carga en sincronización
+    public $sincronizandoCompras = false;
+    public $progreso = null;
+    public $detallesSincronizacion = null;
+
+    private $sincronizacionService;
 
         // Escuchar evento de distribución completada
     #[On('compra-distribuida')]
@@ -245,6 +253,71 @@ class CompraDeProductos extends Component
             $this->mostrarAlerta = true;
             $this->mensajeAlerta = 'Error al anular la compra: ' . $e->getMessage();
         }
+    }
+
+    private function getSincronizacionService()
+    {
+        if (!$this->sincronizacionService) {
+            $this->sincronizacionService = app(SincronizacionComprasService::class);
+        }
+        return $this->sincronizacionService;
+    }
+
+    public function sincronizarComprasValencia()
+    {
+        try {
+            // Iniciar el proceso de sincronización
+            $this->sincronizandoCompras = true;
+            $this->progreso = 0;
+            $this->detallesSincronizacion = null;
+
+            // Simular progreso de sincronización
+            for ($i = 0; $i <= 100; $i += 25) {
+                $this->progreso = $i;
+                $this->dispatch('actualizarProgreso', $this->progreso);
+                usleep(200000); // 0.2 segundos
+            }
+
+            $resultado = $this->getSincronizacionService()->forzarSincronizacion();
+            
+            // Finalizar progreso
+            $this->progreso = 100;
+            $this->dispatch('actualizarProgreso', $this->progreso);
+            
+            // Preparar detalles de sincronización
+            $this->detallesSincronizacion = [
+                'compras_sincronizadas' => $resultado['estadisticas']['compras_nuevas'] ?? 0,
+                'compras_nuevas' => $resultado['estadisticas']['compras_nuevas'] ?? 0,
+                'productos_sincronizados' => $resultado['estadisticas']['productos_sincronizados'] ?? 0,
+                'total_procesadas' => $resultado['estadisticas']['total_procesadas'] ?? 0,
+                'errores' => $resultado['estadisticas']['errores'] ?? 0,
+                'tiempo_ejecucion' => '~2 segundos'
+            ];
+            
+            // Mensajes de estado
+            if (($resultado['estadisticas']['compras_nuevas'] ?? 0) > 0) {
+                session()->flash('mensaje', '✅ Sincronización completada: ' . $this->detallesSincronizacion['compras_nuevas'] . ' compras nuevas procesadas exitosamente.');
+            } else {
+                session()->flash('mensaje', '✅ Sincronización completada: No hay nuevas compras para sincronizar.');
+            }
+            
+            Log::info('Sincronización manual de compras Valencia: ' . json_encode($resultado));
+            
+            // Finalizar estado de carga
+            $this->sincronizandoCompras = false;
+            
+        } catch (\Exception $e) {
+            $this->sincronizandoCompras = false;
+            $this->progreso = 0;
+            
+            session()->flash('error', 'Error al sincronizar compras de Valencia: ' . $e->getMessage());
+            Log::error('Error en sincronización Valencia: ' . $e->getMessage());
+        }
+    }
+
+    public function cerrarDetallesSincronizacion()
+    {
+        $this->detallesSincronizacion = null;
     }
 
     public function render()

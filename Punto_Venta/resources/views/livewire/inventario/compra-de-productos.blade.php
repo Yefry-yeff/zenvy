@@ -16,6 +16,18 @@
         </div>
     @endif
 
+    <!-- Mensajes de sincronización -->
+    @if (session()->has('mensaje'))
+        <div x-data="{ show: true }" x-show="show"
+             @click.window="show = false"
+             @keydown.window="show = false"
+             @mousemove.window="show = false"
+             class="relative px-4 py-3 mb-4 text-green-700 bg-green-100 border border-green-400 rounded transition-opacity duration-300" role="alert">
+            <strong class="font-bold">Sincronización:</strong>
+            <span class="block sm:inline">{{ session('mensaje') }}</span>
+        </div>
+    @endif
+
     <div class="overflow-hidden border border-gray-300 rounded shadow">
 
         <!-- ENCABEZADO -->
@@ -31,12 +43,42 @@
                 📋 Listado de Compras de Productos
             </h5>
             <div class="flex gap-2">
+                <!-- Botón de sincronización con estado de carga -->
+                <div class="relative">
+                    <button wire:click="sincronizarComprasValencia"
+                        wire:loading.attr="disabled"
+                        wire:target="sincronizarComprasValencia"
+                        class="inline-flex items-center gap-1 px-3 py-2 text-sm text-gray-800 bg-orange-200 rounded hover:bg-orange-300 disabled:opacity-75 disabled:cursor-not-allowed">
+                        
+                        <!-- Spinner de carga -->
+                        <div wire:loading wire:target="sincronizarComprasValencia" class="inline-block w-4 h-4 border-2 border-gray-300 border-t-orange-600 rounded-full animate-spin"></div>
+                        
+                        <!-- Icono normal -->
+                        <span wire:loading.remove wire:target="sincronizarComprasValencia">🔄</span>
+                        
+                        <!-- Texto del botón -->
+                        <span wire:loading.remove wire:target="sincronizarComprasValencia">Sincronizar Valencia</span>
+                        <span wire:loading wire:target="sincronizarComprasValencia">Sincronizando...</span>
+                    </button>
+                </div>
+                
                 <button wire:click="agregarCompra"
                         class="inline-flex items-center gap-1 px-3 py-2 text-sm text-gray-800 bg-white rounded hover:bg-gray-100">
                     <span>➕</span> Nueva Compra
                 </button>
             </div>
         </div>
+
+        <!-- Barra de progreso para sincronización -->
+        @if($sincronizandoCompras && $progreso !== null)
+            <div class="px-5 pb-3">
+                <div class="w-full bg-gray-200 rounded-full h-2">
+                    <div class="bg-orange-600 h-2 rounded-full transition-all duration-300" 
+                         style="width: {{ $progreso }}%"></div>
+                </div>
+                <p class="text-sm text-gray-600 mt-1">Sincronizando compras... {{ $progreso }}%</p>
+            </div>
+        @endif
 
         <!-- CONTENIDO PRINCIPAL -->
         <div class="px-5 py-4">
@@ -496,5 +538,70 @@
             -webkit-backdrop-filter: blur(8px);
         }
     </style>
+
+    {{-- Modal de Detalles de Sincronización de Compras --}}
+    @if($detallesSincronizacion)
+        <div class="fixed inset-0 z-50 flex items-center justify-center">
+            {{-- Overlay --}}
+            <div class="fixed inset-0 bg-black bg-opacity-50" wire:click="cerrarDetallesSincronizacion"></div>
+            
+            {{-- Modal --}}
+            <div class="relative bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-gray-900">📊 Sincronización de Compras Completada</h3>
+                    <button wire:click="cerrarDetallesSincronizacion" class="text-gray-400 hover:text-gray-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+                
+                <div class="space-y-3">
+                    <div class="flex justify-between items-center p-3 bg-green-50 rounded">
+                        <span class="font-medium text-green-800">✅ Compras procesadas:</span>
+                        <span class="font-bold text-green-600">{{ $detallesSincronizacion['compras_sincronizadas'] }}</span>
+                    </div>
+                    
+                    @if($detallesSincronizacion['compras_nuevas'] > 0)
+                        <div class="flex justify-between items-center p-3 bg-blue-50 rounded">
+                            <span class="font-medium text-blue-800">🆕 Compras nuevas:</span>
+                            <span class="font-bold text-blue-600">{{ $detallesSincronizacion['compras_nuevas'] }}</span>
+                        </div>
+                    @endif
+                    
+                    @if($detallesSincronizacion['productos_sincronizados'] > 0)
+                        <div class="flex justify-between items-center p-3 bg-yellow-50 rounded">
+                            <span class="font-medium text-yellow-800">📦 Productos sincronizados:</span>
+                            <span class="font-bold text-yellow-600">{{ $detallesSincronizacion['productos_sincronizados'] }}</span>
+                        </div>
+                    @endif
+                    
+                    <div class="flex justify-between items-center p-3 bg-orange-50 rounded">
+                        <span class="font-medium text-orange-800">📈 Total procesadas:</span>
+                        <span class="font-bold text-orange-600">{{ $detallesSincronizacion['total_procesadas'] }}</span>
+                    </div>
+                    
+                    @if($detallesSincronizacion['errores'] > 0)
+                        <div class="flex justify-between items-center p-3 bg-red-50 rounded">
+                            <span class="font-medium text-red-800">❌ Errores:</span>
+                            <span class="font-bold text-red-600">{{ $detallesSincronizacion['errores'] }}</span>
+                        </div>
+                    @endif
+                    
+                    <div class="flex justify-between items-center p-3 bg-purple-50 rounded">
+                        <span class="font-medium text-purple-800">⏱️ Tiempo:</span>
+                        <span class="font-bold text-purple-600">{{ $detallesSincronizacion['tiempo_ejecucion'] }}</span>
+                    </div>
+                </div>
+                
+                <div class="mt-6 text-center">
+                    <button wire:click="cerrarDetallesSincronizacion" 
+                            class="px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700 transition-colors">
+                        Cerrar
+                    </button>
+                </div>
+            </div>
+        </div>
+    @endif
 
 </div>

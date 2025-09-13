@@ -14,8 +14,6 @@ class CompraHasProducto extends Model
     public $timestamps = false; // Deshabilitar timestamps automáticos
 
     protected $fillable = [
-        'compra_id',
-        'producto_id',
         'precio',
         'cantidad_ingresada',
         'cantidad_sin_asignar',
@@ -23,7 +21,9 @@ class CompraHasProducto extends Model
         'sub_total_producto',
         'isv',
         'precio_total',
-        'unidad_medida_id',
+        'compra_id',
+        'producto_id',
+        'unidad_medida_id'
     ];
 
     protected $casts = [
@@ -34,19 +34,25 @@ class CompraHasProducto extends Model
         'fecha_expiracion' => 'date',
     ];
 
-    // Relación con la compra
-    public function compra()
-    {
-        return $this->belongsTo(Compra::class, 'compra_id');
-    }
-
-    // Relación con el producto
+    /**
+     * Relación con el producto
+     */
     public function producto()
     {
-        return $this->belongsTo(Producto::class, 'producto_id');
+        return $this->belongsTo(Producto::class);
     }
 
-    // Relación con la unidad de medida
+    /**
+     * Relación con la compra
+     */
+    public function compra()
+    {
+        return $this->belongsTo(Compra::class);
+    }
+
+    /**
+     * Relación con la unidad de medida
+     */
     public function unidadMedida()
     {
         return $this->belongsTo(UnidadMedida::class, 'unidad_medida_id');

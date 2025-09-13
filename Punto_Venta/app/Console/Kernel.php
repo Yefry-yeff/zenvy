@@ -48,6 +48,29 @@ class Kernel extends ConsoleKernel
                 ->onFailure(function () {
                     Log::error('Fallo en sincronización semanal de productos');
                 });
+
+        // Sincronización automática de compras en la madrugada (4:00 AM)
+        $schedule->command('sincronizar:compras')
+                ->dailyAt('04:00')
+                ->runInBackground()
+                ->withoutOverlapping()
+                ->onFailure(function () {
+                    Log::error('Fallo en sincronización automática de compras');
+                })
+                ->onSuccess(function () {
+                    Log::info('Sincronización automática de compras completada exitosamente');
+                });
+
+        // Sincronización adicional de compras dos veces por semana (martes y viernes a las 6:00 AM)
+        $schedule->command('sincronizar:compras')
+                ->weeklyOn(2, '06:00') // Martes a las 6:00 AM
+                ->runInBackground()
+                ->withoutOverlapping();
+                
+        $schedule->command('sincronizar:compras')
+                ->weeklyOn(5, '06:00') // Viernes a las 6:00 AM
+                ->runInBackground()
+                ->withoutOverlapping();
     }
 
     /**
