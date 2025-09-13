@@ -133,7 +133,15 @@
                                                 <div class="row">
                                                     <div class="col-6">
                                                         <strong>Tabla Origen:</strong><br>
-                                                        <small class="text-muted">{{ $config['tabla_origen'] }}</small>
+                                                        <div class="d-flex justify-content-between align-items-center">
+                                                            <small class="text-muted">{{ $config['tabla_origen'] }}</small>
+                                                            <button wire:click="abrirEdicionTabla('{{ $key }}')" 
+                                                                    class="btn btn-xs btn-outline-primary" 
+                                                                    style="padding: 2px 6px; font-size: 10px;"
+                                                                    title="Editar tablas">
+                                                                <i class="fas fa-edit fa-xs"></i>
+                                                            </button>
+                                                        </div>
                                                     </div>
                                                     <div class="col-6">
                                                         <strong>Tabla Destino:</strong><br>
@@ -229,6 +237,72 @@
                         </button>
                         <button type="button" wire:click="guardarConfiguracionBaseDatos" class="btn btn-primary">
                             <i class="fas fa-save me-2"></i>Actualizar Configuración
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    <!-- Modal de Edición de Tablas -->
+    @if($mostrarModalEdicionTabla)
+        <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="fas fa-table me-2"></i>Configurar Tablas de Sincronización
+                        </h5>
+                    </div>
+                    <div class="modal-body">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Editando configuración de tablas</strong>
+                        </div>
+                        
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>Atención:</strong> Este cambio modificará las consultas SQL en el archivo del servicio correspondiente.
+                        </div>
+                            
+                            <form wire:submit.prevent="guardarConfiguracionTabla">
+                                <div class="mb-3">
+                                    <label for="nuevaTablaOrigen" class="form-label">
+                                        <i class="fas fa-upload me-2"></i>Tabla de Origen (Valencia)
+                                    </label>
+                                    <input type="text" 
+                                           class="form-control @error('nuevaTablaOrigen') is-invalid @enderror" 
+                                           id="nuevaTablaOrigen"
+                                           wire:model="nuevaTablaOrigen" 
+                                           placeholder="nombre_tabla_origen">
+                                    @error('nuevaTablaOrigen')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                    <small class="form-text text-muted">Nombre de la tabla en la base de datos de Valencia</small>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="nuevaTablaDestino" class="form-label">
+                                        <i class="fas fa-download me-2"></i>Tabla de Destino (Zenvy)
+                                    </label>
+                                    <input type="text" 
+                                           class="form-control @error('nuevaTablaDestino') is-invalid @enderror" 
+                                           id="nuevaTablaDestino"
+                                           wire:model="nuevaTablaDestino" 
+                                           placeholder="nombre_tabla_destino">
+                                    @error('nuevaTablaDestino')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                    <small class="form-text text-muted">Nombre de la tabla en la base de datos de Zenvy</small>
+                                </div>
+                            </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" wire:click="cancelarEdicionTabla" class="btn btn-secondary">
+                            <i class="fas fa-times me-2"></i>Cancelar
+                        </button>
+                        <button type="button" wire:click="guardarConfiguracionTabla" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i>Actualizar Tablas
                         </button>
                     </div>
                 </div>

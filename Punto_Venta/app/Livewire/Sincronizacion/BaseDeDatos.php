@@ -13,8 +13,14 @@ class BaseDeDatos extends Component
     public $nombreBaseDatosDestino = 'mysql';
     public $mostrarConfiguracionTablas = false;
     
-    // Para el modal de edición
+    // Para el modal de edición de bases de datos
     public $mostrarModalEdicion = false;
+    
+    // Para el modal de edición de tablas
+    public $mostrarModalEdicionTabla = false;
+    public $tipoSincronizacionEditando = '';
+    public $nuevaTablaOrigen = '';
+    public $nuevaTablaDestino = '';
     
     // Mensajes de estado
     public $mensajeExito = '';
@@ -165,6 +171,122 @@ class BaseDeDatos extends Component
     public function cerrarConfiguracionTablas()
     {
         $this->mostrarConfiguracionTablas = false;
+    }
+
+    public function abrirEdicionTabla($tipo)
+    {
+        if (isset($this->configuraciones[$tipo])) {
+            $this->tipoSincronizacionEditando = $tipo;
+            $this->nuevaTablaOrigen = $this->configuraciones[$tipo]['tabla_origen'];
+            $this->nuevaTablaDestino = $this->configuraciones[$tipo]['tabla_destino'];
+            $this->mostrarModalEdicionTabla = true;
+            $this->limpiarMensajes();
+        }
+    }
+
+    public function cancelarEdicionTabla()
+    {
+        $this->mostrarModalEdicionTabla = false;
+        $this->tipoSincronizacionEditando = '';
+        $this->nuevaTablaOrigen = '';
+        $this->nuevaTablaDestino = '';
+        $this->limpiarMensajes();
+    }
+
+    public function guardarConfiguracionTabla()
+    {
+        $this->validate([
+            'nuevaTablaOrigen' => 'required|string|max:255',
+            'nuevaTablaDestino' => 'required|string|max:255'
+        ], [
+            'nuevaTablaOrigen.required' => 'El nombre de la tabla de origen es obligatorio',
+            'nuevaTablaDestino.required' => 'El nombre de la tabla de destino es obligatorio'
+        ]);
+
+        try {
+            // Actualizar la configuración local
+            $this->configuraciones[$this->tipoSincronizacionEditando]['tabla_origen'] = $this->nuevaTablaOrigen;
+            $this->configuraciones[$this->tipoSincronizacionEditando]['tabla_destino'] = $this->nuevaTablaDestino;
+            
+            // Actualizar el archivo del servicio correspondiente
+            $this->actualizarTablasEnServicio($this->tipoSincronizacionEditando);
+            
+            $this->mostrarModalEdicionTabla = false;
+            $this->mensajeExito = "Configuración de tablas actualizada correctamente para {$this->configuraciones[$this->tipoSincronizacionEditando]['nombre']}";
+            
+            $this->tipoSincronizacionEditando = '';
+            $this->nuevaTablaOrigen = '';
+            $this->nuevaTablaDestino = '';
+            
+        } catch (\Exception $e) {
+            $this->mensajeError = 'Error al actualizar la configuración de tablas: ' . $e->getMessage();
+        }
+    }
+
+    private function actualizarTablasEnServicio($tipo)
+    {
+        $servicios = [
+            'marcas' => 'app/Services/SincronizacionMarcasService.php',
+            'categorias' => 'app/Services/SincronizacionCategoriasService.php',
+            'subcategorias' => 'app/Services/SincronizacionSubcategoriasService.php',
+            'unidades' => 'app/Services/SincronizacionUnidadesService.php',
+            'productos' => 'app/Services/SincronizacionProductosService.php',
+            'compras' => 'app/Services/SincronizacionComprasService.php'
+        ];
+
+        if (!isset($servicios[$tipo])) {
+            throw new \Exception("Tipo de sincronización no válido: {$tipo}");
+        }
+
+        $rutaCompleta = base_path($servicios[$tipo]);
+        if (!File::exists($rutaCompleta)) {
+            throw new \Exception("Archivo del servicio no encontrado: {$servicios[$tipo]}");
+        }
+
+        $contenido = File::get($rutaCompleta);
+        $tablaOrigen = $this->configuraciones[$tipo]['tabla_origen'];
+        $tablaDestino = $this->configuraciones[$tipo]['tabla_destino'];
+
+        // Actualizar referencias a las tablas según el tipo de servicio
+        switch ($tipo) {
+            case 'marcas':
+            case 'categorias':
+            case 'subcategorias':
+            case 'unidades':
+            case 'productos':
+                // Actualizar las consultas FROM
+                $contenido = preg_replace(
+                    '/->from\([\'"][^\'\"]*[\'"]\)/',
+                    "->from('{$tablaOrigen}')",
+                    $contenido
+                );
+                
+                // Actualizar las consultas table()
+                $contenido = preg_replace(
+                    '/->table\([\'"][^\'\"]*[\'"]\)/',
+                    "->table('{$tablaDestino}')",
+                    $contenido
+                );
+                break;
+                
+            case 'compras':
+                // Para compras, actualizar tanto recibido_bodega como compra
+                $contenido = preg_replace(
+                    '/->from\([\'"]recibido_bodega[\'"]\)/',
+                    "->from('{$tablaOrigen}')",
+                    $contenido
+                );
+                
+                $contenido = preg_replace(
+                    '/->table\([\'"]compra[\'"]\)/',
+                    "->table('{$tablaDestino}')",
+                    $contenido
+                );
+                break;
+        }
+
+        File::put($rutaCompleta, $contenido);
+        Log::info("Configuración de tablas actualizada en: {$servicios[$tipo]} - Origen: {$tablaOrigen}, Destino: {$tablaDestino}");
     }
 
     public function toggleSincronizacion($tipo)
