@@ -27,6 +27,7 @@ class IdZenvyValencia extends Model
     const TIPO_SUBCATEGORIA = 4;
     const TIPO_UNIDAD_MEDIDA = 5;
     const TIPO_COMPRA = 8;
+    const TIPO_TRASLADO = 9;
 
     /**
      * Busca mapeo por ID de Valencia y tipo

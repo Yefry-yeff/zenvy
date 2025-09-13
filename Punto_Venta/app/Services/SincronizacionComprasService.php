@@ -71,8 +71,11 @@ class SincronizacionComprasService
                     if ($compra) {
                         $estadisticas['compras_nuevas']++;
                         
-                        // Registrar la compra en el mapeo de sincronización
-                        $this->registrarCompraSincronizada($compra->id, $numeroFactura);
+                        // Registrar la compra en el mapeo de sincronización según el tipo
+                        $tipoOrigen = $primerProducto->tipo_origen === 'TRASLADO' ? 
+                            IdZenvyValencia::TIPO_TRASLADO : IdZenvyValencia::TIPO_COMPRA;
+                        
+                        $this->registrarCompraSincronizada($compra->id, $numeroFactura, $tipoOrigen);
                         
                         // Agregar productos a la compra
                         foreach ($productosCompra as $productoData) {
@@ -279,17 +282,18 @@ class SincronizacionComprasService
     /**
      * Registrar la compra sincronizada en la tabla de mapeo
      */
-    private function registrarCompraSincronizada($idCompraZenvy, $numeroFacturaValencia)
+    private function registrarCompraSincronizada($idCompraZenvy, $numeroFacturaValencia, $tipoCompra = IdZenvyValencia::TIPO_COMPRA)
     {
         try {
             // Registrar en id_zenvy_valencia para tracking de sincronización
             IdZenvyValencia::crearMapeo(
                 $idCompraZenvy, 
                 $numeroFacturaValencia, 
-                IdZenvyValencia::TIPO_COMPRA // 8 para compras
+                $tipoCompra // 8 para COMPRA, 9 para TRASLADO
             );
 
-            Log::info("Compra registrada en mapeo: Zenvy ID {$idCompraZenvy}, Valencia Factura {$numeroFacturaValencia}");
+            $tipoTexto = $tipoCompra === IdZenvyValencia::TIPO_TRASLADO ? 'TRASLADO' : 'COMPRA';
+            Log::info("Compra registrada en mapeo: Zenvy ID {$idCompraZenvy}, Valencia Factura {$numeroFacturaValencia}, Tipo: {$tipoTexto}");
             return true;
 
         } catch (\Exception $e) {

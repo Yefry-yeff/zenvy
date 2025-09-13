@@ -33,7 +33,19 @@
                             <div class="p-3 bg-blue-50 rounded-lg border-l-4 border-blue-500">
                                 <h6 class="text-sm font-medium text-blue-800 mb-1">Información General</h6>
                                 <p class="text-sm mb-1"><strong>N° Factura:</strong> {{ $compra->numero_factura }}</p>
-                                <p class="text-sm mb-0"><strong>Proveedor:</strong> {{ $compra->proveedor->nombre ?? 'N/A' }}</p>
+                                <p class="text-sm mb-1"><strong>Proveedor:</strong> {{ $compra->proveedor->nombre ?? 'N/A' }}</p>
+                                <p class="text-sm mb-0">
+                                    <strong>Tipo:</strong>
+                                    @if($compra->tipo_origen === 'TRASLADO')
+                                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-orange-100 text-orange-800">
+                                            <i class="fas fa-exchange-alt me-1"></i>TRASLADO
+                                        </span>
+                                    @else
+                                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800">
+                                            <i class="fas fa-shopping-cart me-1"></i>COMPRA
+                                        </span>
+                                    @endif
+                                </p>
                             </div>
                         </div>
                         <div class="col-md-3">
