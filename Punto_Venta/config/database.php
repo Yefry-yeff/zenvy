@@ -41,7 +41,25 @@ return [
             'database' => env('DB_DATABASE', database_path('database.sqlite')),
             'prefix' => '',
             'foreign_key_constraints' => env('DB_FOREIGN_KEYS', true),
+    
+        // Conexión para la base de datos externa profac_app
+        'profac_app' => [
+            'driver' => 'mysql',
+            'host' => env('PROFAC_DB_HOST', '127.0.0.1'),
+            'port' => env('PROFAC_DB_PORT', '3306'),
+            'database' => env('PROFAC_DB_DATABASE', 'profac_app'),
+            'username' => env('PROFAC_DB_USERNAME', 'root'),
+            'password' => env('PROFAC_DB_PASSWORD', ''),
+            'unix_socket' => env('PROFAC_DB_SOCKET', ''),
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => true,
+            'engine' => null,
         ],
+
+    ],
 
         'mysql' => [
             'driver' => 'mysql',
@@ -63,7 +81,25 @@ return [
                 PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
 
             ]) : [],
+    
+        // Conexión para la base de datos externa profac_app
+        'profac_app' => [
+            'driver' => 'mysql',
+            'host' => env('PROFAC_DB_HOST', '127.0.0.1'),
+            'port' => env('PROFAC_DB_PORT', '3306'),
+            'database' => env('PROFAC_DB_DATABASE', 'profac_app'),
+            'username' => env('PROFAC_DB_USERNAME', 'root'),
+            'password' => env('PROFAC_DB_PASSWORD', ''),
+            'unix_socket' => env('PROFAC_DB_SOCKET', ''),
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => true,
+            'engine' => null,
         ],
+
+    ],
 
         'pgsql' => [
             'driver' => 'pgsql',
@@ -78,7 +114,25 @@ return [
             'prefix_indexes' => true,
             'search_path' => 'public',
             'sslmode' => 'prefer',
+    
+        // Conexión para la base de datos externa profac_app
+        'profac_app' => [
+            'driver' => 'mysql',
+            'host' => env('PROFAC_DB_HOST', '127.0.0.1'),
+            'port' => env('PROFAC_DB_PORT', '3306'),
+            'database' => env('PROFAC_DB_DATABASE', 'profac_app'),
+            'username' => env('PROFAC_DB_USERNAME', 'root'),
+            'password' => env('PROFAC_DB_PASSWORD', ''),
+            'unix_socket' => env('PROFAC_DB_SOCKET', ''),
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => true,
+            'engine' => null,
         ],
+
+    ],
 
         'sqlsrv' => [
             'driver' => 'sqlsrv',
@@ -91,7 +145,134 @@ return [
             'charset' => 'utf8',
             'prefix' => '',
             'prefix_indexes' => true,
+    
+        // Conexión para la base de datos externa profac_app
+        'profac_app' => [
+            'driver' => 'mysql',
+            'host' => env('PROFAC_DB_HOST', '127.0.0.1'),
+            'port' => env('PROFAC_DB_PORT', '3306'),
+            'database' => env('PROFAC_DB_DATABASE', 'profac_app'),
+            'username' => env('PROFAC_DB_USERNAME', 'root'),
+            'password' => env('PROFAC_DB_PASSWORD', ''),
+            'unix_socket' => env('PROFAC_DB_SOCKET', ''),
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => true,
+            'engine' => null,
         ],
+
+    ],
+
+        
+        // Conexión para la base de datos externa cadssf2t_valencia_pruebas
+        'cadssf2t_valencia_pruebas' => [
+            'driver' => 'mysql',
+            'host' => env('PROFAC_DB_HOST', '127.0.0.1'),
+            'port' => env('PROFAC_DB_PORT', '3306'),
+            'database' => env('PROFAC_DB_DATABASE', 'cadssf2t_valencia_pruebas'),
+            'username' => env('PROFAC_DB_USERNAME', 'root'),
+            'password' => env('PROFAC_DB_PASSWORD', ''),
+            'unix_socket' => env('PROFAC_DB_SOCKET', ''),
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => true,
+            'engine' => null,
+    
+        // Conexión para la base de datos externa profac_app
+        'profac_app' => [
+            'driver' => 'mysql',
+            'host' => env('PROFAC_DB_HOST', '127.0.0.1'),
+            'port' => env('PROFAC_DB_PORT', '3306'),
+            'database' => env('PROFAC_DB_DATABASE', 'profac_app'),
+            'username' => env('PROFAC_DB_USERNAME', 'root'),
+            'password' => env('PROFAC_DB_PASSWORD', ''),
+            'unix_socket' => env('PROFAC_DB_SOCKET', ''),
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => true,
+            'engine' => null,
+        ],
+
+    ],
+        // Conexión para la base de datos externa cadssf2t_valencia_pruebas
+        'cadssf2t_valencia_pruebas' => [
+            'driver' => 'mysql',
+            'host' => env('PROFAC_DB_HOST', '127.0.0.1'),
+            'port' => env('PROFAC_DB_PORT', '3306'),
+            'database' => env('PROFAC_DB_DATABASE', 'cadssf2t_valencia_pruebas'),
+            'username' => env('PROFAC_DB_USERNAME', 'root'),
+            'password' => env('PROFAC_DB_PASSWORD', ''),
+            'unix_socket' => env('PROFAC_DB_SOCKET', ''),
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => true,
+            'engine' => null,
+    
+        // Conexión para la base de datos externa profac_app
+        'profac_app' => [
+            'driver' => 'mysql',
+            'host' => env('PROFAC_DB_HOST', '127.0.0.1'),
+            'port' => env('PROFAC_DB_PORT', '3306'),
+            'database' => env('PROFAC_DB_DATABASE', 'profac_app'),
+            'username' => env('PROFAC_DB_USERNAME', 'root'),
+            'password' => env('PROFAC_DB_PASSWORD', ''),
+            'unix_socket' => env('PROFAC_DB_SOCKET', ''),
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => true,
+            'engine' => null,
+        ],
+
+    ],
+        // Conexión para la base de datos externa cadssf2t_valencia_pruebas
+        'cadssf2t_valencia_pruebas' => [
+            'driver' => 'mysql',
+            'host' => env('PROFAC_DB_HOST', '127.0.0.1'),
+            'port' => env('PROFAC_DB_PORT', '3306'),
+            'database' => env('PROFAC_DB_DATABASE', 'cadssf2t_valencia_pruebas'),
+            'username' => env('PROFAC_DB_USERNAME', 'root'),
+            'password' => env('PROFAC_DB_PASSWORD', ''),
+            'unix_socket' => env('PROFAC_DB_SOCKET', ''),
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => true,
+            'engine' => null,
+    
+        // Conexión para la base de datos externa profac_app
+        'profac_app' => [
+            'driver' => 'mysql',
+            'host' => env('PROFAC_DB_HOST', '127.0.0.1'),
+            'port' => env('PROFAC_DB_PORT', '3306'),
+            'database' => env('PROFAC_DB_DATABASE', 'profac_app'),
+            'username' => env('PROFAC_DB_USERNAME', 'root'),
+            'password' => env('PROFAC_DB_PASSWORD', ''),
+            'unix_socket' => env('PROFAC_DB_SOCKET', ''),
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => true,
+            'engine' => null,
+        ],
+
+    ],
+
+
+
+
+
 
         // Conexión para la base de datos externa profac_app
         'profac_app' => [
@@ -143,7 +324,25 @@ return [
         'options' => [
             'cluster' => env('REDIS_CLUSTER', 'redis'),
             'prefix' => env('REDIS_PREFIX', Str::slug(env('APP_NAME', 'laravel'), '_').'_database_'),
+    
+        // Conexión para la base de datos externa profac_app
+        'profac_app' => [
+            'driver' => 'mysql',
+            'host' => env('PROFAC_DB_HOST', '127.0.0.1'),
+            'port' => env('PROFAC_DB_PORT', '3306'),
+            'database' => env('PROFAC_DB_DATABASE', 'profac_app'),
+            'username' => env('PROFAC_DB_USERNAME', 'root'),
+            'password' => env('PROFAC_DB_PASSWORD', ''),
+            'unix_socket' => env('PROFAC_DB_SOCKET', ''),
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => true,
+            'engine' => null,
         ],
+
+    ],
 
         'default' => [
             'url' => env('REDIS_URL'),
@@ -151,7 +350,25 @@ return [
             'password' => env('REDIS_PASSWORD'),
             'port' => env('REDIS_PORT', '6379'),
             'database' => env('REDIS_DB', '0'),
+    
+        // Conexión para la base de datos externa profac_app
+        'profac_app' => [
+            'driver' => 'mysql',
+            'host' => env('PROFAC_DB_HOST', '127.0.0.1'),
+            'port' => env('PROFAC_DB_PORT', '3306'),
+            'database' => env('PROFAC_DB_DATABASE', 'profac_app'),
+            'username' => env('PROFAC_DB_USERNAME', 'root'),
+            'password' => env('PROFAC_DB_PASSWORD', ''),
+            'unix_socket' => env('PROFAC_DB_SOCKET', ''),
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => true,
+            'engine' => null,
         ],
+
+    ],
 
         'cache' => [
             'url' => env('REDIS_URL'),
@@ -159,6 +376,42 @@ return [
             'password' => env('REDIS_PASSWORD'),
             'port' => env('REDIS_PORT', '6379'),
             'database' => env('REDIS_CACHE_DB', '1'),
+    
+        // Conexión para la base de datos externa profac_app
+        'profac_app' => [
+            'driver' => 'mysql',
+            'host' => env('PROFAC_DB_HOST', '127.0.0.1'),
+            'port' => env('PROFAC_DB_PORT', '3306'),
+            'database' => env('PROFAC_DB_DATABASE', 'profac_app'),
+            'username' => env('PROFAC_DB_USERNAME', 'root'),
+            'password' => env('PROFAC_DB_PASSWORD', ''),
+            'unix_socket' => env('PROFAC_DB_SOCKET', ''),
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => true,
+            'engine' => null,
+        ],
+
+    ],
+
+
+        // Conexión para la base de datos externa profac_app
+        'profac_app' => [
+            'driver' => 'mysql',
+            'host' => env('PROFAC_DB_HOST', '127.0.0.1'),
+            'port' => env('PROFAC_DB_PORT', '3306'),
+            'database' => env('PROFAC_DB_DATABASE', 'profac_app'),
+            'username' => env('PROFAC_DB_USERNAME', 'root'),
+            'password' => env('PROFAC_DB_PASSWORD', ''),
+            'unix_socket' => env('PROFAC_DB_SOCKET', ''),
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => true,
+            'engine' => null,
         ],
 
     ],

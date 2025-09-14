@@ -54,7 +54,11 @@
                                             <i class="fas fa-edit"></i> Cambiar
                                         </button>
                                     </div>
-                                    <small class="text-muted">Conexión de base de datos configurada en config/database.php</small>
+                                    <small class="text-muted">
+                                        <strong>Host:</strong> {{ $hostOrigen }}:{{ $puertoOrigen }}<br>
+                                        <strong>Usuario:</strong> {{ $usuarioOrigen }}<br>
+                                        <strong>Estado:</strong> <span class="text-success">Configurado</span>
+                                    </small>
                                 </div>
                             </div>
                             <div class="col-md-2 text-center d-flex align-items-center justify-content-center">
@@ -196,14 +200,50 @@
                     <div class="modal-body">
                         <div class="alert alert-warning">
                             <i class="fas fa-exclamation-triangle me-2"></i>
-                            <strong>Atención:</strong> Este cambio modificará las configuraciones en todos los servicios de sincronización.
+                            <strong>Atención:</strong> Este cambio modificará automáticamente:
+                            <ul class="mb-0 mt-2">
+                                <li>Variables de configuración en el archivo <code>.env</code></li>
+                                <li>Conexiones en <code>config/database.php</code></li>
+                                <li>Todos los servicios de sincronización (6 archivos)</li>
+                                <li>Todos los modelos externos (6 archivos)</li>
+                                <li>Cache de configuración de Laravel</li>
+                            </ul>
+                            <small class="text-muted">Ejemplo: si cambias a <code>cadssf2t_valencia_pruebas</code>, se creará automáticamente esa conexión.</small>
                         </div>
                         
                         <form wire:submit.prevent="guardarConfiguracionBaseDatos">
+                            <h6 class="text-primary mb-3">
+                                <i class="fas fa-upload me-2"></i>Configuración Base de Datos Origen (Valencia)
+                            </h6>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="hostOrigen" class="form-label">Host</label>
+                                    <input type="text" 
+                                           class="form-control @error('hostOrigen') is-invalid @enderror" 
+                                           id="hostOrigen"
+                                           wire:model="hostOrigen" 
+                                           placeholder="127.0.0.1">
+                                    @error('hostOrigen')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
+                                
+                                <div class="col-md-6 mb-3">
+                                    <label for="puertoOrigen" class="form-label">Puerto</label>
+                                    <input type="number" 
+                                           class="form-control @error('puertoOrigen') is-invalid @enderror" 
+                                           id="puertoOrigen"
+                                           wire:model="puertoOrigen" 
+                                           placeholder="3306">
+                                    @error('puertoOrigen')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
+                            </div>
+                            
                             <div class="mb-3">
-                                <label for="nombreBaseDatosOrigen" class="form-label">
-                                    <i class="fas fa-upload me-2"></i>Base de Datos Origen (Valencia)
-                                </label>
+                                <label for="nombreBaseDatosOrigen" class="form-label">Nombre de Base de Datos</label>
                                 <input type="text" 
                                        class="form-control @error('nombreBaseDatosOrigen') is-invalid @enderror" 
                                        id="nombreBaseDatosOrigen"
@@ -212,13 +252,40 @@
                                 @error('nombreBaseDatosOrigen')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
-                                <small class="form-text text-muted">Nombre de la conexión configurada en config/database.php</small>
+                                <small class="form-text text-muted">Ejemplo: profac_app, cadssf2t_valencia_pruebas</small>
                             </div>
                             
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="usuarioOrigen" class="form-label">Usuario</label>
+                                    <input type="text" 
+                                           class="form-control @error('usuarioOrigen') is-invalid @enderror" 
+                                           id="usuarioOrigen"
+                                           wire:model="usuarioOrigen" 
+                                           placeholder="root">
+                                    @error('usuarioOrigen')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
+                                
+                                <div class="col-md-6 mb-3">
+                                    <label for="passwordOrigen" class="form-label">Contraseña</label>
+                                    <input type="password" 
+                                           class="form-control" 
+                                           id="passwordOrigen"
+                                           wire:model="passwordOrigen" 
+                                           placeholder="Contraseña (opcional)">
+                                </div>
+                            </div>
+                            
+                            <hr class="my-4">
+                            
+                            <h6 class="text-success mb-3">
+                                <i class="fas fa-download me-2"></i>Configuración Base de Datos Destino (Zenvy)
+                            </h6>
+                            
                             <div class="mb-3">
-                                <label for="nombreBaseDatosDestino" class="form-label">
-                                    <i class="fas fa-download me-2"></i>Base de Datos Destino (Zenvy)
-                                </label>
+                                <label for="nombreBaseDatosDestino" class="form-label">Conexión de Destino</label>
                                 <input type="text" 
                                        class="form-control @error('nombreBaseDatosDestino') is-invalid @enderror" 
                                        id="nombreBaseDatosDestino"
@@ -227,13 +294,16 @@
                                 @error('nombreBaseDatosDestino')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
-                                <small class="form-text text-muted">Nombre de la conexión configurada en config/database.php</small>
+                                <small class="form-text text-muted">Normalmente 'mysql' (conexión por defecto de Laravel)</small>
                             </div>
                         </form>
                     </div>
                     <div class="modal-footer">
                         <button type="button" wire:click="cancelarEdicion" class="btn btn-secondary">
                             <i class="fas fa-times me-2"></i>Cancelar
+                        </button>
+                        <button type="button" wire:click="probarConexion" class="btn btn-info">
+                            <i class="fas fa-wifi me-2"></i>Probar Conexión
                         </button>
                         <button type="button" wire:click="guardarConfiguracionBaseDatos" class="btn btn-primary">
                             <i class="fas fa-save me-2"></i>Actualizar Configuración
