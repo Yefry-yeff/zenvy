@@ -3,6 +3,7 @@
 namespace App\Livewire\Inventario;
 
 use Livewire\Component;
+use Livewire\WithPagination;
 use App\Models\RecibidoBodega;
 use App\Models\Bodega;
 use App\Models\Marca;
@@ -12,6 +13,13 @@ use Illuminate\Support\Facades\Log;
 
 class ListaDeProductos extends Component
 {
+    use WithPagination;
+
+    // Propiedades de paginación y ordenamiento
+    public $registrosPorPagina = 10;
+    public $ordenarPor = 'fecha_recibido';
+    public $direccionOrden = 'desc';
+    
     // Filtros
     public $filtroProducto = '';
     public $filtroBodega = '';
@@ -19,14 +27,53 @@ class ListaDeProductos extends Component
     public $filtroMarca = '';
 
     // Datos
-    public $productosRecibidos = [];
     public $bodegas = [];
     public $marcas = [];
 
+    protected $queryString = [
+        'filtroProducto' => ['except' => ''],
+        'filtroBodega' => ['except' => ''],
+        'filtroEstado' => ['except' => ''],
+        'filtroMarca' => ['except' => ''],
+        'ordenarPor' => ['except' => 'fecha_recibido'],
+        'direccionOrden' => ['except' => 'desc'],
+    ];
+
     public function mount()
     {
-        $this->cargarDatos();
         $this->cargarFiltros();
+    }
+
+    public function ordenar($campo)
+    {
+        if ($this->ordenarPor === $campo) {
+            $this->direccionOrden = $this->direccionOrden === 'asc' ? 'desc' : 'asc';
+        } else {
+            $this->ordenarPor = $campo;
+            $this->direccionOrden = 'asc';
+        }
+        $this->resetPage();
+    }
+
+    // Métodos para actualización de filtros en tiempo real
+    public function updatedFiltroProducto()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedFiltroBodega()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedFiltroEstado()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedFiltroMarca()
+    {
+        $this->resetPage();
     }
 
     public function cargarDatos()
@@ -53,6 +100,7 @@ class ListaDeProductos extends Component
                     'p.descripcion as producto_descripcion',
                     'p.codigo_barra',
                     'm.nombre as marca_nombre',
+                    'm.id as marca_id',
                     'b.nombre as bodega_nombre',
                     'b.id as bodega_id',
                     't.denominacion_social as tienda_nombre',
@@ -98,9 +146,26 @@ class ListaDeProductos extends Component
                 }
             }
 
-            $this->productosRecibidos = $query->orderBy('rb.fecha_recibido', 'desc')
-                ->orderBy('p.nombre', 'asc')
-                ->get();
+            // Aplicar ordenamiento
+            $campoOrden = $this->ordenarPor;
+            if ($this->ordenarPor === 'producto_nombre') {
+                $campoOrden = 'p.nombre';
+            } elseif ($this->ordenarPor === 'fecha_recibido') {
+                $campoOrden = 'rb.fecha_recibido';
+            } elseif ($this->ordenarPor === 'cantidad_disponible') {
+                $campoOrden = 'rb.cantidad_disponible';
+            } elseif ($this->ordenarPor === 'bodega_nombre') {
+                $campoOrden = 'b.nombre';
+            } elseif ($this->ordenarPor === 'marca_nombre') {
+                $campoOrden = 'm.nombre';
+            } elseif ($this->ordenarPor === 'codigo_barra') {
+                $campoOrden = 'p.codigo_barra';
+            }
+
+            $query->orderBy($campoOrden, $this->direccionOrden);
+
+            // Paginar resultados
+            return $query->paginate($this->registrosPorPagina);
 
         } catch (\Exception $e) {
             Log::error('Error al cargar productos recibidos', [
@@ -110,8 +175,7 @@ class ListaDeProductos extends Component
                 'linea' => $e->getLine()
             ]);
             
-            $this->productosRecibidos = collect();
-            session()->flash('error', 'Error al cargar los productos: ' . $e->getMessage());
+            return collect()->paginate($this->registrosPorPagina);
         }
     }
 
@@ -157,34 +221,13 @@ class ListaDeProductos extends Component
         }
     }
 
-    // Métodos para actualización de filtros en tiempo real
-    public function updatedFiltroProducto()
-    {
-        $this->cargarDatos();
-    }
-
-    public function updatedFiltroBodega()
-    {
-        $this->cargarDatos();
-    }
-
-    public function updatedFiltroEstado()
-    {
-        $this->cargarDatos();
-    }
-
-    public function updatedFiltroMarca()
-    {
-        $this->cargarDatos();
-    }
-
     public function limpiarFiltros()
     {
         $this->filtroProducto = '';
         $this->filtroBodega = '';
         $this->filtroEstado = '';
         $this->filtroMarca = '';
-        $this->cargarDatos();
+        $this->resetPage();
     }
 
     public function editarProducto($productoId)
@@ -195,6 +238,10 @@ class ListaDeProductos extends Component
 
     public function render()
     {
-        return view('livewire.inventario.lista-de-productos');
+        $productosRecibidos = $this->cargarDatos();
+        
+        return view('livewire.inventario.lista-de-productos', [
+            'productosRecibidos' => $productosRecibidos
+        ]);
     }
 }

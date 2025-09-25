@@ -274,7 +274,7 @@
                                             disabled 
                                             style="cursor: not-allowed;" 
                                             title="Campo solo de lectura">
-                                        <option value="{{ $form['marca_id'] }}">{{ $marcas->where('id', $form['marca_id'])->first()->nombre ?? 'N/A' }}</option>
+                                        <option value="{{ $form['marca_id'] }}">{{ collect($marcas)->where('id', $form['marca_id'])->first()['nombre'] ?? 'N/A' }}</option>
                                     </select>
                                 @else
                                     <select id="marca" class="form-select {{ $this->getClaseCampo('marca') }}" wire:model.live="form.marca_id">
@@ -296,7 +296,7 @@
                                             disabled 
                                             style="cursor: not-allowed;" 
                                             title="Campo solo de lectura">
-                                        <option value="{{ $categoriaSeleccionada }}">{{ $categorias->where('id', $categoriaSeleccionada)->first()->nombre ?? 'N/A' }}</option>
+                                        <option value="{{ $categoriaSeleccionada }}">{{ collect($categorias)->where('id', $categoriaSeleccionada)->first()['nombre'] ?? 'N/A' }}</option>
                                     </select>
                                 @else
                                     <select id="categoria" class="form-select {{ $this->getClaseCampo('categoria') }}" wire:model.live="categoriaSeleccionada">
@@ -318,7 +318,7 @@
                                             disabled 
                                             style="cursor: not-allowed;" 
                                             title="Campo solo de lectura">
-                                        <option value="{{ $form['subcategoria_id'] }}">{{ $subcategorias->where('id', $form['subcategoria_id'])->first()->nombre ?? 'N/A' }}</option>
+                                        <option value="{{ $form['subcategoria_id'] }}">{{ collect($subcategorias)->where('id', $form['subcategoria_id'])->first()['nombre'] ?? 'N/A' }}</option>
                                     </select>
                                 @else
                                     <select id="subcategoria" class="form-select {{ $this->getClaseCampo('subcategoria') }}" wire:model.live="form.subcategoria_id">
@@ -351,8 +351,8 @@
                                             style="cursor: not-allowed;" 
                                             title="Campo solo de lectura">
                                         <option value="{{ $form['unidad_medida_venta_id'] }}">
-                                            {{ $unidadesMedida->where('id', $form['unidad_medida_venta_id'])->first()->nombre ?? 'N/A' }} 
-                                            ({{ $unidadesMedida->where('id', $form['unidad_medida_venta_id'])->first()->simbolo ?? '' }})
+                                            {{ collect($unidadesMedida)->where('id', $form['unidad_medida_venta_id'])->first()['nombre'] ?? 'N/A' }} 
+                                            ({{ collect($unidadesMedida)->where('id', $form['unidad_medida_venta_id'])->first()['simbolo'] ?? '' }})
                                         </option>
                                     </select>
                                 @else
@@ -392,7 +392,7 @@
                                             disabled 
                                             style="cursor: not-allowed;" 
                                             title="Campo solo de lectura">
-                                        <option value="{{ $form['isv_id'] }}">{{ $isvs->where('id', $form['isv_id'])->first()->cantidad ?? 'N/A' }}%</option>
+                                        <option value="{{ $form['isv_id'] }}">{{ collect($isvs)->where('id', $form['isv_id'])->first()['cantidad'] ?? 'N/A' }}%</option>
                                     </select>
                                 @else
                                     <select id="isv_id" class="form-select {{ $this->getClaseCampo('isv_id') }}" wire:model.defer="form.isv_id">
