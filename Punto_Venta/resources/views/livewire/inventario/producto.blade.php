@@ -97,23 +97,14 @@
             </div>
         </div>
 
-        <!-- INFORMACIÓN DE RESULTADOS CON SELECTOR -->
-        <div class="px-4 py-2 bg-gray-100 border-b flex justify-between items-center">
+        <!-- INFORMACIÓN DE RESULTADOS -->
+        <div class="px-4 py-2 bg-gray-100 border-b">
             <div class="text-sm text-gray-600">
                 Showing {{ $productos->firstItem() ?? 0 }} to {{ $productos->lastItem() ?? 0 }} 
                 of {{ $productos->total() }} results
                 @if($buscar)
                     | Filtrado por: "{{ $buscar }}"
                 @endif
-            </div>
-            <div class="flex items-center gap-2">
-                <label class="text-sm text-gray-600">Show:</label>
-                <select wire:model.live="registrosPorPagina" class="px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500">
-                    <option value="10">10</option>
-                    <option value="25">25</option>
-                    <option value="50">50</option>
-                    <option value="100">100</option>
-                </select>
             </div>
         </div>
 
@@ -136,10 +127,50 @@
                                         @endif
                                     </div>
                                 </th>
-                                <th class="px-4 py-3 text-left border-b">Código</th>
-                                <th class="px-4 py-3 text-left border-b">Categoría</th>
-                                <th class="px-4 py-3 text-left border-b">Marca</th>
-                                <th class="px-4 py-3 text-center border-b">Precio</th>
+                                <th class="px-4 py-3 text-left border-b cursor-pointer hover:bg-gray-100"
+                                    wire:click="ordenar('codigo_barra')">
+                                    <div class="flex items-center space-x-1">
+                                        <span>Código</span>
+                                        @if($ordenarPor === 'codigo_barra')
+                                            <span class="text-blue-500">
+                                                @if($direccionOrden === 'asc') ↑ @else ↓ @endif
+                                            </span>
+                                        @endif
+                                    </div>
+                                </th>
+                                <th class="px-4 py-3 text-left border-b cursor-pointer hover:bg-gray-100"
+                                    wire:click="ordenar('subcategoria_id')">
+                                    <div class="flex items-center space-x-1">
+                                        <span>Categoría</span>
+                                        @if($ordenarPor === 'subcategoria_id')
+                                            <span class="text-blue-500">
+                                                @if($direccionOrden === 'asc') ↑ @else ↓ @endif
+                                            </span>
+                                        @endif
+                                    </div>
+                                </th>
+                                <th class="px-4 py-3 text-left border-b cursor-pointer hover:bg-gray-100"
+                                    wire:click="ordenar('marca_id')">
+                                    <div class="flex items-center space-x-1">
+                                        <span>Marca</span>
+                                        @if($ordenarPor === 'marca_id')
+                                            <span class="text-blue-500">
+                                                @if($direccionOrden === 'asc') ↑ @else ↓ @endif
+                                            </span>
+                                        @endif
+                                    </div>
+                                </th>
+                                <th class="px-4 py-3 text-center border-b cursor-pointer hover:bg-gray-100"
+                                    wire:click="ordenar('precio_base')">
+                                    <div class="flex items-center justify-center space-x-1">
+                                        <span>Precio</span>
+                                        @if($ordenarPor === 'precio_base')
+                                            <span class="text-blue-500">
+                                                @if($direccionOrden === 'asc') ↑ @else ↓ @endif
+                                            </span>
+                                        @endif
+                                    </div>
+                                </th>
                                 <th class="px-4 py-3 text-center border-b cursor-pointer hover:bg-gray-100"
                                     wire:click="ordenar('created_at')">
                                     <div class="flex items-center justify-center space-x-1">
@@ -151,7 +182,17 @@
                                         @endif
                                     </div>
                                 </th>
-                                <th class="px-4 py-3 text-center border-b">Origen</th>
+                                <th class="px-4 py-3 text-center border-b cursor-pointer hover:bg-gray-100"
+                                    wire:click="ordenar('producto_valencia')">
+                                    <div class="flex items-center justify-center space-x-1">
+                                        <span>Origen</span>
+                                        @if($ordenarPor === 'producto_valencia')
+                                            <span class="text-blue-500">
+                                                @if($direccionOrden === 'asc') ↑ @else ↓ @endif
+                                            </span>
+                                        @endif
+                                    </div>
+                                </th>
                                 <th class="px-4 py-3 text-center border-b">Acciones</th>
                             </tr>
                             <!-- Fila de filtros -->
@@ -261,12 +302,23 @@
                     </table>
                 </div>
 
-                <!-- PAGINACIÓN PERSONALIZADA -->
+                <!-- PAGINACIÓN PERSONALIZADA CON SELECTOR -->
                 <div class="mt-4">
                     @if($productos->hasPages())
                         <div class="flex items-center justify-between">
-                            <div class="text-sm text-gray-700">
-                                Showing {{ $productos->firstItem() }} to {{ $productos->lastItem() }} of {{ $productos->total() }} results
+                            <div class="flex items-center gap-4">
+                                <div class="text-sm text-gray-700">
+                                    Showing {{ $productos->firstItem() }} to {{ $productos->lastItem() }} of {{ $productos->total() }} results
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <label class="text-sm text-gray-600">Show:</label>
+                                    <select wire:model.live="registrosPorPagina" class="px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500">
+                                        <option value="10">10</option>
+                                        <option value="25">25</option>
+                                        <option value="50">50</option>
+                                        <option value="100">100</option>
+                                    </select>
+                                </div>
                             </div>
                             <div class="flex space-x-1">
                                 {{-- Previous Page Link --}}
@@ -306,6 +358,21 @@
                                 @else
                                     <span class="px-3 py-2 text-sm text-gray-400 bg-gray-200 border border-gray-300 rounded cursor-not-allowed">Next</span>
                                 @endif
+                            </div>
+                        </div>
+                    @else
+                        <div class="flex items-center gap-4">
+                            <div class="text-sm text-gray-700">
+                                Showing {{ $productos->firstItem() ?? 0 }} to {{ $productos->lastItem() ?? 0 }} of {{ $productos->total() }} results
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <label class="text-sm text-gray-600">Show:</label>
+                                <select wire:model.live="registrosPorPagina" class="px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500">
+                                    <option value="10">10</option>
+                                    <option value="25">25</option>
+                                    <option value="50">50</option>
+                                    <option value="100">100</option>
+                                </select>
                             </div>
                         </div>
                     @endif
