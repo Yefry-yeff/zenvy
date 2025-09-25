@@ -250,7 +250,7 @@ class SincronizarYRecibirBodega extends Command
                 'fecha que se sincroniza' AS fecha_recepcion,
                 NOW() AS created_at,
                 NULL AS updated_at,
-                1 AS estado_id,
+                3 AS estado_id, -- Estado 3 = Distribuido
                 1 AS cliente_id,
                 -- llenado de la tabla compra_has_producto
                 -- precio: si es traslado usa último de compra_has_producto, si no usa el de la compra
@@ -407,7 +407,7 @@ class SincronizarYRecibirBodega extends Command
                 'fecha_recepcion' => now(), // Usar fecha actual en lugar del string
                 'created_at' => $registro->created_at,
                 'updated_at' => $registro->updated_at,
-                'estado_id' => $registro->estado_id,
+                'estado_id' => 3, // Estado 3 = Distribuido
                 'cliente_id' => $registro->cliente_id
             ]);
 
@@ -430,7 +430,7 @@ class SincronizarYRecibirBodega extends Command
             $this->conexionZenvy->table('compra_has_producto')->insert([
                 'precio' => $registro->precio,
                 'cantidad_ingresada' => $registro->cantidad_ingresada,
-                'cantidad_sin_asignar' => $registro->cantidad_sin_asignar,
+                'cantidad_sin_asignar' => 0, // Todos los productos deben estar asignados
                 'fecha_expiracion' => $registro->fecha_expiracion,
                 'sub_total_producto' => $registro->sub_total_producto,
                 'isv' => $registro->isv,
@@ -453,7 +453,7 @@ class SincronizarYRecibirBodega extends Command
                 'seccion_id' => 2, // Sección ID 2 como solicitado
                 'cantidad_compra_lote' => $registro->cantidad_ingresada,
                 'cantidad_inicial_seccion' => $registro->cantidad_ingresada,
-                'cantidad_disponible' => $registro->cantidad_sin_asignar,
+                'cantidad_disponible' => 0, // Todos los productos están asignados, disponible = 0
                 'fecha_recibido' => now()->format('Y-m-d'),
                 'fecha_expiracion' => $registro->fecha_expiracion,
                 'comentario' => "Sincronización automática desde Valencia - Compra ID: {$compraId}",
