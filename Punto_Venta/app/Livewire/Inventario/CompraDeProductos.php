@@ -19,6 +19,13 @@ class CompraDeProductos extends Component
     public $filtroEstado = '';
     public $filtroFecha = '';
 
+    // Propiedades para ordenamiento
+    public $ordenarPor = 'id';
+    public $direccionOrden = 'desc';
+
+    // Propiedades para paginación
+    public $registrosPorPagina = 10;
+
     // Propiedades para alertas
     public $mostrarAlerta = false;
     public $mensajeAlerta = '';
@@ -107,6 +114,28 @@ class CompraDeProductos extends Component
 
     public function updatedFiltroFecha()
     {
+        $this->resetPage();
+    }
+
+    public function updatedRegistrosPorPagina()
+    {
+        $this->resetPage();
+    }
+
+    // Método para ordenamiento
+    public function ordenar($campo)
+    {
+        if ($this->ordenarPor === $campo) {
+            $this->direccionOrden = $this->direccionOrden === 'asc' ? 'desc' : 'asc';
+        } else {
+            $this->ordenarPor = $campo;
+            $this->direccionOrden = 'asc';
+            
+            // Para ID, empezar siempre en DESC
+            if ($campo === 'id') {
+                $this->direccionOrden = 'desc';
+            }
+        }
         $this->resetPage();
     }
 
@@ -347,8 +376,43 @@ class CompraDeProductos extends Component
             });
         }
 
-        // Ordenar por ID descendente: el último ID creado (más alto) aparece primero
-        $compras = $query->orderBy('id', 'desc')->paginate(10);
+        // Aplicar ordenamiento dinámico
+        switch ($this->ordenarPor) {
+            case 'numero_factura':
+                $query->orderBy('numero_factura', $this->direccionOrden);
+                break;
+            case 'proveedor':
+                $query->join('proveedors', 'compras.proveedor_id', '=', 'proveedors.id')
+                      ->orderBy('proveedors.nombre', $this->direccionOrden)
+                      ->select('compras.*');
+                break;
+            case 'fecha_emision':
+                $query->orderBy('fecha_emision', $this->direccionOrden);
+                break;
+            case 'fecha_recepcion':
+                $query->orderBy('fecha_recepcion', $this->direccionOrden);
+                break;
+            case 'estado':
+                $query->join('estados', 'compras.estado_id', '=', 'estados.id')
+                      ->orderBy('estados.nombre', $this->direccionOrden)
+                      ->select('compras.*');
+                break;
+            case 'productos':
+                $query->withCount('detallesCompra')
+                      ->orderBy('detalles_compra_count', $this->direccionOrden);
+                break;
+            case 'total':
+                $query->withSum('detallesCompra', 'precio_total')
+                      ->orderBy('detalles_compra_sum_precio_total', $this->direccionOrden);
+                break;
+            case 'id':
+            default:
+                $query->orderBy('id', $this->direccionOrden);
+                break;
+        }
+
+        // Paginación configurable
+        $compras = $query->paginate($this->registrosPorPagina);
 
         return view('livewire.inventario.compra-de-productos', [
             'compras' => $compras
