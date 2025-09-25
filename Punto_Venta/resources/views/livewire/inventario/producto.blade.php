@@ -75,7 +75,7 @@
 
         <!-- FILTROS Y BÚSQUEDA -->
         <div class="px-4 py-3 bg-gray-50 border-b">
-            <div class="grid grid-cols-1 gap-4 md:grid-cols-4">
+            <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
                 <!-- Búsqueda -->
                 <div class="md:col-span-2">
                     <label class="block text-sm font-medium text-gray-700 mb-1">Buscar</label>
@@ -94,27 +94,27 @@
                         <option value="valencia">🏢 Valencia</option>
                     </select>
                 </div>
-
-                <!-- Registros por página -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Por página</label>
-                    <select wire:model.live="registrosPorPagina" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500">
-                        <option value="10">10</option>
-                        <option value="25">25</option>
-                        <option value="50">50</option>
-                        <option value="100">100</option>
-                    </select>
-                </div>
             </div>
         </div>
 
-        <!-- INFORMACIÓN DE RESULTADOS -->
-        <div class="px-4 py-2 bg-gray-100 border-b text-sm text-gray-600">
-            Mostrando {{ $productos->firstItem() ?? 0 }} - {{ $productos->lastItem() ?? 0 }} 
-            de {{ $productos->total() }} productos
-            @if($buscar)
-                | Filtrado por: "{{ $buscar }}"
-            @endif
+        <!-- INFORMACIÓN DE RESULTADOS CON SELECTOR -->
+        <div class="px-4 py-2 bg-gray-100 border-b flex justify-between items-center">
+            <div class="text-sm text-gray-600">
+                Showing {{ $productos->firstItem() ?? 0 }} to {{ $productos->lastItem() ?? 0 }} 
+                of {{ $productos->total() }} results
+                @if($buscar)
+                    | Filtrado por: "{{ $buscar }}"
+                @endif
+            </div>
+            <div class="flex items-center gap-2">
+                <label class="text-sm text-gray-600">Show:</label>
+                <select wire:model.live="registrosPorPagina" class="px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500">
+                    <option value="10">10</option>
+                    <option value="25">25</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                </select>
+            </div>
         </div>
 
         <!-- TABLA OPTIMIZADA -->
@@ -123,6 +123,7 @@
                 <div class="overflow-x-auto">
                     <table class="min-w-full table-auto border border-gray-200">
                         <thead class="bg-gray-50">
+                            <!-- Encabezados con ordenamiento -->
                             <tr>
                                 <th class="px-4 py-3 text-left border-b cursor-pointer hover:bg-gray-100" 
                                     wire:click="ordenar('nombre')">
@@ -152,6 +153,48 @@
                                 </th>
                                 <th class="px-4 py-3 text-center border-b">Origen</th>
                                 <th class="px-4 py-3 text-center border-b">Acciones</th>
+                            </tr>
+                            <!-- Fila de filtros -->
+                            <tr class="bg-gray-100">
+                                <th class="px-4 py-2 border-b">
+                                    <input type="text" 
+                                           wire:model.live.debounce.300ms="filtroNombre"
+                                           placeholder="Filtrar..."
+                                           class="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500">
+                                </th>
+                                <th class="px-4 py-2 border-b">
+                                    <input type="text" 
+                                           wire:model.live.debounce.300ms="filtroCodigo"
+                                           placeholder="Filtrar..."
+                                           class="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500">
+                                </th>
+                                <th class="px-4 py-2 border-b">
+                                    <input type="text" 
+                                           wire:model.live.debounce.300ms="filtroCategoria"
+                                           placeholder="Filtrar..."
+                                           class="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500">
+                                </th>
+                                <th class="px-4 py-2 border-b">
+                                    <input type="text" 
+                                           wire:model.live.debounce.300ms="filtroMarca"
+                                           placeholder="Filtrar..."
+                                           class="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500">
+                                </th>
+                                <th class="px-4 py-2 border-b">
+                                    <input type="text" 
+                                           wire:model.live.debounce.300ms="filtroPrecio"
+                                           placeholder="Filtrar..."
+                                           class="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500">
+                                </th>
+                                <th class="px-4 py-2 border-b">
+                                    <!-- Sin filtro para fecha -->
+                                </th>
+                                <th class="px-4 py-2 border-b">
+                                    <!-- Sin filtro para origen -->
+                                </th>
+                                <th class="px-4 py-2 border-b">
+                                    <!-- Sin filtro para acciones -->
+                                </th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-200">
@@ -218,9 +261,54 @@
                     </table>
                 </div>
 
-                <!-- PAGINACIÓN -->
+                <!-- PAGINACIÓN PERSONALIZADA -->
                 <div class="mt-4">
-                    {{ $productos->links() }}
+                    @if($productos->hasPages())
+                        <div class="flex items-center justify-between">
+                            <div class="text-sm text-gray-700">
+                                Showing {{ $productos->firstItem() }} to {{ $productos->lastItem() }} of {{ $productos->total() }} results
+                            </div>
+                            <div class="flex space-x-1">
+                                {{-- Previous Page Link --}}
+                                @if($productos->onFirstPage())
+                                    <span class="px-3 py-2 text-sm text-gray-400 bg-gray-200 border border-gray-300 rounded cursor-not-allowed">Previous</span>
+                                @else
+                                    <button wire:click="previousPage" class="px-3 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50">Previous</button>
+                                @endif
+
+                                {{-- Pagination Elements --}}
+                                @php
+                                    $currentPage = $productos->currentPage();
+                                    $lastPage = $productos->lastPage();
+                                    $start = max(1, min($currentPage - 2, $lastPage - 4));
+                                    $end = min($start + 4, $lastPage);
+                                @endphp
+
+                                @for($page = $start; $page <= min($end, $lastPage); $page++)
+                                    @if($page == $currentPage)
+                                        <span class="px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-300 rounded">{{ $page }}</span>
+                                    @else
+                                        <button wire:click="gotoPage({{ $page }})" class="px-3 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50">{{ $page }}</button>
+                                    @endif
+                                @endfor
+
+                                {{-- Show last page if not already shown --}}
+                                @if($end < $lastPage)
+                                    @if($end < $lastPage - 1)
+                                        <span class="px-3 py-2 text-sm text-gray-400">...</span>
+                                    @endif
+                                    <button wire:click="gotoPage({{ $lastPage }})" class="px-3 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50">{{ $lastPage }}</button>
+                                @endif
+
+                                {{-- Next Page Link --}}
+                                @if($productos->hasMorePages())
+                                    <button wire:click="nextPage" class="px-3 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50">Next</button>
+                                @else
+                                    <span class="px-3 py-2 text-sm text-gray-400 bg-gray-200 border border-gray-300 rounded cursor-not-allowed">Next</span>
+                                @endif
+                            </div>
+                        </div>
+                    @endif
                 </div>
             @else
                 <div class="text-center py-12">

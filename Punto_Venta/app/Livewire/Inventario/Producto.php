@@ -15,9 +15,16 @@ class Producto extends Component
     // Propiedades de paginación y búsqueda
     public $buscar = '';
     public $filtroOrigen = 'todos'; // todos, valencia, zenvy
-    public $registrosPorPagina = 25;
+    public $registrosPorPagina = 10; // Cambiado a 10
     public $ordenarPor = 'nombre';
     public $direccionOrden = 'asc';
+    
+    // Filtros por columna
+    public $filtroNombre = '';
+    public $filtroCodigo = '';
+    public $filtroCategoria = '';
+    public $filtroMarca = '';
+    public $filtroPrecio = '';
 
     // Modales y estados
     public $modalEliminarAbierto = false;
@@ -39,7 +46,12 @@ class Producto extends Component
         'buscar' => ['except' => ''],
         'filtroOrigen' => ['except' => 'todos'],
         'ordenarPor' => ['except' => 'nombre'],
-        'direccionOrden' => ['except' => 'asc']
+        'direccionOrden' => ['except' => 'asc'],
+        'filtroNombre' => ['except' => ''],
+        'filtroCodigo' => ['except' => ''],
+        'filtroCategoria' => ['except' => ''],
+        'filtroMarca' => ['except' => ''],
+        'filtroPrecio' => ['except' => '']
     ];
 
     // Métodos de filtrado y búsqueda
@@ -49,6 +61,31 @@ class Producto extends Component
     }
 
     public function updatingFiltroOrigen()
+    {
+        $this->resetPage();
+    }
+
+    public function updatingFiltroNombre()
+    {
+        $this->resetPage();
+    }
+
+    public function updatingFiltroCodigo()
+    {
+        $this->resetPage();
+    }
+
+    public function updatingFiltroCategoria()
+    {
+        $this->resetPage();
+    }
+
+    public function updatingFiltroMarca()
+    {
+        $this->resetPage();
+    }
+
+    public function updatingFiltroPrecio()
     {
         $this->resetPage();
     }
@@ -75,7 +112,7 @@ class Producto extends Component
     public function mount()
     {
         // Inicialización básica sin cargar datos
-        $this->registrosPorPagina = 25; // Cantidad optimizada
+        $this->registrosPorPagina = 10; // Paginación por defecto en 10
     }
 
     public function render()
@@ -100,6 +137,31 @@ class Producto extends Component
                   ->orWhere('codigo_barra', 'LIKE', '%' . $this->buscar . '%')
                   ->orWhere('descripcion', 'LIKE', '%' . $this->buscar . '%');
             });
+        }
+
+        // Aplicar filtros individuales
+        if (!empty($this->filtroNombre)) {
+            $query->where('nombre', 'LIKE', '%' . $this->filtroNombre . '%');
+        }
+
+        if (!empty($this->filtroCodigo)) {
+            $query->where('codigo_barra', 'LIKE', '%' . $this->filtroCodigo . '%');
+        }
+
+        if (!empty($this->filtroCategoria)) {
+            $query->whereHas('subcategoria.categoria', function($q) {
+                $q->where('nombre', 'LIKE', '%' . $this->filtroCategoria . '%');
+            });
+        }
+
+        if (!empty($this->filtroMarca)) {
+            $query->whereHas('marca', function($q) {
+                $q->where('nombre', 'LIKE', '%' . $this->filtroMarca . '%');
+            });
+        }
+
+        if (!empty($this->filtroPrecio)) {
+            $query->where('precio_base', 'LIKE', '%' . $this->filtroPrecio . '%');
         }
 
         // Aplicar filtro de origen
