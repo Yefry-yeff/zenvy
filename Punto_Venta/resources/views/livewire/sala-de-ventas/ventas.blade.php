@@ -594,7 +594,27 @@
                                                         @foreach($precios as $tipo => $precio)
                                                             <option value="{{ $tipo }}" 
                                                                     {{ $tipoPrecioActual == $tipo ? 'selected' : '' }}>
-                                                                {{ ucfirst(str_replace('_', ' ', $tipo)) }}: L. {{ number_format($precio, 2) }}
+                                                                @php
+                                                                    $nombrePrecio = $tipo;
+                                                                    switch($tipo) {
+                                                                        case 'precio1':
+                                                                            $nombrePrecio = 'Precio A';
+                                                                            break;
+                                                                        case 'precio2':
+                                                                            $nombrePrecio = 'Precio B';
+                                                                            break;
+                                                                        case 'precio3':
+                                                                            $nombrePrecio = 'Precio C';
+                                                                            break;
+                                                                        case 'precio4':
+                                                                            $nombrePrecio = 'Precio D';
+                                                                            break;
+                                                                        case 'precio_base':
+                                                                            $nombrePrecio = 'Precio Base';
+                                                                            break;
+                                                                    }
+                                                                @endphp
+                                                                {{ $nombrePrecio }}: L. {{ number_format($precio, 2) }}
                                                             </option>
                                                         @endforeach
                                                     </select>
