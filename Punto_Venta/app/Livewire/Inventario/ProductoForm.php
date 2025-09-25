@@ -181,7 +181,7 @@ class ProductoForm extends Component
     {
         if (!$this->unidadesLoaded) {
             $this->unidadesMedida = DB::table('unidad_medida')
-                ->select('id', 'nombre')
+                ->select('id', 'nombre', 'simbolo')
                 ->orderBy('nombre')
                 ->get();
             $this->unidadesLoaded = true;
@@ -277,6 +277,11 @@ class ProductoForm extends Component
                     $this->cargarSubcategorias();
                 }
             }
+
+            // Cargar todos los datos necesarios para edición
+            $this->cargarMarcas();
+            $this->cargarUnidadesMedida(); 
+            $this->cargarIsvs();
 
             // Marcar si tiene imagen anterior (sin cargar los datos BLOB)
             $this->tieneImagenAnterior = $producto->imagen !== null;
