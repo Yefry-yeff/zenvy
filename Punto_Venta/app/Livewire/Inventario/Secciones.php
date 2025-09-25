@@ -34,8 +34,7 @@ class Secciones extends Component
 
     protected $queryString = [
         'buscar' => ['except' => ''],
-        'filtroEstado' => ['except' => ''],
-        'page' => ['except' => 1]
+        'filtroEstado' => ['except' => '']
     ];
 
     public function mount($bodegaId, $segmentoId)
