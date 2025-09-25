@@ -25,6 +25,10 @@ class CompraDeProductos extends Component
 
     // Propiedades para paginación
     public $registrosPorPagina = 10;
+    public $page = 1; // Agregamos la propiedad page
+
+    // REMOVIDO: protected $queryString - Ya no persiste parámetros en URL
+    // Los filtros se manejarán solo con sesión
 
     // Propiedades para alertas
     public $mostrarAlerta = false;
@@ -45,6 +49,87 @@ class CompraDeProductos extends Component
     public $detallesSincronizacion = null;
 
     private $sincronizacionService;
+
+    public function boot()
+    {
+        // Simplemente marcar el componente activo - DynamicContent maneja la limpieza URL
+        session(['current_component' => 'compra-de-productos']);
+    }
+
+    public function hydrate()
+    {
+        // Solo verificar compatibilidad básica - DynamicContent maneja los redirects
+        $parametrosURL = request()->query();
+        
+        if (!empty($parametrosURL)) {
+            // Solo verificar parámetros críticos que definitivamente no pertenecen aquí
+            $parametrosProhibidos = ['filtroProducto', 'filtroBodega', 'filtroMarca'];
+            
+            foreach ($parametrosProhibidos as $param) {
+                if (isset($parametrosURL[$param])) {
+                    // Dejar que DynamicContent maneje el redirect
+                    return;
+                }
+            }
+        }
+    }
+    
+    public function dehydrate()
+    {
+        // Guardar filtros en sesión en cada actualización
+        session(['compras_filtros' => [
+            'busqueda' => $this->busqueda,
+            'filtroEstado' => $this->filtroEstado,
+            'filtroFecha' => $this->filtroFecha,
+            'ordenarPor' => $this->ordenarPor,
+            'direccionOrden' => $this->direccionOrden,
+            'page' => $this->page
+        ]]);
+    }
+
+    public function booted()
+    {
+        // Inicializar servicio
+        $this->sincronizacionService = app(SincronizacionComprasService::class);
+    }
+
+    public function mount()
+    {
+        // Restaurar filtros desde sesión si existen
+        $filtrosSesion = session('compras_filtros');
+        if ($filtrosSesion) {
+            $this->busqueda = $filtrosSesion['busqueda'] ?? '';
+            $this->filtroEstado = $filtrosSesion['filtroEstado'] ?? '';
+            $this->filtroFecha = $filtrosSesion['filtroFecha'] ?? '';
+            $this->ordenarPor = $filtrosSesion['ordenarPor'] ?? 'id';
+            $this->direccionOrden = $filtrosSesion['direccionOrden'] ?? 'desc';
+            $this->page = $filtrosSesion['page'] ?? 1;
+        }
+        
+        // Detectar si hay parámetros de otra vista
+        $parametrosURL = request()->query();
+        $parametrosOtraVista = ['filtroProducto', 'filtroBodega', 'filtroMarca']; // Parámetros exclusivos de lista-de-productos
+        
+        foreach ($parametrosOtraVista as $param) {
+            if (isset($parametrosURL[$param])) {
+                // Si hay parámetros de otra vista, hacer redirect limpio
+                return redirect()->route('dashboard');
+            }
+        }
+        
+        if (session('reset_compras_params')) {
+            session()->forget('reset_compras_params');
+            $this->ordenarPor = 'id';
+            $this->direccionOrden = 'desc';
+            $this->busqueda = '';
+            $this->filtroEstado = '';
+            $this->filtroFecha = '';
+            $this->page = 1; // Resetear también la página
+            $this->resetPage();
+        }
+        
+        session(['current_component' => 'compra-de-productos']);
+    }
 
         // Escuchar evento de distribución completada
     #[On('compra-distribuida')]
@@ -137,6 +222,18 @@ class CompraDeProductos extends Component
             }
         }
         $this->resetPage();
+    }
+
+    // Limpiar completamente al destruir el componente
+    public function destroying()
+    {
+        // Limpiar todas las sesiones relacionadas incluyendo filtros
+        session()->forget(['compras_ordenamiento', 'current_component', 'reset_compras_params', 'compras_filtros']);
+        
+        // Si hay parámetros en URL, forzar redirect limpio al dashboard
+        if (request()->has(['ordenarPor', 'direccionOrden', 'busqueda', 'filtroEstado', 'filtroFecha', 'page'])) {
+            $this->redirectRoute('dashboard', navigate: true);
+        }
     }
 
     // Método para agregar nueva compra

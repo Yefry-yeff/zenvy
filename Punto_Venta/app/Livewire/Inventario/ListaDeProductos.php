@@ -21,6 +21,7 @@ class ListaDeProductos extends Component
     public $registrosPorPagina = 10;
     public $ordenarPor = 'fecha_recibido';
     public $direccionOrden = 'desc';
+    public $page = 1; // Agregamos la propiedad page
     
     // Filtros
     public $filtroProducto = '';
@@ -32,18 +33,99 @@ class ListaDeProductos extends Component
     public $bodegas = [];
     public $marcas = [];
 
-    protected $queryString = [
-        'filtroProducto' => ['except' => ''],
-        'filtroBodega' => ['except' => ''],
-        'filtroEstado' => ['except' => ''],
-        'filtroMarca' => ['except' => ''],
-        'ordenarPor' => ['except' => 'fecha_recibido'],
-        'direccionOrden' => ['except' => 'desc'],
-    ];
+    // REMOVIDO: protected $queryString - Ya no persiste parámetros en URL
+    // Los filtros se manejarán solo con sesión
 
     public function mount()
     {
+        // Restaurar filtros desde sesión si existen
+        $filtrosSesion = session('productos_filtros');
+        if ($filtrosSesion) {
+            $this->filtroProducto = $filtrosSesion['filtroProducto'] ?? '';
+            $this->filtroBodega = $filtrosSesion['filtroBodega'] ?? '';
+            $this->filtroEstado = $filtrosSesion['filtroEstado'] ?? '';
+            $this->filtroMarca = $filtrosSesion['filtroMarca'] ?? '';
+            $this->ordenarPor = $filtrosSesion['ordenarPor'] ?? 'fecha_recibido';
+            $this->direccionOrden = $filtrosSesion['direccionOrden'] ?? 'desc';
+            $this->page = $filtrosSesion['page'] ?? 1;
+        }
+        
+        // Detectar si hay parámetros de otra vista
+        $parametrosURL = request()->query();
+        $parametrosOtraVista = ['busqueda', 'filtroFecha']; // Parámetros exclusivos de compra-de-productos
+        
+        foreach ($parametrosOtraVista as $param) {
+            if (isset($parametrosURL[$param])) {
+                // Si hay parámetros de otra vista, hacer redirect limpio
+                return redirect()->route('dashboard');
+            }
+        }
+        
+        // Verificar si se necesita resetear parámetros
+        if (session('reset_lista_productos_params')) {
+            session()->forget('reset_lista_productos_params');
+            $this->ordenarPor = 'fecha_recibido';
+            $this->direccionOrden = 'desc';
+            $this->filtroProducto = '';
+            $this->filtroBodega = '';
+            $this->filtroEstado = '';
+            $this->filtroMarca = '';
+            $this->page = 1; // Resetear también la página
+            $this->resetPage();
+        }
+        
+        session(['current_component' => 'lista-de-productos']);
         $this->cargarFiltros();
+    }
+
+    public function boot()
+    {
+        // Simplemente marcar el componente activo - DynamicContent maneja la limpieza URL
+        session(['current_component' => 'lista-de-productos']);
+    }
+
+    public function hydrate()
+    {
+        // Solo verificar compatibilidad básica - DynamicContent maneja los redirects
+        $parametrosURL = request()->query();
+        
+        if (!empty($parametrosURL)) {
+            // Solo verificar parámetros críticos que definitivamente no pertenecen aquí
+            $parametrosProhibidos = ['busqueda', 'filtroFecha'];
+            
+            foreach ($parametrosProhibidos as $param) {
+                if (isset($parametrosURL[$param])) {
+                    // Dejar que DynamicContent maneje el redirect
+                    return;
+                }
+            }
+        }
+    }
+    
+    public function dehydrate()
+    {
+        // Guardar filtros en sesión en cada actualización
+        session(['productos_filtros' => [
+            'filtroProducto' => $this->filtroProducto,
+            'filtroBodega' => $this->filtroBodega,
+            'filtroEstado' => $this->filtroEstado,
+            'filtroMarca' => $this->filtroMarca,
+            'ordenarPor' => $this->ordenarPor,
+            'direccionOrden' => $this->direccionOrden,
+            'page' => $this->page
+        ]]);
+    }
+
+    // Limpiar completamente al destruir el componente  
+    public function destroying()
+    {
+        // Limpiar todas las sesiones relacionadas incluyendo filtros
+        session()->forget(['lista_productos_ordenamiento', 'current_component', 'reset_lista_productos_params', 'productos_filtros']);
+        
+        // Si hay parámetros en URL, forzar redirect limpio al dashboard
+        if (request()->has(['ordenarPor', 'direccionOrden', 'filtroProducto', 'filtroBodega', 'filtroEstado', 'filtroMarca', 'page'])) {
+            $this->redirectRoute('dashboard', navigate: true);
+        }
     }
 
     public function ordenar($campo)
