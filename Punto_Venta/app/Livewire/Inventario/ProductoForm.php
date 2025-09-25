@@ -79,8 +79,8 @@ class ProductoForm extends Component
     private $sincronizacionProductosService;
 
     protected $rules = [
-        'form.nombre' => 'required|string|max:80',
-        'form.descripcion' => 'nullable|string|max:45',
+        'form.nombre' => 'required|string|max:255',
+        'form.descripcion' => 'nullable|string|max:255',
         'form.codigo_barra' => 'nullable|string|max:100',
         'form.codigo_estatal' => 'nullable|string|max:45',
         'form.estado_id' => 'required|integer',
@@ -104,8 +104,8 @@ class ProductoForm extends Component
 
     protected $messages = [
         'form.nombre.required' => 'El nombre es obligatorio',
-        'form.nombre.max' => 'El nombre no puede exceder 80 caracteres',
-        'form.descripcion.max' => 'La descripción no puede exceder 45 caracteres',
+        'form.nombre.max' => 'El nombre no puede exceder 255 caracteres',
+        'form.descripcion.max' => 'La descripción no puede exceder 255 caracteres',
         'form.codigo_barra.unique' => 'Este código de barras ya está en uso por otro producto',
         'form.subcategoria_id.required' => 'La subcategoría es obligatoria',
         'form.subcategoria_id.exists' => 'La subcategoría seleccionada no existe',
