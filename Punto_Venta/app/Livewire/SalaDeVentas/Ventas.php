@@ -54,25 +54,6 @@ class Ventas extends Component
 
     // Búsqueda de productos
     public $codigoBarras = '';
-    public $cantidad = 1;
-
-    // Setter para asegurar que cantidad siempre sea un entero válido
-    public function updatedCantidad($value)
-    {
-        $this->cantidad = $this->normalizarCantidad($value);
-    }
-
-    /**
-     * Normaliza la cantidad para asegurar que sea un entero positivo válido
-     * 
-     * @param mixed $cantidad La cantidad a normalizar
-     * @return int La cantidad normalizada como entero
-     */
-    private function normalizarCantidad($cantidad)
-    {
-        $cantidadInt = (int)$cantidad;
-        return $cantidadInt > 0 ? $cantidadInt : 1;
-    }
 
     // Productos en la factura
     public $productosFactura = [];
@@ -737,10 +718,9 @@ class Ventas extends Component
             return;
         }
 
-        // DEBUG: Log del valor de cantidad antes de validar
+        // DEBUG: Log del valor antes de validar
         Log::info("DEBUG agregarProductoPorCodigo", [
             'codigo_barras' => $this->codigoBarras,
-            'cantidad_campo' => $this->cantidad,
             'productos_en_carrito' => count($this->productosFactura)
         ]);
 
@@ -751,8 +731,8 @@ class Ventas extends Component
             return;
         }
 
-        // Validar stock en bodega principal antes de agregar
-        if (!$this->validarStockProducto($producto->id, (int)$this->cantidad)) {
+        // Validar stock en bodega principal antes de agregar (cantidad fija de 1)
+        if (!$this->validarStockProducto($producto->id, 1)) {
             return; // El error ya se muestra en validarStockProducto
         }
 
@@ -760,8 +740,8 @@ class Ventas extends Component
         $productoExistente = false;
         foreach ($this->productosFactura as $index => $item) {
             if ($item['id'] == $producto->id) {
-                // Actualizar la cantidad - Convertir a enteros para evitar errores de tipos
-                $cantidadTotal = (int)$item['cantidad'] + (int)$this->cantidad;
+                // Actualizar la cantidad - Sumar 1 unidad
+                $cantidadTotal = (int)$item['cantidad'] + 1;
                 $this->productosFactura[$index]['cantidad'] = $cantidadTotal;
 
                 // Recalcular el descuento unitario aplicado con la nueva cantidad
@@ -784,13 +764,13 @@ class Ventas extends Component
             // Obtener el valor de ISV desde la relación
             $valorIsv = $producto->isv ? $producto->isv->cantidad : 0;
 
-            // Calcular descuento unitario automático si existe (valor monetario directo)
-            $subtotalOriginal = $producto->precio_base * (int)$this->cantidad;
+            // Calcular descuento unitario automático si existe (valor monetario directo para cantidad de 1)
+            $subtotalOriginal = $producto->precio_base * 1;
             $descuentoUnitarioAplicado = 0;
 
             if (($producto->descuento_unitario ?? 0) > 0) {
-                // El descuento es un valor monetario que se aplica por cantidad
-                $descuentoUnitarioAplicado = $producto->descuento_unitario * (int)$this->cantidad;
+                // El descuento es un valor monetario que se aplica por cantidad (1 en este caso)
+                $descuentoUnitarioAplicado = $producto->descuento_unitario * 1;
             }
 
             $this->productosFactura[] = [
@@ -799,7 +779,7 @@ class Ventas extends Component
                 'codigo' => $producto->codigo_barra,
                 'precio' => $producto->precio_base,
                 'isv' => $valorIsv,
-                'cantidad' => (int)$this->cantidad,
+                'cantidad' => 1,
                 'descuento_tercera' => $producto->descuento_tercera ?? 0,
                 'descuento_cuarta' => $producto->descuento_cuarta ?? 0,
                 'descuento_unitario_producto' => $producto->descuento_unitario ?? 0,
@@ -814,13 +794,11 @@ class Ventas extends Component
             }
         }
 
-        // Limpiar campos y mantener el foco en el input
+        // Limpiar campo de código de barras
         $this->codigoBarras = '';
-        $this->cantidad = 1;
 
         // DEBUG: Log después de resetear
         Log::info("DEBUG después de reseteo", [
-            'cantidad_despues_reset' => $this->cantidad,
             'codigo_barras_despues_reset' => $this->codigoBarras
         ]);
 
@@ -3098,8 +3076,8 @@ class Ventas extends Component
 
     public function validarStockProducto($productoId, $cantidadSolicitada)
     {
-        // Normalizar cantidad solicitada a entero
-        $cantidadSolicitada = $this->normalizarCantidad($cantidadSolicitada);
+        // Usar cantidad fija de 1 (funcionalidad de cantidad manual removida)
+        $cantidadSolicitada = 1;
         
         if (!$this->tiendaUsuario) {
             $this->mostrarModalSinStock = true;
@@ -3241,7 +3219,7 @@ class Ventas extends Component
             }
 
             // Log para debug
-            Log::info("agregarProductoPorClic - ProductoId: {$productoId}, Cantidad actual: {$this->cantidad}");
+            Log::info("agregarProductoPorClic - ProductoId: {$productoId}");
             Log::info("Productos en factura antes: ", $this->productosFactura);
 
             // Verificar stock disponible
@@ -3258,8 +3236,8 @@ class Ventas extends Component
                     // Log para debug
                     Log::info("Producto existente encontrado en índice {$index}, cantidad actual: {$item['cantidad']}");
 
-                    // Verificar que no exceda el stock
-                    $nuevaCantidad = (int)$this->productosFactura[$index]['cantidad'] + (int)$this->cantidad;
+                    // Verificar que no exceda el stock (sumar 1 unidad)
+                    $nuevaCantidad = (int)$this->productosFactura[$index]['cantidad'] + 1;
                     Log::info("Nueva cantidad será: {$nuevaCantidad}, stock disponible: {$stockDisponible}");
 
                     if ($nuevaCantidad > $stockDisponible) {
@@ -3291,7 +3269,7 @@ class Ventas extends Component
                 // Obtener el valor de ISV desde la relación
                 $valorIsv = $producto->isv ? $producto->isv->cantidad : 0;
 
-                // Calcular descuento unitario automático si existe
+                // Calcular descuento unitario automático si existe (para cantidad de 1)
                 $subtotalOriginal = $producto->precio_base;
                 $descuentoUnitarioAplicado = 0;
 
@@ -3306,7 +3284,7 @@ class Ventas extends Component
                     'codigo' => $producto->codigo_barra,
                     'precio' => $producto->precio_base,
                     'isv' => $valorIsv,
-                    'cantidad' => (int)$this->cantidad,
+                    'cantidad' => 1,
                     'descuento_tercera' => $producto->descuento_tercera ?? 0,
                     'descuento_cuarta' => $producto->descuento_cuarta ?? 0,
                     'descuento_unitario_producto' => $producto->descuento_unitario ?? 0,
@@ -3359,7 +3337,6 @@ class Ventas extends Component
 
         // Limpiar campos de entrada
         $this->codigoBarras = '';
-        $this->cantidad = 1;
 
         // Resetear bandera de procesamiento
         $this->procesandoVenta = false;

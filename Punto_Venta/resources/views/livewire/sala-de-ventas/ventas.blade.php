@@ -476,7 +476,7 @@
                             }
                         }" class="mb-4">
                             <form wire:submit.prevent="agregarProductoPorCodigo">
-                                <div class="flex flex-wrap gap-2 mb-4">
+                                <div class="mb-4">
                                     <div class="flex-1">
                                         <label for="codigo_barras" class="block mb-1 text-sm font-medium text-gray-700">Escanear código de barras</label>
                                         <input type="text"
@@ -489,14 +489,6 @@
                                             @keydown.enter="$event.target.value = ''; $event.target.focus()"
                                             @enfocar-input-codigo.window="$event.target.focus()"
                                             autofocus>
-                                    </div>
-                                    <div class="w-32">
-                                        <label for="cantidad" class="block mb-1 text-sm font-medium text-gray-700">Cantidad</label>
-                                        <input type="number"
-                                            id="cantidad"
-                                            wire:model.live="cantidad"
-                                            class="w-full form-control"
-                                            min="1">
                                     </div>
                                 </div>
                             </form>
