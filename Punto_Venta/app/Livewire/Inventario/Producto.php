@@ -18,6 +18,7 @@ class Producto extends Component
     public $registrosPorPagina = 10; // Cambiado a 10
     public $ordenarPor = 'nombre';
     public $direccionOrden = 'asc';
+    public $page = 1; // Agregar propiedad page
     
     // Filtros por columna
     public $filtroNombre = '';
@@ -42,17 +43,8 @@ class Producto extends Component
 
     private $sincronizacionService;
 
-    protected $queryString = [
-        'buscar' => ['except' => ''],
-        'filtroOrigen' => ['except' => 'todos'],
-        'ordenarPor' => ['except' => 'nombre'],
-        'direccionOrden' => ['except' => 'asc'],
-        'filtroNombre' => ['except' => ''],
-        'filtroCodigo' => ['except' => ''],
-        'filtroCategoria' => ['except' => ''],
-        'filtroMarca' => ['except' => ''],
-        'filtroPrecio' => ['except' => '']
-    ];
+    // REMOVIDO: protected $queryString - Ya no persiste parámetros en URL
+    // Los filtros se manejarán solo con sesión
 
     // Métodos de filtrado y búsqueda
     public function updatingBuscar()
@@ -109,10 +101,69 @@ class Producto extends Component
         return $this->sincronizacionService;
     }
 
+    public function boot()
+    {
+        // Simplemente marcar el componente activo - DynamicContent maneja la limpieza URL
+        session(['current_component' => 'producto']);
+    }
+
+    public function hydrate()
+    {
+        // Solo verificar compatibilidad básica - DynamicContent maneja los redirects
+        $parametrosURL = request()->query();
+        
+        if (!empty($parametrosURL)) {
+            // Solo verificar parámetros críticos que definitivamente no pertenecen aquí
+            $parametrosProhibidos = ['busqueda', 'filtroEstado', 'filtroFecha', 'filtroProducto', 'filtroBodega'];
+            
+            foreach ($parametrosProhibidos as $param) {
+                if (isset($parametrosURL[$param])) {
+                    // Dejar que DynamicContent maneje el redirect
+                    return;
+                }
+            }
+        }
+    }
+    
+    public function dehydrate()
+    {
+        // Guardar filtros en sesión en cada actualización
+        session(['producto_filtros' => [
+            'buscar' => $this->buscar,
+            'filtroOrigen' => $this->filtroOrigen,
+            'ordenarPor' => $this->ordenarPor,
+            'direccionOrden' => $this->direccionOrden,
+            'filtroNombre' => $this->filtroNombre,
+            'filtroCodigo' => $this->filtroCodigo,
+            'filtroCategoria' => $this->filtroCategoria,
+            'filtroMarca' => $this->filtroMarca,
+            'filtroPrecio' => $this->filtroPrecio,
+            'page' => $this->page
+        ]]);
+    }
+
     public function mount()
     {
+        // Restaurar filtros desde sesión si existen
+        $filtrosSesion = session('producto_filtros');
+        if ($filtrosSesion) {
+            $this->buscar = $filtrosSesion['buscar'] ?? '';
+            $this->filtroOrigen = $filtrosSesion['filtroOrigen'] ?? 'todos';
+            $this->ordenarPor = $filtrosSesion['ordenarPor'] ?? 'nombre';
+            $this->direccionOrden = $filtrosSesion['direccionOrden'] ?? 'asc';
+            $this->filtroNombre = $filtrosSesion['filtroNombre'] ?? '';
+            $this->filtroCodigo = $filtrosSesion['filtroCodigo'] ?? '';
+            $this->filtroCategoria = $filtrosSesion['filtroCategoria'] ?? '';
+            $this->filtroMarca = $filtrosSesion['filtroMarca'] ?? '';
+            $this->filtroPrecio = $filtrosSesion['filtroPrecio'] ?? '';
+            $this->page = $filtrosSesion['page'] ?? 1;
+        }
+        
         // Inicialización básica sin cargar datos
         $this->registrosPorPagina = 10; // Paginación por defecto en 10
+        
+        // Marcar componente activo
+        session(['current_component' => 'producto']);
     }
 
     public function render()
@@ -398,5 +449,12 @@ class Producto extends Component
             // En caso de error, retornar true para prevenir eliminación accidental
             return true;
         }
+    }
+    
+    // Limpiar completamente al destruir el componente
+    public function destroying()
+    {
+        // Limpiar todas las sesiones relacionadas incluyendo filtros
+        session()->forget(['current_component', 'producto_filtros']);
     }
 }

@@ -54,6 +54,7 @@ class DynamicContent extends Component
         session()->forget([
             'compras_filtros',
             'productos_filtros', 
+            'producto_filtros',
             'categorias_filtros',
             'compras_ordenamiento',
             'lista_productos_ordenamiento'
