@@ -9,6 +9,8 @@ use App\Models\Segmento;
 use App\Models\Seccion;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 
 class Secciones extends Component
 {
@@ -98,7 +100,14 @@ class Secciones extends Component
                 'mensaje' => $e->getMessage()
             ]);
 
-            return collect()->paginate($this->registrosPorPagina);
+            // Crear una paginación vacía manualmente
+            return new LengthAwarePaginator(
+                collect(), // Colección vacía
+                0, // Total de elementos
+                $this->registrosPorPagina, // Elementos por página
+                $this->page, // Página actual
+                ['path' => request()->url()]
+            );
         }
     }
 

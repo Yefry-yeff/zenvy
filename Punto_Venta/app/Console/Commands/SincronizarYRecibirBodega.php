@@ -453,7 +453,7 @@ class SincronizarYRecibirBodega extends Command
                 'seccion_id' => 2, // Sección ID 2 como solicitado
                 'cantidad_compra_lote' => $registro->cantidad_ingresada,
                 'cantidad_inicial_seccion' => $registro->cantidad_ingresada,
-                'cantidad_disponible' => 0, // Todos los productos están asignados, disponible = 0
+                'cantidad_disponible' => $registro->cantidad_ingresada, // Cantidad disponible = cantidad_comprada_lote
                 'fecha_recibido' => now()->format('Y-m-d'),
                 'fecha_expiracion' => $registro->fecha_expiracion,
                 'comentario' => "Sincronización automática desde Valencia - Compra ID: {$compraId}",
