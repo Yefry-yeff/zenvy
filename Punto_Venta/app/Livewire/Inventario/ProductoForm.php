@@ -47,13 +47,19 @@ class ProductoForm extends Component
         'precio4' => 0,
     ];
 
-    // Datos para los selectores
+    // Datos para los selectores (carga bajo demanda)
     public $categorias = [];
     public $subcategorias = [];
     public $marcas = [];
     public $unidadesMedida = [];
     public $isvs = [];
     public $categoriaSeleccionada = null;
+    
+    // Flags para carga lazy
+    public $categoriasLoaded = false;
+    public $marcasLoaded = false;
+    public $unidadesLoaded = false;
+    public $isvsLoaded = false;
 
     // Propiedades para validación backend
     public $mostrarAlerta = false;
@@ -124,7 +130,8 @@ class ProductoForm extends Component
 
     public function mount($id = null)
     {
-        $this->cargarDatosIniciales();
+        // Carga mínima inicial - solo categorías
+        $this->cargarCategorias();
 
         if ($id) {
             $this->productoId = $id;
@@ -133,7 +140,8 @@ class ProductoForm extends Component
             $this->verificarSiEsProductoValencia();
         }
         
-        $this->cargarProductosValencia();
+        // No cargar productos Valencia hasta que sea necesario
+        // $this->cargarProductosValencia();
     }
 
     private function getSincronizacionProductosService()
@@ -146,14 +154,49 @@ class ProductoForm extends Component
 
     public function cargarDatosIniciales()
     {
-        $this->categorias = Categoria::orderBy('nombre')->get();
-        
-        // Usar el servicio de sincronización para obtener marcas actualizadas
-        $sincronizacionService = new SincronizacionMarcasService();
-        $this->marcas = $sincronizacionService->obtenerMarcasDirectas();
-        
-        $this->unidadesMedida = DB::table('unidad_medida')->orderBy('nombre')->get();
-        $this->isvs = DB::table('isv')->orderBy('cantidad')->get();
+        // Solo cargar lo mínimo necesario al inicio
+        if (!$this->categoriasLoaded) {
+            $this->cargarCategorias();
+        }
+    }
+    
+    public function cargarCategorias()
+    {
+        if (!$this->categoriasLoaded) {
+            $this->categorias = Categoria::select('id', 'nombre')->orderBy('nombre')->get();
+            $this->categoriasLoaded = true;
+        }
+    }
+    
+    public function cargarMarcas()
+    {
+        if (!$this->marcasLoaded) {
+            $sincronizacionService = new SincronizacionMarcasService();
+            $this->marcas = $sincronizacionService->obtenerMarcasDirectas();
+            $this->marcasLoaded = true;
+        }
+    }
+    
+    public function cargarUnidadesMedida()
+    {
+        if (!$this->unidadesLoaded) {
+            $this->unidadesMedida = DB::table('unidad_medida')
+                ->select('id', 'nombre')
+                ->orderBy('nombre')
+                ->get();
+            $this->unidadesLoaded = true;
+        }
+    }
+    
+    public function cargarIsvs()
+    {
+        if (!$this->isvsLoaded) {
+            $this->isvs = DB::table('isv')
+                ->select('id', 'cantidad')
+                ->orderBy('cantidad')
+                ->get();
+            $this->isvsLoaded = true;
+        }
     }
 
     public function cargarProducto()
@@ -727,7 +770,7 @@ class ProductoForm extends Component
             $rules['form.precio_base'] = 'required|numeric|min:' . $precio4;
             
             // Agregar mensaje personalizado para esta validación específica
-            $this->messages['form.precio_base.min'] = 'Para productos de Valencia, el precio base no puede ser menor que el precio4 (L. ' . number_format($precio4, 2) . ')';
+            $this->messages['form.precio_base.min'] = 'Para productos de Valencia, el precio base no puede ser menor que el precio4 (L. ' . number_format($precio4 ?? 0, 2) . ')';
         }
         
         return $rules;

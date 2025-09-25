@@ -1,4 +1,4 @@
-var productosZenvyTableObserver = null;
+/*var productosZenvyTableObserver = null;
         function initproductosZenvyTable() {
             setTimeout(function() {
                 var $table = $('#productosZenvyTable');
@@ -38,4 +38,4 @@ var productosZenvyTableObserver = null;
                 });
                 productosZenvyTableObserver.observe(main, { childList: true, subtree: true });
             }
-        });
+        });*/

@@ -1,4 +1,4 @@
- var productosZenvyTableObserver = null;
+ /*var productosZenvyTableObserver = null;
  var productosValenciaTableObserver = null;
 
         function initproductosZenvyTable() {
@@ -81,4 +81,4 @@
                 });
                 productosValenciaTableObserver.observe(main, { childList: true, subtree: true });
             }
-        });
+        });*/

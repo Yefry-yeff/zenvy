@@ -3,12 +3,23 @@
 namespace App\Livewire\Inventario;
 
 use Livewire\Component;
+use Livewire\WithPagination;
 use App\Models\Producto as ProductoModel;
 use App\Services\SincronizacionProductosService;
 use Illuminate\Support\Facades\Auth;
 
 class Producto extends Component
 {
+    use WithPagination;
+
+    // Propiedades de paginación y búsqueda
+    public $buscar = '';
+    public $filtroOrigen = 'todos'; // todos, valencia, zenvy
+    public $registrosPorPagina = 25;
+    public $ordenarPor = 'nombre';
+    public $direccionOrden = 'asc';
+
+    // Modales y estados
     public $modalEliminarAbierto = false;
     public $productoAEliminar = null;
     public $productoSeleccionado = null;
@@ -24,6 +35,35 @@ class Producto extends Component
 
     private $sincronizacionService;
 
+    protected $queryString = [
+        'buscar' => ['except' => ''],
+        'filtroOrigen' => ['except' => 'todos'],
+        'ordenarPor' => ['except' => 'nombre'],
+        'direccionOrden' => ['except' => 'asc']
+    ];
+
+    // Métodos de filtrado y búsqueda
+    public function updatingBuscar()
+    {
+        $this->resetPage();
+    }
+
+    public function updatingFiltroOrigen()
+    {
+        $this->resetPage();
+    }
+
+    public function ordenar($campo)
+    {
+        if ($this->ordenarPor === $campo) {
+            $this->direccionOrden = $this->direccionOrden === 'asc' ? 'desc' : 'asc';
+        } else {
+            $this->ordenarPor = $campo;
+            $this->direccionOrden = 'asc';
+        }
+        $this->resetPage();
+    }
+
     private function getSincronizacionService()
     {
         if (!$this->sincronizacionService) {
@@ -34,24 +74,47 @@ class Producto extends Component
 
     public function mount()
     {
-        // Ya no necesitamos cargar productos Valencia por separado
-        // Se obtienen directamente de db_zenvy en render()
+        // Inicialización básica sin cargar datos
+        $this->registrosPorPagina = 25; // Cantidad optimizada
     }
 
     public function render()
     {
-        // Obtener productos filtrados con relaciones
-        $productos = ProductoModel::with(['subcategoria.categoria', 'marca'])
-            ->where('estado_id', 1)
-            ->get();
-        
-        // Separar productos por origen
-        $productosValencia = $productos->where('producto_valencia', 1);
-        $productosZenvy = $productos->where('producto_valencia', 0);
+        // Query optimizada con paginación
+        $query = ProductoModel::select([
+                'id', 'nombre', 'descripcion', 'codigo_barra', 
+                'precio_base', 'producto_valencia', 'estado_id',
+                'subcategoria_id', 'marca_id', 'created_at'
+            ])
+            ->with([
+                'subcategoria:id,nombre,categoria_id',
+                'subcategoria.categoria:id,nombre',
+                'marca:id,nombre'
+            ])
+            ->where('estado_id', 1);
+
+        // Aplicar filtro de búsqueda
+        if (!empty($this->buscar)) {
+            $query->where(function($q) {
+                $q->where('nombre', 'LIKE', '%' . $this->buscar . '%')
+                  ->orWhere('codigo_barra', 'LIKE', '%' . $this->buscar . '%')
+                  ->orWhere('descripcion', 'LIKE', '%' . $this->buscar . '%');
+            });
+        }
+
+        // Aplicar filtro de origen
+        if ($this->filtroOrigen !== 'todos') {
+            $query->where('producto_valencia', $this->filtroOrigen === 'valencia' ? 1 : 0);
+        }
+
+        // Aplicar ordenamiento
+        $query->orderBy($this->ordenarPor, $this->direccionOrden);
+
+        // Paginar resultados
+        $productos = $query->paginate($this->registrosPorPagina);
 
         return view('livewire.inventario.producto', [
-            'productosZenvy' => $productosZenvy,
-            'productosValencia' => $productosValencia
+            'productos' => $productos
         ]);
     }
 
