@@ -764,8 +764,11 @@ class Ventas extends Component
             // Obtener el valor de ISV desde la relación
             $valorIsv = $producto->isv ? $producto->isv->cantidad : 0;
 
+            // Determinar precio por defecto según reglas de negocio
+            $precioDefecto = $this->determinarPrecioPorDefecto($producto);
+
             // Calcular descuento unitario automático si existe (valor monetario directo para cantidad de 1)
-            $subtotalOriginal = $producto->precio_base * 1;
+            $subtotalOriginal = $precioDefecto['precio'] * 1;
             $descuentoUnitarioAplicado = 0;
 
             if (($producto->descuento_unitario ?? 0) > 0) {
@@ -777,7 +780,14 @@ class Ventas extends Component
                 'id' => $producto->id,
                 'nombre' => $producto->nombre,
                 'codigo' => $producto->codigo_barra,
-                'precio' => $producto->precio_base,
+                'precio' => $precioDefecto['precio'],
+                'tipo_precio' => $precioDefecto['tipo'],
+                'precio1' => $producto->precio1 ?? 0,
+                'precio2' => $producto->precio2 ?? 0,
+                'precio3' => $producto->precio3 ?? 0,
+                'precio4' => $producto->precio4 ?? 0,
+                'precio_base' => $producto->precio_base,
+                'producto_valencia' => $producto->producto_valencia,
                 'isv' => $valorIsv,
                 'cantidad' => 1,
                 'descuento_tercera' => $producto->descuento_tercera ?? 0,
@@ -814,6 +824,81 @@ class Ventas extends Component
         unset($this->productosFactura[$index]);
         $this->productosFactura = array_values($this->productosFactura);
         $this->calcularTotales();
+    }
+
+    public function cambiarPrecioProducto($index, $tipoPrecio)
+    {
+        // Verificar que el índice existe
+        if (!isset($this->productosFactura[$index])) {
+            $this->dispatch('mostrar-error', ['mensaje' => 'Producto no encontrado en el carrito']);
+            return;
+        }
+
+        // Obtener el producto completo de la base de datos
+        $producto = Producto::find($this->productosFactura[$index]['id']);
+        if (!$producto) {
+            $this->dispatch('mostrar-error', ['mensaje' => 'Error al actualizar precio: producto no encontrado']);
+            return;
+        }
+
+        // Determinar el nuevo precio según el tipo seleccionado
+        $nuevoPrecio = 0;
+        switch ($tipoPrecio) {
+            case 'precio1':
+                $nuevoPrecio = $producto->precio1 ?? 0;
+                break;
+            case 'precio2':
+                $nuevoPrecio = $producto->precio2 ?? 0;
+                break;
+            case 'precio3':
+                $nuevoPrecio = $producto->precio3 ?? 0;
+                break;
+            case 'precio4':
+                $nuevoPrecio = $producto->precio4 ?? 0;
+                break;
+            case 'precio_base':
+            default:
+                $nuevoPrecio = $producto->precio_base ?? 0;
+                break;
+        }
+
+        // Validar que el precio sea válido
+        if ($nuevoPrecio <= 0) {
+            $this->dispatch('mostrar-error', ['mensaje' => 'El precio seleccionado no está disponible']);
+            return;
+        }
+
+        // Actualizar el precio en el carrito
+        $this->productosFactura[$index]['precio'] = $nuevoPrecio;
+        $this->productosFactura[$index]['tipo_precio'] = $tipoPrecio;
+
+        // Recalcular subtotal con descuento para este item
+        $cantidad = $this->productosFactura[$index]['cantidad'];
+        $subtotalOriginal = $nuevoPrecio * $cantidad;
+        $descuentoUnitarioAplicado = $this->productosFactura[$index]['descuento_unitario_aplicado'] ?? 0;
+        $this->productosFactura[$index]['subtotal_con_descuento'] = $subtotalOriginal - $descuentoUnitarioAplicado;
+
+        // Recalcular totales de la factura
+        $this->calcularTotales();
+
+        // Mostrar mensaje de éxito
+        session()->flash('success', 'Precio actualizado correctamente');
+    }
+
+    private function determinarPrecioPorDefecto($producto)
+    {
+        // Si el producto es de Paperland, usar precio_base
+        if ($producto->producto_valencia == 0) {
+            return ['precio' => $producto->precio_base, 'tipo' => 'precio_base'];
+        }
+
+        // Para productos de Valencia, priorizar precio4 si existe y no es 0
+        if (($producto->precio4 ?? 0) > 0) {
+            return ['precio' => $producto->precio4, 'tipo' => 'precio4'];
+        }
+
+        // Si no hay precio4, usar precio_base como fallback
+        return ['precio' => $producto->precio_base, 'tipo' => 'precio_base'];
     }
 
     public function modificarCantidad($index, $nuevaCantidad)
@@ -3269,8 +3354,11 @@ class Ventas extends Component
                 // Obtener el valor de ISV desde la relación
                 $valorIsv = $producto->isv ? $producto->isv->cantidad : 0;
 
+                // Determinar precio por defecto según reglas de negocio
+                $precioDefecto = $this->determinarPrecioPorDefecto($producto);
+
                 // Calcular descuento unitario automático si existe (para cantidad de 1)
-                $subtotalOriginal = $producto->precio_base;
+                $subtotalOriginal = $precioDefecto['precio'];
                 $descuentoUnitarioAplicado = 0;
 
                 if (($producto->descuento_unitario ?? 0) > 0) {
@@ -3282,7 +3370,14 @@ class Ventas extends Component
                     'servicio_id' => null,
                     'nombre' => $producto->nombre,
                     'codigo' => $producto->codigo_barra,
-                    'precio' => $producto->precio_base,
+                    'precio' => $precioDefecto['precio'],
+                    'tipo_precio' => $precioDefecto['tipo'],
+                    'precio1' => $producto->precio1 ?? 0,
+                    'precio2' => $producto->precio2 ?? 0,
+                    'precio3' => $producto->precio3 ?? 0,
+                    'precio4' => $producto->precio4 ?? 0,
+                    'precio_base' => $producto->precio_base,
+                    'producto_valencia' => $producto->producto_valencia,
                     'isv' => $valorIsv,
                     'cantidad' => 1,
                     'descuento_tercera' => $producto->descuento_tercera ?? 0,

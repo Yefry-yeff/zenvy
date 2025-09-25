@@ -562,7 +562,44 @@
                                                     </span>
                                                 @endif
                                             </td>
-                                            <td>L. {{ number_format($item['precio'], 2) }}</td>
+                                            <td>
+                                                @if($esServicio)
+                                                    L. {{ number_format($item['precio'], 2) }}
+                                                @else
+                                                    <!-- Dropdown para seleccionar precio -->
+                                                    <select class="form-select form-select-sm" 
+                                                            style="min-width: 120px; font-size: 0.875rem;"
+                                                            wire:change="cambiarPrecioProducto({{ $loop->index }}, $event.target.value)">
+                                                        
+                                                        @php
+                                                            $precios = [];
+                                                            
+                                                            // Si es producto de Paperland (producto_valencia = 0)
+                                                            if (($item['producto_valencia'] ?? 1) == 0) {
+                                                                $precios['precio_base'] = $item['precio_base'] ?? 0;
+                                                            } else {
+                                                                // Productos de Valencia: agregar precios 1-4 disponibles
+                                                                if (($item['precio1'] ?? 0) > 0) $precios['precio1'] = $item['precio1'];
+                                                                if (($item['precio2'] ?? 0) > 0) $precios['precio2'] = $item['precio2'];
+                                                                if (($item['precio3'] ?? 0) > 0) $precios['precio3'] = $item['precio3'];
+                                                                if (($item['precio4'] ?? 0) > 0) $precios['precio4'] = $item['precio4'];
+                                                                
+                                                                // Siempre agregar precio_base como opción
+                                                                $precios['precio_base'] = $item['precio_base'] ?? 0;
+                                                            }
+                                                            
+                                                            $tipoPrecioActual = $item['tipo_precio'] ?? 'precio_base';
+                                                        @endphp
+                                                        
+                                                        @foreach($precios as $tipo => $precio)
+                                                            <option value="{{ $tipo }}" 
+                                                                    {{ $tipoPrecioActual == $tipo ? 'selected' : '' }}>
+                                                                {{ ucfirst(str_replace('_', ' ', $tipo)) }}: L. {{ number_format($precio, 2) }}
+                                                            </option>
+                                                        @endforeach
+                                                    </select>
+                                                @endif
+                                            </td>
                                             <td>
                                                 @if($esServicio)
                                                     <!-- Para servicios, cantidad editable sin restricción de stock -->
