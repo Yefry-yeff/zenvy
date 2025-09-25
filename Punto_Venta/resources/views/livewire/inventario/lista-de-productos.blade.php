@@ -23,6 +23,14 @@
             color: white;
             font-weight: 600;
         }
+        
+        /* Estilos para filas clicables */
+        .table tbody tr[style*="cursor: pointer"]:hover {
+            background-color: rgba(59, 130, 246, 0.1) !important;
+            transform: scale(1.001);
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
     </style>
 
     <!-- Mensajes de éxito y error -->
@@ -173,7 +181,10 @@
                     </thead>
                     <tbody>
                         @forelse($productosRecibidos as $item)
-                            <tr class="text-center align-middle hover:bg-gray-50 {{ $item->cantidad_disponible > 10 ? 'producto-row-disponible' : ($item->cantidad_disponible > 0 ? '' : 'producto-row-agotado') }}">
+                            <tr class="text-center align-middle hover:bg-gray-50 {{ $item->cantidad_disponible > 10 ? 'producto-row-disponible' : ($item->cantidad_disponible > 0 ? '' : 'producto-row-agotado') }}"
+                                wire:click="editarProducto({{ $item->producto_id }})"
+                                style="cursor: pointer;"
+                                title="Clic para editar producto">
                                 <td class="fw-semibold">{{ $item->id }}</td>
                                 <td class="text-start">
                                     <div class="d-flex flex-column">

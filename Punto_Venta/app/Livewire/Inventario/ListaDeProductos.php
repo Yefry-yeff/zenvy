@@ -48,6 +48,7 @@ class ListaDeProductos extends Component
                     'rb.fecha_recibido',
                     'rb.fecha_expiracion',
                     'rb.comentario',
+                    'p.id as producto_id',
                     'p.nombre as producto_nombre',
                     'p.descripcion as producto_descripcion',
                     'p.codigo_barra',
@@ -184,6 +185,12 @@ class ListaDeProductos extends Component
         $this->filtroEstado = '';
         $this->filtroMarca = '';
         $this->cargarDatos();
+    }
+
+    public function editarProducto($productoId)
+    {
+        // Emitir evento para cambiar al componente de edición
+        $this->dispatch('cambiarVista', ruta: 'Inventario.ProductoForm', parametros: ['id' => $productoId]);
     }
 
     public function render()
