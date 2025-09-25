@@ -166,7 +166,11 @@ class Producto extends Component
 
         // Aplicar filtro de origen
         if ($this->filtroOrigen !== 'todos') {
-            $query->where('producto_valencia', $this->filtroOrigen === 'valencia' ? 1 : 0);
+            if ($this->filtroOrigen === 'valencia') {
+                $query->where('producto_valencia', 1);
+            } elseif ($this->filtroOrigen === 'zenvy') {
+                $query->where('producto_valencia', 0);
+            }
         }
 
         // Aplicar ordenamiento
