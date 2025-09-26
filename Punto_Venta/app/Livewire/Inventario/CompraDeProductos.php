@@ -5,6 +5,7 @@ namespace App\Livewire\Inventario;
 use Livewire\Component;
 use Livewire\WithPagination;
 use App\Models\Compra;
+use App\Models\Cliente;
 use App\Models\Estado;
 use App\Services\SincronizacionComprasService;
 use Illuminate\Support\Facades\Log;
@@ -479,9 +480,13 @@ class CompraDeProductos extends Component
                 $query->orderBy('numero_factura', $this->direccionOrden);
                 break;
             case 'proveedor':
-                $query->join('proveedors', 'compras.proveedor_id', '=', 'proveedors.id')
-                      ->orderBy('proveedors.nombre', $this->direccionOrden)
-                      ->select('compras.*');
+                // Para ordenar por proveedor, usar subquery para evitar problemas con nombres de columna
+                $query = $query->orderBy(
+                    Cliente::select('nombre')
+                        ->whereColumn('cliente.id', 'compra.cliente_id')
+                        ->limit(1),
+                    $this->direccionOrden
+                );
                 break;
             case 'fecha_emision':
                 $query->orderBy('fecha_emision', $this->direccionOrden);
@@ -490,9 +495,13 @@ class CompraDeProductos extends Component
                 $query->orderBy('fecha_recepcion', $this->direccionOrden);
                 break;
             case 'estado':
-                $query->join('estados', 'compras.estado_id', '=', 'estados.id')
-                      ->orderBy('estados.nombre', $this->direccionOrden)
-                      ->select('compras.*');
+                // Usar subquery para ser consistente y evitar problemas con JOINs
+                $query = $query->orderBy(
+                    Estado::select('descripcion')
+                        ->whereColumn('estado.id', 'compra.estado_id')
+                        ->limit(1),
+                    $this->direccionOrden
+                );
                 break;
             case 'productos':
                 $query->withCount('detallesCompra')
