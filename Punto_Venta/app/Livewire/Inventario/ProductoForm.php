@@ -130,8 +130,11 @@ class ProductoForm extends Component
 
     public function mount($id = null)
     {
-        // Carga mínima inicial - solo categorías
+        // Carga inicial necesaria para crear/editar productos
         $this->cargarCategorias();
+        $this->cargarMarcas();
+        $this->cargarUnidadesMedida();
+        $this->cargarIsvs();
 
         if ($id) {
             $this->productoId = $id;
