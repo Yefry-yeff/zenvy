@@ -110,9 +110,8 @@
 
         <!-- TABLA OPTIMIZADA -->
         <div class="px-4 py-3">
-            @if($productos->count() > 0)
-                <div class="overflow-x-auto">
-                    <table class="min-w-full table-auto border border-gray-200">
+            <div class="overflow-x-auto">
+                <table class="min-w-full table-auto border border-gray-200">
                         <thead class="bg-gray-50">
                             <!-- Encabezados con ordenamiento -->
                             <tr>
@@ -239,7 +238,8 @@
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-200">
-                            @foreach($productos as $producto)
+                            @if($productos->count() > 0)
+                                @foreach($productos as $producto)
                                 <tr class="hover:bg-gray-50 cursor-pointer transition-colors duration-150" 
                                     wire:key="producto-{{ $producto->id }}">
                                     <td class="px-4 py-3" wire:click="editar({{ $producto->id }})">
@@ -298,6 +298,28 @@
                                     </td>
                                 </tr>
                             @endforeach
+                        @else
+                            <!-- Mensaje cuando no hay productos -->
+                            <tr>
+                                <td colspan="8" class="px-4 py-12 text-center">
+                                    <div class="text-gray-400 text-6xl mb-4">📦</div>
+                                    <h3 class="text-lg font-medium text-gray-900 mb-2">No se encontraron productos</h3>
+                                    <p class="text-gray-500 mb-4">
+                                        @if($buscar || $filtroOrigen !== 'todos' || $filtroNombre || $filtroCodigo || $filtroCategoria || $filtroMarca || $filtroPrecio)
+                                            No hay productos que coincidan con los filtros aplicados
+                                        @else
+                                            No hay productos registrados en el sistema
+                                        @endif
+                                    </p>
+                                    @if($buscar || $filtroOrigen !== 'todos' || $filtroNombre || $filtroCodigo || $filtroCategoria || $filtroMarca || $filtroPrecio)
+                                        <button wire:click="limpiarFiltros" 
+                                                class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600">
+                                            Limpiar filtros
+                                        </button>
+                                    @endif
+                                </td>
+                            </tr>
+                        @endif
                         </tbody>
                     </table>
                 </div>
@@ -377,30 +399,7 @@
                         </div>
                     @endif
                 </div>
-            @else
-                <div class="text-center py-12">
-                    <div class="text-gray-400 text-6xl mb-4">📦</div>
-                    <h3 class="text-lg font-medium text-gray-900 mb-2">No se encontraron productos</h3>
-                    <p class="text-gray-500 mb-4">
-                        @if($buscar)
-                            No hay productos que coincidan con "{{ $buscar }}"
-                        @else
-                            No hay productos registrados en el sistema
-                        @endif
-                    </p>
-                    @if($buscar)
-                        <button wire:click="$set('buscar', '')" 
-                                class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600">
-                            Limpiar búsqueda
-                        </button>
-                    @else
-                        <button wire:click="abrirModalCrear" 
-                                class="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600">
-                            Crear primer producto
-                        </button>
-                    @endif
-                </div>
-            @endif
+            </div>
         </div>
     </div>
 

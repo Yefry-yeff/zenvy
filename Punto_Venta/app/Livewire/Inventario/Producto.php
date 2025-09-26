@@ -7,6 +7,7 @@ use Livewire\WithPagination;
 use App\Models\Producto as ProductoModel;
 use App\Services\SincronizacionProductosService;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class Producto extends Component
 {
@@ -93,6 +94,18 @@ class Producto extends Component
         $this->resetPage();
     }
 
+    public function limpiarFiltros()
+    {
+        $this->buscar = '';
+        $this->filtroOrigen = 'todos';
+        $this->filtroNombre = '';
+        $this->filtroCodigo = '';
+        $this->filtroCategoria = '';
+        $this->filtroMarca = '';
+        $this->filtroPrecio = '';
+        $this->resetPage();
+    }
+
     private function getSincronizacionService()
     {
         if (!$this->sincronizacionService) {
@@ -168,6 +181,17 @@ class Producto extends Component
 
     public function render()
     {
+        // Debug inicial - distribución de productos en la BD
+        $totalProductos = ProductoModel::where('estado_id', 1)->count();
+        $productosValencia = ProductoModel::where('estado_id', 1)->where('producto_valencia', 1)->count();
+        $productosLocales = ProductoModel::where('estado_id', 1)->where('producto_valencia', 0)->count();
+        
+        Log::info("Distribución de productos", [
+            'total_activos' => $totalProductos,
+            'productos_valencia' => $productosValencia,
+            'productos_locales' => $productosLocales
+        ]);
+
         // Query optimizada con paginación
         $query = ProductoModel::select([
                 'id', 'nombre', 'descripcion', 'codigo_barra', 
@@ -215,16 +239,36 @@ class Producto extends Component
             $query->where('precio_base', 'LIKE', '%' . $this->filtroPrecio . '%');
         }
 
-        // Aplicar filtro de origen (insensible a mayúsculas/minúsculas)
+        // Aplicar filtro de origen con lógica explícita
         if ($this->filtroOrigen !== 'todos') {
-            $filtroOrigenLower = strtolower($this->filtroOrigen);
+            $filtroOrigenLower = strtolower(trim($this->filtroOrigen));
             
+            // Contar productos antes del filtro para debug
+            $totalAntesDelFiltro = $query->count();
+            
+            // Lógica de filtrado explícita
             if ($filtroOrigenLower === 'valencia') {
-                $query->where('producto_valencia', 1);
-            } elseif (in_array($filtroOrigenLower, ['zenvy', 'paperland'])) {
-                // Acepta tanto "zenvy" como "paperland" para productos locales
-                $query->where('producto_valencia', 0);
+                // Productos de Valencia: producto_valencia = 1
+                $query->where('producto_valencia', '=', 1);
+            } elseif ($filtroOrigenLower === 'paperland' || $filtroOrigenLower === 'zenvy') {
+                // Productos locales (Paperland/Zenvy): producto_valencia = 0
+                $query->where('producto_valencia', '=', 0);
+            } else {
+                // Si no coincide con ningún filtro conocido, no aplicar filtro
+                Log::warning("Filtro de origen desconocido", ['filtro' => $filtroOrigenLower]);
             }
+            
+            // Debug temporal - contar después del filtro
+            $totalDespuesDelFiltro = $query->count();
+            
+            Log::info("Filtro origen debug", [
+                'filtroOrigen_original' => $this->filtroOrigen,
+                'filtroOrigenLower' => $filtroOrigenLower,
+                'total_antes_filtro' => $totalAntesDelFiltro,
+                'total_despues_filtro' => $totalDespuesDelFiltro,
+                'condicion_aplicada' => $filtroOrigenLower === 'valencia' ? 'valencia=1' : 
+                                       ($filtroOrigenLower === 'paperland' || $filtroOrigenLower === 'zenvy' ? 'valencia=0' : 'ninguna')
+            ]);
         }
 
         // Aplicar ordenamiento
