@@ -51,7 +51,6 @@
             <div class="p-1 bg-white rounded-xl">
                 <img src="{{ asset('img/logo-zenvy.png') }}" alt="Logo Zenvy" class="object-contain w-auto h-8">
             </div>
-            <span class="text-white">ZENVY POS v4.0</span>
         </div>
     </div>
 
