@@ -35,6 +35,45 @@ class ListaDeProductos extends Component
 
     // REMOVIDO: protected $queryString - Ya no persiste parámetros en URL
     // Los filtros se manejarán solo con sesión
+    
+    // Deshabilitar persistencia de paginación en URL
+    protected $queryString = [];
+
+    // Sobrescribir método para que la paginación no use URL
+    public function getPage()
+    {
+        return $this->page;
+    }
+    
+    // Sobrescribir método para cambiar página sin URL
+    public function setPage($page)
+    {
+        $this->page = $page;
+    }
+
+    // Sobrescribir resetPage para que funcione con nuestra propiedad
+    public function resetPage()
+    {
+        $this->page = 1;
+    }
+
+    // Métodos para manejar navegación de páginas
+    public function nextPage()
+    {
+        $this->page++;
+    }
+
+    public function previousPage()
+    {
+        if ($this->page > 1) {
+            $this->page--;
+        }
+    }
+
+    public function gotoPage($page)
+    {
+        $this->page = $page;
+    }
 
     public function mount()
     {
@@ -249,7 +288,7 @@ class ListaDeProductos extends Component
             $query->orderBy($campoOrden, $this->direccionOrden);
 
             // Paginar resultados
-            return $query->paginate($this->registrosPorPagina);
+            return $query->paginate($this->registrosPorPagina, ['*'], 'page', $this->page);
 
         } catch (\Exception $e) {
             Log::error('Error al cargar productos recibidos', [

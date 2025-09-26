@@ -46,6 +46,45 @@ class Producto extends Component
 
     // REMOVIDO: protected $queryString - Ya no persiste parámetros en URL
     // Los filtros se manejarán solo con sesión
+    
+    // Deshabilitar persistencia de paginación en URL
+    protected $queryString = [];
+
+    // Sobrescribir método para que la paginación no use URL
+    public function getPage()
+    {
+        return $this->page;
+    }
+    
+    // Sobrescribir método para cambiar página sin URL
+    public function setPage($page)
+    {
+        $this->page = $page;
+    }
+
+    // Sobrescribir resetPage para que funcione con nuestra propiedad
+    public function resetPage()
+    {
+        $this->page = 1;
+    }
+
+    // Métodos para manejar navegación de páginas
+    public function nextPage()
+    {
+        $this->page++;
+    }
+
+    public function previousPage()
+    {
+        if ($this->page > 1) {
+            $this->page--;
+        }
+    }
+
+    public function gotoPage($page)
+    {
+        $this->page = $page;
+    }
 
     // Métodos de filtrado y búsqueda
     public function updatingBuscar()
@@ -275,7 +314,7 @@ class Producto extends Component
         $query->orderBy($this->ordenarPor, $this->direccionOrden);
 
         // Paginar resultados
-        $productos = $query->paginate($this->registrosPorPagina);
+        $productos = $query->paginate($this->registrosPorPagina, ['*'], 'page', $this->page);
 
         return view('livewire.inventario.producto', [
             'productos' => $productos
