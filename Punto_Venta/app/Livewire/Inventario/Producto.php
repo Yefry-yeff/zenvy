@@ -14,7 +14,7 @@ class Producto extends Component
 
     // Propiedades de paginación y búsqueda
     public $buscar = '';
-    public $filtroOrigen = 'todos'; // todos, valencia, zenvy
+    public $filtroOrigen = 'todos'; // todos, valencia, paperland (compatible con zenvy)
     public $registrosPorPagina = 10; // Cambiado a 10
     public $ordenarPor = 'nombre';
     public $direccionOrden = 'asc';
@@ -215,11 +215,14 @@ class Producto extends Component
             $query->where('precio_base', 'LIKE', '%' . $this->filtroPrecio . '%');
         }
 
-        // Aplicar filtro de origen
+        // Aplicar filtro de origen (insensible a mayúsculas/minúsculas)
         if ($this->filtroOrigen !== 'todos') {
-            if ($this->filtroOrigen === 'valencia') {
+            $filtroOrigenLower = strtolower($this->filtroOrigen);
+            
+            if ($filtroOrigenLower === 'valencia') {
                 $query->where('producto_valencia', 1);
-            } elseif ($this->filtroOrigen === 'zenvy') {
+            } elseif (in_array($filtroOrigenLower, ['zenvy', 'paperland'])) {
+                // Acepta tanto "zenvy" como "paperland" para productos locales
                 $query->where('producto_valencia', 0);
             }
         }

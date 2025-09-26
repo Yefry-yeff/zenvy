@@ -90,7 +90,7 @@
                     <label class="block text-sm font-medium text-gray-700 mb-1">Origen</label>
                     <select wire:model.live="filtroOrigen" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500">
                         <option value="todos">Todos</option>
-                        <option value="zenvy">🏠 Paperland</option>
+                        <option value="paperland">🏠 Paperland</option>
                         <option value="valencia">🏢 Valencia</option>
                     </select>
                 </div>
