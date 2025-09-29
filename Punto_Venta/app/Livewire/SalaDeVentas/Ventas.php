@@ -887,17 +887,8 @@ class Ventas extends Component
 
     private function determinarPrecioPorDefecto($producto)
     {
-        // Si el producto es de Paperland, usar precio_base
-        if ($producto->producto_valencia == 0) {
-            return ['precio' => $producto->precio_base, 'tipo' => 'precio_base'];
-        }
-
-        // Para productos de Valencia, priorizar precio4 si existe y no es 0
-        if (($producto->precio4 ?? 0) > 0) {
-            return ['precio' => $producto->precio4, 'tipo' => 'precio4'];
-        }
-
-        // Si no hay precio4, usar precio_base como fallback
+        // SIEMPRE usar precio_base por defecto para todos los productos
+        // tanto de Paperland como de Valencia cuando se agregan por código de barras
         return ['precio' => $producto->precio_base, 'tipo' => 'precio_base'];
     }
 
