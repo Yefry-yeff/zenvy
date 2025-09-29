@@ -83,6 +83,9 @@ Route::middleware('auth')->group(function () {
     
     // Ruta para ver detalle de factura
     Route::get('factura/{id}/detalle', [App\Http\Controllers\FacturaController::class, 'detalle'])->name('factura.detalle');
+    
+    // Ruta para descargar archivos generados por Livewire
+    Route::get('/download', [App\Http\Controllers\DownloadController::class, 'downloadFile'])->name('download.file');
 });
 
 require __DIR__.'/auth.php';
@@ -91,3 +94,27 @@ Route::post('/debug-log', function (Request $request) {
     Log::debug('📩 [JS DEBUG] ' . $request->input('mensaje'));
     return response()->json(['status' => 'ok']);
 });
+
+// Ruta para servir archivos temporales de descarga
+Route::get('/storage/temp/{filename}', function ($filename) {
+    $filepath = storage_path('app/temp/' . $filename);
+    
+    if (!file_exists($filepath)) {
+        abort(404, 'Archivo no encontrado');
+    }
+    
+    // Determinar el tipo de archivo
+    $extension = pathinfo($filename, PATHINFO_EXTENSION);
+    $mimeType = 'application/octet-stream';
+    
+    if ($extension === 'csv') {
+        $mimeType = 'text/csv';
+    } elseif ($extension === 'html') {
+        $mimeType = 'text/html';
+    }
+    
+    return response()->file($filepath, [
+        'Content-Type' => $mimeType,
+        'Content-Disposition' => 'attachment; filename="' . $filename . '"'
+    ]);
+})->middleware('auth');

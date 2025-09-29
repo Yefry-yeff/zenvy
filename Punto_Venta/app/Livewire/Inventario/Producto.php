@@ -571,14 +571,17 @@ class Producto extends Component
             // Generar nombre del archivo con timestamp
             $timestamp = now()->format('Y-m-d_H-i-s');
             $filename = "productos_{$timestamp}.csv";
+            
+            // Crear directorio temporal si no existe
+            $tempDir = storage_path('app/temp');
+            if (!file_exists($tempDir)) {
+                mkdir($tempDir, 0755, true);
+            }
+            
+            $filepath = $tempDir . '/' . $filename;
 
-            // Configurar headers para descarga CSV (compatible con Excel)
-            header('Content-Type: text/csv; charset=utf-8');
-            header('Content-Disposition: attachment;filename="' . $filename . '"');
-            header('Cache-Control: max-age=0');
-
-            // Crear el output
-            $output = fopen('php://output', 'w');
+            // Crear el archivo CSV
+            $output = fopen($filepath, 'w');
 
             // BOM para UTF-8 (para que Excel reconozca correctamente los caracteres especiales)
             fwrite($output, "\xEF\xBB\xBF");
@@ -614,7 +617,9 @@ class Producto extends Component
             }
 
             fclose($output);
-            exit;
+
+            // Redirigir a la ruta de descarga usando Livewire
+            return $this->redirectRoute('download.file', ['file' => $filename]);
 
         } catch (\Exception $e) {
             session()->flash('error', 'Error al generar el archivo Excel: ' . $e->getMessage());
@@ -636,15 +641,20 @@ class Producto extends Component
             // Generar nombre del archivo
             $timestamp = now()->format('Y-m-d_H-i-s');
             $filename = "productos_{$timestamp}.html";
+            
+            // Crear directorio temporal si no existe
+            $tempDir = storage_path('app/temp');
+            if (!file_exists($tempDir)) {
+                mkdir($tempDir, 0755, true);
+            }
+            
+            $filepath = $tempDir . '/' . $filename;
 
-            // Configurar headers para descarga HTML
-            header('Content-Type: text/html; charset=utf-8');
-            header('Content-Disposition: attachment;filename="' . $filename . '"');
-            header('Cache-Control: max-age=0');
+            // Guardar el HTML en el archivo
+            file_put_contents($filepath, $html);
 
-            // Mostrar el HTML (se puede imprimir como PDF desde el navegador)
-            echo $html;
-            exit;
+            // Redirigir a la ruta de descarga usando Livewire
+            return $this->redirectRoute('download.file', ['file' => $filename]);
 
         } catch (\Exception $e) {
             session()->flash('error', 'Error al generar el archivo PDF: ' . $e->getMessage());

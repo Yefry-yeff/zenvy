@@ -526,3 +526,57 @@
         </div>
     @endif
 </div>
+
+<script>
+// Escuchar el evento de descarga de archivos
+document.addEventListener('DOMContentLoaded', function() {
+    // Para Livewire v3
+    if (typeof Livewire !== 'undefined') {
+        Livewire.on('descargarArchivo', (data) => {
+            console.log('Evento descargarArchivo recibido:', data);
+            const eventData = Array.isArray(data) ? data[0] : data;
+            const { url, filename } = eventData;
+            
+            console.log('URL de descarga:', url);
+            
+            // Crear un enlace temporal para descargar el archivo
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            link.style.display = 'none';
+            
+            // Agregar al DOM, hacer click y remover
+            document.body.appendChild(link);
+            link.click();
+            
+            // Remover después de un pequeño delay
+            setTimeout(() => {
+                document.body.removeChild(link);
+            }, 100);
+        });
+    }
+});
+
+// También intentar escuchar cuando Livewire esté completamente cargado
+document.addEventListener('livewire:init', () => {
+    Livewire.on('descargarArchivo', (data) => {
+        console.log('Evento descargarArchivo recibido (livewire:init):', data);
+        const eventData = Array.isArray(data) ? data[0] : data;
+        const { url, filename } = eventData;
+        
+        // Crear un enlace temporal para descargar el archivo
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        link.style.display = 'none';
+        
+        // Agregar al DOM, hacer click y remover
+        document.body.appendChild(link);
+        link.click();
+        
+        setTimeout(() => {
+            document.body.removeChild(link);
+        }, 100);
+    });
+});
+</script>
