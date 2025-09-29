@@ -36,7 +36,7 @@ class SincronizacionProductosService
                 ->table('producto')
                 ->select([
                     'id',
-                    'nombre', 
+                    'nombre',
                     'descripcion',
                     'isv',
                     'precio_base',
@@ -49,7 +49,7 @@ class SincronizacionProductosService
                     'estado_producto_id',
                     'sub_categoria_id',
                     'precio1',
-                    'precio2', 
+                    'precio2',
                     'precio3',
                     'precio4'
                 ])
@@ -67,11 +67,11 @@ class SincronizacionProductosService
     {
         switch ($isvValencia) {
             case 0:
-                return 1;
+                return 5;
             case 15:
-                return 2;
+                return 1;
             case 18:
-                return 3;
+                return 2;
             default:
                 return 1; // Por defecto
         }
@@ -85,7 +85,7 @@ class SincronizacionProductosService
         $mapeo = IdZenvyValencia::where('id_valencia', $idValencia)
             ->where('tipo_dato_migrado_id', $tipoEntidad)
             ->first();
-        
+
         return $mapeo ? $mapeo->id_zenvy : null;
     }
 
@@ -158,13 +158,13 @@ class SincronizacionProductosService
             if ($mapeoExistente) {
                 // ACTUALIZAR producto existente
                 $idProductoZenvy = $mapeoExistente->id_zenvy;
-                
+
                 // Obtener el producto actual de Zenvy para usar en validaciones
                 $productoZenvyActual = $this->conexionZenvy
                     ->table('producto')
                     ->where('id', $idProductoZenvy)
                     ->first();
-                
+
                 if ($productoZenvyActual) {
                     // Para actualizaciones, NO sincronizar: codigo_barra, imagen, descuento_unitario
                     // Para precio_base: solo sincronizar si es necesario ajustarlo al precio4
@@ -186,24 +186,24 @@ class SincronizacionProductosService
                         'precio4' => $productoValencia->precio4,
                         'updated_at' => now()
                     ];
-                    
-                    // Lógica especial para precio_base: 
+
+                    // Lógica especial para precio_base:
                     // Solo actualizar si precio_base actual es menor que precio4
                     $precio4Valencia = $productoValencia->precio4 ?? 0;
                     $precioBaseActual = $productoZenvyActual->precio_base ?? 0;
-                    
+
                     if ($precioBaseActual < $precio4Valencia) {
                         // Si precio base actual es menor que precio4, actualizarlo al precio4
                         $datosActualizacion['precio_base'] = $precio4Valencia;
                         Log::info("Precio base ajustado automáticamente de {$precioBaseActual} a {$precio4Valencia} (precio4) para producto Valencia ID: $idProductoValencia");
                     }
                     // Si precio_base >= precio4, mantener el valor actual (no sincronizar)
-                    
+
                     // Campos que NO se sincronizan en actualizaciones:
                     // - codigo_barra (mantener valor actual)
-                    // - imagen (mantener valor actual) 
+                    // - imagen (mantener valor actual)
                     // - descuento_unitario (mantener valor actual)
-                    
+
                     $this->conexionZenvy
                         ->table('producto')
                         ->where('id', $idProductoZenvy)
@@ -215,13 +215,13 @@ class SincronizacionProductosService
                         ->where('id', $idProductoZenvy)
                         ->update($datosProductoZenvy);
                 }
-                
+
                 $accion = 'actualizado';
                 Log::info("Producto actualizado exitosamente. Valencia ID: $idProductoValencia, Zenvy ID: $idProductoZenvy");
             } else {
                 // CREAR nuevo producto
                 $datosProductoZenvy['created_at'] = now();
-                
+
                 $idProductoZenvy = $this->conexionZenvy
                     ->table('producto')
                     ->insertGetId($datosProductoZenvy);
@@ -234,7 +234,7 @@ class SincronizacionProductosService
                     'created_at' => now(),
                     'updated_at' => now()
                 ]);
-                
+
                 $accion = 'creado';
                 Log::info("Producto creado exitosamente. Valencia ID: $idProductoValencia, Zenvy ID: $idProductoZenvy");
             }
@@ -272,7 +272,7 @@ class SincronizacionProductosService
 
         foreach ($productosValencia as $producto) {
             $resultado = $this->sincronizarProducto($producto->id);
-            
+
             if ($resultado['success']) {
                 $resultados['sincronizados']++;
                 if (isset($resultado['accion'])) {
@@ -298,7 +298,7 @@ class SincronizacionProductosService
     {
         try {
             $productos = $this->obtenerProductosValencia();
-            
+
             // Obtener IDs ya sincronizados
             $idsSincronizados = IdZenvyValencia::where('tipo_dato_migrado_id', 1)
                 ->pluck('id_valencia')
@@ -307,14 +307,14 @@ class SincronizacionProductosService
             return $productos->map(function ($producto) use ($idsSincronizados) {
                 $producto->sincronizado = in_array($producto->id, $idsSincronizados);
                 $producto->id_zenvy = null;
-                
+
                 if ($producto->sincronizado) {
                     $mapeo = IdZenvyValencia::where('id_valencia', $producto->id)
                         ->where('tipo_dato_migrado_id', 1)
                         ->first();
                     $producto->id_zenvy = $mapeo ? $mapeo->id_zenvy : null;
                 }
-                
+
                 return $producto;
             });
 
@@ -342,7 +342,7 @@ class SincronizacionProductosService
         try {
             $totalValencia = $this->conexionProfac->table('producto')->count();
             $totalSincronizados = IdZenvyValencia::where('tipo_dato_migrado_id', 1)->count();
-            
+
             return [
                 'total_valencia' => $totalValencia,
                 'total_sincronizados' => $totalSincronizados,

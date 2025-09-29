@@ -373,16 +373,11 @@
                                     <span class="input-group-text">L.</span>
                                     <input type="number" id="precio_base" class="form-control {{ $this->getClaseCampo('precio_base') }}"
                                            wire:model.live="form.precio_base" step="0.01" 
-                                           min="{{ $esProductoValencia ? ($form['precio4'] ?? 0) : 0 }}" placeholder="0.00">
+                                           min="0" placeholder="0.00">
                                 </div>
                                 @error('form.precio_base')
                                     <div class="mt-1 text-sm text-danger">❌ El precio base es obligatorio</div>
                                 @enderror
-                                @if($esProductoValencia && isset($form['precio4']) && $form['precio4'] > 0)
-                                    <small class="text-orange-600">
-                                        ⚠️ Para productos de Valencia, el precio base no puede ser menor que el precio4 (L. {{ number_format($form['precio4'], 2) }})
-                                    </small>
-                                @endif
                             </div>
                             <div class="mb-3 col-md-3">
                                 <label for="isv_id" class="form-label">Tipo de ISV <span class="text-red-600">*</span></label>
