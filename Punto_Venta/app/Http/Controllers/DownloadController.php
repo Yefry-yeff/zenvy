@@ -36,6 +36,8 @@ class DownloadController extends Controller
             $contentType = match($extension) {
                 'csv' => 'text/csv',
                 'html' => 'text/html',
+                'xls' => 'application/vnd.ms-excel',
+                'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                 'pdf' => 'application/pdf',
                 default => 'application/octet-stream'
             };

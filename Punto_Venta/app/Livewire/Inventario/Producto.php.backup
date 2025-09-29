@@ -8,9 +8,6 @@ use App\Models\Producto as ProductoModel;
 use App\Services\SincronizacionProductosService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
-use Barryvdh\DomPDF\Facade\Pdf;
-use App\Exports\ProductosExport;
-use Maatwebsite\Excel\Facades\Excel;
 // Las librerías se cargarán dinámicamente si están disponibles
 
 class Producto extends Component
@@ -571,14 +568,12 @@ class Producto extends Component
                 ->orderBy($this->ordenarPor, $this->direccionOrden)
                 ->get();
 
-            // Preparar datos para el export
-            $fechaGeneracion = now()->format('d/m/Y H:i:s');
-            $totalProductos = $productos->count();
-            $filtrosAplicados = $this->obtenerFiltrosAplicados();
+            // Generar HTML para Excel con el mismo formato que el PDF
+            $html = $this->generarHTMLParaExcel($productos);
 
             // Generar nombre del archivo con timestamp
             $timestamp = now()->format('Y-m-d_H-i-s');
-            $filename = "productos_{$timestamp}.xlsx";
+            $filename = "productos_{$timestamp}.xls";
             
             // Crear directorio temporal si no existe
             $tempDir = storage_path('app/temp');
@@ -588,8 +583,8 @@ class Producto extends Component
             
             $filepath = $tempDir . '/' . $filename;
 
-            // Crear el archivo Excel usando la nueva sintaxis de maatwebsite/excel 3.x
-            Excel::store(new ProductosExport($productos, $fechaGeneracion, $totalProductos, $filtrosAplicados), $filename, 'temp');
+            // Guardar el HTML en el archivo (Excel puede abrir archivos HTML con extensión .xls)
+            file_put_contents($filepath, $html);
 
             // Redirigir a la ruta de descarga usando Livewire
             return $this->redirectRoute('download.file', ['file' => $filename]);
@@ -608,30 +603,12 @@ class Producto extends Component
                 ->orderBy($this->ordenarPor, $this->direccionOrden)
                 ->get();
 
-            // Preparar datos para la vista
-            $fechaGeneracion = now()->format('d/m/Y H:i:s');
-            $totalProductos = $productos->count();
-            $filtrosAplicados = $this->obtenerFiltrosAplicados();
-
-            // Generar PDF usando DomPDF
-            $pdf = Pdf::loadView('pdf.productos', [
-                'productos' => $productos,
-                'fechaGeneracion' => $fechaGeneracion,
-                'totalProductos' => $totalProductos,
-                'filtrosAplicados' => $filtrosAplicados
-            ]);
-
-            // Configurar PDF
-            $pdf->setPaper('A4', 'landscape');
-            $pdf->setOptions([
-                'defaultFont' => 'Arial',
-                'isRemoteEnabled' => true,
-                'isHtml5ParserEnabled' => true
-            ]);
+            // Generar HTML para visualización/impresión
+            $html = $this->generarHTMLParaPDF($productos);
 
             // Generar nombre del archivo
             $timestamp = now()->format('Y-m-d_H-i-s');
-            $filename = "productos_{$timestamp}.pdf";
+            $filename = "productos_{$timestamp}.html";
             
             // Crear directorio temporal si no existe
             $tempDir = storage_path('app/temp');
@@ -641,8 +618,8 @@ class Producto extends Component
             
             $filepath = $tempDir . '/' . $filename;
 
-            // Guardar el PDF
-            $pdf->save($filepath);
+            // Guardar el HTML en el archivo
+            file_put_contents($filepath, $html);
 
             // Redirigir a la ruta de descarga usando Livewire
             return $this->redirectRoute('download.file', ['file' => $filename]);
@@ -655,8 +632,8 @@ class Producto extends Component
 
     private function generarHTMLParaPDF($productos)
     {
-        $totalProductos = $productos->count();
         $fechaGeneracion = now()->format('d/m/Y H:i:s');
+        $totalProductos = $productos->count();
 
         $html = '
         <!DOCTYPE html>
@@ -730,189 +707,87 @@ class Producto extends Component
         return $html;
     }
 
-    private function generarExcelXML($productos)
+    private function generarHTMLParaExcel($productos)
     {
         $fechaGeneracion = now()->format('d/m/Y H:i:s');
         $totalProductos = $productos->count();
 
-        // Generar HTML optimizado que Excel reconocerá como archivo Excel nativo
-        $html = '<!DOCTYPE html>
-<html xmlns:o="urn:schemas-microsoft-com:office:office" 
-      xmlns:x="urn:schemas-microsoft-com:office:excel" 
-      xmlns="http://www.w3.org/TR/REC-html40">
-<head>
-    <meta charset="UTF-8">
-    <meta name="ProgId" content="Excel.Sheet">
-    <meta name="Generator" content="Microsoft Excel 15">
-    <!--[if gte mso 9]>
-    <xml>
-        <x:ExcelWorkbook>
-            <x:ExcelWorksheets>
-                <x:ExcelWorksheet>
-                    <x:Name>Productos</x:Name>
-                    <x:WorksheetOptions>
-                        <x:DefaultRowHeight>285</x:DefaultRowHeight>
-                        <x:Print>
-                            <x:ValidPrinterInfo/>
-                            <x:PaperSizeIndex>9</x:PaperSizeIndex>
-                            <x:HorizontalResolution>600</x:HorizontalResolution>
-                            <x:VerticalResolution>600</x:VerticalResolution>
-                        </x:Print>
-                    </x:WorksheetOptions>
-                </x:ExcelWorksheet>
-            </x:ExcelWorksheets>
-        </x:ExcelWorkbook>
-    </xml>
-    <![endif]-->
-    <style>
-        .xl-header { 
-            font-weight: bold; 
-            font-size: 16pt; 
-            text-align: center; 
-            background-color: #4472C4; 
-            color: white; 
-            mso-pattern: solid;
-        }
-        .xl-subheader { 
-            font-size: 11pt; 
-            text-align: center; 
-            color: #666666; 
-            font-style: italic;
-        }
-        .xl-table-header { 
-            font-weight: bold; 
-            background-color: #D9E2F3; 
-            border: 1px solid #8EAADB; 
-            text-align: center; 
-            mso-pattern: solid;
-        }
-        .xl-cell { 
-            border: 1px solid #D9D9D9; 
-            padding: 3px; 
-            mso-number-format: "@";
-        }
-        .xl-cell-center { 
-            border: 1px solid #D9D9D9; 
-            padding: 3px; 
-            text-align: center; 
-            mso-number-format: "@";
-        }
-        .xl-cell-number { 
-            border: 1px solid #D9D9D9; 
-            padding: 3px; 
-            text-align: center; 
-            mso-number-format: "0";
-        }
-        .xl-cell-price { 
-            border: 1px solid #D9D9D9; 
-            padding: 3px; 
-            text-align: right; 
-            font-weight: bold; 
-            color: #70AD47;
-            mso-number-format: "\"L. \"#,##0.00";
-        }
-        .xl-origen-valencia { 
-            border: 1px solid #D9D9D9; 
-            padding: 3px; 
-            text-align: center; 
-            background-color: #FFF2CC; 
-            color: #7F6000; 
-            mso-pattern: solid;
-        }
-        .xl-origen-paperland { 
-            border: 1px solid #D9D9D9; 
-            padding: 3px; 
-            text-align: center; 
-            background-color: #E2EFDA; 
-            color: #385723; 
-            mso-pattern: solid;
-        }
-        table { 
-            border-collapse: collapse; 
-            width: 100%; 
-            mso-table-layout-alt: fixed;
-        }
-    </style>
-</head>
-<body>
-    <table>
-        <tr>
-            <td colspan="8" class="xl-header">📦 LISTADO DE PRODUCTOS</td>
-        </tr>
-        <tr>
-            <td colspan="8" class="xl-subheader">Generado el: ' . $fechaGeneracion . ' | Total de productos: ' . $totalProductos . '</td>
-        </tr>
-        <tr><td colspan="8">&nbsp;</td></tr>
-        <tr>
-            <td class="xl-table-header">ID</td>
-            <td class="xl-table-header">Código de Barras</td>
-            <td class="xl-table-header">Nombre</td>
-            <td class="xl-table-header">Marca</td>
-            <td class="xl-table-header">Categoría</td>
-            <td class="xl-table-header">Subcategoría</td>
-            <td class="xl-table-header">Precio Base</td>
-            <td class="xl-table-header">Origen</td>
-        </tr>';
+        $html = '<?xml version="1.0" encoding="UTF-8"?>
+        <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="ProgId" content="Excel.Sheet">
+            <meta name="Generator" content="Microsoft Excel 15">
+            <title>Listado de Productos</title>
+            <style>
+                .header { font-weight: bold; font-size: 14pt; text-align: center; }
+                .subheader { font-size: 10pt; text-align: center; color: #666; }
+                .table-header { font-weight: bold; background-color: #E7E6E6; border: 1px solid #000; text-align: center; }
+                .cell { border: 1px solid #000; padding: 2px; }
+                .text-center { text-align: center; }
+                .text-right { text-align: right; }
+                .origen-valencia { background-color: #FFF3CD; }
+                .origen-paperland { background-color: #D4EDDA; }
+                .precio { text-align: right; font-weight: bold; }
+            </style>
+        </head>
+        <body>
+            <table>
+                <tr>
+                    <td colspan="8" class="header">📦 LISTADO DE PRODUCTOS</td>
+                </tr>
+                <tr>
+                    <td colspan="8" class="subheader">Generado el: ' . $fechaGeneracion . ' | Total de productos: ' . $totalProductos . '</td>
+                </tr>
+                <tr><td colspan="8">&nbsp;</td></tr>
+                <tr>
+                    <td class="table-header">ID</td>
+                    <td class="table-header">Código de Barras</td>
+                    <td class="table-header">Nombre</td>
+                    <td class="table-header">Marca</td>
+                    <td class="table-header">Categoría</td>
+                    <td class="table-header">Subcategoría</td>
+                    <td class="table-header">Precio Base</td>
+                    <td class="table-header">Origen</td>
+                </tr>';
 
         foreach ($productos as $producto) {
-            $origenClass = $producto->producto_valencia ? 'xl-origen-valencia' : 'xl-origen-paperland';
-            $origenTexto = $producto->producto_valencia ? '🏢 Valencia' : '🏠 Paperland';
-            $precio = number_format($producto->precio_base, 2);
+            $origenClass = $producto->producto_valencia ? 'origen-valencia' : 'origen-paperland';
+            $origenTexto = $producto->producto_valencia ? 'Valencia' : 'Paperland';
 
             $html .= '
-        <tr>
-            <td class="xl-cell-number">' . $producto->id . '</td>
-            <td class="xl-cell">' . htmlspecialchars($producto->codigo_barra ?: 'Sin código') . '</td>
-            <td class="xl-cell">' . htmlspecialchars($producto->nombre) . '</td>
-            <td class="xl-cell">' . htmlspecialchars($producto->marca->nombre ?? 'Sin marca') . '</td>
-            <td class="xl-cell">' . htmlspecialchars($producto->subcategoria->categoria->nombre ?? 'N/A') . '</td>
-            <td class="xl-cell">' . htmlspecialchars($producto->subcategoria->nombre ?? 'N/A') . '</td>
-            <td class="xl-cell-price">' . $precio . '</td>
-            <td class="' . $origenClass . '">' . $origenTexto . '</td>
-        </tr>';
+                <tr>
+                    <td class="cell text-center">' . $producto->id . '</td>
+                    <td class="cell">' . ($producto->codigo_barra ?: 'Sin código') . '</td>
+                    <td class="cell">' . htmlspecialchars($producto->nombre) . '</td>
+                    <td class="cell">' . htmlspecialchars($producto->marca->nombre ?? 'Sin marca') . '</td>
+                    <td class="cell">' . htmlspecialchars($producto->subcategoria->categoria->nombre ?? 'N/A') . '</td>
+                    <td class="cell">' . htmlspecialchars($producto->subcategoria->nombre ?? 'N/A') . '</td>
+                    <td class="cell precio">L. ' . number_format($producto->precio_base, 2) . '</td>
+                    <td class="cell text-center ' . $origenClass . '">' . $origenTexto . '</td>
+                </tr>';
         }
 
         $html .= '
-    </table>
-</body>
-</html>';
+            </table>
+        </body>
+        </html>';
 
         return $html;
     }
+        }
 
-    private function obtenerFiltrosAplicados()
-    {
-        $filtros = [];
-        
-        if (!empty($this->buscar)) {
-            $filtros[] = "Búsqueda: '{$this->buscar}'";
-        }
-        
-        if ($this->filtroOrigen !== 'todos') {
-            $filtros[] = "Origen: " . ucfirst($this->filtroOrigen);
-        }
-        
-        if (!empty($this->filtroNombre)) {
-            $filtros[] = "Nombre: '{$this->filtroNombre}'";
-        }
-        
-        if (!empty($this->filtroCodigo)) {
-            $filtros[] = "Código: '{$this->filtroCodigo}'";
-        }
-        
-        if (!empty($this->filtroCategoria)) {
-            $filtros[] = "Categoría: '{$this->filtroCategoria}'";
-        }
-        
-        if (!empty($this->filtroMarca)) {
-            $filtros[] = "Marca: '{$this->filtroMarca}'";
-        }
-        
-        if (!empty($this->filtroPrecio)) {
-            $filtros[] = "Precio: '{$this->filtroPrecio}'";
-        }
-        
-        return empty($filtros) ? 'Ninguno' : implode(', ', $filtros);
+        $html .= '
+                </tbody>
+            </table>
+
+            <div class="footer">
+                Sistema ZENVY - Gestión de Inventario | Página {PAGE_NUM} de {PAGE_COUNT}
+            </div>
+        </body>
+        </html>';
+
+        return $html;
     }
 
     // Limpiar completamente al destruir el componente
