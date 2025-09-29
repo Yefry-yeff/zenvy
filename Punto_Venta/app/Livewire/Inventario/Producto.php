@@ -8,6 +8,7 @@ use App\Models\Producto as ProductoModel;
 use App\Services\SincronizacionProductosService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+// Las librerías se cargarán dinámicamente si están disponibles
 
 class Producto extends Component
 {
@@ -20,7 +21,7 @@ class Producto extends Component
     public $ordenarPor = 'nombre';
     public $direccionOrden = 'asc';
     public $page = 1; // Agregar propiedad page
-    
+
     // Filtros por columna
     public $filtroNombre = '';
     public $filtroCodigo = '';
@@ -46,7 +47,7 @@ class Producto extends Component
 
     // REMOVIDO: protected $queryString - Ya no persiste parámetros en URL
     // Los filtros se manejarán solo con sesión
-    
+
     // Deshabilitar persistencia de paginación en URL
     protected $queryString = [];
 
@@ -55,7 +56,7 @@ class Producto extends Component
     {
         return $this->page;
     }
-    
+
     // Sobrescribir método para cambiar página sin URL
     public function setPage($page)
     {
@@ -163,11 +164,11 @@ class Producto extends Component
     {
         // Solo verificar compatibilidad básica - DynamicContent maneja los redirects
         $parametrosURL = request()->query();
-        
+
         if (!empty($parametrosURL)) {
             // Solo verificar parámetros críticos que definitivamente no pertenecen aquí
             $parametrosProhibidos = ['busqueda', 'filtroEstado', 'filtroFecha', 'filtroProducto', 'filtroBodega'];
-            
+
             foreach ($parametrosProhibidos as $param) {
                 if (isset($parametrosURL[$param])) {
                     // Dejar que DynamicContent maneje el redirect
@@ -176,7 +177,7 @@ class Producto extends Component
             }
         }
     }
-    
+
     public function dehydrate()
     {
         // Guardar filtros en sesión en cada actualización
@@ -210,10 +211,10 @@ class Producto extends Component
             $this->filtroPrecio = $filtrosSesion['filtroPrecio'] ?? '';
             $this->page = $filtrosSesion['page'] ?? 1;
         }
-        
+
         // Inicialización básica sin cargar datos
         $this->registrosPorPagina = 10; // Paginación por defecto en 10
-        
+
         // Marcar componente activo
         session(['current_component' => 'producto']);
     }
@@ -222,7 +223,7 @@ class Producto extends Component
     {
         // Query optimizada con paginación
         $query = ProductoModel::select([
-                'id', 'nombre', 'descripcion', 'codigo_barra', 
+                'id', 'nombre', 'descripcion', 'codigo_barra',
                 'precio_base', 'producto_valencia', 'estado_id',
                 'subcategoria_id', 'marca_id', 'created_at'
             ])
@@ -270,7 +271,7 @@ class Producto extends Component
         // Aplicar filtro de origen basado en los datos reales
         if ($this->filtroOrigen !== 'todos') {
             $filtroOrigenLower = strtolower(trim($this->filtroOrigen));
-            
+
             if ($filtroOrigenLower === 'valencia') {
                 // Productos de Valencia: producto_valencia = 1
                 $query->where('producto_valencia', 1);
@@ -291,7 +292,58 @@ class Producto extends Component
             'productos' => $productos
         ]);
     }
+ protected function aplicarFiltros($query)
+    {
+        // Solo aplicar filtro de estado activo
+        $query->where('estado_id', 1);
 
+        // Aplicar filtro de búsqueda general
+        if (!empty($this->buscar)) {
+            $query->where(function($q) {
+                $q->where('nombre', 'LIKE', '%' . $this->buscar . '%')
+                  ->orWhere('codigo_barra', 'LIKE', '%' . $this->buscar . '%')
+                  ->orWhere('descripcion', 'LIKE', '%' . $this->buscar . '%');
+            });
+        }
+
+        // Aplicar filtros individuales
+        if (!empty($this->filtroNombre)) {
+            $query->where('nombre', 'LIKE', '%' . $this->filtroNombre . '%');
+        }
+
+        if (!empty($this->filtroCodigo)) {
+            $query->where('codigo_barra', 'LIKE', '%' . $this->filtroCodigo . '%');
+        }
+
+        if (!empty($this->filtroCategoria)) {
+            $query->whereHas('subcategoria.categoria', function($q) {
+                $q->where('nombre', 'LIKE', '%' . $this->filtroCategoria . '%');
+            });
+        }
+
+        if (!empty($this->filtroMarca)) {
+            $query->whereHas('marca', function($q) {
+                $q->where('nombre', 'LIKE', '%' . $this->filtroMarca . '%');
+            });
+        }
+
+        if (!empty($this->filtroPrecio)) {
+            $query->where('precio_base', 'LIKE', '%' . $this->filtroPrecio . '%');
+        }
+
+        // Aplicar filtro de origen
+        if ($this->filtroOrigen !== 'todos') {
+            $filtroOrigenLower = strtolower(trim($this->filtroOrigen));
+
+            if ($filtroOrigenLower === 'valencia') {
+                $query->where('producto_valencia', 1);
+            } elseif ($filtroOrigenLower === 'paperland' || $filtroOrigenLower === 'zenvy') {
+                $query->whereNull('producto_valencia');
+            }
+        }
+
+        return $query;
+    }
     public function sincronizarProductosValencia()
     {
         try {
@@ -299,25 +351,25 @@ class Producto extends Component
             $this->sincronizandoValencia = true;
             $this->progreso = 0;
             $this->detallesSincronizacion = null;
-            
+
             // Simular progreso de sincronización
             $this->progreso = 20;
             $this->dispatch('actualizarProgreso', $this->progreso);
-            
+
             $service = $this->getSincronizacionService();
-            
+
             $this->progreso = 60;
             $this->dispatch('actualizarProgreso', $this->progreso);
-            
+
             $resultado = $service->sincronizarTodosLosProductos();
-            
+
             $this->progreso = 90;
             $this->dispatch('actualizarProgreso', $this->progreso);
-            
+
             // Finalizar progreso
             $this->progreso = 100;
             $this->dispatch('actualizarProgreso', $this->progreso);
-            
+
             // Preparar detalles de sincronización
             $this->detallesSincronizacion = [
                 'productos_sincronizados' => $resultado['sincronizados'] ?? 0,
@@ -327,23 +379,23 @@ class Producto extends Component
                 'total_procesados' => ($resultado['sincronizados'] ?? 0) + ($resultado['errores'] ?? 0),
                 'tiempo_ejecucion' => '~3 segundos'
             ];
-            
+
             // Mensajes de estado
             if ($resultado['sincronizados'] > 0) {
                 session()->flash('message', "✅ Sincronización completada: {$resultado['sincronizados']} productos procesados exitosamente.");
             }
-            
+
             if ($resultado['errores'] > 0) {
                 session()->flash('warning', "⚠️ Hubo {$resultado['errores']} errores durante la sincronización.");
             }
-            
+
             if (($resultado['sincronizados'] ?? 0) === 0 && ($resultado['errores'] ?? 0) === 0) {
                 session()->flash('info', "ℹ️ No se encontraron productos nuevos para sincronizar.");
             }
-            
+
             // Mantener el modal de detalles abierto por 3 segundos
             $this->dispatch('mostrarDetalles');
-            
+
         } catch (\Exception $e) {
             $this->progreso = 0;
             $this->detallesSincronizacion = [
@@ -371,14 +423,14 @@ class Producto extends Component
         try {
             $service = $this->getSincronizacionService();
             $resultado = $service->sincronizarProducto($idProductoValencia);
-            
+
             if ($resultado['success']) {
                 session()->flash('message', $resultado['mensaje']);
                 // Los productos se refrescarán automáticamente en render()
             } else {
                 session()->flash('error', $resultado['mensaje']);
             }
-            
+
         } catch (\Exception $e) {
             session()->flash('error', 'Error al sincronizar producto: ' . $e->getMessage());
         }
@@ -397,11 +449,11 @@ class Producto extends Component
     public function confirmarEliminar($id)
     {
         $this->productoAEliminar = $id;
-        
+
         // Obtener información del producto para mostrar en el modal
         $producto = ProductoModel::with(['marca', 'subcategoria.categoria'])
             ->find($id);
-            
+
         if ($producto) {
             $this->productoSeleccionado = (object) [
                 'id' => $producto->id,
@@ -411,20 +463,20 @@ class Producto extends Component
                 'categoria' => $producto->subcategoria->categoria->nombre ?? 'Sin categoría',
                 'subcategoria' => $producto->subcategoria->nombre ?? 'Sin subcategoría'
             ];
-            
+
             // Verificar código de barras
             $this->tieneCodigoBarras = !empty($producto->codigo_barra) && trim($producto->codigo_barra) !== '';
-            
+
             // Obtener stock disponible
             $this->stockDisponible = $this->obtenerStockProducto($id);
-            
+
             // Verificar compras activas o pendientes con cantidad sin asignar
             $this->tieneComprasActivas = $this->verificarComprasActivas($id);
-            
+
             // Determinar si se puede eliminar
             $this->puedeEliminar = !$this->tieneCodigoBarras && $this->stockDisponible == 0 && !$this->tieneComprasActivas;
         }
-        
+
         $this->modalEliminarAbierto = true;
     }
 
@@ -507,7 +559,176 @@ class Producto extends Component
             return true;
         }
     }
-    
+
+    public function descargarExcel()
+    {
+        try {
+            // Obtener todos los productos según los filtros actuales (sin paginación)
+            $productos = $this->aplicarFiltros(ProductoModel::with(['marca', 'subcategoria.categoria']))
+                ->orderBy($this->ordenarPor, $this->direccionOrden)
+                ->get();
+
+            // Generar nombre del archivo con timestamp
+            $timestamp = now()->format('Y-m-d_H-i-s');
+            $filename = "productos_{$timestamp}.csv";
+
+            // Configurar headers para descarga CSV (compatible con Excel)
+            header('Content-Type: text/csv; charset=utf-8');
+            header('Content-Disposition: attachment;filename="' . $filename . '"');
+            header('Cache-Control: max-age=0');
+
+            // Crear el output
+            $output = fopen('php://output', 'w');
+
+            // BOM para UTF-8 (para que Excel reconozca correctamente los caracteres especiales)
+            fwrite($output, "\xEF\xBB\xBF");
+
+            // Encabezados
+            fputcsv($output, [
+                'ID',
+                'Código de Barras',
+                'Nombre',
+                'Descripción',
+                'Marca',
+                'Categoría',
+                'Subcategoría',
+                'Precio Base',
+                'Origen',
+                'Fecha Creación'
+            ]);
+
+            // Datos
+            foreach ($productos as $producto) {
+                fputcsv($output, [
+                    $producto->id,
+                    $producto->codigo_barra ?: 'Sin código',
+                    $producto->nombre,
+                    $producto->descripcion ?: '',
+                    $producto->marca->nombre ?? 'Sin marca',
+                    $producto->subcategoria->categoria->nombre ?? 'N/A',
+                    $producto->subcategoria->nombre ?? 'N/A',
+                    'L. ' . number_format($producto->precio_base, 2),
+                    $producto->producto_valencia ? 'Valencia' : 'Paperland',
+                    $producto->created_at ? $producto->created_at->format('d/m/Y') : 'N/A'
+                ]);
+            }
+
+            fclose($output);
+            exit;
+
+        } catch (\Exception $e) {
+            session()->flash('error', 'Error al generar el archivo Excel: ' . $e->getMessage());
+            Log::error('Error generating Excel', ['error' => $e->getMessage()]);
+        }
+    }
+
+    public function descargarPDF()
+    {
+        try {
+            // Obtener todos los productos según los filtros actuales (sin paginación)
+            $productos = $this->aplicarFiltros(ProductoModel::with(['marca', 'subcategoria.categoria']))
+                ->orderBy($this->ordenarPor, $this->direccionOrden)
+                ->get();
+
+            // Generar HTML para visualización/impresión
+            $html = $this->generarHTMLParaPDF($productos);
+
+            // Generar nombre del archivo
+            $timestamp = now()->format('Y-m-d_H-i-s');
+            $filename = "productos_{$timestamp}.html";
+
+            // Configurar headers para descarga HTML
+            header('Content-Type: text/html; charset=utf-8');
+            header('Content-Disposition: attachment;filename="' . $filename . '"');
+            header('Cache-Control: max-age=0');
+
+            // Mostrar el HTML (se puede imprimir como PDF desde el navegador)
+            echo $html;
+            exit;
+
+        } catch (\Exception $e) {
+            session()->flash('error', 'Error al generar el archivo PDF: ' . $e->getMessage());
+            Log::error('Error generating PDF', ['error' => $e->getMessage()]);
+        }
+    }
+
+    private function generarHTMLParaPDF($productos)
+    {
+        $totalProductos = $productos->count();
+        $fechaGeneracion = now()->format('d/m/Y H:i:s');
+
+        $html = '
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <title>Listado de Productos</title>
+            <style>
+                body { font-family: Arial, sans-serif; font-size: 10px; margin: 10px; }
+                h1 { text-align: center; color: #333; font-size: 16px; margin-bottom: 5px; }
+                .header-info { text-align: center; color: #666; font-size: 9px; margin-bottom: 15px; }
+                table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+                th, td { border: 1px solid #ddd; padding: 4px; text-align: left; }
+                th { background-color: #f2f2f2; font-weight: bold; font-size: 9px; }
+                td { font-size: 8px; }
+                .text-center { text-align: center; }
+                .origen-valencia { background-color: #FFF3CD; color: #856404; }
+                .origen-paperland { background-color: #D4EDDA; color: #155724; }
+                .precio { text-align: right; font-weight: bold; color: #28a745; }
+                .footer { margin-top: 15px; text-align: center; font-size: 8px; color: #666; }
+            </style>
+        </head>
+        <body>
+            <h1>📦 LISTADO DE PRODUCTOS</h1>
+            <div class="header-info">
+                Generado el: ' . $fechaGeneracion . ' | Total de productos: ' . $totalProductos . '
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th width="5%">ID</th>
+                        <th width="12%">Código</th>
+                        <th width="25%">Nombre</th>
+                        <th width="10%">Marca</th>
+                        <th width="15%">Categoría</th>
+                        <th width="10%">Precio</th>
+                        <th width="8%">Origen</th>
+                        <th width="10%">Fecha</th>
+                    </tr>
+                </thead>
+                <tbody>';
+
+        foreach ($productos as $producto) {
+            $origenClass = $producto->producto_valencia ? 'origen-valencia' : 'origen-paperland';
+            $origenTexto = $producto->producto_valencia ? '🏢 Valencia' : '🏠 Paperland';
+
+            $html .= '
+                    <tr>
+                        <td class="text-center">' . $producto->id . '</td>
+                        <td>' . ($producto->codigo_barra ?: 'Sin código') . '</td>
+                        <td>' . htmlspecialchars($producto->nombre) . '</td>
+                        <td>' . htmlspecialchars($producto->marca->nombre ?? 'Sin marca') . '</td>
+                        <td>' . htmlspecialchars($producto->subcategoria->categoria->nombre ?? 'N/A') . '</td>
+                        <td class="precio">L. ' . number_format($producto->precio_base, 2) . '</td>
+                        <td class="text-center ' . $origenClass . '">' . $origenTexto . '</td>
+                        <td class="text-center">' . ($producto->created_at ? $producto->created_at->format('d/m/Y') : 'N/A') . '</td>
+                    </tr>';
+        }
+
+        $html .= '
+                </tbody>
+            </table>
+
+            <div class="footer">
+                Sistema ZENVY - Gestión de Inventario | Página {PAGE_NUM} de {PAGE_COUNT}
+            </div>
+        </body>
+        </html>';
+
+        return $html;
+    }
+
     // Limpiar completamente al destruir el componente
     public function destroying()
     {
