@@ -66,7 +66,107 @@ class ListaDeFacturas extends Component
 
     public function descargarExcel()
     {
-        return Excel::download(new FacturasExport, 'facturas.xlsx');
+        // Replicar la lógica de filtros y paginación actual
+        $user = Auth::user();
+        $esAdmin = false;
+        if ($user && $user->roles_id) {
+            $esAdmin = DB::table('roles')
+                ->where('id', $user->roles_id)
+                ->whereIn('txt_nombre', ['Admin', 'Administrador', 'admin', 'administrador'])
+                ->exists();
+        }
+
+        $query = Factura::query();
+        if (!$esAdmin) {
+            if ($user) {
+                $query->where('users_id', $user->id);
+            } else {
+                $query->where('id', 0);
+            }
+        }
+        if (!empty($this->buscar)) {
+            $query->where(function($q) {
+                $q->where('nombre_cliente', 'like', '%' . $this->buscar . '%')
+                  ->orWhere('numero_factura', 'like', '%' . $this->buscar . '%')
+                  ->orWhere('rtn', 'like', '%' . $this->buscar . '%');
+            });
+        }
+        if (!empty($this->filtroId)) {
+            $query->where('id', $this->filtroId);
+        }
+        if (!empty($this->filtroNumero)) {
+            $query->where('numero_factura', 'like', '%' . $this->filtroNumero . '%');
+        }
+        if (!empty($this->filtroCliente)) {
+            $query->where('nombre_cliente', 'like', '%' . $this->filtroCliente . '%');
+        }
+        if (!empty($this->filtroRTN)) {
+            $query->where('rtn', 'like', '%' . $this->filtroRTN . '%');
+        }
+        if (!empty($this->filtroFecha)) {
+            $query->whereDate('fecha_emision', $this->filtroFecha);
+        }
+        if (!empty($this->filtroSubtotal)) {
+            $query->where('sub_total', 'like', '%' . $this->filtroSubtotal . '%');
+        }
+        if (!empty($this->filtroISV)) {
+            $query->where('isv', 'like', '%' . $this->filtroISV . '%');
+        }
+        if (!empty($this->filtroTotal)) {
+            $query->where('total', 'like', '%' . $this->filtroTotal . '%');
+        }
+        $query->orderBy($this->ordenarPor, $this->direccionOrden);
+
+        // Obtener solo la página actual
+        $facturas = $query->paginate($this->registrosPorPagina, ['*'], 'page', $this->page);
+        $facturasArray = $facturas->items();
+
+        // Metadatos
+        $fechaGeneracion = now()->format('d/m/Y H:i:s');
+        $totalFacturas = $facturas->total();
+        $usuarioReporte = $user ? $user->name : 'Invitado';
+        $filtrosAplicados = $this->obtenerFiltrosAplicados();
+
+        $timestamp = now()->format('Y-m-d_H-i-s');
+        $filename = "facturas_{$timestamp}.xlsx";
+
+        return Excel::download(
+            new \App\Excel\FacturasExport($facturasArray, $fechaGeneracion, $totalFacturas, $filtrosAplicados, $usuarioReporte),
+            $filename
+        );
+    }
+
+    private function obtenerFiltrosAplicados()
+    {
+        $filtros = [];
+        if (!empty($this->buscar)) {
+            $filtros[] = "Búsqueda: '{$this->buscar}'";
+        }
+        if (!empty($this->filtroId)) {
+            $filtros[] = "ID: '{$this->filtroId}'";
+        }
+        if (!empty($this->filtroNumero)) {
+            $filtros[] = "No. Factura: '{$this->filtroNumero}'";
+        }
+        if (!empty($this->filtroCliente)) {
+            $filtros[] = "Cliente: '{$this->filtroCliente}'";
+        }
+        if (!empty($this->filtroRTN)) {
+            $filtros[] = "RTN: '{$this->filtroRTN}'";
+        }
+        if (!empty($this->filtroFecha)) {
+            $filtros[] = "Fecha: '{$this->filtroFecha}'";
+        }
+        if (!empty($this->filtroSubtotal)) {
+            $filtros[] = "Subtotal: '{$this->filtroSubtotal}'";
+        }
+        if (!empty($this->filtroISV)) {
+            $filtros[] = "ISV: '{$this->filtroISV}'";
+        }
+        if (!empty($this->filtroTotal)) {
+            $filtros[] = "Total: '{$this->filtroTotal}'";
+        }
+        return empty($filtros) ? 'Ninguno' : implode(', ', $filtros);
     }
     public $facturaParaImprimir = null;
     public $productosFacturaImpresa = [];
