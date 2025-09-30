@@ -22,7 +22,7 @@ class ListaDeProductos extends Component
     public $ordenarPor = 'fecha_recibido';
     public $direccionOrden = 'desc';
     public $page = 1; // Agregamos la propiedad page
-    
+
     // Filtros
     public $filtroProducto = '';
     public $filtroBodega = '';
@@ -35,7 +35,7 @@ class ListaDeProductos extends Component
 
     // REMOVIDO: protected $queryString - Ya no persiste parámetros en URL
     // Los filtros se manejarán solo con sesión
-    
+
     // Deshabilitar persistencia de paginación en URL
     protected $queryString = [];
 
@@ -44,7 +44,7 @@ class ListaDeProductos extends Component
     {
         return $this->page;
     }
-    
+
     // Sobrescribir método para cambiar página sin URL
     public function setPage($page)
     {
@@ -88,18 +88,18 @@ class ListaDeProductos extends Component
             $this->direccionOrden = $filtrosSesion['direccionOrden'] ?? 'desc';
             $this->page = $filtrosSesion['page'] ?? 1;
         }
-        
+
         // Detectar si hay parámetros de otra vista
         $parametrosURL = request()->query();
         $parametrosOtraVista = ['busqueda', 'filtroFecha']; // Parámetros exclusivos de compra-de-productos
-        
+
         foreach ($parametrosOtraVista as $param) {
             if (isset($parametrosURL[$param])) {
                 // Si hay parámetros de otra vista, hacer redirect limpio
                 return redirect()->route('dashboard');
             }
         }
-        
+
         // Verificar si se necesita resetear parámetros
         if (session('reset_lista_productos_params')) {
             session()->forget('reset_lista_productos_params');
@@ -112,7 +112,7 @@ class ListaDeProductos extends Component
             $this->page = 1; // Resetear también la página
             $this->resetPage();
         }
-        
+
         session(['current_component' => 'lista-de-productos']);
         $this->cargarFiltros();
     }
@@ -127,11 +127,11 @@ class ListaDeProductos extends Component
     {
         // Solo verificar compatibilidad básica - DynamicContent maneja los redirects
         $parametrosURL = request()->query();
-        
+
         if (!empty($parametrosURL)) {
             // Solo verificar parámetros críticos que definitivamente no pertenecen aquí
             $parametrosProhibidos = ['busqueda', 'filtroFecha'];
-            
+
             foreach ($parametrosProhibidos as $param) {
                 if (isset($parametrosURL[$param])) {
                     // Dejar que DynamicContent maneje el redirect
@@ -140,7 +140,7 @@ class ListaDeProductos extends Component
             }
         }
     }
-    
+
     public function dehydrate()
     {
         // Guardar filtros en sesión en cada actualización
@@ -155,12 +155,12 @@ class ListaDeProductos extends Component
         ]]);
     }
 
-    // Limpiar completamente al destruir el componente  
+    // Limpiar completamente al destruir el componente
     public function destroying()
     {
         // Limpiar todas las sesiones relacionadas incluyendo filtros
         session()->forget(['lista_productos_ordenamiento', 'current_component', 'reset_lista_productos_params', 'productos_filtros']);
-        
+
         // Si hay parámetros en URL, forzar redirect limpio al dashboard
         if (request()->has(['ordenarPor', 'direccionOrden', 'filtroProducto', 'filtroBodega', 'filtroEstado', 'filtroMarca', 'page'])) {
             $this->redirectRoute('dashboard', navigate: true);
@@ -199,7 +199,7 @@ class ListaDeProductos extends Component
         $this->resetPage();
     }
 
-    public function cargarDatos()
+    public function cargarDatos($paginacion = true)
     {
         try {
             $user = Auth::user();
@@ -288,7 +288,7 @@ class ListaDeProductos extends Component
             $query->orderBy($campoOrden, $this->direccionOrden);
 
             // Paginar resultados
-            return $query->paginate($this->registrosPorPagina, ['*'], 'page', $this->page);
+            return $paginacion ? $query->paginate($this->registrosPorPagina, ['*'], 'page', $this->page) : $query->get();
 
         } catch (\Exception $e) {
             Log::error('Error al cargar productos recibidos', [
@@ -297,7 +297,7 @@ class ListaDeProductos extends Component
                 'archivo' => $e->getFile(),
                 'linea' => $e->getLine()
             ]);
-            
+
             // Crear una paginación vacía manualmente
             return new LengthAwarePaginator(
                 collect(), // Colección vacía
@@ -316,11 +316,11 @@ class ListaDeProductos extends Component
 
             // Cargar bodegas
             $queryBodegas = Bodega::with('tienda')->where('estado_id', 1);
-            
+
             if ($user->rol && $user->rol->txt_nombre !== 'Admin') {
                 $queryBodegas->where('tienda_id', $user->tienda_id);
             }
-            
+
             $this->bodegas = $queryBodegas->orderBy('nombre')->get();
 
             // Cargar marcas (solo las que tienen productos en bodega)
@@ -345,7 +345,7 @@ class ListaDeProductos extends Component
                 'mensaje' => $e->getMessage(),
                 'usuario' => Auth::id()
             ]);
-            
+
             $this->bodegas = collect();
             $this->marcas = collect();
         }
@@ -366,10 +366,61 @@ class ListaDeProductos extends Component
         $this->dispatch('cambiarVista', ruta: 'Inventario.ProductoForm', parametros: ['id' => $productoId]);
     }
 
+    public function descargarExcel()
+    {
+        try {
+            // Obtener todos los productos recibidos según los filtros actuales (sin paginación)
+            $productos = $this->cargarDatos(false); // false para no paginar
+
+            $fechaGeneracion = now()->format('d/m/Y H:i:s');
+            $totalProductos = $productos->count();
+            $filtrosAplicados = $this->obtenerFiltrosAplicados();
+
+            $usuarioReporte = auth()->user() ? auth()->user()->name : 'Invitado';
+
+            $timestamp = now()->format('Y-m-d_H-i-s');
+            $filename = "lista_productos_{$timestamp}.xlsx";
+
+            $tempDir = storage_path('app/temp');
+            if (!file_exists($tempDir)) {
+                mkdir($tempDir, 0755, true);
+            }
+
+            \Maatwebsite\Excel\Facades\Excel::store(
+                new \App\Excel\ListaDeProductosExport($productos, $fechaGeneracion, $totalProductos, $filtrosAplicados, $usuarioReporte),
+                $filename,
+                'temp'
+            );
+
+            return $this->redirectRoute('download.file', ['file' => $filename]);
+        } catch (\Exception $e) {
+            session()->flash('error', 'Error al generar el archivo Excel: ' . $e->getMessage());
+            \Log::error('Error generating Excel', ['error' => $e->getMessage()]);
+        }
+    }
+
+    private function obtenerFiltrosAplicados()
+    {
+        $filtros = [];
+        if (!empty($this->filtroProducto)) {
+            $filtros[] = "Producto: '{$this->filtroProducto}'";
+        }
+        if (!empty($this->filtroBodega)) {
+            $filtros[] = "Bodega: '{$this->filtroBodega}'";
+        }
+        if (!empty($this->filtroEstado)) {
+            $filtros[] = "Estado: '{$this->filtroEstado}'";
+        }
+        if (!empty($this->filtroMarca)) {
+            $filtros[] = "Marca: '{$this->filtroMarca}'";
+        }
+        return empty($filtros) ? 'Ninguno' : implode(', ', $filtros);
+    }
+
     public function render()
     {
         $productosRecibidos = $this->cargarDatos();
-        
+
         return view('livewire.inventario.lista-de-productos', [
             'productosRecibidos' => $productosRecibidos
         ]);

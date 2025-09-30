@@ -9,7 +9,7 @@ use App\Services\SincronizacionProductosService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Barryvdh\DomPDF\Facade\Pdf;
-use App\Exports\ProductosExport;
+use App\Excel\ProductosExport;
 use Maatwebsite\Excel\Facades\Excel;
 // Las librerías se cargarán dinámicamente si están disponibles
 
@@ -96,58 +96,6 @@ class Producto extends Component
         $this->resetPage();
     }
 
-    public function updatingFiltroOrigen()
-    {
-        $this->resetPage();
-    }
-
-    public function updatingFiltroNombre()
-    {
-        $this->resetPage();
-    }
-
-    public function updatingFiltroCodigo()
-    {
-        $this->resetPage();
-    }
-
-    public function updatingFiltroCategoria()
-    {
-        $this->resetPage();
-    }
-
-    public function updatingFiltroMarca()
-    {
-        $this->resetPage();
-    }
-
-    public function updatingFiltroPrecio()
-    {
-        $this->resetPage();
-    }
-
-    public function ordenar($campo)
-    {
-        if ($this->ordenarPor === $campo) {
-            $this->direccionOrden = $this->direccionOrden === 'asc' ? 'desc' : 'asc';
-        } else {
-            $this->ordenarPor = $campo;
-            $this->direccionOrden = 'asc';
-        }
-        $this->resetPage();
-    }
-
-    public function limpiarFiltros()
-    {
-        $this->buscar = '';
-        $this->filtroOrigen = 'todos';
-        $this->filtroNombre = '';
-        $this->filtroCodigo = '';
-        $this->filtroCategoria = '';
-        $this->filtroMarca = '';
-        $this->filtroPrecio = '';
-        $this->resetPage();
-    }
 
     private function getSincronizacionService()
     {

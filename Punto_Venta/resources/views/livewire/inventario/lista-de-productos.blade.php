@@ -40,12 +40,12 @@
         </div>
 
         <!-- FILTROS Y BÚSQUEDA -->
-        <div class="px-4 py-3 bg-gray-50 border-b">
+        <div class="px-4 py-3 border-b bg-gray-50">
             <div class="grid grid-cols-1 gap-4 md:grid-cols-4">
                 <!-- Búsqueda de Producto -->
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Buscar Producto</label>
-                    <input type="text" 
+                    <label class="block mb-1 text-sm font-medium text-gray-700">Buscar Producto</label>
+                    <input type="text"
                            wire:model.live.debounce.300ms="filtroProducto"
                            placeholder="Nombre, código de barras..."
                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
@@ -53,7 +53,7 @@
 
                 <!-- Filtro de Bodega -->
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Bodega</label>
+                    <label class="block mb-1 text-sm font-medium text-gray-700">Bodega</label>
                     <select wire:model.live="filtroBodega" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500">
                         <option value="">Todas las bodegas</option>
                         @foreach($bodegas as $bodega)
@@ -64,7 +64,7 @@
 
                 <!-- Filtro de Estado Stock -->
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Estado Stock</label>
+                    <label class="block mb-1 text-sm font-medium text-gray-700">Estado Stock</label>
                     <select wire:model.live="filtroEstado" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500">
                         <option value="">Todos</option>
                         <option value="disponible">Disponible</option>
@@ -75,7 +75,7 @@
 
                 <!-- Filtro de Marca -->
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Marca</label>
+                    <label class="block mb-1 text-sm font-medium text-gray-700">Marca</label>
                     <select wire:model.live="filtroMarca" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500">
                         <option value="">Todas las marcas</option>
                         @foreach($marcas as $marca)
@@ -83,11 +83,27 @@
                         @endforeach
                     </select>
                 </div>
+
             </div>
-            
-            <div class="mt-3">
+
+            <div class="flex gap-2 mt-3">
                 <button wire:click="limpiarFiltros" class="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
                     🗑️ Limpiar Filtros
+                </button>
+                <button wire:click="descargarExcel"
+                    class="inline-flex items-center gap-1 px-3 py-2 text-sm text-white bg-green-600 rounded hover:bg-green-700 disabled:opacity-50"
+                    wire:loading.attr="disabled"
+                    wire:target="descargarExcel"
+                    title="Descargar reporte">
+                    <span wire:loading.remove wire:target="descargarExcel">📥</span>
+                    <span wire:loading wire:target="descargarExcel">
+                        <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                    </span>
+                    <span wire:loading.remove wire:target="descargarExcel">Descargar reporte</span>
+                    <span wire:loading wire:target="descargarExcel">Generando...</span>
                 </button>
             </div>
         </div>
@@ -95,7 +111,7 @@
         <!-- INFORMACIÓN DE RESULTADOS -->
         <div class="px-4 py-2 bg-gray-100 border-b">
             <div class="text-sm text-gray-600">
-                Showing {{ $productosRecibidos->firstItem() ?? 0 }} to {{ $productosRecibidos->lastItem() ?? 0 }} 
+                Showing {{ $productosRecibidos->firstItem() ?? 0 }} to {{ $productosRecibidos->lastItem() ?? 0 }}
                 of {{ $productosRecibidos->total() }} results
                 @if($filtroProducto)
                     | Filtrado por: "{{ $filtroProducto }}"
@@ -107,11 +123,11 @@
         <div class="px-4 py-3">
             @if($productosRecibidos->count() > 0)
                 <div class="overflow-x-auto">
-                    <table class="min-w-full table-auto border border-gray-200">
+                    <table class="min-w-full border border-gray-200 table-auto">
                         <thead class="bg-gray-50">
                             <!-- Encabezados con ordenamiento -->
                             <tr>
-                                <th class="px-4 py-3 text-left border-b cursor-pointer hover:bg-gray-100" 
+                                <th class="px-4 py-3 text-left border-b cursor-pointer hover:bg-gray-100"
                                     wire:click="ordenar('producto_nombre')">
                                     <div class="flex items-center space-x-1">
                                         <span>Producto</span>
@@ -189,7 +205,7 @@
                                 <tr class="hover:bg-gray-50 cursor-pointer {{ $item->cantidad_disponible > 10 ? 'bg-green-50' : ($item->cantidad_disponible > 0 ? 'bg-yellow-50' : 'bg-red-50') }}"
                                     wire:click="editarProducto({{ $item->producto_id }})"
                                     title="Clic para editar producto">
-                                    
+
                                     <!-- Producto -->
                                     <td class="px-4 py-3 border-b">
                                         <div class="flex flex-col">
@@ -202,11 +218,11 @@
 
                                     <!-- Código -->
                                     <td class="px-4 py-3 border-b">
-                                        <code class="text-sm bg-gray-100 px-2 py-1 rounded">{{ $item->codigo_barra ?? 'N/A' }}</code>
+                                        <code class="px-2 py-1 text-sm bg-gray-100 rounded">{{ $item->codigo_barra ?? 'N/A' }}</code>
                                     </td>
 
                                     <!-- Marca -->
-                                    <td class="px-4 py-3 border-b text-gray-700">
+                                    <td class="px-4 py-3 text-gray-700 border-b">
                                         {{ $item->marca_nombre ?? 'Sin marca' }}
                                     </td>
 
@@ -219,17 +235,17 @@
                                     </td>
 
                                     <!-- Segmento -->
-                                    <td class="px-4 py-3 border-b text-gray-700">
+                                    <td class="px-4 py-3 text-gray-700 border-b">
                                         {{ $item->segmento_descripcion ?? 'N/A' }}
                                     </td>
 
                                     <!-- Sección -->
-                                    <td class="px-4 py-3 border-b text-gray-700">
+                                    <td class="px-4 py-3 text-gray-700 border-b">
                                         {{ $item->seccion_descripcion ?? 'N/A' }}
                                     </td>
 
                                     <!-- Stock -->
-                                    <td class="px-4 py-3 border-b text-center">
+                                    <td class="px-4 py-3 text-center border-b">
                                         <span class="font-bold {{ $item->cantidad_disponible > 10 ? 'text-green-600' : ($item->cantidad_disponible > 0 ? 'text-yellow-600' : 'text-red-600') }}">
                                             {{ number_format($item->cantidad_disponible, 0) }}
                                         </span>
@@ -237,12 +253,12 @@
                                     </td>
 
                                     <!-- Fecha Recibido -->
-                                    <td class="px-4 py-3 border-b text-center text-sm text-gray-600">
+                                    <td class="px-4 py-3 text-sm text-center text-gray-600 border-b">
                                         {{ \Carbon\Carbon::parse($item->fecha_recibido)->format('d/m/Y') }}
                                     </td>
 
                                     <!-- Fecha Expiración -->
-                                    <td class="px-4 py-3 border-b text-center text-sm">
+                                    <td class="px-4 py-3 text-sm text-center border-b">
                                         @if($item->fecha_expiracion)
                                             @php
                                                 $fechaExpiracion = \Carbon\Carbon::parse($item->fecha_expiracion);
@@ -260,7 +276,7 @@
                                     </td>
 
                                     <!-- Estado -->
-                                    <td class="px-4 py-3 border-b text-center">
+                                    <td class="px-4 py-3 text-center border-b">
                                         @if($item->cantidad_disponible > 10)
                                             <span class="inline-flex px-2 py-1 text-xs font-semibold text-white bg-green-500 rounded-full">Disponible</span>
                                         @elseif($item->cantidad_disponible > 0)
@@ -271,7 +287,7 @@
                                     </td>
 
                                     <!-- Comentario -->
-                                    <td class="px-4 py-3 border-b text-sm">
+                                    <td class="px-4 py-3 text-sm border-b">
                                         @if($item->comentario)
                                             <span title="{{ $item->comentario }}" class="text-gray-700">{{ Str::limit($item->comentario, 20) }}</span>
                                         @else
@@ -284,13 +300,13 @@
                     </table>
                 </div>
             @else
-                <div class="text-center py-12">
+                <div class="py-12 text-center">
                     <div class="flex flex-col items-center">
-                        <svg class="w-16 h-16 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-16 h-16 mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-4.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 009.586 13H7"></path>
                         </svg>
-                        <span class="text-xl text-gray-500 font-medium">No hay productos recibidos en bodega</span>
-                        <small class="text-gray-400 mt-1">Los productos aparecerán aquí cuando sean distribuidos a las bodegas</small>
+                        <span class="text-xl font-medium text-gray-500">No hay productos recibidos en bodega</span>
+                        <small class="mt-1 text-gray-400">Los productos aparecerán aquí cuando sean distribuidos a las bodegas</small>
                     </div>
                 </div>
             @endif
@@ -305,7 +321,7 @@
                             </div>
                             <div class="flex items-center gap-2">
                                 <label class="text-sm text-gray-600">Show:</label>
-                                <select wire:model.live="registrosPorPagina" class="px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500">
+                                <select wire:model.live="registrosPorPagina" class="px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500">
                                     <option value="10">10</option>
                                     <option value="25">25</option>
                                     <option value="50">50</option>
@@ -331,7 +347,7 @@
 
                             @for($page = $start; $page <= min($end, $lastPage); $page++)
                                 @if($page == $currentPage)
-                                    <span class="px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-300 rounded">{{ $page }}</span>
+                                    <span class="px-3 py-2 text-sm font-medium text-blue-600 border border-blue-300 rounded bg-blue-50">{{ $page }}</span>
                                 @else
                                     <button wire:click="gotoPage({{ $page }})" class="px-3 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50">{{ $page }}</button>
                                 @endif
@@ -360,7 +376,7 @@
                         </div>
                         <div class="flex items-center gap-2">
                             <label class="text-sm text-gray-600">Show:</label>
-                            <select wire:model.live="registrosPorPagina" class="px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500">
+                            <select wire:model.live="registrosPorPagina" class="px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500">
                                 <option value="10">10</option>
                                 <option value="25">25</option>
                                 <option value="50">50</option>

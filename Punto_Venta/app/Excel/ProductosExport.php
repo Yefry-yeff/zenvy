@@ -1,19 +1,19 @@
 <?php
 
-namespace App\Exports;
+namespace App\Excel;
 
-use Illuminate\Contracts\View\View;
 use Maatwebsite\Excel\Concerns\FromView;
 use Maatwebsite\Excel\Concerns\WithStyles;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
+use Illuminate\Contracts\View\View;
 
 class ProductosExport implements FromView, WithStyles, ShouldAutoSize
 {
-    protected $productos;
-    protected $fechaGeneracion;
-    protected $totalProductos;
-    protected $filtrosAplicados;
+    private $productos;
+    private $fechaGeneracion;
+    private $totalProductos;
+    private $filtrosAplicados;
 
     public function __construct($productos, $fechaGeneracion, $totalProductos, $filtrosAplicados)
     {
@@ -36,7 +36,6 @@ class ProductosExport implements FromView, WithStyles, ShouldAutoSize
     public function styles(Worksheet $sheet)
     {
         return [
-            // Estilo para el título
             1 => [
                 'font' => [
                     'bold' => true,
@@ -47,7 +46,6 @@ class ProductosExport implements FromView, WithStyles, ShouldAutoSize
                     'horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER,
                 ]
             ],
-            // Estilo para encabezados (asumiendo que están en la fila 6)
             6 => [
                 'font' => [
                     'bold' => true,
