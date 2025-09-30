@@ -16,6 +16,9 @@ use Maatwebsite\Excel\Facades\Excel;
 
 class CompraDeProductos extends Component
 {
+    use WithPagination;
+
+    // Propiedades para modal de anulación
     // Descargar detalle de la compra seleccionada en Excel
     public function descargarDetalleExcel()
     {
@@ -423,7 +426,7 @@ class CompraDeProductos extends Component
                 // No permitir anular si está en estado "pendiente" (5) por distribución parcial
                 if ($estadoNombre === 'activo' && $estadoId != 5) {
                     // Buscar el estado "anulado"
-                    $estadoAnulado = Estado::whereRaw('LOWER(nombre) = ?', ['anulado'])->first();
+                    $estadoAnulado = Estado::whereRaw('LOWER(descripcion) = ?', ['anulado'])->first();
                     if ($estadoAnulado) {
                         $compra->estado_id = $estadoAnulado->id;
                         $compra->save();

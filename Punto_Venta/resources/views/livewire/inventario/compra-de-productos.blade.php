@@ -640,13 +640,12 @@
 
                 <!-- Footer -->
                 <div class="flex justify-end gap-2 px-6 py-3 bg-gray-50">
-                    <button wire:click="cerrarModalAnular"
+                    <button type="button" wire:click="cerrarModalAnular"
                             class="px-4 py-2 text-gray-700 transition-colors duration-200 bg-gray-200 rounded-md hover:bg-gray-300">
                         Cancelar
                     </button>
-                    <button wire:click="confirmarAnulacion"
-                            class="px-4 py-2 text-white transition-colors duration-200 bg-red-600 rounded-md hover:bg-red-700"
-                            @disabled(!$motivoAnulacion || strlen($motivoAnulacion) < 10)>
+                    <button type="button" wire:click="confirmarAnulacion"
+                            class="px-4 py-2 text-white transition-colors duration-200 bg-red-600 rounded-md hover:bg-red-700">
                         Anular Compra
                     </button>
                 </div>
