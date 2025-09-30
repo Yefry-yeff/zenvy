@@ -591,8 +591,8 @@ class Producto extends Component
             // Crear el archivo Excel usando la nueva sintaxis de maatwebsite/excel 3.x
             Excel::store(new ProductosExport($productos, $fechaGeneracion, $totalProductos, $filtrosAplicados), $filename, 'temp');
 
-            // Redirigir a la ruta de descarga usando Livewire
-            return $this->redirectRoute('download.file', ['file' => $filename]);
+            // Redirigir directamente a la URL de descarga
+            return redirect()->route('download.file', ['file' => $filename]);
 
         } catch (\Exception $e) {
             session()->flash('error', 'Error al generar el archivo Excel: ' . $e->getMessage());
@@ -644,8 +644,8 @@ class Producto extends Component
             // Guardar el PDF
             $pdf->save($filepath);
 
-            // Redirigir a la ruta de descarga usando Livewire
-            return $this->redirectRoute('download.file', ['file' => $filename]);
+            // Redirigir directamente a la URL de descarga
+            return redirect()->route('download.file', ['file' => $filename]);
 
         } catch (\Exception $e) {
             session()->flash('error', 'Error al generar el archivo PDF: ' . $e->getMessage());
