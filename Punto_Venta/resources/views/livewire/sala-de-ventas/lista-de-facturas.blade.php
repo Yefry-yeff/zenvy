@@ -38,11 +38,11 @@
 
             <div class="overflow-hidden border border-gray-300 rounded shadow">
                 <!-- Barra de búsqueda y filtros principales -->
-                <div class="px-4 py-3 bg-gray-50 border-b">
+                <div class="px-4 py-3 border-b bg-gray-50">
                     <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
                         <!-- Búsqueda -->
                         <div class="md:col-span-2">
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Buscar</label>
+                            <label class="block mb-1 text-sm font-medium text-gray-700">Buscar</label>
                             <input type="text"
                                    wire:model.live.debounce.300ms="buscar"
                                    placeholder="Buscar por cliente, número o RTN..."
@@ -90,7 +90,7 @@
                 <!-- Tabla optimizada -->
                 <div class="px-4 py-3">
                     <div class="overflow-x-auto">
-                        <table class="min-w-full table-auto border border-gray-200">
+                        <table class="min-w-full border border-gray-200 table-auto">
                             <thead class="bg-gray-50">
                                 <!-- Encabezados con ordenamiento -->
                                 <tr>
@@ -134,7 +134,7 @@
                                             @endif
                                         </div>
                                     </th>
-                                    <th class="px-4 py-3 text-end border-b cursor-pointer hover:bg-gray-100" wire:click="ordenar('sub_total')">
+                                    <th class="px-4 py-3 border-b cursor-pointer text-end hover:bg-gray-100" wire:click="ordenar('sub_total')">
                                         <div class="flex items-center justify-end space-x-1">
                                             <span>Subtotal</span>
                                             @if($ordenarPor === 'sub_total')
@@ -142,7 +142,7 @@
                                             @endif
                                         </div>
                                     </th>
-                                    <th class="px-4 py-3 text-end border-b cursor-pointer hover:bg-gray-100" wire:click="ordenar('isv')">
+                                    <th class="px-4 py-3 border-b cursor-pointer text-end hover:bg-gray-100" wire:click="ordenar('isv')">
                                         <div class="flex items-center justify-end space-x-1">
                                             <span>ISV</span>
                                             @if($ordenarPor === 'isv')
@@ -150,7 +150,7 @@
                                             @endif
                                         </div>
                                     </th>
-                                    <th class="px-4 py-3 text-end border-b cursor-pointer hover:bg-gray-100" wire:click="ordenar('total')">
+                                    <th class="px-4 py-3 border-b cursor-pointer text-end hover:bg-gray-100" wire:click="ordenar('total')">
                                         <div class="flex items-center justify-end space-x-1">
                                             <span>Total</span>
                                             @if($ordenarPor === 'total')
@@ -205,7 +205,7 @@
                             <tbody class="divide-y divide-gray-200">
                                 @if($facturas->count() > 0)
                                     @foreach($facturas as $factura)
-                                    <tr class="hover:bg-gray-50 cursor-pointer transition-colors duration-150" wire:key="factura-{{ $factura->id }}" wire:click="verDetalle({{ $factura->id }})">
+                                    <tr class="transition-colors duration-150 cursor-pointer hover:bg-gray-50" wire:key="factura-{{ $factura->id }}" wire:click="verDetalle({{ $factura->id }})">
                                         <td class="px-4 py-3">{{ $factura->id }}</td>
                                         <td class="px-4 py-3"><strong>{{ $factura->numero_factura ?? 'N/A' }}</strong></td>
                                         <td class="px-4 py-3">{{ $factura->nombre_cliente ?? 'Cliente General' }}</td>
@@ -239,9 +239,9 @@
                                     <!-- Mensaje cuando no hay facturas -->
                                     <tr>
                                         <td colspan="10" class="px-4 py-12 text-center">
-                                            <div class="text-gray-400 text-6xl mb-4">🧾</div>
-                                            <h3 class="text-lg font-medium text-gray-900 mb-2">No se encontraron facturas</h3>
-                                            <p class="text-gray-500 mb-4">
+                                            <div class="mb-4 text-6xl text-gray-400">🧾</div>
+                                            <h3 class="mb-2 text-lg font-medium text-gray-900">No se encontraron facturas</h3>
+                                            <p class="mb-4 text-gray-500">
                                                 @if($buscar || $filtroId || $filtroNumero || $filtroCliente || $filtroRTN || $filtroFecha || $filtroSubtotal || $filtroISV || $filtroTotal)
                                                     No hay facturas que coincidan con los filtros aplicados
                                                 @else
@@ -249,7 +249,7 @@
                                                 @endif
                                             </p>
                                             @if($buscar || $filtroId || $filtroNumero || $filtroCliente || $filtroRTN || $filtroFecha || $filtroSubtotal || $filtroISV || $filtroTotal)
-                                                <button wire:click="limpiarFiltros" class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600">Limpiar filtros</button>
+                                                <button wire:click="limpiarFiltros" class="px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600">Limpiar filtros</button>
                                             @endif
                                         </td>
                                     </tr>
@@ -269,7 +269,7 @@
                                     </div>
                                     <div class="flex items-center gap-2">
                                         <label class="text-sm text-gray-600">Mostrar:</label>
-                                        <select wire:model.live="registrosPorPagina" class="px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500">
+                                        <select wire:model.live="registrosPorPagina" class="px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500">
                                             <option value="10">10</option>
                                             <option value="25">25</option>
                                             <option value="50">50</option>
@@ -295,7 +295,7 @@
 
                                     @for($page = $start; $page <= min($end, $lastPage); $page++)
                                         @if($page == $currentPage)
-                                            <span class="px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-300 rounded">{{ $page }}</span>
+                                            <span class="px-3 py-2 text-sm font-medium text-blue-600 border border-blue-300 rounded bg-blue-50">{{ $page }}</span>
                                         @else
                                             <button wire:click="gotoPage({{ $page }})" class="px-3 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50">{{ $page }}</button>
                                         @endif
@@ -419,13 +419,13 @@
             <div class="modal-dialog modal-lg"
                  role="document"
                  onclick="event.stopPropagation()">
-                <div class="modal-content shadow-lg">
-                    <div class="modal-header bg-primary text-white">
+                <div class="shadow-lg modal-content">
+                    <div class="text-white modal-header bg-primary">
                         <h5 class="modal-title">
-                            <i class="fas fa-file-invoice mr-2"></i>
+                            <i class="mr-2 fas fa-file-invoice"></i>
                             Detalle de Factura - {{ $facturaDetalle->numero_factura ?? 'N/A' }}
                         </h5>
-                        <button type="button" class="close text-white" wire:click="cerrarDetalle" aria-label="Cerrar">
+                        <button type="button" class="text-white close" wire:click="cerrarDetalle" aria-label="Cerrar">
                             <span aria-hidden="true">&times;</span>
                         </button>
                     </div>
@@ -433,7 +433,7 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="card h-100">
-                                    <div class="card-header bg-info text-white">
+                                    <div class="text-white card-header bg-info">
                                         <h6 class="mb-0"><i class="fas fa-user"></i> Información del Cliente</h6>
                                     </div>
                                     <div class="card-body">
@@ -445,7 +445,7 @@
                             </div>
                             <div class="col-md-6">
                                 <div class="card h-100">
-                                    <div class="card-header bg-success text-white">
+                                    <div class="text-white card-header bg-success">
                                         <h6 class="mb-0"><i class="fas fa-receipt"></i> Información de la Factura</h6>
                                     </div>
                                     <div class="card-body">
@@ -467,14 +467,14 @@
                             </div>
                         </div>
 
-                        <div class="row mt-3">
+                        <div class="mt-3 row">
                             <div class="col-12">
                                 <div class="card">
                                     <div class="card-header bg-warning text-dark">
                                         <h6 class="mb-0"><i class="fas fa-calculator"></i> Resumen de Totales</h6>
                                     </div>
                                     <div class="card-body">
-                                        <div class="row text-center">
+                                        <div class="text-center row">
                                             <div class="col-md-3">
                                                 <div class="border-right">
                                                     <h6 class="text-muted">Subtotal</h6>

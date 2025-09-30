@@ -22,7 +22,7 @@
              @click.window="show = false"
              @keydown.window="show = false"
              @mousemove.window="show = false"
-             class="relative px-4 py-3 mb-4 text-green-700 bg-green-100 border border-green-400 rounded transition-opacity duration-300" role="alert">
+             class="relative px-4 py-3 mb-4 text-green-700 transition-opacity duration-300 bg-green-100 border border-green-400 rounded" role="alert">
             <strong class="font-bold">Sincronización:</strong>
             <span class="block sm:inline">{{ session('mensaje') }}</span>
         </div>
@@ -42,14 +42,14 @@
             <h5 class="mb-0 text-lg">
                 📋 Listado de Compras de Productos
             </h5>
-            <div class="flex gap-2 flex-wrap">
+            <div class="flex flex-wrap gap-2">
                 <!-- Botón de sincronización con estado de carga -->
                 <div class="relative">
                     <button wire:click="sincronizarComprasValencia"
                         wire:loading.attr="disabled"
                         wire:target="sincronizarComprasValencia"
                         class="inline-flex items-center gap-1 px-3 py-2 text-sm text-gray-800 bg-white rounded hover:bg-gray-100 disabled:opacity-75 disabled:cursor-not-allowed">
-                        <div wire:loading wire:target="sincronizarComprasValencia" class="inline-block w-4 h-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin"></div>
+                        <div wire:loading wire:target="sincronizarComprasValencia" class="inline-block w-4 h-4 border-2 border-gray-300 rounded-full border-t-gray-600 animate-spin"></div>
                         <span wire:loading.remove wire:target="sincronizarComprasValencia">🔄</span>
                         <span wire:loading.remove wire:target="sincronizarComprasValencia">Actualizar Lista de Compras</span>
                         <span wire:loading wire:target="sincronizarComprasValencia">Sincronizando...</span>
@@ -83,11 +83,11 @@
         <!-- Barra de progreso para sincronización -->
         @if($sincronizandoCompras && $progreso !== null)
             <div class="px-5 pb-3">
-                <div class="w-full bg-gray-200 rounded-full h-2">
-                    <div class="bg-orange-600 h-2 rounded-full transition-all duration-300"
+                <div class="w-full h-2 bg-gray-200 rounded-full">
+                    <div class="h-2 transition-all duration-300 bg-orange-600 rounded-full"
                          style="width: {{ $progreso }}%"></div>
                 </div>
-                <p class="text-sm text-gray-600 mt-1">Sincronizando compras... {{ $progreso }}%</p>
+                <p class="mt-1 text-sm text-gray-600">Sincronizando compras... {{ $progreso }}%</p>
             </div>
         @endif
 
@@ -108,7 +108,7 @@
             <div class="p-4 bg-white border shadow rounded-xl">
                 <div class="mb-4 d-flex justify-content-between align-items-center">
                     <h2 class="text-lg font-semibold text-gray-700">📋 Compras Realizadas</h2>
-                    <div class="d-flex align-items-center gap-3">
+                    <div class="gap-3 d-flex align-items-center">
 
         <!-- INFORMACIÓN DE RESULTADOS -->
         <div class="px-4 py-2 bg-gray-100 border-b">
@@ -126,7 +126,7 @@
                 <div class="px-4 py-3">
                     @if($compras->count() > 0)
                         <div class="overflow-x-auto">
-                            <table class="min-w-full table-auto border border-gray-200">
+                            <table class="min-w-full border border-gray-200 table-auto">
                                 <thead class="bg-gray-50">
                                     <!-- Encabezados con ordenamiento -->
                                     <tr>
@@ -224,14 +224,14 @@
                                 </thead>
                                 <tbody class="bg-white divide-y divide-gray-200">
                                     @foreach($compras as $compra)
-                                        <tr class="hover:bg-gray-50 cursor-pointer"
+                                        <tr class="cursor-pointer hover:bg-gray-50"
                                             wire:click="verDetalle({{ $compra->id }})"
                                             title="Clic para ver detalles">
 
                                             <!-- ID -->
                                             <td class="px-4 py-3 border-b">
                                                 <div class="flex flex-col">
-                                                    <span class="font-semibold text-gray-900 bg-blue-100 px-2 py-1 rounded text-center">{{ $compra->id }}</span>
+                                                    <span class="px-2 py-1 font-semibold text-center text-gray-900 bg-blue-100 rounded">{{ $compra->id }}</span>
                                                 </div>
                                             </td>
 
@@ -243,22 +243,22 @@
                                             </td>
 
                                             <!-- Proveedor -->
-                                            <td class="px-4 py-3 border-b text-gray-700">
+                                            <td class="px-4 py-3 text-gray-700 border-b">
                                                 {{ $compra->proveedor->nombre ?? 'N/A' }}
                                             </td>
 
                                             <!-- Fecha Emisión -->
-                                            <td class="px-4 py-3 border-b text-center text-sm text-gray-600">
+                                            <td class="px-4 py-3 text-sm text-center text-gray-600 border-b">
                                                 {{ \Carbon\Carbon::parse($compra->fecha_emision)->format('d/m/Y') }}
                                             </td>
 
                                             <!-- Fecha Recepción -->
-                                            <td class="px-4 py-3 border-b text-center text-sm text-gray-600">
+                                            <td class="px-4 py-3 text-sm text-center text-gray-600 border-b">
                                                 {{ \Carbon\Carbon::parse($compra->fecha_recepcion)->format('d/m/Y') }}
                                             </td>
 
                                             <!-- Estado -->
-                                            <td class="px-4 py-3 border-b text-center">
+                                            <td class="px-4 py-3 text-center border-b">
                                                 @if($compra->estado)
                                                     @if(strtolower($compra->estado->nombre) === 'activo')
                                                         <span class="inline-flex px-2 py-1 text-xs font-semibold text-white bg-green-500 rounded-full">Activo</span>
@@ -277,21 +277,21 @@
                                             </td>
 
                                             <!-- Productos -->
-                                            <td class="px-4 py-3 border-b text-center">
+                                            <td class="px-4 py-3 text-center border-b">
                                                 <span class="font-bold text-blue-600">
                                                     {{ $compra->detallesCompra->count() }}
                                                 </span>
                                             </td>
 
                                             <!-- Total -->
-                                            <td class="px-4 py-3 border-b text-center">
+                                            <td class="px-4 py-3 text-center border-b">
                                                 <span class="font-bold text-green-600">
                                                     L. {{ number_format($compra->detallesCompra->sum('precio_total'), 2) }}
                                                 </span>
                                             </td>
 
                                             <!-- Acciones -->
-                                            <td class="px-4 py-3 border-b text-center" onclick="event.stopPropagation()">
+                                            <td class="px-4 py-3 text-center border-b" onclick="event.stopPropagation()">
                                                 @if($compra->estado && (strtolower($compra->estado->nombre) === 'activo' || strtolower($compra->estado->nombre) === 'pendiente' || $compra->estado_id == 5))
                                                     <div class="position-relative" x-data="{ open: false }">
                                                         <button @click="open = !open"
@@ -307,13 +307,13 @@
                                                              x-transition:leave="transition ease-in duration-150"
                                                              x-transition:leave-start="opacity-100 transform scale-100"
                                                              x-transition:leave-end="opacity-0 transform scale-95"
-                                                             class="position-absolute bg-white border rounded shadow-lg"
+                                                             class="bg-white border rounded shadow-lg position-absolute"
                                                              style="top: 100%; right: 0; z-index: 1050; min-width: 180px; margin-top: 0.25rem;">
 
                                                             <div class="p-1">
                                                                 @if($compra->estado_id != 5)
                                                                     <button type="button"
-                                                                            class="w-full px-3 py-2 text-sm text-left text-red-600 hover:bg-red-50 border-0 rounded"
+                                                                            class="w-full px-3 py-2 text-sm text-left text-red-600 border-0 rounded hover:bg-red-50"
                                                                             wire:click="abrirModalAnular({{ $compra->id }})"
                                                                             @click="open = false">
                                                                         ❌ Anular Compra
@@ -321,7 +321,7 @@
                                                                 @endif
 
                                                                 <button type="button"
-                                                                        class="w-full px-3 py-2 text-sm text-left text-blue-600 hover:bg-blue-50 border-0 rounded"
+                                                                        class="w-full px-3 py-2 text-sm text-left text-blue-600 border-0 rounded hover:bg-blue-50"
                                                                         wire:click="irARecibirProducto({{ $compra->id }})"
                                                                         @click="open = false">
                                                                     📦 Recibir Producto
@@ -341,7 +341,7 @@
                     @else
                         <div class="px-4 py-8 text-center text-gray-500">
                             <div class="flex flex-col items-center space-y-3">
-                                <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
+                                <div class="flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full">
                                     <span class="text-2xl">📦</span>
                                 </div>
                                 <p class="text-lg font-medium">No hay compras</p>
@@ -361,7 +361,7 @@
                                 </div>
                                 <div class="flex items-center gap-2">
                                     <label class="text-sm text-gray-600">Show:</label>
-                                    <select wire:model.live="registrosPorPagina" class="px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500">
+                                    <select wire:model.live="registrosPorPagina" class="px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500">
                                         <option value="10">10</option>
                                         <option value="25">25</option>
                                         <option value="50">50</option>
@@ -387,7 +387,7 @@
 
                                 @for($page = $start; $page <= min($end, $lastPage); $page++)
                                     @if($page == $currentPage)
-                                        <span class="px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-300 rounded">{{ $page }}</span>
+                                        <span class="px-3 py-2 text-sm font-medium text-blue-600 border border-blue-300 rounded bg-blue-50">{{ $page }}</span>
                                     @else
                                         <button wire:click="gotoPage({{ $page }})" class="px-3 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50">{{ $page }}</button>
                                     @endif
@@ -416,7 +416,7 @@
                             </div>
                             <div class="flex items-center gap-2">
                                 <label class="text-sm text-gray-600">Show:</label>
-                                <select wire:model.live="registrosPorPagina" class="px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500">
+                                <select wire:model.live="registrosPorPagina" class="px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500">
                                     <option value="10">10</option>
                                     <option value="25">25</option>
                                     <option value="50">50</option>
@@ -559,7 +559,7 @@
                 <div class="px-4 py-3 border-t bg-gray-50">
                     <div class="flex justify-between">
                         <button wire:click="descargarDetalleExcel"
-                                class="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-blue-700 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center gap-2">
+                                class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-blue-700 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
                             <span wire:loading.remove wire:target="descargarDetalleExcel">📥</span>
                             <span wire:loading wire:target="descargarDetalleExcel">Generando...</span>
                             Descargar detalle
@@ -736,7 +736,7 @@
             <div class="fixed inset-0 bg-black bg-opacity-50" wire:click="cerrarDetallesSincronizacion"></div>
 
             {{-- Modal --}}
-            <div class="relative bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
+            <div class="relative w-full max-w-md p-6 mx-4 bg-white rounded-lg shadow-xl">
                 <div class="flex items-center justify-between mb-4">
                     <h3 class="text-lg font-semibold text-gray-900">📊 Sincronización de Compras Completada</h3>
                     <button wire:click="cerrarDetallesSincronizacion" class="text-gray-400 hover:text-gray-600">
@@ -747,38 +747,38 @@
                 </div>
 
                 <div class="space-y-3">
-                    <div class="flex justify-between items-center p-3 bg-green-50 rounded">
+                    <div class="flex items-center justify-between p-3 rounded bg-green-50">
                         <span class="font-medium text-green-800">✅ Compras procesadas:</span>
                         <span class="font-bold text-green-600">{{ $detallesSincronizacion['compras_sincronizadas'] }}</span>
                     </div>
 
                     @if($detallesSincronizacion['compras_nuevas'] > 0)
-                        <div class="flex justify-between items-center p-3 bg-blue-50 rounded">
+                        <div class="flex items-center justify-between p-3 rounded bg-blue-50">
                             <span class="font-medium text-blue-800">🆕 Compras nuevas:</span>
                             <span class="font-bold text-blue-600">{{ $detallesSincronizacion['compras_nuevas'] }}</span>
                         </div>
                     @endif
 
                     @if($detallesSincronizacion['productos_sincronizados'] > 0)
-                        <div class="flex justify-between items-center p-3 bg-yellow-50 rounded">
+                        <div class="flex items-center justify-between p-3 rounded bg-yellow-50">
                             <span class="font-medium text-yellow-800">📦 Productos sincronizados:</span>
                             <span class="font-bold text-yellow-600">{{ $detallesSincronizacion['productos_sincronizados'] }}</span>
                         </div>
                     @endif
 
-                    <div class="flex justify-between items-center p-3 bg-orange-50 rounded">
+                    <div class="flex items-center justify-between p-3 rounded bg-orange-50">
                         <span class="font-medium text-orange-800">📈 Total procesadas:</span>
                         <span class="font-bold text-orange-600">{{ $detallesSincronizacion['total_procesadas'] }}</span>
                     </div>
 
                     @if($detallesSincronizacion['errores'] > 0)
-                        <div class="flex justify-between items-center p-3 bg-red-50 rounded">
+                        <div class="flex items-center justify-between p-3 rounded bg-red-50">
                             <span class="font-medium text-red-800">❌ Errores:</span>
                             <span class="font-bold text-red-600">{{ $detallesSincronizacion['errores'] }}</span>
                         </div>
                     @endif
 
-                    <div class="flex justify-between items-center p-3 bg-purple-50 rounded">
+                    <div class="flex items-center justify-between p-3 rounded bg-purple-50">
                         <span class="font-medium text-purple-800">⏱️ Tiempo:</span>
                         <span class="font-bold text-purple-600">{{ $detallesSincronizacion['tiempo_ejecucion'] }}</span>
                     </div>
@@ -786,7 +786,7 @@
 
                 <div class="mt-6 text-center">
                     <button wire:click="cerrarDetallesSincronizacion"
-                            class="px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700 transition-colors">
+                            class="px-4 py-2 text-white transition-colors bg-orange-600 rounded hover:bg-orange-700">
                         Cerrar
                     </button>
                 </div>

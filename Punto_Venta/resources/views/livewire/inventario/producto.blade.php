@@ -70,19 +70,19 @@
                     <span class="text-blue-600">{{ $progreso }}%</span>
                 </div>
             </div>
-            <div class="w-full bg-blue-200 rounded-full h-2">
-                <div class="bg-blue-600 h-2 rounded-full transition-all duration-500 ease-out"
+            <div class="w-full h-2 bg-blue-200 rounded-full">
+                <div class="h-2 transition-all duration-500 ease-out bg-blue-600 rounded-full"
                      style="width: {{ $progreso }}%"></div>
             </div>
         </div>
         @endif
 
         <!-- FILTROS Y BÚSQUEDA -->
-        <div class="px-4 py-3 bg-gray-50 border-b">
+        <div class="px-4 py-3 border-b bg-gray-50">
             <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
                 <!-- Búsqueda -->
                 <div class="md:col-span-2">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Buscar</label>
+                    <label class="block mb-1 text-sm font-medium text-gray-700">Buscar</label>
                     <input type="text"
                            wire:model.live.debounce.300ms="buscar"
                            placeholder="Buscar por nombre, código o descripción..."
@@ -92,7 +92,7 @@
                 <!-- Filtro de Origen -->
                 <div class="flex items-end gap-2">
                     <div class="flex-1">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Origen</label>
+                        <label class="block mb-1 text-sm font-medium text-gray-700">Origen</label>
                         <select wire:model.live="filtroOrigen" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500">
                             <option value="todos">Todos</option>
                             <option value="paperland">🏠 Paperland</option>
@@ -132,7 +132,7 @@
         <!-- TABLA OPTIMIZADA -->
         <div class="px-4 py-3">
             <div class="overflow-x-auto">
-                <table class="min-w-full table-auto border border-gray-200">
+                <table class="min-w-full border border-gray-200 table-auto">
                         <thead class="bg-gray-50">
                             <!-- Encabezados con ordenamiento -->
                             <tr>
@@ -261,13 +261,13 @@
                         <tbody class="divide-y divide-gray-200">
                             @if($productos->count() > 0)
                                 @foreach($productos as $producto)
-                                <tr class="hover:bg-gray-50 cursor-pointer transition-colors duration-150"
+                                <tr class="transition-colors duration-150 cursor-pointer hover:bg-gray-50"
                                     wire:key="producto-{{ $producto->id }}">
                                     <td class="px-4 py-3" wire:click="editar({{ $producto->id }})">
                                         <div>
                                             <div class="font-medium text-gray-900">{{ $producto->nombre }}</div>
                                             @if($producto->descripcion)
-                                                <div class="text-sm text-gray-500 truncate max-w-xs">
+                                                <div class="max-w-xs text-sm text-gray-500 truncate">
                                                     {{ Str::limit($producto->descripcion, 60) }}
                                                 </div>
                                             @endif
@@ -285,10 +285,10 @@
                                     <td class="px-4 py-3 text-sm text-gray-700" wire:click="editar({{ $producto->id }})">
                                         {{ $producto->marca->nombre ?? 'Sin marca' }}
                                     </td>
-                                    <td class="px-4 py-3 text-center text-sm font-medium text-green-600" wire:click="editar({{ $producto->id }})">
+                                    <td class="px-4 py-3 text-sm font-medium text-center text-green-600" wire:click="editar({{ $producto->id }})">
                                         L. {{ number_format($producto->precio_base, 2) }}
                                     </td>
-                                    <td class="px-4 py-3 text-center text-sm text-gray-500" wire:click="editar({{ $producto->id }})">
+                                    <td class="px-4 py-3 text-sm text-center text-gray-500" wire:click="editar({{ $producto->id }})">
                                         {{ $producto->created_at ? $producto->created_at->format('d/m/Y') : 'N/A' }}
                                     </td>
                                     <td class="px-4 py-3 text-center" wire:click="editar({{ $producto->id }})">
@@ -305,7 +305,7 @@
                                     <td class="px-4 py-3 text-center">
                                         @if(!$producto->producto_valencia)
                                             <button type="button"
-                                                    class="p-1 text-red-600 hover:text-red-800 transition-colors"
+                                                    class="p-1 text-red-600 transition-colors hover:text-red-800"
                                                     wire:click="confirmarEliminar({{ $producto->id }})"
                                                     onclick="event.stopPropagation();"
                                                     title="Eliminar producto">
@@ -323,9 +323,9 @@
                             <!-- Mensaje cuando no hay productos -->
                             <tr>
                                 <td colspan="8" class="px-4 py-12 text-center">
-                                    <div class="text-gray-400 text-6xl mb-4">📦</div>
-                                    <h3 class="text-lg font-medium text-gray-900 mb-2">No se encontraron productos</h3>
-                                    <p class="text-gray-500 mb-4">
+                                    <div class="mb-4 text-6xl text-gray-400">📦</div>
+                                    <h3 class="mb-2 text-lg font-medium text-gray-900">No se encontraron productos</h3>
+                                    <p class="mb-4 text-gray-500">
                                         @if($buscar || $filtroOrigen !== 'todos' || $filtroNombre || $filtroCodigo || $filtroCategoria || $filtroMarca || $filtroPrecio)
                                             No hay productos que coincidan con los filtros aplicados
                                         @else
@@ -334,7 +334,7 @@
                                     </p>
                                     @if($buscar || $filtroOrigen !== 'todos' || $filtroNombre || $filtroCodigo || $filtroCategoria || $filtroMarca || $filtroPrecio)
                                         <button wire:click="limpiarFiltros"
-                                                class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600">
+                                                class="px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600">
                                             Limpiar filtros
                                         </button>
                                     @endif
@@ -355,7 +355,7 @@
                                 </div>
                                 <div class="flex items-center gap-2">
                                     <label class="text-sm text-gray-600">Show:</label>
-                                    <select wire:model.live="registrosPorPagina" class="px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500">
+                                    <select wire:model.live="registrosPorPagina" class="px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500">
                                         <option value="10">10</option>
                                         <option value="25">25</option>
                                         <option value="50">50</option>
@@ -381,7 +381,7 @@
 
                                 @for($page = $start; $page <= min($end, $lastPage); $page++)
                                     @if($page == $currentPage)
-                                        <span class="px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-300 rounded">{{ $page }}</span>
+                                        <span class="px-3 py-2 text-sm font-medium text-blue-600 border border-blue-300 rounded bg-blue-50">{{ $page }}</span>
                                     @else
                                         <button wire:click="gotoPage({{ $page }})" class="px-3 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50">{{ $page }}</button>
                                     @endif
@@ -410,7 +410,7 @@
                             </div>
                             <div class="flex items-center gap-2">
                                 <label class="text-sm text-gray-600">Show:</label>
-                                <select wire:model.live="registrosPorPagina" class="px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500">
+                                <select wire:model.live="registrosPorPagina" class="px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500">
                                     <option value="10">10</option>
                                     <option value="25">25</option>
                                     <option value="50">50</option>
@@ -426,9 +426,9 @@
 
     <!-- Modal Confirmar Eliminación (simplificado) -->
     @if($modalEliminarAbierto)
-    <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
          wire:click.self="cerrarModalEliminar">
-        <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
+        <div class="w-full max-w-md p-6 mx-4 bg-white rounded-lg shadow-xl">
             <div class="flex items-center justify-between mb-4">
                 <h3 class="text-lg font-semibold text-red-600">⚠️ Confirmar Eliminación</h3>
                 <button wire:click="cerrarModalEliminar" class="text-gray-400 hover:text-gray-600">
@@ -439,32 +439,32 @@
             </div>
 
             @if($productoSeleccionado)
-                <div class="mb-4 p-3 bg-gray-50 rounded">
+                <div class="p-3 mb-4 rounded bg-gray-50">
                     <h6 class="font-medium">{{ $productoSeleccionado->nombre ?? '' }}</h6>
                     <p class="text-sm text-gray-600">{{ $productoSeleccionado->codigo_barra ?? 'Sin código' }}</p>
                 </div>
 
                 @if($puedeEliminar)
-                    <p class="text-gray-700 mb-4">¿Estás seguro que deseas eliminar este producto?</p>
+                    <p class="mb-4 text-gray-700">¿Estás seguro que deseas eliminar este producto?</p>
                     <div class="flex justify-end gap-2">
-                        <button wire:click="cerrarModalEliminar" class="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400">
+                        <button wire:click="cerrarModalEliminar" class="px-4 py-2 text-gray-700 bg-gray-300 rounded hover:bg-gray-400">
                             Cancelar
                         </button>
-                        <button wire:click="eliminarProducto" class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">
+                        <button wire:click="eliminarProducto" class="px-4 py-2 text-white bg-red-500 rounded hover:bg-red-600">
                             Eliminar
                         </button>
                     </div>
                 @else
-                    <div class="text-red-600 mb-4">
+                    <div class="mb-4 text-red-600">
                         <p class="font-medium">No se puede eliminar este producto:</p>
-                        <ul class="text-sm mt-2 space-y-1">
+                        <ul class="mt-2 space-y-1 text-sm">
                             @if($tieneCodigoBarras)<li>• Tiene código de barras asignado</li>@endif
                             @if($stockDisponible > 0)<li>• Tiene stock disponible ({{ $stockDisponible }})</li>@endif
                             @if($tieneComprasActivas)<li>• Tiene compras pendientes</li>@endif
                         </ul>
                     </div>
                     <div class="flex justify-end">
-                        <button wire:click="cerrarModalEliminar" class="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400">
+                        <button wire:click="cerrarModalEliminar" class="px-4 py-2 text-gray-700 bg-gray-300 rounded hover:bg-gray-400">
                             Cerrar
                         </button>
                     </div>
@@ -478,7 +478,7 @@
     @if($detallesSincronizacion)
         <div class="fixed inset-0 z-50 flex items-center justify-center">
             <div class="fixed inset-0 bg-black bg-opacity-50" wire:click="cerrarDetallesSincronizacion"></div>
-            <div class="relative bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
+            <div class="relative w-full max-w-md p-6 mx-4 bg-white rounded-lg shadow-xl">
                 <div class="flex items-center justify-between mb-4">
                     <h3 class="text-lg font-semibold text-gray-900">📊 Sincronización Completada</h3>
                     <button wire:click="cerrarDetallesSincronizacion" class="text-gray-400 hover:text-gray-600">
@@ -489,13 +489,13 @@
                 </div>
 
                 <div class="space-y-3">
-                    <div class="flex justify-between items-center p-3 bg-green-50 rounded">
+                    <div class="flex items-center justify-between p-3 rounded bg-green-50">
                         <span class="font-medium text-green-800">✅ Procesados:</span>
                         <span class="font-bold text-green-600">{{ $detallesSincronizacion['productos_sincronizados'] ?? 0 }}</span>
                     </div>
 
                     @if(($detallesSincronizacion['errores'] ?? 0) > 0)
-                        <div class="flex justify-between items-center p-3 bg-red-50 rounded">
+                        <div class="flex items-center justify-between p-3 rounded bg-red-50">
                             <span class="font-medium text-red-800">❌ Errores:</span>
                             <span class="font-bold text-red-600">{{ $detallesSincronizacion['errores'] }}</span>
                         </div>
@@ -504,7 +504,7 @@
 
                 <div class="mt-6 text-center">
                     <button wire:click="cerrarDetallesSincronizacion"
-                            class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors">
+                            class="px-4 py-2 text-white transition-colors bg-blue-600 rounded hover:bg-blue-700">
                         Cerrar
                     </button>
                 </div>
