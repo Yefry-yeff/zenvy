@@ -15,6 +15,22 @@ use Maatwebsite\Excel\Facades\Excel;
 
 class Producto extends Component
 {
+
+
+    /**
+     * Cambia el campo y dirección de ordenamiento
+     */
+    public function ordenar($campo)
+    {
+        if ($this->ordenarPor === $campo) {
+            // Alternar dirección
+            $this->direccionOrden = $this->direccionOrden === 'asc' ? 'desc' : 'asc';
+        } else {
+            $this->ordenarPor = $campo;
+            $this->direccionOrden = 'asc';
+        }
+        $this->resetPage();
+    }
     use WithPagination;
 
     // Propiedades de paginación y búsqueda

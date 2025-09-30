@@ -419,34 +419,37 @@ class ProductoForm extends Component
             $datos = $this->form;
             $datos['users_id'] = Auth::id();
 
+            // Si el código de barras está vacío o nulo, asignar el id del producto
+            if (empty($datos['codigo_barra']) || trim($datos['codigo_barra']) === '') {
+                // Si estamos editando, ya existe el id
+                if ($this->isEditing && $this->productoId) {
+                    $datos['codigo_barra'] = (string)$this->productoId;
+                }
+            }
+
             // Convertir checkboxes boolean a enteros para el SP
             $datos['descuento_tercera'] = $datos['descuento_tercera'] ? 1 : 0;
             $datos['descuento_cuarta'] = $datos['descuento_cuarta'] ? 1 : 0;
 
             // Si es producto de Valencia, solo permitir ciertos campos
             if ($this->isEditing && $this->esProductoValencia) {
-                // Para productos de Valencia, mantener todos los campos requeridos por el SP
-                // pero solo actualizar los campos permitidos
                 $producto = ProductoModel::find($this->productoId);
                 if ($producto) {
-                    // Mantener todos los valores originales y solo actualizar los permitidos
                     $datosPermitidos = [
-                        // Campos requeridos por el SP (mantener valores originales)
                         'nombre' => $producto->nombre,
                         'descripcion' => $producto->descripcion,
                         'isv_id' => $producto->isv_id,
-                        'precio_base' => $datos['precio_base'], // Permitir edición del precio base
+                        'precio_base' => $datos['precio_base'],
                         'ultimo_costo_compra' => $producto->ultimo_costo_compra,
                         'costo_promedio' => $producto->costo_promedio,
-                        'codigo_barra' => $datos['codigo_barra'], // Permitir edición del código de barras
+                        // Si el código de barras está vacío, asignar el id
+                        'codigo_barra' => (!empty($datos['codigo_barra']) && trim($datos['codigo_barra']) !== '') ? $datos['codigo_barra'] : (string)$this->productoId,
                         'codigo_estatal' => $producto->codigo_estatal,
                         'estado_id' => $producto->estado_id,
                         'subcategoria_id' => $producto->subcategoria_id,
                         'marca_id' => $producto->marca_id,
                         'unidad_medida_venta_id' => $producto->unidad_medida_venta_id,
                         'users_id' => $producto->users_id,
-                        
-                        // Campos permitidos para edición (valores del formulario)
                         'precio1' => $datos['precio1'],
                         'precio2' => $datos['precio2'],
                         'precio3' => $datos['precio3'],
@@ -455,15 +458,11 @@ class ProductoForm extends Component
                         'descuento_tercera' => $datos['descuento_tercera'],
                         'descuento_cuarta' => $datos['descuento_cuarta'],
                     ];
-                    
-                    // Si hay nueva imagen, procesarla
                     if ($this->imagen) {
                         $datosPermitidos['imagen'] = file_get_contents($this->imagen->getRealPath());
                     } else {
-                        // Mantener la imagen existente
                         $datosPermitidos['imagen'] = $producto->imagen;
                     }
-                    
                     ProductoModel::actualizarProducto($this->productoId, $datosPermitidos);
                     Log::info('Producto Valencia actualizado exitosamente', ['id' => $this->productoId]);
                     $this->mostrarExito('Producto de Valencia actualizado exitosamente.');
@@ -476,15 +475,12 @@ class ProductoForm extends Component
             if ($this->imagen) {
                 $datos['imagen'] = file_get_contents($this->imagen->getRealPath());
             } elseif ($this->isEditing && $this->tieneImagenAnterior) {
-                // Si estamos editando y no hay nueva imagen, obtener la anterior de la BD
                 $productoAnterior = ProductoModel::select('imagen')->find($this->productoId);
                 $datos['imagen'] = $productoAnterior ? $productoAnterior->imagen : null;
             } else {
-                // No hay imagen
                 $datos['imagen'] = null;
             }
 
-            // Log para debugging
             Log::info('Intentando guardar producto', [
                 'datos' => $datos,
                 'isEditing' => $this->isEditing,
@@ -497,11 +493,14 @@ class ProductoForm extends Component
                 $this->mostrarExito('Producto actualizado exitosamente.');
             } else {
                 $resultado = ProductoModel::crearProducto($datos);
+                // Si el código de barras estaba vacío, actualizarlo con el id generado
+                if ((empty($datos['codigo_barra']) || trim($datos['codigo_barra']) === '') && is_array($resultado) && isset($resultado[0]->id)) {
+                    ProductoModel::actualizarProducto($resultado[0]->id, array_merge($datos, ['codigo_barra' => (string)$resultado[0]->id]));
+                }
                 Log::info('Producto creado exitosamente', ['resultado' => $resultado]);
                 $this->mostrarExito('Producto creado exitosamente.');
             }
 
-            // Redirigir después de mostrar el modal
             $this->dispatch('redirigirEnTresSeg');
 
         } catch (\Illuminate\Validation\ValidationException $e) {
