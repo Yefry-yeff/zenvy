@@ -15,7 +15,7 @@
         </tr>
         <tr>
             <th colspan="8" style="font-size: 10px; text-align: center; background-color: #F8F9FA;">
-                📅 Generado el: {{ $fechaGeneracion }} | 📊 Total: {{ $totalProductos }} productos | 🔍 Filtros: {{ $filtrosAplicados }}
+                📅 Generado el: {{ $fechaGeneracion }} | 👤 Usuario: {{ $usuarioReporte ?? '-' }} | 📊 Total: {{ $totalProductos }} productos | 🔍 Filtros: {{ $filtrosAplicados }}
             </th>
         </tr>
         <tr>
@@ -36,7 +36,7 @@
         @foreach($productos as $producto)
             <tr>
                 <td style="text-align: center;">{{ $producto->id }}</td>
-                <td>{{ $producto->codigo_barra ?: 'Sin código' }}</td>
+                <td>{{ isset($producto->codigo_barra) && $producto->codigo_barra !== '' ? "'" . $producto->codigo_barra : 'Sin código' }}</td>
                 <td>{{ $producto->nombre }}</td>
                 <td>{{ $producto->marca->nombre ?? 'Sin marca' }}</td>
                 <td>{{ $producto->subcategoria->categoria->nombre ?? 'N/A' }}</td>

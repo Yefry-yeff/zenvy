@@ -524,6 +524,8 @@ class Producto extends Component
             $totalProductos = $productos->count();
             $filtrosAplicados = $this->obtenerFiltrosAplicados();
 
+            $usuarioReporte = \Auth::user() ? \Auth::user()->name : 'Invitado';
+
             // Generar nombre del archivo con timestamp
             $timestamp = now()->format('Y-m-d_H-i-s');
             $filename = "productos_{$timestamp}.xlsx";
@@ -537,7 +539,7 @@ class Producto extends Component
             $filepath = $tempDir . '/' . $filename;
 
             // Crear el archivo Excel usando la nueva sintaxis de maatwebsite/excel 3.x
-            Excel::store(new ProductosExport($productos, $fechaGeneracion, $totalProductos, $filtrosAplicados), $filename, 'temp');
+            Excel::store(new ProductosExport($productos, $fechaGeneracion, $totalProductos, $filtrosAplicados, $usuarioReporte), $filename, 'temp');
 
             // Redirigir directamente a la URL de descarga
             return redirect()->route('download.file', ['file' => $filename]);

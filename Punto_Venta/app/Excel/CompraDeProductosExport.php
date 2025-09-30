@@ -8,29 +8,29 @@ use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use Illuminate\Contracts\View\View;
 
-class ProductosExport implements FromView, WithStyles, ShouldAutoSize
+class CompraDeProductosExport implements FromView, WithStyles, ShouldAutoSize
 {
-    private $productos;
+    private $compras;
     private $fechaGeneracion;
-    private $totalProductos;
+    private $totalCompras;
     private $filtrosAplicados;
     private $usuarioReporte;
 
-    public function __construct($productos, $fechaGeneracion, $totalProductos, $filtrosAplicados, $usuarioReporte)
+    public function __construct($compras, $fechaGeneracion, $totalCompras, $filtrosAplicados, $usuarioReporte)
     {
-        $this->productos = $productos;
+        $this->compras = $compras;
         $this->fechaGeneracion = $fechaGeneracion;
-        $this->totalProductos = $totalProductos;
+        $this->totalCompras = $totalCompras;
         $this->filtrosAplicados = $filtrosAplicados;
         $this->usuarioReporte = $usuarioReporte;
     }
 
     public function view(): View
     {
-        return view('exports.productos', [
-            'productos' => $this->productos,
+        return view('exports.compra-de-productos', [
+            'compras' => $this->compras,
             'fechaGeneracion' => $this->fechaGeneracion,
-            'totalProductos' => $this->totalProductos,
+            'totalCompras' => $this->totalCompras,
             'filtrosAplicados' => $this->filtrosAplicados,
             'usuarioReporte' => $this->usuarioReporte,
         ]);

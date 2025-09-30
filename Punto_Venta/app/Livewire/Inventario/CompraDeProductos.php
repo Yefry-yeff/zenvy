@@ -10,6 +10,9 @@ use App\Models\Estado;
 use App\Services\SincronizacionComprasService;
 use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\On;
+use App\Excel\CompraDeProductosExport;
+use Illuminate\Support\Facades\Auth;
+use Maatwebsite\Excel\Facades\Excel;
 
 class CompraDeProductos extends Component
 {
@@ -486,6 +489,47 @@ class CompraDeProductos extends Component
         $this->detallesSincronizacion = null;
     }
 
+    /**
+     * Devuelve todas las compras según los filtros actuales (ajusta según tu lógica de filtros)
+     */
+    public function obtenerComprasParaExportar()
+    {
+        $compras = \App\Models\Compra::with(['proveedor', 'detallesCompra', 'estado'])
+            ->when($this->busqueda, function($query) {
+                $query->where(function($q) {
+                    $q->where('numero_factura', 'like', '%' . $this->busqueda . '%')
+                      ->orWhereHas('proveedor', function($proveedorQuery) {
+                          $proveedorQuery->where('nombre', 'like', '%' . $this->busqueda . '%');
+                      });
+                });
+            })
+            ->when($this->filtroEstado, function($query) {
+                $query->whereHas('estado', function($estadoQuery) {
+                    $estadoQuery->whereRaw('LOWER(nombre) = ?', [strtolower($this->filtroEstado)]);
+                });
+            })
+            ->when($this->filtroFecha, function($query) {
+                $query->where(function($q) {
+                    $q->whereDate('fecha_emision', $this->filtroFecha)
+                      ->orWhereDate('fecha_recepcion', $this->filtroFecha);
+                });
+            })
+            ->get();
+
+        // Mapear los datos para el export
+        return $compras->map(function($compra) {
+            return [
+                'numero_factura' => $compra->numero_factura,
+                'proveedor_nombre' => $compra->proveedor->nombre ?? 'N/A',
+                'fecha_emision' => $compra->fecha_emision,
+                'fecha_recepcion' => $compra->fecha_recepcion,
+                'estado' => $compra->estado->nombre ?? 'Sin Estado',
+                'cantidad_productos' => $compra->detallesCompra->count(),
+                'total' => $compra->detallesCompra->sum('precio_total'),
+            ];
+        });
+    }
+
     public function render()
     {
         $query = Compra::with(['proveedor', 'detallesCompra', 'estado']);
@@ -562,5 +606,32 @@ class CompraDeProductos extends Component
         return view('livewire.inventario.compra-de-productos', [
             'compras' => $compras
         ]);
+    }
+
+    public function descargarExcel()
+    {
+        try {
+            // Obtener todas las compras según los filtros actuales (ajusta según tu lógica de filtros)
+            $compras = $this->obtenerComprasParaExportar(); // Debes tener este método o ajusta según tu lógica
+
+            $fechaGeneracion = now()->format('d/m/Y H:i:s');
+            $totalCompras = $compras->count();
+            $filtrosAplicados = method_exists($this, 'obtenerFiltrosAplicados') ? $this->obtenerFiltrosAplicados() : '';
+            $usuarioReporte = Auth::user() ? Auth::user()->name : 'Invitado';
+
+            $timestamp = now()->format('Y-m-d_H-i-s');
+            $filename = "compras_{$timestamp}.xlsx";
+            $tempDir = storage_path('app/temp');
+            if (!file_exists($tempDir)) {
+                mkdir($tempDir, 0755, true);
+            }
+
+            Excel::store(new CompraDeProductosExport($compras, $fechaGeneracion, $totalCompras, $filtrosAplicados, $usuarioReporte), $filename, 'temp');
+
+            return redirect()->route('download.file', ['file' => $filename]);
+        } catch (\Exception $e) {
+            session()->flash('error', 'Error al generar el archivo Excel: ' . $e->getMessage());
+            Log::error('Error generating Excel', ['error' => $e->getMessage()]);
+        }
     }
 }
