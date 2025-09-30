@@ -36,43 +36,185 @@
                 @endif
             @endauth
 
-            <div class="shadow card">
-                <div class="py-3 card-header">
-                    <h6 class="m-0 font-weight-bold text-primary">Facturas Registradas</h6>
+            <div class="overflow-hidden border border-gray-300 rounded shadow">
+                <!-- Barra de búsqueda y filtros principales -->
+                <div class="px-4 py-3 bg-gray-50 border-b">
+                    <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+                        <!-- Búsqueda -->
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Buscar</label>
+                            <input type="text"
+                                   wire:model.live.debounce.300ms="buscar"
+                                   placeholder="Buscar por cliente, número o RTN..."
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+                        <!-- Botón Excel -->
+                        <div class="flex items-end gap-2">
+                            <button wire:click="descargarExcel"
+                                class="inline-flex items-center gap-1 px-3 py-2 text-sm text-white bg-green-600 rounded hover:bg-green-700 disabled:opacity-50"
+                                wire:loading.attr="disabled"
+                                wire:target="descargarExcel"
+                                title="Descargar reporte de facturas">
+                                <span wire:loading.remove wire:target="descargarExcel">📥</span>
+                                <span wire:loading wire:target="descargarExcel">
+                                    <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                </span>
+                                <span wire:loading.remove wire:target="descargarExcel">Descargar Excel</span>
+                                <span wire:loading wire:target="descargarExcel">Generando...</span>
+                            </button>
+                        </div>
+                    </div>
                 </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table id="listafacturasTable" class="table table-hover table-sm">
-                            <thead class="table-light">
+
+                <!-- Información de resultados -->
+                <div class="px-4 py-2 bg-gray-100 border-b">
+                    <div class="text-sm text-gray-600">
+                        @php
+                            $esPaginador = method_exists($facturas, 'firstItem');
+                        @endphp
+                        Mostrando
+                        @if($esPaginador)
+                            {{ $facturas->firstItem() ?? 0 }} a {{ $facturas->lastItem() ?? 0 }} de {{ $facturas->total() }} resultados
+                        @else
+                            {{ $facturas->count() }} resultados
+                        @endif
+                        @if($buscar)
+                            | Filtrado por: "{{ $buscar }}"
+                        @endif
+                    </div>
+                </div>
+
+                <!-- Tabla optimizada -->
+                <div class="px-4 py-3">
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full table-auto border border-gray-200">
+                            <thead class="bg-gray-50">
+                                <!-- Encabezados con ordenamiento -->
                                 <tr>
-                                    <th style="width: 8%;">ID</th>
-                                    <th style="width: 12%;">No. Fac</th>
-                                    <th style="width: 20%;">Cliente</th>
-                                    <th style="width: 12%;">RTN</th>
-                                    <th style="width: 12%;">Fecha</th>
-                                    <th style="width: 10%;" class="text-end">Subtotal</th>
-                                    <th style="width: 8%;" class="text-end">ISV</th>
-                                    <th style="width: 10%;" class="text-end">Total</th>
-                                    <th style="width: 10%;">Estado</th>
-                                    <th style="width: 8%;" class="text-center">Acciones</th>
+                                    <th class="px-4 py-3 text-left border-b cursor-pointer hover:bg-gray-100" wire:click="ordenar('id')">
+                                        <div class="flex items-center space-x-1">
+                                            <span>ID</span>
+                                            @if($ordenarPor === 'id')
+                                                <span class="text-blue-500">@if($direccionOrden === 'asc') ↑ @else ↓ @endif</span>
+                                            @endif
+                                        </div>
+                                    </th>
+                                    <th class="px-4 py-3 text-left border-b cursor-pointer hover:bg-gray-100" wire:click="ordenar('numero_factura')">
+                                        <div class="flex items-center space-x-1">
+                                            <span>No. Fac</span>
+                                            @if($ordenarPor === 'numero_factura')
+                                                <span class="text-blue-500">@if($direccionOrden === 'asc') ↑ @else ↓ @endif</span>
+                                            @endif
+                                        </div>
+                                    </th>
+                                    <th class="px-4 py-3 text-left border-b cursor-pointer hover:bg-gray-100" wire:click="ordenar('nombre_cliente')">
+                                        <div class="flex items-center space-x-1">
+                                            <span>Cliente</span>
+                                            @if($ordenarPor === 'nombre_cliente')
+                                                <span class="text-blue-500">@if($direccionOrden === 'asc') ↑ @else ↓ @endif</span>
+                                            @endif
+                                        </div>
+                                    </th>
+                                    <th class="px-4 py-3 text-left border-b cursor-pointer hover:bg-gray-100" wire:click="ordenar('rtn')">
+                                        <div class="flex items-center space-x-1">
+                                            <span>RTN</span>
+                                            @if($ordenarPor === 'rtn')
+                                                <span class="text-blue-500">@if($direccionOrden === 'asc') ↑ @else ↓ @endif</span>
+                                            @endif
+                                        </div>
+                                    </th>
+                                    <th class="px-4 py-3 text-left border-b cursor-pointer hover:bg-gray-100" wire:click="ordenar('fecha_emision')">
+                                        <div class="flex items-center space-x-1">
+                                            <span>Fecha</span>
+                                            @if($ordenarPor === 'fecha_emision')
+                                                <span class="text-blue-500">@if($direccionOrden === 'asc') ↑ @else ↓ @endif</span>
+                                            @endif
+                                        </div>
+                                    </th>
+                                    <th class="px-4 py-3 text-end border-b cursor-pointer hover:bg-gray-100" wire:click="ordenar('sub_total')">
+                                        <div class="flex items-center justify-end space-x-1">
+                                            <span>Subtotal</span>
+                                            @if($ordenarPor === 'sub_total')
+                                                <span class="text-blue-500">@if($direccionOrden === 'asc') ↑ @else ↓ @endif</span>
+                                            @endif
+                                        </div>
+                                    </th>
+                                    <th class="px-4 py-3 text-end border-b cursor-pointer hover:bg-gray-100" wire:click="ordenar('isv')">
+                                        <div class="flex items-center justify-end space-x-1">
+                                            <span>ISV</span>
+                                            @if($ordenarPor === 'isv')
+                                                <span class="text-blue-500">@if($direccionOrden === 'asc') ↑ @else ↓ @endif</span>
+                                            @endif
+                                        </div>
+                                    </th>
+                                    <th class="px-4 py-3 text-end border-b cursor-pointer hover:bg-gray-100" wire:click="ordenar('total')">
+                                        <div class="flex items-center justify-end space-x-1">
+                                            <span>Total</span>
+                                            @if($ordenarPor === 'total')
+                                                <span class="text-blue-500">@if($direccionOrden === 'asc') ↑ @else ↓ @endif</span>
+                                            @endif
+                                        </div>
+                                    </th>
+                                    <th class="px-4 py-3 text-center border-b cursor-pointer hover:bg-gray-100" wire:click="ordenar('estado_factura_id')">
+                                        <div class="flex items-center justify-center space-x-1">
+                                            <span>Estado</span>
+                                            @if($ordenarPor === 'estado_factura_id')
+                                                <span class="text-blue-500">@if($direccionOrden === 'asc') ↑ @else ↓ @endif</span>
+                                            @endif
+                                        </div>
+                                    </th>
+                                    <th class="px-4 py-3 text-center border-b">Acciones</th>
+                                </tr>
+                                <!-- Fila de filtros por columna -->
+                                <tr class="bg-gray-100">
+                                    <th class="px-4 py-2 border-b">
+                                        <input type="text" wire:model.live.debounce.300ms="filtroId" placeholder="Filtrar..." class="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500">
+                                    </th>
+                                    <th class="px-4 py-2 border-b">
+                                        <input type="text" wire:model.live.debounce.300ms="filtroNumero" placeholder="Filtrar..." class="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500">
+                                    </th>
+                                    <th class="px-4 py-2 border-b">
+                                        <input type="text" wire:model.live.debounce.300ms="filtroCliente" placeholder="Filtrar..." class="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500">
+                                    </th>
+                                    <th class="px-4 py-2 border-b">
+                                        <input type="text" wire:model.live.debounce.300ms="filtroRTN" placeholder="Filtrar..." class="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500">
+                                    </th>
+                                    <th class="px-4 py-2 border-b">
+                                        <input type="text" wire:model.live.debounce.300ms="filtroFecha" placeholder="Filtrar..." class="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500">
+                                    </th>
+                                    <th class="px-4 py-2 border-b">
+                                        <input type="text" wire:model.live.debounce.300ms="filtroSubtotal" placeholder="Filtrar..." class="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500">
+                                    </th>
+                                    <th class="px-4 py-2 border-b">
+                                        <input type="text" wire:model.live.debounce.300ms="filtroISV" placeholder="Filtrar..." class="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500">
+                                    </th>
+                                    <th class="px-4 py-2 border-b">
+                                        <input type="text" wire:model.live.debounce.300ms="filtroTotal" placeholder="Filtrar..." class="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500">
+                                    </th>
+                                    <th class="px-4 py-2 border-b">
+                                        <!-- Sin filtro para estado -->
+                                    </th>
+                                    <th class="px-4 py-2 border-b">
+                                        <!-- Sin filtro para acciones -->
+                                    </th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                @forelse($facturas as $factura)
-                                    <tr wire:click="verDetalle({{ $factura->id }})">
-                                        <td>{{ $factura->id }}</td>
-                                        <td>
-                                            <strong>{{ $factura->numero_factura ?? 'N/A' }}</strong>
-                                        </td>
-                                        <td>{{ $factura->nombre_cliente ?? 'Cliente General' }}</td>
-                                        <td>{{ $factura->rtn ?? 'N/A' }}</td>
-                                        <td>
-                                            {{ \Carbon\Carbon::parse($factura->fecha_emision)->format('d/m/Y') }}
-                                        </td>
-                                        <td class="text-end">L. {{ number_format($factura->sub_total, 2) }}</td>
-                                        <td class="text-end">L. {{ number_format($factura->isv, 2) }}</td>
-                                        <td class="text-end"><strong>L. {{ number_format($factura->total, 2) }}</strong></td>
-                                        <td>
+                            <tbody class="divide-y divide-gray-200">
+                                @if($facturas->count() > 0)
+                                    @foreach($facturas as $factura)
+                                    <tr class="hover:bg-gray-50 cursor-pointer transition-colors duration-150" wire:key="factura-{{ $factura->id }}" wire:click="verDetalle({{ $factura->id }})">
+                                        <td class="px-4 py-3">{{ $factura->id }}</td>
+                                        <td class="px-4 py-3"><strong>{{ $factura->numero_factura ?? 'N/A' }}</strong></td>
+                                        <td class="px-4 py-3">{{ $factura->nombre_cliente ?? 'Cliente General' }}</td>
+                                        <td class="px-4 py-3">{{ $factura->rtn ?? 'N/A' }}</td>
+                                        <td class="px-4 py-3">{{ \Carbon\Carbon::parse($factura->fecha_emision)->format('d/m/Y') }}</td>
+                                        <td class="px-4 py-3 text-end">L. {{ number_format($factura->sub_total, 2) }}</td>
+                                        <td class="px-4 py-3 text-end">L. {{ number_format($factura->isv, 2) }}</td>
+                                        <td class="px-4 py-3 text-end"><strong>L. {{ number_format($factura->total, 2) }}</strong></td>
+                                        <td class="px-4 py-3">
                                             @if($factura->estado_factura_id == 1)
                                                 <span class="badge bg-success">Pagada</span>
                                             @elseif($factura->estado_factura_id == 2)
@@ -83,32 +225,105 @@
                                                 <span class="badge bg-secondary">Desconocido</span>
                                             @endif
                                         </td>
-                                        <td class="text-center" onclick="event.stopPropagation()">
-                                            <a href="{{ route('factura.pdf.preview', $factura->id) }}" 
-                                               target="_blank" 
-                                               class="btn btn-sm btn-success"
-                                               title="Imprimir Factura">
+                                        <td class="px-4 py-3 text-center" onclick="event.stopPropagation()">
+                                            <a href="{{ route('factura.pdf.preview', $factura->id) }}" target="_blank" class="btn btn-sm btn-success" title="Imprimir Factura">
                                                 <i class="fas fa-print"></i>
                                             </a>
-                                            <button class="btn btn-sm btn-danger"
-                                                    wire:click="generarPDF({{ $factura->id }})"
-                                                    title="Descargar PDF">
+                                            <button class="btn btn-sm btn-danger" wire:click="generarPDF({{ $factura->id }})" title="Descargar PDF">
                                                 <i class="fas fa-file-pdf"></i>
                                             </button>
                                         </td>
                                     </tr>
-                                @empty
+                                    @endforeach
+                                @else
+                                    <!-- Mensaje cuando no hay facturas -->
                                     <tr>
-                                        <td colspan="10" class="py-4 text-center">
-                                            <div class="text-muted">
-                                                <i class="mb-3 fas fa-file-invoice fa-3x"></i>
-                                                <p class="mb-0">No se encontraron facturas</p>
-                                            </div>
+                                        <td colspan="10" class="px-4 py-12 text-center">
+                                            <div class="text-gray-400 text-6xl mb-4">🧾</div>
+                                            <h3 class="text-lg font-medium text-gray-900 mb-2">No se encontraron facturas</h3>
+                                            <p class="text-gray-500 mb-4">
+                                                @if($buscar || $filtroId || $filtroNumero || $filtroCliente || $filtroRTN || $filtroFecha || $filtroSubtotal || $filtroISV || $filtroTotal)
+                                                    No hay facturas que coincidan con los filtros aplicados
+                                                @else
+                                                    No hay facturas registradas en el sistema
+                                                @endif
+                                            </p>
+                                            @if($buscar || $filtroId || $filtroNumero || $filtroCliente || $filtroRTN || $filtroFecha || $filtroSubtotal || $filtroISV || $filtroTotal)
+                                                <button wire:click="limpiarFiltros" class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600">Limpiar filtros</button>
+                                            @endif
                                         </td>
                                     </tr>
-                                @endforelse
+                                @endif
                             </tbody>
                         </table>
+                    </div>
+
+                    <!-- Paginación personalizada -->
+                    <div class="mt-4">
+                        @php $esPaginador = method_exists($facturas, 'firstItem'); @endphp
+                        @if($esPaginador && $facturas->hasPages())
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-4">
+                                    <div class="text-sm text-gray-700">
+                                        Mostrando {{ $facturas->firstItem() }} a {{ $facturas->lastItem() }} de {{ $facturas->total() }} resultados
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <label class="text-sm text-gray-600">Mostrar:</label>
+                                        <select wire:model.live="registrosPorPagina" class="px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500">
+                                            <option value="10">10</option>
+                                            <option value="25">25</option>
+                                            <option value="50">50</option>
+                                            <option value="100">100</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="flex space-x-1">
+                                    {{-- Previous Page Link --}}
+                                    @if($facturas->onFirstPage())
+                                        <span class="px-3 py-2 text-sm text-gray-400 bg-gray-200 border border-gray-300 rounded cursor-not-allowed">Anterior</span>
+                                    @else
+                                        <button wire:click="previousPage" class="px-3 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50">Anterior</button>
+                                    @endif
+
+                                    {{-- Pagination Elements --}}
+                                    @php
+                                        $currentPage = $facturas->currentPage();
+                                        $lastPage = $facturas->lastPage();
+                                        $start = max(1, min($currentPage - 2, $lastPage - 4));
+                                        $end = min($start + 4, $lastPage);
+                                    @endphp
+
+                                    @for($page = $start; $page <= min($end, $lastPage); $page++)
+                                        @if($page == $currentPage)
+                                            <span class="px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-300 rounded">{{ $page }}</span>
+                                        @else
+                                            <button wire:click="gotoPage({{ $page }})" class="px-3 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50">{{ $page }}</button>
+                                        @endif
+                                    @endfor
+
+                                    {{-- Show last page if not already shown --}}
+                                    @if($end < $lastPage)
+                                        @if($end < $lastPage - 1)
+                                            <span class="px-3 py-2 text-sm text-gray-400">...</span>
+                                        @endif
+                                        <button wire:click="gotoPage({{ $lastPage }})" class="px-3 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50">{{ $lastPage }}</button>
+                                    @endif
+
+                                    {{-- Next Page Link --}}
+                                    @if($facturas->hasMorePages())
+                                        <button wire:click="nextPage" class="px-3 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50">Siguiente</button>
+                                    @else
+                                        <span class="px-3 py-2 text-sm text-gray-400 bg-gray-200 border border-gray-300 rounded cursor-not-allowed">Siguiente</span>
+                                    @endif
+                                </div>
+                            </div>
+                        @else
+                            <div class="flex items-center gap-4">
+                                <div class="text-sm text-gray-700">
+                                    {{ $facturas->count() }} resultados
+                                </div>
+                            </div>
+                        @endif
                     </div>
                 </div>
             </div>

@@ -1,18 +1,18 @@
 
-        var listafacturasTableObserver = null;
+  /*      var listafacturasTableObserver = null;
         function initlistafacturasTable() {
             setTimeout(function() {
                 var $table = $('#listafacturasTable');
                 if ($table.length) {
                     $table.css('border', ''); // Quita el borde de depuración
-                    
+
                     // Validar estructura de la tabla antes de inicializar DataTables
                     var theadCols = $table.find('thead tr th').length;
                     var tbodyFirstRowCols = $table.find('tbody tr:first td').length;
-                    
+
                     console.log('Thead columns:', theadCols);
                     console.log('Tbody first row columns:', tbodyFirstRowCols);
-                    
+
                     // Solo inicializar si la estructura es válida o si tbody está vacío
                     if (theadCols > 0 && (tbodyFirstRowCols === 0 || theadCols === tbodyFirstRowCols)) {
                         if (!$.fn.DataTable.isDataTable($table)) {
@@ -54,3 +54,4 @@
                 listafacturasTableObserver.observe(main, { childList: true, subtree: true });
             }
         });
+*/

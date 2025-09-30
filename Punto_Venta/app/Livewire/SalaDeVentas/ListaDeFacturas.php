@@ -6,9 +6,68 @@ use Livewire\Component;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Factura;
+use App\Excel\FacturasExport;
+use Maatwebsite\Excel\Facades\Excel;
+
 
 class ListaDeFacturas extends Component
 {
+    /**
+     * Cambia el campo y dirección de ordenamiento
+     */
+    public function ordenar($campo)
+    {
+        if ($this->ordenarPor === $campo) {
+            $this->direccionOrden = $this->direccionOrden === 'asc' ? 'desc' : 'asc';
+        } else {
+            $this->ordenarPor = $campo;
+            $this->direccionOrden = 'asc';
+        }
+        $this->resetPage();
+    }
+    // Métodos para resetear página al cambiar filtros
+    public function updatedBuscar() { $this->resetPage(); }
+    public function updatedFiltroId() { $this->resetPage(); }
+    public function updatedFiltroNumero() { $this->resetPage(); }
+    public function updatedFiltroCliente() { $this->resetPage(); }
+    public function updatedFiltroRTN() { $this->resetPage(); }
+    public function updatedFiltroFecha() { $this->resetPage(); }
+    public function updatedFiltroSubtotal() { $this->resetPage(); }
+    public function updatedFiltroISV() { $this->resetPage(); }
+    public function updatedFiltroTotal() { $this->resetPage(); }
+    public function updatedRegistrosPorPagina() { $this->resetPage(); }
+
+    // Métodos de paginación manual (opcional, igual que Producto)
+    public function getPage() { return $this->page; }
+    public function setPage($page) { $this->page = $page; }
+    public function resetPage() { $this->page = 1; }
+    public function nextPage() { $this->page++; }
+    public function previousPage() { if ($this->page > 1) { $this->page--; } }
+    public function gotoPage($page) { $this->page = $page; }
+    // Ordenamiento de columnas
+    public $ordenarPor = 'id';
+    public $direccionOrden = 'desc';
+    // Búsqueda global
+    public $buscar = '';
+
+    // Filtros por columna
+    public $filtroId = '';
+    public $filtroNumero = '';
+    public $filtroCliente = '';
+    public $filtroRTN = '';
+    public $filtroFecha = '';
+    public $filtroSubtotal = '';
+    public $filtroISV = '';
+    public $filtroTotal = '';
+
+    // Paginación
+    public $registrosPorPagina = 10;
+    public $page = 1;
+
+    public function descargarExcel()
+    {
+        return Excel::download(new FacturasExport, 'facturas.xlsx');
+    }
     public $facturaParaImprimir = null;
     public $productosFacturaImpresa = [];
     public $pagosFacturaImpresa = [];
@@ -76,21 +135,6 @@ class ListaDeFacturas extends Component
     public function render()
     {
         $user = Auth::user();
-        
-        $query = DB::table('factura as f')
-            ->select(
-                'f.id',
-                'f.numero_factura',
-                'f.fecha_emision',
-                'f.sub_total',
-                'f.isv',
-                'f.total',
-                'f.estado_factura_id',
-                'f.nombre_cliente',
-                'f.rtn'
-            );
-
-        // Verificar si el usuario es Admin
         $esAdmin = false;
         if ($user && $user->roles_id) {
             $esAdmin = DB::table('roles')
@@ -99,18 +143,57 @@ class ListaDeFacturas extends Component
                 ->exists();
         }
 
+        $query = Factura::query();
+
+        // Filtro por usuario (no admin)
         if (!$esAdmin) {
-            // Si no es admin, filtrar por usuario actual - solo mostrar facturas creadas por este usuario
             if ($user) {
-                $query->where('f.users_id', $user->id);
+                $query->where('users_id', $user->id);
             } else {
-                // Si no hay usuario autenticado, no mostrar ninguna factura
-                $query->where('f.id', '=', 0);
+                $query->where('id', 0); // No mostrar nada
             }
         }
-        // Si es admin, no aplicar filtro (mostrará todas las facturas)
 
-        $facturas = $query->orderBy('f.fecha_emision', 'desc')->get();
+        // Filtro búsqueda global
+        if (!empty($this->buscar)) {
+            $query->where(function($q) {
+                $q->where('nombre_cliente', 'like', '%' . $this->buscar . '%')
+                  ->orWhere('numero_factura', 'like', '%' . $this->buscar . '%')
+                  ->orWhere('rtn', 'like', '%' . $this->buscar . '%');
+            });
+        }
+
+        // Filtros por columna
+        if (!empty($this->filtroId)) {
+            $query->where('id', $this->filtroId);
+        }
+        if (!empty($this->filtroNumero)) {
+            $query->where('numero_factura', 'like', '%' . $this->filtroNumero . '%');
+        }
+        if (!empty($this->filtroCliente)) {
+            $query->where('nombre_cliente', 'like', '%' . $this->filtroCliente . '%');
+        }
+        if (!empty($this->filtroRTN)) {
+            $query->where('rtn', 'like', '%' . $this->filtroRTN . '%');
+        }
+        if (!empty($this->filtroFecha)) {
+            $query->whereDate('fecha_emision', $this->filtroFecha);
+        }
+        if (!empty($this->filtroSubtotal)) {
+            $query->where('sub_total', 'like', '%' . $this->filtroSubtotal . '%');
+        }
+        if (!empty($this->filtroISV)) {
+            $query->where('isv', 'like', '%' . $this->filtroISV . '%');
+        }
+        if (!empty($this->filtroTotal)) {
+            $query->where('total', 'like', '%' . $this->filtroTotal . '%');
+        }
+
+        // Ordenamiento
+        $query->orderBy($this->ordenarPor, $this->direccionOrden);
+
+        // Paginación
+        $facturas = $query->paginate($this->registrosPorPagina, ['*'], 'page', $this->page);
 
         return view('livewire.sala-de-ventas.lista-de-facturas', [
             'facturas' => $facturas,
