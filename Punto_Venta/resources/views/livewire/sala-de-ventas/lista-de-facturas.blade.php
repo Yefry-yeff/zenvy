@@ -411,13 +411,13 @@
 
     <!-- Modal para ver detalle de la factura -->
     @if($facturaDetalle && $facturaDetalle->id)
-        <div class="modal fade show d-flex align-items-center justify-content-center" 
-             style="display: flex; background-color: rgba(0,0,0,0.5);" 
-             tabindex="-1" 
+        <div class="modal fade show d-flex align-items-center justify-content-center"
+             style="display: flex; background-color: rgba(0,0,0,0.5);"
+             tabindex="-1"
              role="dialog"
              wire:click="cerrarDetalle">
-            <div class="modal-dialog modal-lg" 
-                 role="document" 
+            <div class="modal-dialog modal-lg"
+                 role="document"
                  onclick="event.stopPropagation()">
                 <div class="modal-content shadow-lg">
                     <div class="modal-header bg-primary text-white">
@@ -466,7 +466,7 @@
                                 </div>
                             </div>
                         </div>
-                        
+
                         <div class="row mt-3">
                             <div class="col-12">
                                 <div class="card">

@@ -18,7 +18,7 @@ use Illuminate\Support\Facades\DB;
 class ProductoForm extends Component
 {
     use WithFileUploads;
-    
+
     public $productoId;
     public $isEditing = false;
 
@@ -54,7 +54,7 @@ class ProductoForm extends Component
     public $unidadesMedida = [];
     public $isvs = [];
     public $categoriaSeleccionada = null;
-    
+
     // Flags para carga lazy
     public $categoriasLoaded = false;
     public $marcasLoaded = false;
@@ -142,7 +142,7 @@ class ProductoForm extends Component
             $this->cargarProducto();
             $this->verificarSiEsProductoValencia();
         }
-        
+
         // No cargar productos Valencia hasta que sea necesario
         // $this->cargarProductosValencia();
     }
@@ -162,7 +162,7 @@ class ProductoForm extends Component
             $this->cargarCategorias();
         }
     }
-    
+
     public function cargarCategorias()
     {
         if (!$this->categoriasLoaded) {
@@ -170,7 +170,7 @@ class ProductoForm extends Component
             $this->categoriasLoaded = true;
         }
     }
-    
+
     public function cargarMarcas()
     {
         if (!$this->marcasLoaded) {
@@ -179,7 +179,7 @@ class ProductoForm extends Component
             $this->marcasLoaded = true;
         }
     }
-    
+
     public function cargarUnidadesMedida()
     {
         if (!$this->unidadesLoaded) {
@@ -190,7 +190,7 @@ class ProductoForm extends Component
             $this->unidadesLoaded = true;
         }
     }
-    
+
     public function cargarIsvs()
     {
         if (!$this->isvsLoaded) {
@@ -209,30 +209,30 @@ class ProductoForm extends Component
         if ($producto) {
             // Verificar si es un producto de Valencia antes de cargar
             $this->verificarSiEsProductoValencia();
-            
+
             // Si es producto de Valencia, sincronizar automáticamente primero
             if ($this->esProductoValencia) {
                 try {
                     $mapeo = IdZenvyValencia::where('id_zenvy', $this->productoId)
                         ->where('tipo_dato_migrado_id', 1) // 1 para productos
                         ->first();
-                    
+
                     if ($mapeo) {
                         $this->sincronizandoValencia = true;
                         $this->dispatch('mostrarSincronizacion'); // Evento para UI
-                        
+
                         Log::info("Sincronizando automáticamente producto de Valencia antes de editar. Valencia ID: {$mapeo->id_valencia}, Zenvy ID: {$this->productoId}");
-                        
+
                         $service = $this->getSincronizacionProductosService();
                         $resultado = $service->sincronizarProducto($mapeo->id_valencia, true); // true = auto-sincronización
-                        
+
                         $this->sincronizandoValencia = false;
-                        
+
                         if ($resultado['success']) {
                             // Recargar el producto después de la sincronización
                             $producto = ProductoModel::find($this->productoId);
                             Log::info("Producto de Valencia sincronizado exitosamente antes de editar: " . $resultado['mensaje']);
-                            
+
                             // NO mostrar modal de éxito para sincronización automática
                             // Solo agregar mensaje en log o sesión flash temporal
                             session()->flash('info', "🔄 Producto sincronizado automáticamente con Valencia.");
@@ -247,7 +247,7 @@ class ProductoForm extends Component
                     // Continuar con la carga normal del producto
                 }
             }
-            
+
             $this->form = [
                 'nombre' => $producto->nombre,
                 'descripcion' => $producto->descripcion,
@@ -283,7 +283,7 @@ class ProductoForm extends Component
 
             // Cargar todos los datos necesarios para edición
             $this->cargarMarcas();
-            $this->cargarUnidadesMedida(); 
+            $this->cargarUnidadesMedida();
             $this->cargarIsvs();
 
             // Marcar si tiene imagen anterior (sin cargar los datos BLOB)
@@ -298,7 +298,7 @@ class ProductoForm extends Component
             $mapeo = IdZenvyValencia::where('id_zenvy', $this->productoId)
                 ->where('tipo_dato_migrado_id', 1) // 1 para productos
                 ->first();
-            
+
             $this->esProductoValencia = $mapeo !== null;
         }
     }
@@ -320,17 +320,17 @@ class ProductoForm extends Component
         try {
             $service = $this->getSincronizacionProductosService();
             $resultado = $service->sincronizarTodosLosProductos();
-            
+
             if ($resultado['sincronizados'] > 0) {
                 session()->flash('message', "Se sincronizaron {$resultado['sincronizados']} productos exitosamente.");
                 $this->cargarProductosValencia();
                 $this->cargarDatosIniciales(); // Recargar para mostrar nuevos datos
             }
-            
+
             if ($resultado['errores'] > 0) {
                 session()->flash('warning', "Hubo {$resultado['errores']} errores durante la sincronización.");
             }
-            
+
         } catch (\Exception $e) {
             session()->flash('error', 'Error al sincronizar productos: ' . $e->getMessage());
         }
@@ -341,7 +341,7 @@ class ProductoForm extends Component
         try {
             $service = $this->getSincronizacionProductosService();
             $resultado = $service->sincronizarProducto($idProductoValencia);
-            
+
             if ($resultado['success']) {
                 session()->flash('message', $resultado['mensaje']);
                 $this->cargarProductosValencia();
@@ -349,7 +349,7 @@ class ProductoForm extends Component
             } else {
                 session()->flash('error', $resultado['mensaje']);
             }
-            
+
         } catch (\Exception $e) {
             session()->flash('error', 'Error al sincronizar producto: ' . $e->getMessage());
         }
@@ -509,13 +509,13 @@ class ProductoForm extends Component
                 'errores' => $e->errors(),
                 'datos' => $this->form
             ]);
-            
+
             // Manejar error específico de código de barras
             if (isset($e->errors()['form.codigo_barra'])) {
                 $this->mostrarErrorCampo('codigo_barra', $e->errors()['form.codigo_barra'][0]);
                 return;
             }
-            
+
             // Para otros errores de validación
             $primerError = collect($e->errors())->flatten()->first();
             $this->mostrarError('Error de validación: ' . $primerError);
@@ -576,32 +576,32 @@ class ProductoForm extends Component
         // Limpiar errores previos completamente
         $this->limpiarErrorCampo('codigo_barra');
         $this->resetErrorBag('form.codigo_barra');
-        
+
         // Solo validar si hay contenido en el código de barras
         if (!empty($this->form['codigo_barra'])) {
             try {
                 // Crear reglas específicas para este campo
                 $codigoBarra = trim($this->form['codigo_barra']);
-                
+
                 // Si el código está vacío después del trim, no validar
                 if (empty($codigoBarra)) {
                     return;
                 }
-                
+
                 // Verificar si ya existe el código en otro producto
                 $query = ProductoModel::where('codigo_barra', $codigoBarra);
-                
+
                 // Si estamos editando, excluir el producto actual
                 if ($this->isEditing && $this->productoId) {
                     $query->where('id', '!=', $this->productoId);
                 }
-                
+
                 $existe = $query->exists();
-                
+
                 if ($existe) {
                     $this->mostrarErrorCampo('codigo_barra', 'Este código de barras ya está en uso por otro producto');
                 }
-                
+
             } catch (\Exception $e) {
                 Log::error('Error en validación de código de barras', ['error' => $e->getMessage()]);
                 $this->mostrarErrorCampo('codigo_barra', 'Error al validar el código de barras');
@@ -759,7 +759,7 @@ class ProductoForm extends Component
     public function getRules()
     {
         $rules = $this->rules;
-        
+
         // Agregar validación unique para código de barras
         if (!empty($this->form['codigo_barra'])) {
             if ($this->isEditing && $this->productoId) {
@@ -770,16 +770,16 @@ class ProductoForm extends Component
                 $rules['form.codigo_barra'] = 'nullable|string|max:100|unique:producto,codigo_barra';
             }
         }
-        
+
         // Validación especial para productos de Valencia: precio_base >= precio4
         if ($this->esProductoValencia && isset($this->form['precio4']) && $this->form['precio4'] > 0) {
             $precio4 = $this->form['precio4'];
             $rules['form.precio_base'] = 'required|numeric|min:' . $precio4;
-            
+
             // Agregar mensaje personalizado para esta validación específica
             $this->messages['form.precio_base.min'] = 'Para productos de Valencia, el precio base no puede ser menor que el precio4 (L. ' . number_format($precio4 ?? 0, 2) . ')';
         }
-        
+
         return $rules;
     }
 

@@ -160,12 +160,12 @@
                         {{ $producto->producto_valencia ? '🏢 VLC' : '🏠 PPL' }}
                     </td>
                 </tr>
-                
+
                 @if(($index + 1) % 35 == 0 && !$loop->last)
                     </tbody>
                     </table>
                     <div class="page-break"></div>
-                    
+
                     <table>
                         <thead>
                             <tr>

@@ -49,12 +49,12 @@
                     <span wire:loading.remove wire:target="sincronizarProductosValencia">Sincronizar</span>
                     <span wire:loading wire:target="sincronizarProductosValencia">Sincronizando...</span>
                 </button>
-                
+
                 <button wire:click="abrirModalCrear"
                     class="inline-flex items-center gap-1 px-3 py-2 text-sm text-gray-800 bg-white rounded hover:bg-gray-100">
                     <span>➕</span> Nuevo Producto
                 </button>
-                
+
                 <!-- Botones de descarga -->
                 <!-- Botón de descarga de reporte (Excel) junto al filtro de Origen -->
                 <!-- ...existing code... -->
@@ -83,7 +83,7 @@
                 <!-- Búsqueda -->
                 <div class="md:col-span-2">
                     <label class="block text-sm font-medium text-gray-700 mb-1">Buscar</label>
-                    <input type="text" 
+                    <input type="text"
                            wire:model.live.debounce.300ms="buscar"
                            placeholder="Buscar por nombre, código o descripción..."
                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
@@ -121,7 +121,7 @@
         <!-- INFORMACIÓN DE RESULTADOS -->
         <div class="px-4 py-2 bg-gray-100 border-b">
             <div class="text-sm text-gray-600">
-                Showing {{ $productos->firstItem() ?? 0 }} to {{ $productos->lastItem() ?? 0 }} 
+                Showing {{ $productos->firstItem() ?? 0 }} to {{ $productos->lastItem() ?? 0 }}
                 of {{ $productos->total() }} results
                 @if($buscar)
                     | Filtrado por: "{{ $buscar }}"
@@ -136,7 +136,7 @@
                         <thead class="bg-gray-50">
                             <!-- Encabezados con ordenamiento -->
                             <tr>
-                                <th class="px-4 py-3 text-left border-b cursor-pointer hover:bg-gray-100" 
+                                <th class="px-4 py-3 text-left border-b cursor-pointer hover:bg-gray-100"
                                     wire:click="ordenar('nombre')">
                                     <div class="flex items-center space-x-1">
                                         <span>Producto</span>
@@ -218,31 +218,31 @@
                             <!-- Fila de filtros -->
                             <tr class="bg-gray-100">
                                 <th class="px-4 py-2 border-b">
-                                    <input type="text" 
+                                    <input type="text"
                                            wire:model.live.debounce.300ms="filtroNombre"
                                            placeholder="Filtrar..."
                                            class="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500">
                                 </th>
                                 <th class="px-4 py-2 border-b">
-                                    <input type="text" 
+                                    <input type="text"
                                            wire:model.live.debounce.300ms="filtroCodigo"
                                            placeholder="Filtrar..."
                                            class="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500">
                                 </th>
                                 <th class="px-4 py-2 border-b">
-                                    <input type="text" 
+                                    <input type="text"
                                            wire:model.live.debounce.300ms="filtroCategoria"
                                            placeholder="Filtrar..."
                                            class="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500">
                                 </th>
                                 <th class="px-4 py-2 border-b">
-                                    <input type="text" 
+                                    <input type="text"
                                            wire:model.live.debounce.300ms="filtroMarca"
                                            placeholder="Filtrar..."
                                            class="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500">
                                 </th>
                                 <th class="px-4 py-2 border-b">
-                                    <input type="text" 
+                                    <input type="text"
                                            wire:model.live.debounce.300ms="filtroPrecio"
                                            placeholder="Filtrar..."
                                            class="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500">
@@ -261,7 +261,7 @@
                         <tbody class="divide-y divide-gray-200">
                             @if($productos->count() > 0)
                                 @foreach($productos as $producto)
-                                <tr class="hover:bg-gray-50 cursor-pointer transition-colors duration-150" 
+                                <tr class="hover:bg-gray-50 cursor-pointer transition-colors duration-150"
                                     wire:key="producto-{{ $producto->id }}">
                                     <td class="px-4 py-3" wire:click="editar({{ $producto->id }})">
                                         <div>
@@ -304,9 +304,9 @@
                                     </td>
                                     <td class="px-4 py-3 text-center">
                                         @if(!$producto->producto_valencia)
-                                            <button type="button" 
-                                                    class="p-1 text-red-600 hover:text-red-800 transition-colors" 
-                                                    wire:click="confirmarEliminar({{ $producto->id }})" 
+                                            <button type="button"
+                                                    class="p-1 text-red-600 hover:text-red-800 transition-colors"
+                                                    wire:click="confirmarEliminar({{ $producto->id }})"
                                                     onclick="event.stopPropagation();"
                                                     title="Eliminar producto">
                                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -333,7 +333,7 @@
                                         @endif
                                     </p>
                                     @if($buscar || $filtroOrigen !== 'todos' || $filtroNombre || $filtroCodigo || $filtroCategoria || $filtroMarca || $filtroPrecio)
-                                        <button wire:click="limpiarFiltros" 
+                                        <button wire:click="limpiarFiltros"
                                                 class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600">
                                             Limpiar filtros
                                         </button>
@@ -426,7 +426,7 @@
 
     <!-- Modal Confirmar Eliminación (simplificado) -->
     @if($modalEliminarAbierto)
-    <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" 
+    <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
          wire:click.self="cerrarModalEliminar">
         <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
             <div class="flex items-center justify-between mb-4">
@@ -437,7 +437,7 @@
                     </svg>
                 </button>
             </div>
-            
+
             @if($productoSeleccionado)
                 <div class="mb-4 p-3 bg-gray-50 rounded">
                     <h6 class="font-medium">{{ $productoSeleccionado->nombre ?? '' }}</h6>
@@ -487,13 +487,13 @@
                         </svg>
                     </button>
                 </div>
-                
+
                 <div class="space-y-3">
                     <div class="flex justify-between items-center p-3 bg-green-50 rounded">
                         <span class="font-medium text-green-800">✅ Procesados:</span>
                         <span class="font-bold text-green-600">{{ $detallesSincronizacion['productos_sincronizados'] ?? 0 }}</span>
                     </div>
-                    
+
                     @if(($detallesSincronizacion['errores'] ?? 0) > 0)
                         <div class="flex justify-between items-center p-3 bg-red-50 rounded">
                             <span class="font-medium text-red-800">❌ Errores:</span>
@@ -501,9 +501,9 @@
                         </div>
                     @endif
                 </div>
-                
+
                 <div class="mt-6 text-center">
-                    <button wire:click="cerrarDetallesSincronizacion" 
+                    <button wire:click="cerrarDetallesSincronizacion"
                             class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors">
                         Cerrar
                     </button>
@@ -522,19 +522,19 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('Evento descargarArchivo recibido:', data);
             const eventData = Array.isArray(data) ? data[0] : data;
             const { url, filename } = eventData;
-            
+
             console.log('URL de descarga:', url);
-            
+
             // Crear un enlace temporal para descargar el archivo
             const link = document.createElement('a');
             link.href = url;
             link.download = filename;
             link.style.display = 'none';
-            
+
             // Agregar al DOM, hacer click y remover
             document.body.appendChild(link);
             link.click();
-            
+
             // Remover después de un pequeño delay
             setTimeout(() => {
                 document.body.removeChild(link);
@@ -549,17 +549,17 @@ document.addEventListener('livewire:init', () => {
         console.log('Evento descargarArchivo recibido (livewire:init):', data);
         const eventData = Array.isArray(data) ? data[0] : data;
         const { url, filename } = eventData;
-        
+
         // Crear un enlace temporal para descargar el archivo
         const link = document.createElement('a');
         link.href = url;
         link.download = filename;
         link.style.display = 'none';
-        
+
         // Agregar al DOM, hacer click y remover
         document.body.appendChild(link);
         link.click();
-        
+
         setTimeout(() => {
             document.body.removeChild(link);
         }, 100);

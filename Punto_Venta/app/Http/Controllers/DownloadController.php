@@ -13,14 +13,14 @@ class DownloadController extends Controller
     {
         try {
             $filename = $request->query('file');
-            
+
             if (!$filename) {
                 abort(400, 'Nombre de archivo requerido');
             }
 
             // Validar que el archivo esté en el directorio temp
             $filepath = storage_path('app/temp/' . $filename);
-            
+
             if (!file_exists($filepath)) {
                 abort(404, 'Archivo no encontrado');
             }

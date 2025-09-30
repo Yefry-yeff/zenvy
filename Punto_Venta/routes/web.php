@@ -80,10 +80,10 @@ Route::middleware('auth')->group(function () {
     // Rutas para factura PDF
     Route::get('factura/{id}/pdf', [App\Http\Controllers\FacturaPDFController::class, 'generarPDF'])->name('factura.pdf');
     Route::get('factura/{id}/pdf/preview', [App\Http\Controllers\FacturaPDFController::class, 'previsualizarPDF'])->name('factura.pdf.preview');
-    
+
     // Ruta para ver detalle de factura
     Route::get('factura/{id}/detalle', [App\Http\Controllers\FacturaController::class, 'detalle'])->name('factura.detalle');
-    
+
     // Ruta para descargar archivos generados por Livewire
     Route::get('/download', [App\Http\Controllers\DownloadController::class, 'downloadFile'])->name('download.file');
 });
@@ -98,21 +98,21 @@ Route::post('/debug-log', function (Request $request) {
 // Ruta para servir archivos temporales de descarga
 Route::get('/storage/temp/{filename}', function ($filename) {
     $filepath = storage_path('app/temp/' . $filename);
-    
+
     if (!file_exists($filepath)) {
         abort(404, 'Archivo no encontrado');
     }
-    
+
     // Determinar el tipo de archivo
     $extension = pathinfo($filename, PATHINFO_EXTENSION);
     $mimeType = 'application/octet-stream';
-    
+
     if ($extension === 'csv') {
         $mimeType = 'text/csv';
     } elseif ($extension === 'html') {
         $mimeType = 'text/html';
     }
-    
+
     return response()->file($filepath, [
         'Content-Type' => $mimeType,
         'Content-Disposition' => 'attachment; filename="' . $filename . '"'

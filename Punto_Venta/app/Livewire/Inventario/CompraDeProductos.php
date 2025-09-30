@@ -64,7 +64,7 @@ class CompraDeProductos extends Component
 
     // REMOVIDO: protected $queryString - Ya no persiste parámetros en URL
     // Los filtros se manejarán solo con sesión
-    
+
     // Deshabilitar persistencia de paginación en URL
     protected $queryString = [];
 
@@ -73,7 +73,7 @@ class CompraDeProductos extends Component
     {
         return $this->page;
     }
-    
+
     // Sobrescribir método para cambiar página sin URL
     public function setPage($page)
     {
@@ -134,11 +134,11 @@ class CompraDeProductos extends Component
     {
         // Solo verificar compatibilidad básica - DynamicContent maneja los redirects
         $parametrosURL = request()->query();
-        
+
         if (!empty($parametrosURL)) {
             // Solo verificar parámetros críticos que definitivamente no pertenecen aquí
             $parametrosProhibidos = ['filtroProducto', 'filtroBodega', 'filtroMarca'];
-            
+
             foreach ($parametrosProhibidos as $param) {
                 if (isset($parametrosURL[$param])) {
                     // Dejar que DynamicContent maneje el redirect
@@ -147,7 +147,7 @@ class CompraDeProductos extends Component
             }
         }
     }
-    
+
     public function dehydrate()
     {
         // Guardar filtros en sesión en cada actualización
@@ -179,18 +179,18 @@ class CompraDeProductos extends Component
             $this->direccionOrden = $filtrosSesion['direccionOrden'] ?? 'desc';
             $this->page = $filtrosSesion['page'] ?? 1;
         }
-        
+
         // Detectar si hay parámetros de otra vista
         $parametrosURL = request()->query();
         $parametrosOtraVista = ['filtroProducto', 'filtroBodega', 'filtroMarca']; // Parámetros exclusivos de lista-de-productos
-        
+
         foreach ($parametrosOtraVista as $param) {
             if (isset($parametrosURL[$param])) {
                 // Si hay parámetros de otra vista, hacer redirect limpio
                 return redirect()->route('dashboard');
             }
         }
-        
+
         if (session('reset_compras_params')) {
             session()->forget('reset_compras_params');
             $this->ordenarPor = 'id';
@@ -201,7 +201,7 @@ class CompraDeProductos extends Component
             $this->page = 1; // Resetear también la página
             $this->resetPage();
         }
-        
+
         session(['current_component' => 'compra-de-productos']);
     }
 
@@ -289,7 +289,7 @@ class CompraDeProductos extends Component
         } else {
             $this->ordenarPor = $campo;
             $this->direccionOrden = 'asc';
-            
+
             // Para ID, empezar siempre en DESC
             if ($campo === 'id') {
                 $this->direccionOrden = 'desc';
@@ -303,7 +303,7 @@ class CompraDeProductos extends Component
     {
         // Limpiar todas las sesiones relacionadas incluyendo filtros
         session()->forget(['compras_ordenamiento', 'current_component', 'reset_compras_params', 'compras_filtros']);
-        
+
         // Si hay parámetros en URL, forzar redirect limpio al dashboard
         if (request()->has(['ordenarPor', 'direccionOrden', 'busqueda', 'filtroEstado', 'filtroFecha', 'page'])) {
             $this->redirectRoute('dashboard', navigate: true);
@@ -330,7 +330,7 @@ class CompraDeProductos extends Component
         if ($compra && $compra->estado) {
             $estadoNombre = strtolower($compra->estado->nombre);
             $estadoId = $compra->estado_id;
-            
+
             // Solo permitir anular si está en estado "activo" (1)
             // No permitir anular si está en estado "pendiente" (5) por distribución parcial
             if ($estadoNombre === 'activo' && $estadoId != 5) {
@@ -421,7 +421,7 @@ class CompraDeProductos extends Component
             if ($compra && $compra->estado) {
                 $estadoNombre = strtolower($compra->estado->nombre);
                 $estadoId = $compra->estado_id;
-                
+
                 // Solo permitir anular si está en estado "activo" (1)
                 // No permitir anular si está en estado "pendiente" (5) por distribución parcial
                 if ($estadoNombre === 'activo' && $estadoId != 5) {
@@ -479,11 +479,11 @@ class CompraDeProductos extends Component
             }
 
             $resultado = $this->getSincronizacionService()->forzarSincronizacion();
-            
+
             // Finalizar progreso
             $this->progreso = 100;
             $this->dispatch('actualizarProgreso', $this->progreso);
-            
+
             // Preparar detalles de sincronización
             $this->detallesSincronizacion = [
                 'compras_sincronizadas' => $resultado['estadisticas']['compras_nuevas'] ?? 0,
@@ -493,23 +493,23 @@ class CompraDeProductos extends Component
                 'errores' => $resultado['estadisticas']['errores'] ?? 0,
                 'tiempo_ejecucion' => '~2 segundos'
             ];
-            
+
             // Mensajes de estado
             if (($resultado['estadisticas']['compras_nuevas'] ?? 0) > 0) {
                 session()->flash('mensaje', '✅ Sincronización completada: ' . $this->detallesSincronizacion['compras_nuevas'] . ' compras nuevas procesadas exitosamente.');
             } else {
                 session()->flash('mensaje', '✅ Sincronización completada: No hay nuevas compras para sincronizar.');
             }
-            
+
             Log::info('Sincronización manual de compras Valencia: ' . json_encode($resultado));
-            
+
             // Finalizar estado de carga
             $this->sincronizandoCompras = false;
-            
+
         } catch (\Exception $e) {
             $this->sincronizandoCompras = false;
             $this->progreso = 0;
-            
+
             session()->flash('error', 'Error al sincronizar compras de Valencia: ' . $e->getMessage());
             Log::error('Error en sincronización Valencia: ' . $e->getMessage());
         }

@@ -113,7 +113,7 @@
         <!-- INFORMACIÓN DE RESULTADOS -->
         <div class="px-4 py-2 bg-gray-100 border-b">
             <div class="text-sm text-gray-600">
-                Showing {{ $compras->firstItem() ?? 0 }} to {{ $compras->lastItem() ?? 0 }} 
+                Showing {{ $compras->firstItem() ?? 0 }} to {{ $compras->lastItem() ?? 0 }}
                 of {{ $compras->total() }} results
             </div>
         </div>
@@ -130,7 +130,7 @@
                                 <thead class="bg-gray-50">
                                     <!-- Encabezados con ordenamiento -->
                                     <tr>
-                                        <th class="px-4 py-3 text-left border-b cursor-pointer hover:bg-gray-100" 
+                                        <th class="px-4 py-3 text-left border-b cursor-pointer hover:bg-gray-100"
                                             wire:click="ordenar('id')">
                                             <div class="flex items-center space-x-1">
                                                 <span>ID</span>
@@ -227,7 +227,7 @@
                                         <tr class="hover:bg-gray-50 cursor-pointer"
                                             wire:click="verDetalle({{ $compra->id }})"
                                             title="Clic para ver detalles">
-                                            
+
                                             <!-- ID -->
                                             <td class="px-4 py-3 border-b">
                                                 <div class="flex flex-col">
@@ -319,7 +319,7 @@
                                                                         ❌ Anular Compra
                                                                     </button>
                                                                 @endif
-                                                                
+
                                                                 <button type="button"
                                                                         class="w-full px-3 py-2 text-sm text-left text-blue-600 hover:bg-blue-50 border-0 rounded"
                                                                         wire:click="irARecibirProducto({{ $compra->id }})"

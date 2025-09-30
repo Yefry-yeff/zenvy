@@ -545,13 +545,13 @@ class Producto extends Component
             // Generar nombre del archivo con timestamp
             $timestamp = now()->format('Y-m-d_H-i-s');
             $filename = "productos_{$timestamp}.xlsx";
-            
+
             // Crear directorio temporal si no existe
             $tempDir = storage_path('app/temp');
             if (!file_exists($tempDir)) {
                 mkdir($tempDir, 0755, true);
             }
-            
+
             $filepath = $tempDir . '/' . $filename;
 
             // Crear el archivo Excel usando la nueva sintaxis de maatwebsite/excel 3.x
@@ -598,13 +598,13 @@ class Producto extends Component
             // Generar nombre del archivo
             $timestamp = now()->format('Y-m-d_H-i-s');
             $filename = "productos_{$timestamp}.pdf";
-            
+
             // Crear directorio temporal si no existe
             $tempDir = storage_path('app/temp');
             if (!file_exists($tempDir)) {
                 mkdir($tempDir, 0755, true);
             }
-            
+
             $filepath = $tempDir . '/' . $filename;
 
             // Guardar el PDF
@@ -703,8 +703,8 @@ class Producto extends Component
 
         // Generar HTML optimizado que Excel reconocerá como archivo Excel nativo
         $html = '<!DOCTYPE html>
-<html xmlns:o="urn:schemas-microsoft-com:office:office" 
-      xmlns:x="urn:schemas-microsoft-com:office:excel" 
+<html xmlns:o="urn:schemas-microsoft-com:office:office"
+      xmlns:x="urn:schemas-microsoft-com:office:excel"
       xmlns="http://www.w3.org/TR/REC-html40">
 <head>
     <meta charset="UTF-8">
@@ -731,71 +731,71 @@ class Producto extends Component
     </xml>
     <![endif]-->
     <style>
-        .xl-header { 
-            font-weight: bold; 
-            font-size: 16pt; 
-            text-align: center; 
-            background-color: #4472C4; 
-            color: white; 
+        .xl-header {
+            font-weight: bold;
+            font-size: 16pt;
+            text-align: center;
+            background-color: #4472C4;
+            color: white;
             mso-pattern: solid;
         }
-        .xl-subheader { 
-            font-size: 11pt; 
-            text-align: center; 
-            color: #666666; 
+        .xl-subheader {
+            font-size: 11pt;
+            text-align: center;
+            color: #666666;
             font-style: italic;
         }
-        .xl-table-header { 
-            font-weight: bold; 
-            background-color: #D9E2F3; 
-            border: 1px solid #8EAADB; 
-            text-align: center; 
+        .xl-table-header {
+            font-weight: bold;
+            background-color: #D9E2F3;
+            border: 1px solid #8EAADB;
+            text-align: center;
             mso-pattern: solid;
         }
-        .xl-cell { 
-            border: 1px solid #D9D9D9; 
-            padding: 3px; 
+        .xl-cell {
+            border: 1px solid #D9D9D9;
+            padding: 3px;
             mso-number-format: "@";
         }
-        .xl-cell-center { 
-            border: 1px solid #D9D9D9; 
-            padding: 3px; 
-            text-align: center; 
+        .xl-cell-center {
+            border: 1px solid #D9D9D9;
+            padding: 3px;
+            text-align: center;
             mso-number-format: "@";
         }
-        .xl-cell-number { 
-            border: 1px solid #D9D9D9; 
-            padding: 3px; 
-            text-align: center; 
+        .xl-cell-number {
+            border: 1px solid #D9D9D9;
+            padding: 3px;
+            text-align: center;
             mso-number-format: "0";
         }
-        .xl-cell-price { 
-            border: 1px solid #D9D9D9; 
-            padding: 3px; 
-            text-align: right; 
-            font-weight: bold; 
+        .xl-cell-price {
+            border: 1px solid #D9D9D9;
+            padding: 3px;
+            text-align: right;
+            font-weight: bold;
             color: #70AD47;
             mso-number-format: "\"L. \"#,##0.00";
         }
-        .xl-origen-valencia { 
-            border: 1px solid #D9D9D9; 
-            padding: 3px; 
-            text-align: center; 
-            background-color: #FFF2CC; 
-            color: #7F6000; 
+        .xl-origen-valencia {
+            border: 1px solid #D9D9D9;
+            padding: 3px;
+            text-align: center;
+            background-color: #FFF2CC;
+            color: #7F6000;
             mso-pattern: solid;
         }
-        .xl-origen-paperland { 
-            border: 1px solid #D9D9D9; 
-            padding: 3px; 
-            text-align: center; 
-            background-color: #E2EFDA; 
-            color: #385723; 
+        .xl-origen-paperland {
+            border: 1px solid #D9D9D9;
+            padding: 3px;
+            text-align: center;
+            background-color: #E2EFDA;
+            color: #385723;
             mso-pattern: solid;
         }
-        table { 
-            border-collapse: collapse; 
-            width: 100%; 
+        table {
+            border-collapse: collapse;
+            width: 100%;
             mso-table-layout-alt: fixed;
         }
     </style>
@@ -849,35 +849,35 @@ class Producto extends Component
     private function obtenerFiltrosAplicados()
     {
         $filtros = [];
-        
+
         if (!empty($this->buscar)) {
             $filtros[] = "Búsqueda: '{$this->buscar}'";
         }
-        
+
         if ($this->filtroOrigen !== 'todos') {
             $filtros[] = "Origen: " . ucfirst($this->filtroOrigen);
         }
-        
+
         if (!empty($this->filtroNombre)) {
             $filtros[] = "Nombre: '{$this->filtroNombre}'";
         }
-        
+
         if (!empty($this->filtroCodigo)) {
             $filtros[] = "Código: '{$this->filtroCodigo}'";
         }
-        
+
         if (!empty($this->filtroCategoria)) {
             $filtros[] = "Categoría: '{$this->filtroCategoria}'";
         }
-        
+
         if (!empty($this->filtroMarca)) {
             $filtros[] = "Marca: '{$this->filtroMarca}'";
         }
-        
+
         if (!empty($this->filtroPrecio)) {
             $filtros[] = "Precio: '{$this->filtroPrecio}'";
         }
-        
+
         return empty($filtros) ? 'Ninguno' : implode(', ', $filtros);
     }
 
