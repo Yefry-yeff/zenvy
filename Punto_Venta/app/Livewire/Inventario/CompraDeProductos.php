@@ -16,6 +16,34 @@ use Maatwebsite\Excel\Facades\Excel;
 
 class CompraDeProductos extends Component
 {
+    // Descargar detalle de la compra seleccionada en Excel
+    public function descargarDetalleExcel()
+    {
+        if (!$this->compraDetalle) {
+            session()->flash('error', 'No hay compra seleccionada para exportar.');
+            return;
+        }
+
+        try {
+            $detalle = $this->compraDetalle;
+            $fechaGeneracion = now()->format('d/m/Y H:i:s');
+            $usuarioReporte = Auth::user() ? Auth::user()->name : 'Invitado';
+            $timestamp = now()->format('Y-m-d_H-i-s');
+            $filename = "detalle_compra_{$detalle['numero_factura']}_{$timestamp}.xlsx";
+            $tempDir = storage_path('app/temp');
+            if (!file_exists($tempDir)) {
+                mkdir($tempDir, 0755, true);
+            }
+
+            // Usar export dedicado para detalle de compra
+            Excel::store(new \App\Excel\DetalleCompraExport($detalle, $fechaGeneracion, $usuarioReporte), $filename, 'temp');
+
+            return redirect()->route('download.file', ['file' => $filename]);
+        } catch (\Exception $e) {
+            session()->flash('error', 'Error al generar el archivo Excel: ' . $e->getMessage());
+            Log::error('Error generating Excel Detalle', ['error' => $e->getMessage()]);
+        }
+    }
     use WithPagination;
 
     // Propiedades para filtros y búsqueda

@@ -557,7 +557,13 @@
 
                 <!-- Footer -->
                 <div class="px-4 py-3 border-t bg-gray-50">
-                    <div class="flex justify-end">
+                    <div class="flex justify-between">
+                        <button wire:click="descargarDetalleExcel"
+                                class="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-blue-700 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center gap-2">
+                            <span wire:loading.remove wire:target="descargarDetalleExcel">📥</span>
+                            <span wire:loading wire:target="descargarDetalleExcel">Generando...</span>
+                            Descargar detalle
+                        </button>
                         <button wire:click="cerrarModalDetalle"
                                 class="px-4 py-2 text-sm font-medium text-gray-700 transition-colors bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
                             Cerrar
