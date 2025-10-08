@@ -15,9 +15,9 @@
         theme === 'azul' ? 'bg-blue-800/30' :
         theme === 'oscuro' ? 'bg-gray-800/50' : 'bg-slate-700/30'
     ]"
-    class="h-full flex flex-col text-white border-r backdrop-blur-md border-white/10"
+    class="flex flex-col h-full text-white border-r backdrop-blur-md border-white/10"
 >
-    <nav class="flex-1 p-4 space-y-2 text-sm overflow-y-auto" style="padding-bottom: 120px;">
+    <nav class="flex-1 p-4 space-y-2 overflow-y-auto text-sm" style="padding-bottom: 120px;">
         {{-- Dashboard --}}
         <div class="flex justify-center">
             <button
@@ -87,7 +87,7 @@
                 <span>© 2025 ZENVY POS</span>
             </div>
             <div class="font-mono text-xs text-white/40">
-                v4.0.1
+                v4.0.6
             </div>
             <div class="text-xs text-white/30">
                 Desarrollado por Cadss
