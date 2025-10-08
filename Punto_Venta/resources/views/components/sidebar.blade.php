@@ -15,9 +15,9 @@
         theme === 'azul' ? 'bg-blue-800/30' :
         theme === 'oscuro' ? 'bg-gray-800/50' : 'bg-slate-700/30'
     ]"
-    class="h-full overflow-y-auto text-white border-r backdrop-blur-md border-white/10"
+    class="h-full flex flex-col text-white border-r backdrop-blur-md border-white/10"
 >
-    <nav class="p-4 space-y-2 text-sm">
+    <nav class="flex-1 p-4 space-y-2 text-sm overflow-y-auto" style="padding-bottom: 120px;">
         {{-- Dashboard --}}
         <div class="flex justify-center">
             <button
@@ -77,7 +77,7 @@
     <div
         x-show="sidebarOpen"
         x-transition
-        class="absolute bottom-0 left-0 right-0 p-4 text-center border-t border-white/10 bg-gradient-to-t from-black/20 to-transparent"
+        class="sticky bottom-0 left-0 right-0 p-4 text-center border-t border-white/10 bg-gradient-to-t from-black/20 to-transparent"
     >
         <div class="space-y-1">
             <div class="flex items-center justify-center gap-1 text-xs text-white/60">
