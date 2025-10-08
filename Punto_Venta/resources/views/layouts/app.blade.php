@@ -4,6 +4,13 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
+    {{-- Favicon --}}
+    <link rel="icon" type="image/x-icon" href="{{ asset('img/favicon/favicon.ico') }}">
+    <link rel="icon" type="image/svg+xml" href="{{ asset('img/favicon/favicon.svg') }}">
+    <link rel="icon" type="image/png" sizes="96x96" href="{{ asset('img/favicon/favicon-96x96.png') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('img/favicon/apple-touch-icon.png') }}">
+    <link rel="manifest" href="{{ asset('img/favicon/site.webmanifest') }}">
+
     {{-- Fuentes --}}
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
@@ -48,8 +55,12 @@
         </button>
 
         <div class="flex items-center gap-2 text-base font-semibold">
-            <div class="p-1 bg-white rounded-xl">
-                <img src="{{ asset('img/logo-zenvy.png') }}" alt="Logo Zenvy" class="object-contain w-auto h-8">
+            <div class="flex flex-col items-start gap-0">
+                <div class="flex items-center gap-2">
+                    <img src="{{ asset('img/Logo_Paperland2.png') }}" alt="Logo Paperland" class="w-8 h-8 object-contain">
+                    <span class="text-xl font-semibold text-white">Paperland</span>
+                </div>
+                <span class="text-[0.65rem] text-white/80 -mt-1 ml-10">imagina · crea · diviértete</span>
             </div>
         </div>
     </div>
