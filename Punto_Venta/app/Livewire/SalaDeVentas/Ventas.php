@@ -1032,8 +1032,14 @@ class Ventas extends Component
             $isvPorTasa[$tasaIsv] += $isvProducto;
         }
 
-        $this->isvPorTasa = $isvPorTasa;
-        $this->total = $this->subtotal + $this->totalIsv;
+        // Asegurar que todos los valores tengan exactamente 2 decimales
+        $this->isvPorTasa = array_map(function($monto) {
+            return (float)number_format($monto, 2, '.', '');
+        }, $isvPorTasa);
+        
+        $this->subtotal = (float)number_format($this->subtotal, 2, '.', '');
+        $this->totalIsv = (float)number_format($this->totalIsv, 2, '.', '');
+        $this->total = (float)number_format($this->subtotal + $this->totalIsv, 2, '.', '');
 
         // Forzar actualización de la vista
         $this->dispatch('totales-actualizados', [
@@ -1372,6 +1378,8 @@ class Ventas extends Component
     {
         // Buscar el ID del método "Efectivo"
         $efectivoId = null;
+        $totalRedondeado = round($this->total, 2); // Asegurar que el total esté redondeado
+        
         foreach ($this->tiposPago as $tipoPago) {
             if ($tipoPago->nombre === 'Efectivo') {
                 $efectivoId = $tipoPago->id;
@@ -2466,8 +2474,9 @@ class Ventas extends Component
 
     public function procesarSoloEfectivo()
     {
-        $this->montoEfectivo = round($this->total, 2);
-        $this->efectivoRecibido = 0;
+        // Usar number_format para asegurar exactamente 2 decimales sin problemas de punto flotante
+        $this->montoEfectivo = (float)number_format($this->total, 2, '.', '');
+        $this->efectivoRecibido = (float)number_format($this->total, 2, '.', '');
         $this->mostrarModalEfectivoFlag = true;
     }
 

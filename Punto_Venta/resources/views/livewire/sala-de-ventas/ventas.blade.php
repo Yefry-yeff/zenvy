@@ -1288,7 +1288,9 @@
                             wire:model.live="efectivoRecibido"
                             step="0.01"
                             min="0"
-                            x-on:input="$el.value = parseFloat($el.value).toFixed(2)"
+                            x-init="$el.value = parseFloat($el.value || 0).toFixed(2)"
+                            x-on:input="$el.value = parseFloat($el.value || 0).toFixed(2)"
+                            x-on:change="$el.value = parseFloat($el.value || 0).toFixed(2)"
                             class="w-full py-4 pl-12 pr-6 text-2xl font-bold text-center transition-all border-2 border-gray-300 rounded-xl focus:border-green-500 focus:ring-2 focus:ring-green-200"
                             placeholder="0.00"
                             autofocus>
