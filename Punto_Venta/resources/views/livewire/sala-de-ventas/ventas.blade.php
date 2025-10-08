@@ -202,9 +202,9 @@
                     <p class="mb-6 text-gray-600">
                         La cantidad solicitada excede el stock disponible en bodega. Por favor, verifica el inventario o reduce la cantidad.
                     </p>
-                    
+
                     <div class="flex justify-center">
-                        <button 
+                        <button
                             wire:click="cerrarModalSinStock"
                             class="px-6 py-2 text-white bg-red-600 border border-red-600 rounded-lg hover:bg-red-700 focus:ring-4 focus:ring-red-200">
                             <i class="fas fa-check me-2"></i>
@@ -219,7 +219,7 @@
 
     <!-- CONTENIDO PRINCIPAL: Siempre visible (modo manual por defecto) -->
     <div class="mx-auto max-w-7xl">
-            
+
             <!-- 1. INFORMACIÓN DEL CLIENTE (arriba, ancho completo) -->
             <div class="mb-6 bg-white border border-gray-300 rounded-lg shadow-lg" x-data x-init="$watch('theme', t => localStorage.setItem('theme', t))">
                 <!-- Header -->
@@ -256,7 +256,7 @@
 
                     <!-- Información de bodega y alertas de stock -->
                     @if($bodegaPrincipal)
-                        <div class="alert alert-info d-flex align-items-center mb-3">
+                        <div class="mb-3 alert alert-info d-flex align-items-center">
                             <div class="me-3">
                                 <i class="fas fa-warehouse fa-lg"></i>
                             </div>
@@ -266,7 +266,7 @@
                             </div>
                         </div>
                     @else
-                        <div class="alert alert-warning d-flex align-items-center mb-3">
+                        <div class="mb-3 alert alert-warning d-flex align-items-center">
                             <div class="me-3">
                                 <i class="fas fa-exclamation-triangle fa-lg"></i>
                             </div>
@@ -324,7 +324,7 @@
                                     {{ $camposBloqueados ? 'readonly' : '' }}>
                             </div>
 
-                            <div class="space-y-1" x-data="{ error: false }" 
+                            <div class="space-y-1" x-data="{ error: false }"
                                 @marcar-campo-error.window="if($event.detail === 'telefonoClienteManual') { error = true; setTimeout(() => error = false, 3000) }">
                                 <label class="block text-sm font-medium text-gray-700">Teléfono *</label>
                                 <input type="tel"
@@ -423,7 +423,7 @@
                                     Guardar Cliente
                                 </button>
                             @endif
-                            
+
                             <button type="button"
                                 wire:click="limpiarDatosCliente"
                                 class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-4 focus:ring-gray-200">
@@ -433,7 +433,7 @@
                                 </svg>
                                 Limpiar Datos
                             </button>
-                            
+
                             @if($camposBloqueados)
                                 <div class="inline-flex items-center px-3 py-2 text-sm text-green-700 bg-green-100 border border-green-200 rounded-lg">
                                     <!-- Icono de candado (SVG) -->
@@ -450,7 +450,7 @@
 
             <!-- 2. LAYOUT DINÁMICO: FACTURA (ancho completo si no hay catálogo, o 2/3 si hay catálogo) -->
             <div class="grid grid-cols-1 gap-6 {{ $mostrarCatalogoVisual ? 'lg:grid-cols-3' : 'lg:grid-cols-1' }}">
-                
+
                 <!-- 2.1 FACTURA (ancho completo o 2 columnas según disponibilidad del catálogo) -->
                 <div class="{{ $mostrarCatalogoVisual ? 'lg:col-span-2' : 'lg:col-span-1' }} bg-white border border-gray-300 rounded-lg shadow-lg" x-data x-init="$watch('theme', t => localStorage.setItem('theme', t))">
                     <!-- Header -->
@@ -497,7 +497,7 @@
                         <!-- Lista de productos agregados a la factura -->
                         <div class="mb-4">
                             <div class="table-responsive">
-                                <table class="table table-sm table-bordered text-center" style="font-size: 0.7rem;">
+                                <table class="table text-center table-sm table-bordered" style="font-size: 0.7rem;">
                                     <thead class="table-light">
                                         <tr style="font-size: 0.65rem;">
                                             <th>Producto/Servicio</th>
@@ -516,24 +516,24 @@
                                         @php
                                             // Cálculo base: cantidad × precio unitario
                                             $subtotalOriginal = round($item['precio'] * $item['cantidad'], 2);
-                                            
+
                                             // Descuentos aplicados
                                             $descuentoAplicado = round($item['descuento_aplicado'] ?? 0, 2); // Descuento por edad (total)
                                             $descuentoUnitarioBase = round($item['descuento_unitario_producto'] ?? 0, 2); // Descuento por unidad base
                                             $descuentoIndividual = round($item['descuento_monto'] ?? 0, 2); // Descuento individual por producto
-                                            
+
                                             // El descuento unitario se aplica POR CADA CANTIDAD
                                             $descuentoUnitarioTotal = round($descuentoUnitarioBase * $item['cantidad'], 2);
-                                            
+
                                             // Subtotal después de todos los descuentos
                                             $subtotalConDescuento = round($subtotalOriginal - $descuentoUnitarioTotal - $descuentoIndividual - $descuentoAplicado, 2);
-                                            
+
                                             // ISV se calcula sobre el subtotal neto (después de descuentos)
                                             $isv = round($subtotalConDescuento * ($item['isv']/100), 2);
-                                            
+
                                             // Total final: subtotal neto + ISV
                                             $total = round($subtotalConDescuento + $isv, 2);
-                                            
+
                                             // Determinar si es producto o servicio
                                             $esServicio = isset($item['servicio_id']) && $item['servicio_id'] !== null;
                                             $stockDisponible = $esServicio ? null : $this->obtenerStockDisponible($item['id']);
@@ -551,12 +551,12 @@
                                             <td>{{ $item['codigo'] }}</td>
                                             <td>
                                                 @if($esServicio)
-                                                    <span class="badge bg-info text-white">
+                                                    <span class="text-white badge bg-info">
                                                         <i class="fas fa-concierge-bell me-1"></i>
                                                         Servicio
                                                     </span>
                                                 @else
-                                                    <span class="badge bg-primary text-white">
+                                                    <span class="text-white badge bg-primary">
                                                         <i class="fas fa-box me-1"></i>
                                                         Producto
                                                     </span>
@@ -567,13 +567,13 @@
                                                     L. {{ number_format($item['precio'], 2) }}
                                                 @else
                                                     <!-- Dropdown para seleccionar precio -->
-                                                    <select class="form-select form-select-sm" 
+                                                    <select class="form-select form-select-sm"
                                                             style="min-width: 120px; font-size: 0.875rem;"
                                                             wire:change="cambiarPrecioProducto({{ $loop->index }}, $event.target.value)">
-                                                        
+
                                                         @php
                                                             $precios = [];
-                                                            
+
                                                             // Si es producto de Paperland (producto_valencia = 0)
                                                             if (($item['producto_valencia'] ?? 1) == 0) {
                                                                 $precios['precio_base'] = $item['precio_base'] ?? 0;
@@ -583,16 +583,16 @@
                                                                 if (($item['precio2'] ?? 0) > 0) $precios['precio2'] = $item['precio2'];
                                                                 if (($item['precio3'] ?? 0) > 0) $precios['precio3'] = $item['precio3'];
                                                                 if (($item['precio4'] ?? 0) > 0) $precios['precio4'] = $item['precio4'];
-                                                                
+
                                                                 // Siempre agregar precio_base como opción
                                                                 $precios['precio_base'] = $item['precio_base'] ?? 0;
                                                             }
-                                                            
+
                                                             $tipoPrecioActual = $item['tipo_precio'] ?? 'precio_base';
                                                         @endphp
-                                                        
+
                                                         @foreach($precios as $tipo => $precio)
-                                                            <option value="{{ $tipo }}" 
+                                                            <option value="{{ $tipo }}"
                                                                     {{ $tipoPrecioActual == $tipo ? 'selected' : '' }}>
                                                                 @php
                                                                     $nombrePrecio = $tipo;
@@ -646,7 +646,7 @@
                                             <td>
                                                 <!-- Mostrar importe original (precio × cantidad SIN descuentos) -->
                                                 <div class="fw-bold">L. {{ number_format($subtotalOriginal, 2) }}</div>
-                                                
+
                                                 <!-- Mostrar descuentos de productos/servicios guardados primero (si existen) -->
                                                 @if($esServicio && isset($descuentosGuardados[$item['servicio_id']]))
                                                     <div class="text-danger small fw-bold">-L. {{ number_format($descuentosGuardados[$item['servicio_id']]['monto_total'], 2) }}</div>
@@ -656,7 +656,7 @@
                                                     <!-- Mostrar solo el total del descuento unitario en rojo -->
                                                     <div class="text-danger small fw-bold">-L. {{ number_format($descuentoUnitarioTotal, 2) }}</div>
                                                 @endif
-                                                
+
                                                 <!-- Mostrar descuento individual por producto (si existe) -->
                                                 @if($descuentoIndividual > 0)
                                                     <div class="text-warning small fw-bold">
@@ -666,17 +666,17 @@
                                                         @endif
                                                     </div>
                                                 @endif
-                                                
+
                                                 <!-- Mostrar descuento de tercera/cuarta edad después -->
                                                 @if($descuentoAplicado > 0)
                                                     <div class="text-danger small fw-bold">-L. {{ number_format($descuentoAplicado, 2) }}</div>
                                                 @endif
-                                                
+
                                                 <!-- Mostrar subtotal final con descuentos aplicados si hay descuentos -->
-                                                @if($descuentoUnitarioTotal > 0 || $descuentoIndividual > 0 || $descuentoAplicado > 0 || 
-                                                    ($esServicio && isset($descuentosGuardados[$item['servicio_id']])) || 
+                                                @if($descuentoUnitarioTotal > 0 || $descuentoIndividual > 0 || $descuentoAplicado > 0 ||
+                                                    ($esServicio && isset($descuentosGuardados[$item['servicio_id']])) ||
                                                     (!$esServicio && isset($descuentosGuardados[$item['id']])))
-                                                    <div class="text-success fw-bold border-top pt-1 mt-1">L. {{ number_format($subtotalConDescuento, 2) }}</div>
+                                                    <div class="pt-1 mt-1 text-success fw-bold border-top">L. {{ number_format($subtotalConDescuento, 2) }}</div>
                                                 @endif
                                             </td>
                                             <td>L. {{ number_format($isv, 2) }}
@@ -692,7 +692,7 @@
                                                         <path stroke-linecap="round" stroke-linejoin="round" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2zM10 8.5a.5.5 0 11-1 0 .5.5 0 011 0zm5 5a.5.5 0 11-1 0 .5.5 0 011 0z" style="color:#f59e0b;" />
                                                     </svg>
                                                 </button>
-                                                
+
                                                 <!-- Botón de eliminar -->
                                                 <button wire:click="eliminarProducto({{ $loop->index }})"
                                                     class="p-0 transition-opacity btn btn-link hover:opacity-75"
@@ -766,17 +766,17 @@
 
                                 <!-- Desglose de descuentos -->
                                 @if($totalDescuentos > 0)
-                                    <div class="mb-2 border-l-4 border-red-400 pl-3 bg-red-50">
+                                    <div class="pl-3 mb-2 border-l-4 border-red-400 bg-red-50">
                                         <div class="flex justify-between mb-1">
                                             <span class="font-medium text-red-700">
-                                                <i class="fas fa-minus-circle mr-1"></i>
+                                                <i class="mr-1 fas fa-minus-circle"></i>
                                                 Total Descuentos:
                                             </span>
                                             <span class="font-medium text-red-700" x-text="'-L. ' + parseFloat(totalDescuentos).toFixed(2)">-L. {{ number_format($totalDescuentos, 2) }}</span>
                                         </div>
-                                        
+
                                         <!-- Desglose por tipo de descuento -->
-                                        <div class="ml-2 mt-1 space-y-1">
+                                        <div class="mt-1 ml-2 space-y-1">
                                             @if($descuentoTerceraEdad)
                                                 @php
                                                     $totalDescuentoTerceraEdad = 0;
@@ -836,15 +836,15 @@
 
                                 <!-- Desglose del ISV -->
                                 @if($totalIsv > 0)
-                                    <div class="mb-2 border-l-4 border-blue-400 pl-3 bg-blue-50">
+                                    <div class="pl-3 mb-2 border-l-4 border-blue-400 bg-blue-50">
                                         <div class="flex justify-between mb-1">
                                             <span class="font-medium text-blue-700">
-                                                <i class="fas fa-plus-circle mr-1"></i>
+                                                <i class="mr-1 fas fa-plus-circle"></i>
                                                 Total ISV:
                                             </span>
                                             <span class="font-medium text-blue-700">L. {{ number_format(round($totalIsv, 2), 2) }}</span>
                                         </div>
-                                        
+
                                         <!-- Desglose del ISV por tasa si está disponible -->
                                         @if(isset($isvPorTasa) && is_array($isvPorTasa) && count($isvPorTasa) > 0)
                                             @foreach($isvPorTasa as $tasa => $monto)
@@ -865,11 +865,11 @@
                                 @endif
 
                                 <hr class="my-3 border-gray-400">
-                                
+
                                 <!-- Total final -->
                                 <div class="flex justify-between p-3 bg-green-100 border border-green-300 rounded">
                                     <span class="text-xl font-bold text-green-800">
-                                        <i class="fas fa-calculator mr-2"></i>
+                                        <i class="mr-2 fas fa-calculator"></i>
                                         TOTAL A PAGAR:
                                     </span>
                                     <span class="text-xl font-bold text-green-800" x-text="'L. ' + parseFloat(total).toFixed(2)">L. {{ number_format($total, 2) }}</span>
@@ -887,22 +887,22 @@
                         <!-- Botón Procesar Factura -->
                         @if(count($productosFactura) > 0)
                         <div class="mt-4 text-center">
-                            <button type="button" 
+                            <button type="button"
                                 wire:click="mostrarModalPago"
-                                class="btn btn-primary btn-lg px-5 py-3"
+                                class="px-5 py-3 btn btn-primary btn-lg"
                                 style="font-size: 1.1rem; font-weight: 600;">
                                 <i class="fas fa-file-invoice-dollar me-2"></i>
                                 Procesar Factura
                             </button>
                         </div>
                         @endif
-                        
+
                     </div>
                 </div>
 
                 <!-- 2.2 CATÁLOGO VISUAL (derecha - 1 columna de espacio) -->
                 @if($mostrarCatalogoVisual)
-                <div class="lg:col-span-1 bg-white border border-gray-300 rounded-lg shadow-lg" x-data x-init="$watch('theme', t => localStorage.setItem('theme', t))">
+                <div class="bg-white border border-gray-300 rounded-lg shadow-lg lg:col-span-1" x-data x-init="$watch('theme', t => localStorage.setItem('theme', t))">
                     <!-- Header -->
                     <div class="flex items-center justify-between px-4 py-3 font-semibold text-white rounded-t"
                         :class="{
@@ -922,17 +922,17 @@
                     <div class="p-3">
                         <!-- Filtros de tipo -->
                         <div class="mb-3 btn-group w-100" role="group">
-                            <button type="button" 
+                            <button type="button"
                                 wire:click="$set('tipoSeleccion', 'todos')"
                                 class="btn btn-sm {{ $tipoSeleccion === 'todos' ? 'btn-primary' : 'btn-outline-primary' }}">
                                 <i class="fas fa-th me-1"></i>Todos
                             </button>
-                            <button type="button" 
+                            <button type="button"
                                 wire:click="$set('tipoSeleccion', 'productos')"
                                 class="btn btn-sm {{ $tipoSeleccion === 'productos' ? 'btn-success' : 'btn-outline-success' }}">
                                 <i class="fas fa-box me-1"></i>Productos
                             </button>
-                            <button type="button" 
+                            <button type="button"
                                 wire:click="$set('tipoSeleccion', 'servicios')"
                                 class="btn btn-sm {{ $tipoSeleccion === 'servicios' ? 'btn-info' : 'btn-outline-info' }}">
                                 <i class="fas fa-concierge-bell me-1"></i>Servicios
@@ -949,50 +949,50 @@
 
                         <!-- Grid de productos y servicios con scroll vertical - SOLO 2 ITEMS POR FILA -->
                         <div style="height: 650px; overflow-y: auto;" class="border rounded">
-                            <div class="row p-2 g-2">
+                            <div class="p-2 row g-2">
                                 @php
                                     $items = $this->obtenerProductosYServiciosFiltrados();
                                 @endphp
                                 @foreach($items as $item)
                                     <!-- Solo 2 items por fila: col-6 -->
                                     <div class="col-6">
-                                        <div class="border card h-100 position-relative" 
+                                        <div class="border card h-100 position-relative"
                                              style="cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;"
                                              wire:click="{{ $item->esServicio ? 'agregarServicio' : 'agregarProductoPorClic' }}({{ $item->id }})"
                                              onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 8px rgba(0,0,0,0.15)';"
                                              onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 4px rgba(0,0,0,0.1)';">
-                                            
+
                                             <!-- Badge de tipo -->
                                             <span class="badge {{ $item->esServicio ? 'bg-info' : 'bg-success' }} position-absolute top-0 start-0 m-1" style="z-index: 10; font-size: 0.65rem;">
                                                 <i class="fas {{ $item->esServicio ? 'fa-concierge-bell' : 'fa-box' }} me-1"></i>
                                                 {{ $item->esServicio ? 'Servicio' : 'Producto' }}
                                             </span>
-                                            
+
                                             <!-- Imagen más grande para mejor visualización -->
                                             @php
                                                 $imagenBase64 = $item->esServicio ? $this->getServicioImagen($item->id) : $this->getProductoImagen($item->id);
                                             @endphp
                                             @if($imagenBase64)
-                                                <img src="data:image/jpeg;base64,{{ $imagenBase64 }}" 
-                                                     class="card-img-top" 
+                                                <img src="data:image/jpeg;base64,{{ $imagenBase64 }}"
+                                                     class="card-img-top"
                                                      style="height: 140px; object-fit: cover;"
                                                      alt="{{ $item->nombre }}">
                                             @else
-                                                <div class="bg-light card-img-top d-flex align-items-center justify-content-center" 
+                                                <div class="bg-light card-img-top d-flex align-items-center justify-content-center"
                                                      style="height: 140px;">
                                                     <i class="text-muted fas {{ $item->esServicio ? 'fa-concierge-bell' : 'fa-box' }} fa-3x"></i>
                                                 </div>
                                             @endif
-                                            
-                                            <div class="card-body p-2">
-                                                <h6 class="card-title mb-1 fw-bold text-center" style="font-size: 0.8rem; line-height: 1.1;">{{ $item->nombre }}</h6>
-                                                
+
+                                            <div class="p-2 card-body">
+                                                <h6 class="mb-1 text-center card-title fw-bold" style="font-size: 0.8rem; line-height: 1.1;">{{ $item->nombre }}</h6>
+
                                                 @if(!$item->esServicio && !empty($item->codigo_barra))
                                                     <p class="mb-1 text-center small text-muted" style="font-size: 0.7rem;">
                                                         <i class="fas fa-barcode me-1"></i>{{ $item->codigo_barra }}
                                                     </p>
                                                 @endif
-                                                
+
                                                 <div class="text-center">
                                                     <div class="mb-1">
                                                         <span class="text-success fw-bold" style="font-size: 0.9rem;">
@@ -1011,10 +1011,10 @@
                                         </div>
                                     </div>
                                 @endforeach
-                                
+
                                 @if($items->isEmpty())
-                                    <div class="col-12 text-center p-4">
-                                        <i class="fas fa-search fa-2x text-muted mb-3"></i>
+                                    <div class="p-4 text-center col-12">
+                                        <i class="mb-3 fas fa-search fa-2x text-muted"></i>
                                         <p class="text-muted">No se encontraron {{ $tipoSeleccion === 'productos' ? 'productos' : ($tipoSeleccion === 'servicios' ? 'servicios' : 'elementos') }}</p>
                                     </div>
                                 @endif
@@ -1023,11 +1023,11 @@
                     </div>
                 </div>
                 @else
-                <div class="lg:col-span-1 bg-white border border-gray-300 rounded-lg shadow-lg flex items-center justify-center">
-                    <div class="text-center p-8">
-                        <i class="fas fa-lock fa-3x text-gray-400 mb-4"></i>
-                        <h5 class="text-gray-500 mb-2">Catálogo Visual No Disponible</h5>
-                        <p class="text-gray-400 text-sm">El menú de servicios está inactivo</p>
+                <div class="flex items-center justify-center bg-white border border-gray-300 rounded-lg shadow-lg lg:col-span-1">
+                    <div class="p-8 text-center">
+                        <i class="mb-4 text-gray-400 fas fa-lock fa-3x"></i>
+                        <h5 class="mb-2 text-gray-500">Catálogo Visual No Disponible</h5>
+                        <p class="text-sm text-gray-400">El menú de servicios está inactivo</p>
                     </div>
                 </div>
                 @endif
@@ -1192,36 +1192,47 @@
             </div>
 
             <!-- Botones fijos en la parte inferior -->
-            <div class="flex items-center justify-between gap-3 p-4 border-t border-gray-200 bg-gray-50">
-                <button wire:click="cerrarModalPago"
+             <div class="flex items-center justify-between gap-3 p-4 border-t border-gray-200 bg-gray-50">
+               <!-- <button wire:click="cerrarModalPago"
                     class="px-4 py-2 text-gray-700 transition-colors bg-gray-200 rounded-lg hover:bg-gray-300">
                     Cancelar
-                </button>
+                </button>-->
 
-                <div class="flex gap-2">
-                    @if(count($tiposPago) > 0)
-                        <button wire:click="distribuirTotalEnEfectivo"
-                            class="px-3 py-2 text-sm text-green-700 transition-colors bg-green-100 rounded-lg hover:bg-green-200">
-                            <i class="mr-1 fas fa-money-bill-wave"></i>
-                            Efectivo
+                <div class="flex justify-between w-full">
+                    <!-- Payment method buttons on the left -->
+                    <div class="flex gap-2">
+                        @if(count($tiposPago) > 0)
+                            <button wire:click="distribuirTotalEnEfectivo"
+                                class="px-3 py-2 text-sm text-green-700 transition-colors bg-green-100 rounded-lg hover:bg-green-200">
+                                <i class="mr-1 fas fa-money-bill-wave"></i>
+                                Efectivo
+                            </button>
+                            <button wire:click="distribuirTotalEnTarjeta"
+                                class="px-3 py-2 text-sm text-blue-700 transition-colors bg-blue-100 rounded-lg hover:bg-blue-200">
+                                <i class="mr-1 fas fa-credit-card"></i>
+                                Tarjeta
+                            </button>
+                        @endif
+                    </div>
+                    
+                    <!-- Process button on the right -->
+                    <div>
+                        <button wire:click="procesarDistribucionPagos"
+                            wire:loading.attr="disabled"
+                            wire:loading.class="opacity-50"
+                            x-bind:disabled="!puedeProceesar"
+                            x-bind:class="puedeProceesar ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-400 cursor-not-allowed'"
+                            class="px-4 py-2 text-white transition-colors rounded-lg">
+                            <span wire:loading.remove>
+                                <i class="mr-1 fas fa-check"></i>
+                                <span x-text="puedeProceesar ? 'Procesar' : 'Incompleto'"></span>
+                            </span>
+                            <span wire:loading>
+                                <i class="mr-1 fas fa-spinner fa-spin"></i>
+                                ...
+                            </span>
                         </button>
-                    @endif
-
-                    <button wire:click="procesarDistribucionPagos"
-                        wire:loading.attr="disabled"
-                        wire:loading.class="opacity-50"
-                        x-bind:disabled="!puedeProceesar"
-                        x-bind:class="puedeProceesar ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-400 cursor-not-allowed'"
-                        class="px-4 py-2 text-white transition-colors rounded-lg">
-                        <span wire:loading.remove>
-                            <i class="mr-1 fas fa-check"></i>
-                            <span x-text="puedeProceesar ? 'Procesar' : 'Incompleto'"></span>
-                        </span>
-                        <span wire:loading>
-                            <i class="mr-1 fas fa-spinner fa-spin"></i>
-                            ...
-                        </span>
-                    </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1392,27 +1403,27 @@
                     </div>
                     <div class="modal-body">
                         <p class="mb-3">Por favor, proporcione los datos del cliente para aplicar el descuento:</p>
-                        
+
                         <div class="mb-3">
                             <label class="form-label">Nombre Completo *</label>
-                            <input type="text" 
-                                class="form-control" 
+                            <input type="text"
+                                class="form-control"
                                 wire:model="nombreAdulto"
                                 placeholder="Ingrese el nombre completo">
                         </div>
 
                         <div class="mb-3">
                             <label class="form-label">Número de Identidad *</label>
-                            <input type="text" 
-                                class="form-control" 
+                            <input type="text"
+                                class="form-control"
                                 wire:model="dniAdulto"
                                 placeholder="Ingrese el número de identidad">
                         </div>
 
                         <div class="mb-3">
                             <label class="form-label">Edad *</label>
-                            <input type="number" 
-                                class="form-control" 
+                            <input type="number"
+                                class="form-control"
                                 wire:model="edadAdulto"
                                 placeholder="Ingrese la edad"
                                 min="60">
@@ -1426,13 +1437,13 @@
                         </div>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" 
-                            class="btn btn-secondary" 
+                        <button type="button"
+                            class="btn btn-secondary"
                             wire:click="$set('mostrarModalDescuentoAdulto', false)">
                             Cancelar
                         </button>
-                        <button type="button" 
-                            class="btn btn-success" 
+                        <button type="button"
+                            class="btn btn-success"
                             wire:click="confirmarDescuentoAdulto">
                             Aplicar Descuento
                         </button>
@@ -1473,28 +1484,28 @@
                                 <label for="porcentaje_descuento_producto" class="form-label">
                                     Porcentaje de Descuento (%)
                                 </label>
-                                <input type="number" 
+                                <input type="number"
                                     id="porcentaje_descuento_producto"
-                                    class="form-control" 
+                                    class="form-control"
                                     wire:model="porcentajeDescuentoProducto"
-                                    min="0" 
-                                    max="100" 
+                                    min="0"
+                                    max="100"
                                     step="0.1"
                                     placeholder="Ej: 10.5">
                                 @error('porcentajeDescuentoProducto')
-                                    <div class="text-danger mt-1">{{ $message }}</div>
+                                    <div class="mt-1 text-danger">{{ $message }}</div>
                                 @enderror
                             </div>
                         @endif
                     </div>
                     <div class="modal-footer">
-                        <button type="button" 
-                            class="btn btn-secondary" 
+                        <button type="button"
+                            class="btn btn-secondary"
                             wire:click="$set('modalDescuentoProductoVisible', false)">
                             Cancelar
                         </button>
-                        <button type="button" 
-                            class="btn btn-warning" 
+                        <button type="button"
+                            class="btn btn-warning"
                             wire:click="aplicarDescuentoProducto"
                             x-bind:disabled="!porcentaje || porcentaje <= 0">
                             Aplicar Descuento

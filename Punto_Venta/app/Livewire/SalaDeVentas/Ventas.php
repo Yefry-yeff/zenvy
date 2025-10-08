@@ -2480,6 +2480,27 @@ class Ventas extends Component
         $this->mostrarModalEfectivoFlag = true;
     }
 
+    public function distribuirTotalEnTarjeta()
+    {
+        // Buscar el ID del método "Tarjeta"
+        $tarjetaId = null;
+        $totalRedondeado = (float)number_format($this->total, 2, '.', '');
+        
+        foreach ($this->tiposPago as $tipoPago) {
+            if ($tipoPago->nombre === 'Tarjeta(POS)') {
+                $tarjetaId = $tipoPago->id;
+                break;
+            }
+        }
+
+        if ($tarjetaId) {
+            // Limpiar montos anteriores
+            $this->montosPorMetodo = [];
+            // Asignar el total a tarjeta
+            $this->montosPorMetodo[$tarjetaId] = $totalRedondeado;
+        }
+    }
+
     public function procesarSoloTarjeta()
     {
         $this->montoTarjeta = $this->total;
