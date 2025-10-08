@@ -515,24 +515,24 @@
                                         @forelse($productosFactura as $item)
                                         @php
                                             // Cálculo base: cantidad × precio unitario
-                                            $subtotalOriginal = $item['precio'] * $item['cantidad'];
+                                            $subtotalOriginal = round($item['precio'] * $item['cantidad'], 2);
                                             
                                             // Descuentos aplicados
-                                            $descuentoAplicado = $item['descuento_aplicado'] ?? 0; // Descuento por edad (total)
-                                            $descuentoUnitarioBase = $item['descuento_unitario_producto'] ?? 0; // Descuento por unidad base
-                                            $descuentoIndividual = $item['descuento_monto'] ?? 0; // Descuento individual por producto
+                                            $descuentoAplicado = round($item['descuento_aplicado'] ?? 0, 2); // Descuento por edad (total)
+                                            $descuentoUnitarioBase = round($item['descuento_unitario_producto'] ?? 0, 2); // Descuento por unidad base
+                                            $descuentoIndividual = round($item['descuento_monto'] ?? 0, 2); // Descuento individual por producto
                                             
                                             // El descuento unitario se aplica POR CADA CANTIDAD
-                                            $descuentoUnitarioTotal = $descuentoUnitarioBase * $item['cantidad'];
+                                            $descuentoUnitarioTotal = round($descuentoUnitarioBase * $item['cantidad'], 2);
                                             
                                             // Subtotal después de todos los descuentos
-                                            $subtotalConDescuento = $subtotalOriginal - $descuentoUnitarioTotal - $descuentoIndividual - $descuentoAplicado;
+                                            $subtotalConDescuento = round($subtotalOriginal - $descuentoUnitarioTotal - $descuentoIndividual - $descuentoAplicado, 2);
                                             
                                             // ISV se calcula sobre el subtotal neto (después de descuentos)
-                                            $isv = $subtotalConDescuento * ($item['isv']/100);
+                                            $isv = round($subtotalConDescuento * ($item['isv']/100), 2);
                                             
                                             // Total final: subtotal neto + ISV
-                                            $total = $subtotalConDescuento + $isv;
+                                            $total = round($subtotalConDescuento + $isv, 2);
                                             
                                             // Determinar si es producto o servicio
                                             $esServicio = isset($item['servicio_id']) && $item['servicio_id'] !== null;
@@ -842,7 +842,7 @@
                                                 <i class="fas fa-plus-circle mr-1"></i>
                                                 Total ISV:
                                             </span>
-                                            <span class="font-medium text-blue-700" x-text="'L. ' + parseFloat(totalIsv).toFixed(2)">L. {{ number_format($totalIsv, 2) }}</span>
+                                            <span class="font-medium text-blue-700">L. {{ number_format(round($totalIsv, 2), 2) }}</span>
                                         </div>
                                         
                                         <!-- Desglose del ISV por tasa si está disponible -->
@@ -1047,10 +1047,10 @@
                 totalModal: @entangle('total'),
                 montosPorMetodo: @entangle('montosPorMetodo'),
                 get totalDistribuido() {
-                    return Object.values(this.montosPorMetodo || {}).reduce((sum, monto) => sum + parseFloat(monto || 0), 0);
+                    return parseFloat(Object.values(this.montosPorMetodo || {}).reduce((sum, monto) => sum + parseFloat(monto || 0), 0).toFixed(2));
                 },
                 get diferencia() {
-                    return this.totalModal - this.totalDistribuido;
+                    return parseFloat((this.totalModal - this.totalDistribuido).toFixed(2));
                 },
                 get puedeProceesar() {
                     return this.totalDistribuido >= this.totalModal && this.totalDistribuido > 0;
@@ -1288,6 +1288,7 @@
                             wire:model.live="efectivoRecibido"
                             step="0.01"
                             min="0"
+                            x-on:input="$el.value = parseFloat($el.value).toFixed(2)"
                             class="w-full py-4 pl-12 pr-6 text-2xl font-bold text-center transition-all border-2 border-gray-300 rounded-xl focus:border-green-500 focus:ring-2 focus:ring-green-200"
                             placeholder="0.00"
                             autofocus>
@@ -1300,9 +1301,10 @@
                 <!-- Cálculo de cambio -->
                 @if($efectivoRecibido > 0)
                     @php
-                        $montoAPagar = $montoEfectivo ?? 0;
-                        $cambio = $efectivoRecibido - $montoAPagar;
-                        $esSuficiente = $efectivoRecibido >= $montoAPagar;
+                        $montoAPagar = round($montoEfectivo ?? 0, 2);
+                        $efectivoRecibidoRedondeado = round($efectivoRecibido, 2);
+                        $cambio = round($efectivoRecibidoRedondeado - $montoAPagar, 2);
+                        $esSuficiente = $efectivoRecibidoRedondeado >= $montoAPagar;
                     @endphp
 
                     <div class="mb-6 p-6 rounded-xl border-2 {{ $esSuficiente ? 'bg-green-50 border-green-300' : 'bg-red-50 border-red-300' }}">

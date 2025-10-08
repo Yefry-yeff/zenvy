@@ -968,7 +968,7 @@ class Ventas extends Component
         $isvPorTasa = []; // Agrupamos ISV por tasa
 
         foreach ($this->productosFactura as $index => $producto) {
-            $subtotalProducto = $producto['precio'] * $producto['cantidad'];
+            $subtotalProducto = round($producto['precio'] * $producto['cantidad'], 2);
 
             // Acumular subtotal bruto (cantidad * precio unitario sin descuentos)
             $this->subtotalBruto += $subtotalProducto;
@@ -1022,8 +1022,8 @@ class Ventas extends Component
 
             // Calcular ISV sobre el subtotal con descuento
             $tasaIsv = $producto['isv'];
-            $isvProducto = $subtotalConDescuento * ($tasaIsv / 100);
-            $this->totalIsv += $isvProducto;
+            $isvProducto = round($subtotalConDescuento * ($tasaIsv / 100), 2);
+            $this->totalIsv = round($this->totalIsv + $isvProducto, 2);
 
             // Agrupar ISV por tasa
             if (!isset($isvPorTasa[$tasaIsv])) {
@@ -1405,12 +1405,12 @@ class Ventas extends Component
         }
 
         // Validar que la distribución sea correcta
-        $totalDistribuido = array_sum($this->montosPorMetodo);
+        $totalDistribuido = round(array_sum($this->montosPorMetodo), 2);
 
         Log::info("DEBUG Validación distribución", [
             'total_distribuido' => $totalDistribuido,
-            'total_factura' => $this->total,
-            'diferencia' => $totalDistribuido - $this->total
+            'total_factura' => round($this->total, 2),
+            'diferencia' => round($totalDistribuido - $this->total, 2)
         ]);
 
         if ($totalDistribuido < $this->total) {
@@ -1436,7 +1436,7 @@ class Ventas extends Component
                     $this->metodosActivosParaPago[] = [
                         'id' => $tipoId,
                         'nombre' => $tipoPago['nombre'],
-                        'monto' => $monto
+                        'monto' => round($monto, 2)
                     ];
                 }
             }
@@ -1707,12 +1707,12 @@ class Ventas extends Component
                 ]);
 
                 // Calcular valores para el servicio
-                $subtotalOriginal = $servicio['cantidad'] * $servicio['precio'];
-                $descuentoAplicado = $servicio['descuento_aplicado'] ?? 0;
-                $subtotalConDescuento = $servicio['subtotal_con_descuento'] ?? $subtotalOriginal;
-                $isvAplicado = $servicio['isv'] ?? 0;
-                $isvCalculado = $subtotalConDescuento * ($isvAplicado / 100);
-                $totalFinal = $subtotalConDescuento + $isvCalculado;
+                $subtotalOriginal = round($servicio['cantidad'] * $servicio['precio'], 2);
+                $descuentoAplicado = round($servicio['descuento_aplicado'] ?? 0, 2);
+                $subtotalConDescuento = round($servicio['subtotal_con_descuento'] ?? $subtotalOriginal, 2);
+                $isvAplicado = round($servicio['isv'] ?? 0, 2);
+                $isvCalculado = round($subtotalConDescuento * ($isvAplicado / 100), 2);
+                $totalFinal = round($subtotalConDescuento + $isvCalculado, 2);
 
                 // Crear registro en factura_has_producto (usamos la misma tabla pero con servicio_id)
                 DB::table('factura_has_producto')->insert([
@@ -2466,7 +2466,7 @@ class Ventas extends Component
 
     public function procesarSoloEfectivo()
     {
-        $this->montoEfectivo = $this->total;
+        $this->montoEfectivo = round($this->total, 2);
         $this->efectivoRecibido = 0;
         $this->mostrarModalEfectivoFlag = true;
     }
@@ -2494,12 +2494,16 @@ class Ventas extends Component
 
     public function confirmarEfectivo()
     {
-        if ($this->efectivoRecibido < $this->montoEfectivo) {
+        // Redondear los valores a 2 decimales para comparación
+        $efectivoRecibido = round($this->efectivoRecibido, 2);
+        $montoEfectivo = round($this->montoEfectivo, 2);
+        
+        if ($efectivoRecibido < $montoEfectivo) {
             session()->flash('error', 'El efectivo recibido es insuficiente');
             return;
         }
 
-        $this->cambio = $this->efectivoRecibido - $this->montoEfectivo;
+        $this->cambio = round($efectivoRecibido - $montoEfectivo, 2);
 
         // Verificar si es pago mixto
         $tieneMetodoNoEfectivo = collect($this->metodosActivosParaPago)->contains(function($metodo) {
