@@ -19,7 +19,7 @@
     <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
 
     {{-- Estilos compilados con Vite --}}
-    <link rel="stylesheet" href="{{ asset('build/assets/app-BN5O1nm6.css') }}">
+    <link rel="stylesheet" href="{{ asset('build/assets/app-Dsp9apFy.css') }}">
 
     {{-- Bootstrap 5 CSS (sin integrity para evitar error) --}}
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -57,7 +57,7 @@
         <div class="flex items-center gap-2 text-base font-semibold">
             <div class="flex flex-col items-start gap-0">
                 <div class="flex items-center gap-2">
-                    <img src="{{ asset('img/Logo_Paperland2.png') }}" alt="Logo Paperland" class="w-8 h-8 object-contain">
+                    <img src="{{ asset('img/Logo_Paperland2.png') }}" alt="Logo Paperland" class="object-contain w-8 h-8">
                     <span class="text-xl font-semibold text-white">Paperland</span>
                 </div>
                 <span class="text-[0.65rem] text-white/80 -mt-1 ml-10">imagina · crea · diviértete</span>

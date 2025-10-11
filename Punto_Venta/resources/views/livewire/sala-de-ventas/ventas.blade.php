@@ -477,18 +477,37 @@
                         }" class="mb-4">
                             <form wire:submit.prevent="agregarProductoPorCodigo">
                                 <div class="mb-4">
-                                    <div class="flex-1">
-                                        <label for="codigo_barras" class="block mb-1 text-sm font-medium text-gray-700">Escanear código de barras</label>
-                                        <input type="text"
-                                            id="codigo_barras"
-                                            wire:model.defer="codigoBarras"
-                                            wire:keydown.enter="agregarProductoPorCodigo"
-                                            class="w-full form-control"
-                                            placeholder="Escanee el código de barras"
-                                            autocomplete="off"
-                                            @keydown.enter="$event.target.value = ''; $event.target.focus()"
-                                            @enfocar-input-codigo.window="$event.target.focus()"
-                                            autofocus>
+                                    <!-- Contenedor del código de barras y botón -->
+                                    <div class="space-y-1">
+                                        <label for="codigo_barras" class="block text-sm font-medium text-gray-700">Escanear código de barras</label>
+                                        <div class="flex">
+                                            <div class="flex-1">
+                                                <input type="text"
+                                                    id="codigo_barras"
+                                                    wire:model.defer="codigoBarras"
+                                                    wire:keydown.enter="agregarProductoPorCodigo"
+                                                    class="w-full h-10 border border-gray-300 rounded-l-lg focus:ring-2 focus:ring-blue-200 focus:border-blue-500"
+                                                    placeholder="Escanee el código de barras"
+                                                    autocomplete="off"
+                                                    @keydown.enter="$event.target.value = ''; $event.target.focus()"
+                                                    @enfocar-input-codigo.window="$event.target.focus()"
+                                                    autofocus>
+                                            </div>
+                                            <button type="button"
+                                                wire:click="mostrarModalBusqueda"
+                                                class="flex items-center px-4 font-medium text-white transition-colors border-l-0 rounded-r-lg whitespace-nowrap h-10"
+                                                :class="{
+                                                    'bg-emerald-600 hover:bg-emerald-700': theme === 'verde',
+                                                    'bg-blue-600 hover:bg-blue-700': theme === 'azul',
+                                                    'bg-gray-900 hover:bg-gray-800': theme === 'oscuro',
+                                                    'bg-slate-700 hover:bg-slate-600': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
+                                                }">
+                                                <i class="fas fa-search"></i>
+                                                <span class="ml-2">Buscar</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                        </div>
                                     </div>
                                 </div>
                             </form>
@@ -1035,6 +1054,182 @@
             </div> <!-- End grid de dos columnas -->
 
         </div> <!-- End contenedor principal -->
+
+    <!-- Modal de Búsqueda Avanzada -->
+    @if($mostrarModalBusqueda)
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+         @click.self="$wire.cerrarModalBusqueda()"
+         @keydown.escape.window="$wire.cerrarModalBusqueda()">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-6xl max-h-[90vh] overflow-hidden">
+            <div x-data x-init="$watch('theme', t => localStorage.setItem('theme', t))"
+                 class="flex flex-col h-full">
+                <!-- Header con tema -->
+                <div class="flex items-center justify-between px-6 py-4 text-white"
+                     :class="{
+                        'bg-emerald-600': theme === 'verde',
+                        'bg-blue-600': theme === 'azul',
+                        'bg-gray-900': theme === 'oscuro',
+                        'bg-slate-700': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
+                    }">
+                    <h2 class="text-xl font-semibold">
+                        <i class="fas fa-search me-2"></i>
+                        Búsqueda de Productos
+                    </h2>
+                    <button wire:click="cerrarModalBusqueda" class="text-white transition-colors hover:text-gray-200">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="flex-1 p-6 overflow-y-auto">
+                    <!-- Barra de búsqueda -->
+                    <div class="mb-4">
+                        <input type="text"
+                            wire:model.live="busquedaProductosServicios"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-200 focus:border-blue-500"
+                            placeholder="Buscar por nombre, código o descripción...">
+                    </div>
+
+                    <!-- Filtros -->
+                    <div class="grid grid-cols-1 gap-4 mb-6 md:grid-cols-3">
+                        <!-- Marca -->
+                        <div>
+                            <label class="block mb-1 text-sm font-medium text-gray-700">Marca</label>
+                            <select wire:model.live="marcaSeleccionada"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-200 focus:border-blue-500">
+                                <option value="">Todas las marcas</option>
+                                @foreach($marcas as $marca)
+                                    <option value="{{ $marca->id }}">{{ $marca->nombre }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <!-- Categoría -->
+                        <div>
+                            <label class="block mb-1 text-sm font-medium text-gray-700">Categoría</label>
+                            <select wire:model.live="categoriaSeleccionada"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-200 focus:border-blue-500">
+                                <option value="">Todas las categorías</option>
+                                @foreach($categorias as $categoria)
+                                    <option value="{{ $categoria->id }}">{{ $categoria->nombre }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <!-- Subcategoría -->
+                        <div>
+                            <label class="block mb-1 text-sm font-medium text-gray-700">Subcategoría</label>
+                            <select wire:model.live="subcategoriaSeleccionada"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-200 focus:border-blue-500">
+                                <option value="">Todas las subcategorías</option>
+                                @foreach($subcategorias as $subcategoria)
+                                    <option value="{{ $subcategoria->id }}">{{ $subcategoria->nombre }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Botón de búsqueda -->
+                    <div class="flex justify-center mb-6">
+                        <button wire:click="buscarProductos"
+                            :class="{
+                                'bg-emerald-600 hover:bg-emerald-700': theme === 'verde',
+                                'bg-blue-600 hover:bg-blue-700': theme === 'azul',
+                                'bg-gray-900 hover:bg-gray-800': theme === 'oscuro',
+                                'bg-slate-700 hover:bg-slate-600': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
+                            }"
+                            class="px-6 py-2 text-white transition-colors rounded-lg">
+                            <i class="mr-2 fas fa-search"></i>
+                            Buscar Productos
+                        </button>
+                    </div>
+
+                    <!-- Resultados -->
+                    <div class="border rounded-lg">
+                        <div class="grid grid-cols-1 gap-4 p-4 md:grid-cols-2 lg:grid-cols-3">
+                            @forelse($resultadosBusqueda as $producto)
+                                <div class="relative p-4 transition-all border rounded-lg hover:shadow-md">
+                                    <!-- Badge de tipo -->
+                                    <div class="absolute px-2 py-1 text-xs text-white rounded-full top-2 left-2"
+                                        :class="{
+                                            'bg-emerald-500': theme === 'verde',
+                                            'bg-blue-500': theme === 'azul',
+                                            'bg-gray-700': theme === 'oscuro',
+                                            'bg-slate-600': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
+                                        }">
+                                        <i class="mr-1 fas fa-tag"></i>
+                                        {{ $producto->categoria->nombre ?? 'Sin categoría' }}
+                                    </div>
+
+                                    <!-- Contenido del producto -->
+                                    <div class="pt-8">
+                                        <div class="mb-2">
+                                            <h4 class="font-semibold text-gray-800">{{ $producto->nombre }}</h4>
+                                            <p class="text-sm text-gray-600">
+                                                @if($producto->codigo_barra)
+                                                    <i class="mr-1 fas fa-barcode"></i>{{ $producto->codigo_barra }}
+                                                @else
+                                                    <i class="mr-1 fas fa-hashtag"></i>{{ $producto->codigo }}
+                                                @endif
+                                            </p>
+                                        </div>
+                                        
+                                        <div class="mb-2">
+                                            <p class="text-sm text-gray-500">{{ $producto->descripcion }}</p>
+                                        </div>
+
+                                        <!-- Información adicional -->
+                                        <div class="grid grid-cols-2 gap-2 mb-3 text-xs text-gray-600">
+                                            @if($producto->marca)
+                                                <div>
+                                                    <i class="mr-1 fas fa-industry"></i>
+                                                    {{ $producto->marca->nombre }}
+                                                </div>
+                                            @endif
+                                            @if($producto->existencia !== null)
+                                                <div class="text-right">
+                                                    <i class="mr-1 fas fa-box"></i>
+                                                    Stock: {{ $producto->existencia }}
+                                                </div>
+                                            @endif
+                                        </div>
+
+                                        <div class="flex items-center justify-between">
+                                            <span class="font-semibold text-green-600">L. {{ number_format($producto->precio, 2) }}</span>
+                                            <button wire:click="agregarProducto({{ $producto->id }})"
+                                                :class="{
+                                                    'bg-emerald-600 hover:bg-emerald-700': theme === 'verde',
+                                                    'bg-blue-600 hover:bg-blue-700': theme === 'azul',
+                                                    'bg-gray-800 hover:bg-gray-900': theme === 'oscuro',
+                                                    'bg-slate-600 hover:bg-slate-700': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
+                                                }"
+                                                class="px-3 py-1 text-sm text-white transition-colors rounded">
+                                                <i class="mr-1 fas fa-plus"></i>
+                                                Agregar
+                                            </button>
+                                        </div>
+
+                                        @if($producto->existencia <= ($producto->existencia_minima ?? 0))
+                                            <div class="absolute px-2 py-1 text-xs text-white bg-red-500 rounded-full top-2 right-2">
+                                                Stock bajo
+                                            </div>
+                                        @endif
+                                    </div>
+                                </div>
+                            @empty
+                                <div class="col-span-3 p-8 text-center">
+                                    <i class="mb-4 text-4xl text-gray-400 fas fa-search"></i>
+                                    <p class="text-gray-500">No se encontraron productos con los filtros seleccionados</p>
+                                </div>
+                            @endforelse
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
 
     <!-- Modal de Pago -->
     <!-- Modal de métodos de pago -->

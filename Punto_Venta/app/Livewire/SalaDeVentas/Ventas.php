@@ -13,6 +13,9 @@ use App\Models\Factura;
 use App\Models\Bodega;
 use App\Models\Descuento;
 use App\Models\DescuentoAdulto;
+use App\Models\Marca;
+use App\Models\Categoria;
+use App\Models\Subcategoria;
 use App\Services\CAIService;
 use Livewire\Attributes\On;
 use Illuminate\Support\Facades\DB;
@@ -54,6 +57,14 @@ class Ventas extends Component
 
     // Búsqueda de productos
     public $codigoBarras = '';
+    public $mostrarModalBusqueda = false;
+    public $marcaSeleccionada = '';
+    public $categoriaSeleccionada = '';
+    public $subcategoriaSeleccionada = '';
+    public $resultadosBusqueda = [];
+    public $marcas = [];
+    public $categorias = [];
+    public $subcategorias = [];
 
     // Productos en la factura
     public $productosFactura = [];
@@ -134,9 +145,28 @@ class Ventas extends Component
     public $productoSeleccionadoDescuento = null;
     public $porcentajeDescuentoProducto = 0;
 
+    protected $listeners = ['mostrarBusquedaModal'];
+
+    public function mostrarBusquedaModal()
+    {
+        $this->mostrarModalBusqueda = true;
+        $this->cargarFiltros();
+    }
+
     public function mount()
     {
         $this->clientesModal = collect(); // Inicializar como colección vacía
+        
+        // Inicializar propiedades de búsqueda avanzada
+        $this->mostrarModalBusqueda = false;
+        $this->busquedaProductosServicios = '';
+        $this->resultadosBusqueda = collect();
+        $this->marcaSeleccionada = '';
+        $this->categoriaSeleccionada = '';
+        $this->subcategoriaSeleccionada = '';
+        $this->marcas = collect();
+        $this->categorias = collect();
+        $this->subcategorias = collect();
 
         // Obtener la tienda del usuario autenticado
         $user = Auth::user();
@@ -3598,6 +3628,86 @@ class Ventas extends Component
             // En caso de error, mantener el catálogo visible por defecto
             $this->mostrarCatalogoVisual = true;
         }
+    }
+
+    /**
+     * Métodos para búsqueda avanzada
+     */
+    public function cerrarModalBusqueda()
+    {
+        $this->mostrarModalBusqueda = false;
+        $this->reset(['marcaSeleccionada', 'categoriaSeleccionada', 'subcategoriaSeleccionada', 'resultadosBusqueda']);
+    }
+
+    protected function cargarFiltros()
+    {
+        // Cargar las listas para los filtros
+        $this->marcas = DB::table('marcas')->orderBy('nombre')->get();
+        $this->categorias = DB::table('categorias')->orderBy('nombre')->get();
+        $this->subcategorias = DB::table('sub_categorias')->orderBy('nombre')->get();
+    }
+
+    public function buscarProductos()
+    {
+        $query = Producto::with(['categoria', 'marca'])
+            ->select('productos.*', DB::raw('COALESCE(stocks.cantidad, 0) as existencia'))
+            ->leftJoin('stocks', function($join) {
+                $join->on('productos.id', '=', 'stocks.producto_id')
+                     ->where('stocks.bodega_id', '=', Auth::user()->bodega_id);
+            });
+
+        // Aplicar filtros
+        if ($this->busquedaProductosServicios) {
+            $query->where(function($q) {
+                $q->where('productos.nombre', 'like', '%' . $this->busquedaProductosServicios . '%')
+                  ->orWhere('productos.codigo', 'like', '%' . $this->busquedaProductosServicios . '%')
+                  ->orWhere('productos.codigo_barra', 'like', '%' . $this->busquedaProductosServicios . '%')
+                  ->orWhere('productos.descripcion', 'like', '%' . $this->busquedaProductosServicios . '%');
+            });
+        }
+
+        if ($this->marcaSeleccionada) {
+            $query->where('marca_id', $this->marcaSeleccionada);
+        }
+
+        if ($this->categoriaSeleccionada) {
+            $query->where('categoria_id', $this->categoriaSeleccionada);
+        }
+
+        if ($this->subcategoriaSeleccionada) {
+            $query->where('sub_categoria_id', $this->subcategoriaSeleccionada);
+        }
+
+        $this->resultadosBusqueda = $query->orderBy('nombre')->get();
+    }
+
+    public function updatedCategoriaSeleccionada($value)
+    {
+        $this->reset('subcategoriaSeleccionada');
+        if ($value) {
+            $this->subcategorias = DB::table('sub_categorias')
+                ->where('categoria_id', $value)
+                ->orderBy('nombre')
+                ->get();
+        } else {
+            $this->subcategorias = DB::table('sub_categorias')->orderBy('nombre')->get();
+        }
+        $this->buscarProductos();
+    }
+
+    public function buscarProductosModal()
+    {
+        $this->buscarProductos();
+    }
+
+    public function updatedMarcaSeleccionada()
+    {
+        $this->buscarProductos();
+    }
+
+    public function updatedSubcategoriaSeleccionada()
+    {
+        $this->buscarProductos();
     }
 
     /**
