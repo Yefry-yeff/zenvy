@@ -393,11 +393,6 @@ class Ventas extends Component
         }
     }
 
-    public function updatedBusquedaProductosServicios()
-    {
-        $this->cargarProductosYServicios();
-    }
-
     public function updatedTipoSeleccion()
     {
         $this->cargarProductosYServicios();
@@ -3706,30 +3701,43 @@ class Ventas extends Component
 
     public function buscarProductos()
     {
-        $query = Producto::with(['categoria', 'marca']);
+        $query = Producto::with(['subcategoria.categoria', 'marca'])
+            ->where('estado_id', 1); // Solo productos activos
 
-        // Aplicar filtros
+        // Aplicar filtros de búsqueda de texto
         if ($this->busquedaProductosServicios) {
-            $query->where(function($q) {
-                $q->where('nombre', 'like', '%' . $this->busquedaProductosServicios . '%')
-                  ->orWhere('codigo_barra', 'like', '%' . $this->busquedaProductosServicios . '%')
-                  ->orWhere('descripcion', 'like', '%' . $this->busquedaProductosServicios . '%');
+            $busqueda = $this->busquedaProductosServicios;
+            $query->where(function($q) use ($busqueda) {
+                $q->where('nombre', 'like', '%' . $busqueda . '%')
+                  ->orWhere('codigo_barra', 'like', '%' . $busqueda . '%')
+                  ->orWhere('descripcion', 'like', '%' . $busqueda . '%');
             });
         }
 
+        // Aplicar filtro de marca
         if ($this->marcaSeleccionada) {
             $query->where('marca_id', $this->marcaSeleccionada);
         }
 
-        if ($this->categoriaSeleccionada) {
-            $query->where('categoria_id', $this->categoriaSeleccionada);
-        }
-
+        // Aplicar filtro de subcategoría (que incluye la categoría)
         if ($this->subcategoriaSeleccionada) {
-            $query->where('sub_categoria_id', $this->subcategoriaSeleccionada);
+            $query->where('subcategoria_id', $this->subcategoriaSeleccionada);
+        } elseif ($this->categoriaSeleccionada) {
+            // Si solo hay categoría seleccionada, buscar por subcategorías de esa categoría
+            $query->whereHas('subcategoria', function($q) {
+                $q->where('categoria_id', $this->categoriaSeleccionada);
+            });
         }
 
-        $this->resultadosBusqueda = $query->orderBy('nombre')->get();
+        // Obtener productos y filtrar solo los que tienen stock disponible
+        $productos = $query->orderBy('nombre')
+                          ->limit(100) // Limitar a 100 resultados para mejor rendimiento
+                          ->get();
+
+        // Filtrar solo productos con stock disponible
+        $this->resultadosBusqueda = $productos->filter(function($producto) {
+            return $this->obtenerStockDisponible($producto->id) > 0;
+        })->values();
     }
 
     public function updatedCategoriaSeleccionada($value)
@@ -3743,6 +3751,7 @@ class Ventas extends Component
         } else {
             $this->subcategorias = DB::table('subcategoria')->orderBy('nombre')->get();
         }
+        // Auto-buscar cuando cambie la categoría
         $this->buscarProductos();
     }
 
@@ -3753,11 +3762,19 @@ class Ventas extends Component
 
     public function updatedMarcaSeleccionada()
     {
+        // Auto-buscar cuando cambie la marca
         $this->buscarProductos();
     }
 
     public function updatedSubcategoriaSeleccionada()
     {
+        // Auto-buscar cuando cambie la subcategoría
+        $this->buscarProductos();
+    }
+
+    public function updatedBusquedaProductosServicios()
+    {
+        // Auto-buscar cuando cambie el texto de búsqueda
         $this->buscarProductos();
     }
 

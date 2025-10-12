@@ -1,6 +1,44 @@
 <div x-data="{ theme: localStorage.getItem('theme') || 'verde' }">
     <style>
         [x-cloak] { display: none !important; }
+        
+        /* Estilos para el modal de búsqueda de productos */
+        .line-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        
+        /* Scroll suave */
+        .smooth-scroll {
+            scroll-behavior: smooth;
+        }
+        
+        /* Animación de entrada para cards */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .animate-fade-in-up {
+            animation: fadeInUp 0.3s ease-out forwards;
+        }
+        
+        /* Hover suave para cards de productos */
+        .product-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .product-card:hover {
+            transform: translateY(-4px);
+        }
     </style>
     <!-- Mensaje emergente si el cliente no existe -->
     @if(session('cliente_no_encontrado'))
@@ -926,62 +964,59 @@
 
     <!-- Modal de Búsqueda Avanzada -->
     @if($mostrarModalBusqueda)
-    <div class="fixed inset-0 z-[100]" x-data="{ isOpen: true }">
-        <!-- Overlay -->
-        <div class="fixed inset-0 bg-black bg-opacity-50"
-             wire:click="cerrarModal('busqueda')"></div>
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+         @click.self="$wire.cerrarModal('busqueda')"
+         @keydown.escape.window="$wire.cerrarModal('busqueda')">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-6xl max-h-[90vh] overflow-hidden"
+             x-data x-init="$watch('theme', t => localStorage.setItem('theme', t))">
+            <!-- Header con tema -->
+            <div class="flex items-center justify-between px-6 py-4 text-white"
+                :class="{
+                    'bg-emerald-600': theme === 'verde',
+                    'bg-blue-600': theme === 'azul',
+                    'bg-gray-900': theme === 'oscuro',
+                    'bg-slate-700': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
+                }">
+                <h2 class="text-lg font-semibold">
+                    <i class="fas fa-search me-2"></i>
+                    Búsqueda de Productos
+                </h2>
+                <button wire:click="cerrarModal('busqueda')" class="text-white transition-colors hover:text-gray-200">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
 
-        <!-- Modal -->
-        <div class="fixed inset-0 z-[101] flex items-center justify-center p-4"
-             x-show="isOpen"
-             x-init="isOpen = true"
-             x-transition:enter="transition ease-out duration-300"
-             x-transition:enter-start="opacity-0 scale-95"
-             x-transition:enter-end="opacity-100 scale-100"
-             x-transition:leave="transition ease-in duration-200"
-             x-transition:leave-start="opacity-100 scale-100"
-             x-transition:leave-end="opacity-0 scale-95">
-            
-            <div class="bg-white rounded-lg shadow-xl w-full max-w-6xl max-h-[90vh] overflow-hidden"
-                 @click.away="$wire.cerrarModal('busqueda')"
-                 @keydown.escape.window="$wire.cerrarModal('busqueda')">
-                <div x-data x-init="$watch('theme', t => localStorage.setItem('theme', t))"
-                 class="flex flex-col h-full">
-                <!-- Header con tema -->
-                <div class="flex items-center justify-between px-6 py-4 text-white"
-                     :class="{
-                        'bg-emerald-600': theme === 'verde',
-                        'bg-blue-600': theme === 'azul',
-                        'bg-gray-900': theme === 'oscuro',
-                        'bg-slate-700': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
-                    }">
-                    <h2 class="text-xl font-semibold">
-                        <i class="fas fa-search me-2"></i>
-                        Búsqueda de Productos
-                    </h2>
-                    <button wire:click="cerrarModal('busqueda')" class="text-white transition-colors hover:text-gray-200">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                        </svg>
-                    </button>
+            <div class="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+                <!-- Barra de búsqueda -->
+                <div class="mb-4">
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                            <i class="text-gray-400 fas fa-search"></i>
+                        </div>
+                        <input type="text"
+                            wire:model.live.debounce.150ms="busquedaProductosServicios"
+                            class="w-full py-3 pl-10 pr-4 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-200"
+                            placeholder="Buscar producto por nombre, código de barras o descripción...">
+                        <div wire:loading wire:target="busquedaProductosServicios" 
+                             class="absolute inset-y-0 right-0 flex items-center pr-3">
+                            <svg class="w-5 h-5 text-blue-500 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="flex-1 p-6 overflow-y-auto">
-                    <!-- Barra de búsqueda -->
-                    <div class="mb-4">
-                        <input type="text"
-                            wire:model.live="busquedaProductosServicios"
-                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-200 focus:border-blue-500"
-                            placeholder="Buscar por nombre, código o descripción...">
-                    </div>
-
-                    <!-- Filtros -->
-                    <div class="grid grid-cols-1 gap-4 mb-6 md:grid-cols-3">
+                <!-- Filtros en una fila -->
+                <div class="mb-4">
+                    <div class="grid grid-cols-1 gap-3 md:grid-cols-3">
                         <!-- Marca -->
                         <div>
                             <label class="block mb-1 text-sm font-medium text-gray-700">Marca</label>
                             <select wire:model.live="marcaSeleccionada"
-                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-200 focus:border-blue-500">
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-200">
                                 <option value="">Todas las marcas</option>
                                 @foreach($marcas as $marca)
                                     <option value="{{ $marca->id }}">{{ $marca->nombre }}</option>
@@ -993,7 +1028,7 @@
                         <div>
                             <label class="block mb-1 text-sm font-medium text-gray-700">Categoría</label>
                             <select wire:model.live="categoriaSeleccionada"
-                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-200 focus:border-blue-500">
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-200">
                                 <option value="">Todas las categorías</option>
                                 @foreach($categorias as $categoria)
                                     <option value="{{ $categoria->id }}">{{ $categoria->nombre }}</option>
@@ -1005,7 +1040,7 @@
                         <div>
                             <label class="block mb-1 text-sm font-medium text-gray-700">Subcategoría</label>
                             <select wire:model.live="subcategoriaSeleccionada"
-                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-200 focus:border-blue-500">
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-200">
                                 <option value="">Todas las subcategorías</option>
                                 @foreach($subcategorias as $subcategoria)
                                     <option value="{{ $subcategoria->id }}">{{ $subcategoria->nombre }}</option>
@@ -1013,103 +1048,103 @@
                             </select>
                         </div>
                     </div>
-
-                    <!-- Botón de búsqueda -->
-                    <div class="flex justify-center mb-6">
-                        <button wire:click="buscarProductos"
-                            :class="{
-                                'bg-emerald-600 hover:bg-emerald-700': theme === 'verde',
-                                'bg-blue-600 hover:bg-blue-700': theme === 'azul',
-                                'bg-gray-900 hover:bg-gray-800': theme === 'oscuro',
-                                'bg-slate-700 hover:bg-slate-600': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
-                            }"
-                            class="px-6 py-2 text-white transition-colors rounded-lg">
-                            <i class="mr-2 fas fa-search"></i>
-                            Buscar Productos
-                        </button>
-                    </div>
-
-                    <!-- Resultados -->
-                    <div class="border rounded-lg">
-                        <div class="grid grid-cols-1 gap-4 p-4 md:grid-cols-2 lg:grid-cols-3">
-                            @forelse($resultadosBusqueda as $producto)
-                                <div class="relative p-4 transition-all border rounded-lg hover:shadow-md">
-                                    <!-- Badge de tipo -->
-                                    <div class="absolute px-2 py-1 text-xs text-white rounded-full top-2 left-2"
-                                        :class="{
-                                            'bg-emerald-500': theme === 'verde',
-                                            'bg-blue-500': theme === 'azul',
-                                            'bg-gray-700': theme === 'oscuro',
-                                            'bg-slate-600': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
-                                        }">
-                                        <i class="mr-1 fas fa-tag"></i>
-                                        {{ $producto->categoria->nombre ?? 'Sin categoría' }}
-                                    </div>
-
-                                    <!-- Contenido del producto -->
-                                    <div class="pt-8">
-                                        <div class="mb-2">
-                                            <h4 class="font-semibold text-gray-800">{{ $producto->nombre }}</h4>
-                                            <p class="text-sm text-gray-600">
-                                                @if($producto->codigo_barra)
-                                                    <i class="mr-1 fas fa-barcode"></i>{{ $producto->codigo_barra }}
-                                                @else
-                                                    <i class="mr-1 fas fa-hashtag"></i>{{ $producto->codigo }}
-                                                @endif
-                                            </p>
-                                        </div>
-
-                                        <div class="mb-2">
-                                            <p class="text-sm text-gray-500">{{ $producto->descripcion }}</p>
-                                        </div>
-
-                                        <!-- Información adicional -->
-                                        <div class="grid grid-cols-2 gap-2 mb-3 text-xs text-gray-600">
-                                            @if($producto->marca)
-                                                <div>
-                                                    <i class="mr-1 fas fa-industry"></i>
-                                                    {{ $producto->marca->nombre }}
-                                                </div>
-                                            @endif
-                                            @if($producto->existencia !== null)
-                                                <div class="text-right">
-                                                    <i class="mr-1 fas fa-box"></i>
-                                                    Stock: {{ $producto->existencia }}
-                                                </div>
-                                            @endif
-                                        </div>
-
-                                        <div class="flex items-center justify-between">
-                                            <span class="font-semibold text-green-600">L. {{ number_format($producto->precio, 2) }}</span>
-                                            <button wire:click="agregarProducto({{ $producto->id }})"
-                                                :class="{
-                                                    'bg-emerald-600 hover:bg-emerald-700': theme === 'verde',
-                                                    'bg-blue-600 hover:bg-blue-700': theme === 'azul',
-                                                    'bg-gray-800 hover:bg-gray-900': theme === 'oscuro',
-                                                    'bg-slate-600 hover:bg-slate-700': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
-                                                }"
-                                                class="px-3 py-1 text-sm text-white transition-colors rounded">
-                                                <i class="mr-1 fas fa-plus"></i>
-                                                Agregar
-                                            </button>
-                                        </div>
-
-                                        @if($producto->existencia <= ($producto->existencia_minima ?? 0))
-                                            <div class="absolute px-2 py-1 text-xs text-white bg-red-500 rounded-full top-2 right-2">
-                                                Stock bajo
-                                            </div>
-                                        @endif
-                                    </div>
-                                </div>
-                            @empty
-                                <div class="col-span-3 p-8 text-center">
-                                    <i class="mb-4 text-4xl text-gray-400 fas fa-search"></i>
-                                    <p class="text-gray-500">No se encontraron productos con los filtros seleccionados</p>
-                                </div>
-                            @endforelse
-                        </div>
-                    </div>
                 </div>
+
+                <!-- Resultados en tarjetas (Grid) -->
+                <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    @forelse($resultadosBusqueda as $producto)
+                        @php
+                            $stockDisponible = $this->obtenerStockDisponible($producto->id);
+                            $stockBajo = $stockDisponible <= ($producto->existencia_minima ?? 5);
+                        @endphp
+                        <div class="relative overflow-hidden transition-all duration-200 bg-white border border-gray-200 rounded-lg shadow-sm cursor-pointer hover:shadow-lg hover:border-blue-400"
+                             wire:click="agregarProductoPorClic({{ $producto->id }})"
+                             title="Click para agregar a la factura">
+                            
+                            <!-- Badge de stock en la esquina superior derecha -->
+                            <div class="absolute top-2 right-2 px-2 py-1 text-xs font-bold text-white rounded {{ $stockBajo ? 'bg-orange-500' : 'bg-green-500' }}">
+                                <i class="mr-1 fas fa-box"></i>
+                                Stock: {{ $stockDisponible }}
+                            </div>
+
+                            <!-- Contenido de la tarjeta -->
+                            <div class="p-4">
+                                <!-- Nombre del producto -->
+                                <h4 class="mb-2 text-base font-bold text-gray-800 line-clamp-2" style="min-height: 3rem;">
+                                    {{ $producto->nombre }}
+                                </h4>
+
+                                <!-- Código -->
+                                <div class="mb-2">
+                                    <p class="text-xs font-mono text-gray-600">
+                                        @if($producto->codigo_barra)
+                                            <i class="mr-1 fas fa-barcode"></i>{{ $producto->codigo_barra }}
+                                        @else
+                                            <i class="mr-1 fas fa-hashtag"></i>{{ $producto->codigo }}
+                                        @endif
+                                    </p>
+                                </div>
+
+                                <!-- Categoría y Marca -->
+                                <div class="flex flex-wrap gap-2 mb-3">
+                                    @if(optional($producto->subcategoria)->nombre)
+                                        <span class="px-2 py-1 text-xs font-medium text-blue-700 bg-blue-100 rounded">
+                                            <i class="mr-1 fas fa-tag"></i>
+                                            {{ $producto->subcategoria->nombre }}
+                                        </span>
+                                    @endif
+                                    @if($producto->marca)
+                                        <span class="px-2 py-1 text-xs font-medium text-gray-700 bg-gray-100 rounded">
+                                            <i class="mr-1 fas fa-industry"></i>
+                                            {{ $producto->marca->nombre }}
+                                        </span>
+                                    @endif
+                                </div>
+
+                                <!-- Descripción -->
+                                @if($producto->descripcion)
+                                    <p class="mb-3 text-xs text-gray-500 line-clamp-2">{{ $producto->descripcion }}</p>
+                                @endif
+
+                                <!-- Precio y botón de agregar -->
+                                <div class="flex items-center justify-between pt-3 mt-3 border-t border-gray-200">
+                                    <div>
+                                        <div class="text-xs text-gray-500">Precio</div>
+                                        <div class="text-xl font-bold text-green-600">
+                                            L. {{ number_format($producto->precio_base, 2) }}
+                                        </div>
+                                    </div>
+                                    <button wire:click.stop="agregarProductoPorClic({{ $producto->id }})"
+                                        :class="{
+                                            'bg-emerald-600 hover:bg-emerald-700': theme === 'verde',
+                                            'bg-blue-600 hover:bg-blue-700': theme === 'azul',
+                                            'bg-gray-800 hover:bg-gray-900': theme === 'oscuro',
+                                            'bg-slate-600 hover:bg-slate-700': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
+                                        }"
+                                        class="flex items-center justify-center w-10 h-10 text-white transition-colors rounded-full">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    @empty
+                        <div class="col-span-3 py-8 text-center">
+                            <i class="mb-3 text-gray-400 fas fa-search fa-3x"></i>
+                            <p class="text-gray-500">No se encontraron productos con stock disponible</p>
+                            <p class="text-sm text-gray-400">Intenta con otros filtros o términos de búsqueda</p>
+                        </div>
+                    @endforelse
+                </div>
+
+                <!-- Información adicional -->
+                @if(count($resultadosBusqueda) > 0)
+                    <div class="mt-4 text-center">
+                        <small class="text-muted">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Mostrando {{ count($resultadosBusqueda) }} producto(s) con stock disponible. Haz clic para agregar a la factura.
+                        </small>
+                    </div>
+                @endif
             </div>
         </div>
     </div>
