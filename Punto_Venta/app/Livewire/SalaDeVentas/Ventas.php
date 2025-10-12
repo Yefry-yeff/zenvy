@@ -3706,20 +3706,14 @@ class Ventas extends Component
 
     public function buscarProductos()
     {
-        $query = Producto::with(['categoria', 'marca'])
-            ->select('productos.*', DB::raw('COALESCE(stocks.cantidad, 0) as existencia'))
-            ->leftJoin('stocks', function($join) {
-                $join->on('productos.id', '=', 'stocks.producto_id')
-                     ->where('stocks.bodega_id', '=', Auth::user()->bodega_id);
-            });
+        $query = Producto::with(['categoria', 'marca']);
 
         // Aplicar filtros
         if ($this->busquedaProductosServicios) {
             $query->where(function($q) {
-                $q->where('productos.nombre', 'like', '%' . $this->busquedaProductosServicios . '%')
-                  ->orWhere('productos.codigo', 'like', '%' . $this->busquedaProductosServicios . '%')
-                  ->orWhere('productos.codigo_barra', 'like', '%' . $this->busquedaProductosServicios . '%')
-                  ->orWhere('productos.descripcion', 'like', '%' . $this->busquedaProductosServicios . '%');
+                $q->where('nombre', 'like', '%' . $this->busquedaProductosServicios . '%')
+                  ->orWhere('codigo_barra', 'like', '%' . $this->busquedaProductosServicios . '%')
+                  ->orWhere('descripcion', 'like', '%' . $this->busquedaProductosServicios . '%');
             });
         }
 
@@ -3742,12 +3736,12 @@ class Ventas extends Component
     {
         $this->reset('subcategoriaSeleccionada');
         if ($value) {
-            $this->subcategorias = DB::table('sub_categorias')
+            $this->subcategorias = DB::table('subcategoria')
                 ->where('categoria_id', $value)
                 ->orderBy('nombre')
                 ->get();
         } else {
-            $this->subcategorias = DB::table('sub_categorias')->orderBy('nombre')->get();
+            $this->subcategorias = DB::table('subcategoria')->orderBy('nombre')->get();
         }
         $this->buscarProductos();
     }
