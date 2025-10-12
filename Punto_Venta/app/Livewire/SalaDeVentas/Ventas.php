@@ -145,18 +145,75 @@ class Ventas extends Component
     public $productoSeleccionadoDescuento = null;
     public $porcentajeDescuentoProducto = 0;
 
-    protected $listeners = ['mostrarBusquedaModal'];
+    protected $listeners = [
+        'refreshComponent' => '$refresh',
+        'abrirModal' => 'abrirModal',
+        'cerrarModal' => 'cerrarModal'
+    ];
 
-    public function mostrarBusquedaModal()
+    public function mostrarModalBusqueda()
     {
         $this->mostrarModalBusqueda = true;
         $this->cargarFiltros();
     }
 
+    public function abrirModal($modal)
+    {
+        Log::info('Abriendo modal: ' . $modal);
+        switch ($modal) {
+            case 'busqueda':
+                $this->mostrarModalBusqueda = true;
+                $this->cargarFiltros();
+                $this->dispatch('refresh');
+                break;
+            case 'pago':
+                $this->mostrarModalPagoFlag = true;
+                $this->dispatch('refresh');
+                break;
+            case 'descuentoAdulto':
+                $this->mostrarModalDescuentoAdulto = true;
+                $this->reset(['dniAdulto', 'nombreAdulto', 'edadAdulto']);
+                break;
+            case 'efectivo':
+                $this->mostrarModalEfectivoFlag = true;
+                break;
+            case 'descuentoProducto':
+                $this->modalDescuentoProductoVisible = true;
+                break;
+        }
+    }
+
+    public function cerrarModal($modal)
+    {
+        Log::info('Cerrando modal: ' . $modal);
+        switch ($modal) {
+            case 'busqueda':
+                $this->mostrarModalBusqueda = false;
+                $this->reset(['marcaSeleccionada', 'categoriaSeleccionada', 'subcategoriaSeleccionada', 'resultadosBusqueda']);
+                $this->dispatch('refresh');
+                break;
+            case 'pago':
+                $this->mostrarModalPagoFlag = false;
+                $this->reset(['montosPorMetodo', 'efectivoRecibido', 'montoEfectivo', 'cambio', 'montoTarjeta']);
+                $this->dispatch('refresh');
+                break;
+            case 'descuentoAdulto':
+                $this->mostrarModalDescuentoAdulto = false;
+                $this->reset(['dniAdulto', 'nombreAdulto', 'edadAdulto']);
+                break;
+            case 'efectivo':
+                $this->mostrarModalEfectivoFlag = false;
+                break;
+            case 'descuentoProducto':
+                $this->modalDescuentoProductoVisible = false;
+                break;
+        }
+    }
+
     public function mount()
     {
         $this->clientesModal = collect(); // Inicializar como colección vacía
-        
+
         // Inicializar propiedades de búsqueda avanzada
         $this->mostrarModalBusqueda = false;
         $this->busquedaProductosServicios = '';
@@ -585,7 +642,7 @@ class Ventas extends Component
             } else {
                 // Cliente no encontrado - mantener RTN y limpiar solo otros campos
                 $rtnTemp = $this->rtnManual; // Guardar el RTN ingresado antes de limpiar
-                
+
                 // Limpiar solo los otros campos, no el RTN
                 $this->nombreClienteManual = '';
                 $this->telefonoClienteManual = '';
@@ -593,11 +650,11 @@ class Ventas extends Component
                 $this->direccionClienteManual = '';
                 $this->tipoPersonaId = 1;
                 $this->tipoClienteId = 1;
-                
+
                 $this->rtnManual = $rtnTemp; // Restaurar el RTN ingresado
                 $this->cliente = null;
                 $this->camposBloqueados = false; // Permitir edición para nuevo cliente
-                
+
                 session()->flash('error', 'Cliente con RTN/Identidad "' . $rtnTemp . '" no existe. Puede crear un nuevo cliente con estos datos.');
             }
         } catch (Exception $e) {
@@ -635,11 +692,11 @@ class Ventas extends Component
         // Prioridad 1: Si hay cliente seleccionado Y tiene nombre válido
         if ($this->cliente && !empty($this->cliente->nombre_completo) && $this->cliente->nombre_completo !== 'N/A') {
             return $this->cliente->nombre_completo;
-        } 
+        }
         // Prioridad 2: Si hay nombre manual
         elseif (!empty($this->nombreClienteManual)) {
             return $this->nombreClienteManual;
-        } 
+        }
         // Por defecto
         else {
             return 'Consumidor Final';
@@ -658,11 +715,11 @@ class Ventas extends Component
         // Prioridad 1: Si hay cliente seleccionado Y tiene RTN válido
         if ($this->cliente && !empty($this->cliente->rtn) && $this->cliente->rtn !== 'N/A') {
             return $this->cliente->rtn;
-        } 
+        }
         // Prioridad 2: Si hay RTN manual
         elseif (!empty($this->rtnManual)) {
             return $this->rtnManual;
-        } 
+        }
         // Por defecto
         else {
             return null;
@@ -926,7 +983,7 @@ class Ventas extends Component
     {
         // Convertir a entero para evitar errores de tipos
         $nuevaCantidad = (int)$nuevaCantidad;
-        
+
         if ($nuevaCantidad <= 0) {
             $this->eliminarProducto($index);
             return;
@@ -1046,7 +1103,7 @@ class Ventas extends Component
             $this->productosFactura[$index]['descuento_aplicado'] = $descuentoProducto;
             $this->productosFactura[$index]['descuento_individual_aplicado'] = $descuentoIndividual;
             $this->productosFactura[$index]['subtotal_con_descuento'] = $subtotalConDescuento;
-            
+
             // Actualizar el total del producto en el array
             $this->productosFactura[$index]['total'] = $subtotalConDescuento;
 
@@ -1066,7 +1123,7 @@ class Ventas extends Component
         $this->isvPorTasa = array_map(function($monto) {
             return (float)number_format($monto, 2, '.', '');
         }, $isvPorTasa);
-        
+
         $this->subtotal = (float)number_format($this->subtotal, 2, '.', '');
         $this->totalIsv = (float)number_format($this->totalIsv, 2, '.', '');
         $this->total = (float)number_format($this->subtotal + $this->totalIsv, 2, '.', '');
@@ -1248,15 +1305,15 @@ class Ventas extends Component
 
         // Aplicar el descuento al producto
         $producto = &$this->productosFactura[$this->indiceProductoSeleccionado];
-        
+
         // Guardar el porcentaje de descuento
         $producto['porcentaje_descuento'] = $this->porcentajeDescuentoProducto;
-        
+
         // Calcular el descuento basado en el precio unitario (lógica original)
         $precioUnitario = $producto['precio'];
         $descuentoPorUnidad = $precioUnitario * ($this->porcentajeDescuentoProducto / 100);
         $producto['descuento_monto'] = $descuentoPorUnidad; // Solo el descuento por unidad
-        
+
         // El descuento se aplica al subtotal actual (precio × cantidad)
         $subtotalActual = $producto['cantidad'] * $producto['precio'];
         $producto['total'] = $subtotalActual - $descuentoPorUnidad;
@@ -1291,10 +1348,10 @@ class Ventas extends Component
         $this->descuentoCuartaEdad = false;
         $this->totalDescuentos = 0;
         $this->datosDescuentoAdulto = []; // Limpiar datos del adulto mayor
-        
+
         // Limpiar datos del descuento por producto
         $this->cerrarModalDescuentoProducto();
-        
+
         $this->calcularTotales();
     }
 
@@ -1409,7 +1466,7 @@ class Ventas extends Component
         // Buscar el ID del método "Efectivo"
         $efectivoId = null;
         $totalRedondeado = round($this->total, 2); // Asegurar que el total esté redondeado
-        
+
         foreach ($this->tiposPago as $tipoPago) {
             if ($tipoPago->nombre === 'Efectivo') {
                 $efectivoId = $tipoPago->id;
@@ -1511,7 +1568,7 @@ class Ventas extends Component
         // IMPORTANTE: Obtener los valores del cliente AL INICIO para evitar que se pierdan
         $nombreClienteParaFactura = $this->obtenerNombreCliente();
         $rtnClienteParaFactura = $this->obtenerRtnCliente();
-        
+
         Log::info("DEBUG Valores de cliente capturados al inicio", [
             'rtnManual_crudo' => $this->rtnManual,
             'nombreClienteManual_crudo' => $this->nombreClienteManual,
@@ -1554,14 +1611,14 @@ class Ventas extends Component
 
             // Crear la transacción primero y obtener su ID
             $transaccionId = $this->crearTransaccion($numeroFactura);
-            
+
             Log::info("DEBUG Resultado de crearTransaccion", [
                 'transaccion_id_retornado' => $transaccionId,
                 'es_null' => $transaccionId === null,
                 'metodosActivosParaPago' => $this->metodosActivosParaPago,
                 'montosPorMetodo' => $this->montosPorMetodo
             ]);
-            
+
             // Si no hay transaccion_id, crear una transacción por defecto
             if ($transaccionId === null) {
                 Log::warning("DEBUG Transacción fue null, creando transacción por defecto");
@@ -2102,7 +2159,7 @@ class Ventas extends Component
         // Calcular el cambio total para restar del efectivo
         $totalDistribuido = $montoEfectivo + $montoTarjeta + $montoCheque + $montoTransferencia;
         $cambioTotal = $totalDistribuido > $this->total ? $totalDistribuido - $this->total : 0;
-        
+
         // El efectivo neto es el monto efectivo menos el cambio (ya que el cambio sale de caja)
         $efectivoNeto = $montoEfectivo - $cambioTotal;
 
@@ -2250,7 +2307,7 @@ class Ventas extends Component
         // Calcular el cambio total para restar del efectivo
         $totalDistribuido = $montoEfectivo + $montoTarjeta + $montoCheque + $montoTransferencia;
         $cambioTotal = $totalDistribuido > $this->total ? $totalDistribuido - $this->total : 0;
-        
+
         // El efectivo neto es el monto efectivo menos el cambio
         $efectivoNeto = $montoEfectivo - $cambioTotal;
 
@@ -2515,7 +2572,7 @@ class Ventas extends Component
         // Buscar el ID del método "Tarjeta"
         $tarjetaId = null;
         $totalRedondeado = (float)number_format($this->total, 2, '.', '');
-        
+
         foreach ($this->tiposPago as $tipoPago) {
             if ($tipoPago->nombre === 'Tarjeta(POS)') {
                 $tarjetaId = $tipoPago->id;
@@ -2557,7 +2614,7 @@ class Ventas extends Component
         // Redondear los valores a 2 decimales para comparación
         $efectivoRecibido = round($this->efectivoRecibido, 2);
         $montoEfectivo = round($this->montoEfectivo, 2);
-        
+
         if ($efectivoRecibido < $montoEfectivo) {
             session()->flash('error', 'El efectivo recibido es insuficiente');
             return;
@@ -3218,7 +3275,7 @@ class Ventas extends Component
     {
         // Usar cantidad fija de 1 (funcionalidad de cantidad manual removida)
         $cantidadSolicitada = 1;
-        
+
         if (!$this->tiendaUsuario) {
             $this->mostrarModalSinStock = true;
             return false;
@@ -3642,9 +3699,9 @@ class Ventas extends Component
     protected function cargarFiltros()
     {
         // Cargar las listas para los filtros
-        $this->marcas = DB::table('marcas')->orderBy('nombre')->get();
-        $this->categorias = DB::table('categorias')->orderBy('nombre')->get();
-        $this->subcategorias = DB::table('sub_categorias')->orderBy('nombre')->get();
+        $this->marcas = DB::table('marca')->orderBy('nombre')->get();
+        $this->categorias = DB::table('categoria')->orderBy('nombre')->get();
+        $this->subcategorias = DB::table('subcategoria')->orderBy('nombre')->get();
     }
 
     public function buscarProductos()

@@ -1,4 +1,7 @@
-<div>
+<div x-data="{ theme: localStorage.getItem('theme') || 'verde' }">
+    <style>
+        [x-cloak] { display: none !important; }
+    </style>
     <!-- Mensaje emergente si el cliente no existe -->
     @if(session('cliente_no_encontrado'))
         <div class="fixed z-50 px-4 py-2 text-white bg-red-500 rounded shadow-lg top-5 right-5">
@@ -494,8 +497,8 @@
                                                     autofocus>
                                             </div>
                                             <button type="button"
-                                                wire:click="mostrarModalBusqueda"
-                                                class="flex items-center px-4 font-medium text-white transition-colors border-l-0 rounded-r-lg whitespace-nowrap h-10"
+                                                wire:click="abrirModal('busqueda')"
+                                                class="flex items-center h-10 px-4 font-medium text-white transition-colors border-l-0 rounded-r-lg whitespace-nowrap"
                                                 :class="{
                                                     'bg-emerald-600 hover:bg-emerald-700': theme === 'verde',
                                                     'bg-blue-600 hover:bg-blue-700': theme === 'azul',
@@ -505,8 +508,6 @@
                                                 <i class="fas fa-search"></i>
                                                 <span class="ml-2">Buscar</span>
                                             </button>
-                                        </div>
-                                    </div>
                                         </div>
                                     </div>
                                 </div>
@@ -919,149 +920,32 @@
                     </div>
                 </div>
 
-                <!-- 2.2 CATÁLOGO VISUAL (derecha - 1 columna de espacio) -->
-                @if($mostrarCatalogoVisual)
-                <div class="bg-white border border-gray-300 rounded-lg shadow-lg lg:col-span-1" x-data x-init="$watch('theme', t => localStorage.setItem('theme', t))">
-                    <!-- Header -->
-                    <div class="flex items-center justify-between px-4 py-3 font-semibold text-white rounded-t"
-                        :class="{
-                            'bg-emerald-600': theme === 'verde',
-                            'bg-blue-600': theme === 'azul',
-                            'bg-gray-900': theme === 'oscuro',
-                            'bg-slate-700': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
-                        }"
-                    >
-                        <h3 class="mb-0 text-lg">
-                            <i class="fas fa-th-large me-2"></i>
-                            Catálogo Visual
-                        </h3>
-                    </div>
 
-                    <!-- Content -->
-                    <div class="p-3">
-                        <!-- Filtros de tipo -->
-                        <div class="mb-3 btn-group w-100" role="group">
-                            <button type="button"
-                                wire:click="$set('tipoSeleccion', 'todos')"
-                                class="btn btn-sm {{ $tipoSeleccion === 'todos' ? 'btn-primary' : 'btn-outline-primary' }}">
-                                <i class="fas fa-th me-1"></i>Todos
-                            </button>
-                            <button type="button"
-                                wire:click="$set('tipoSeleccion', 'productos')"
-                                class="btn btn-sm {{ $tipoSeleccion === 'productos' ? 'btn-success' : 'btn-outline-success' }}">
-                                <i class="fas fa-box me-1"></i>Productos
-                            </button>
-                            <button type="button"
-                                wire:click="$set('tipoSeleccion', 'servicios')"
-                                class="btn btn-sm {{ $tipoSeleccion === 'servicios' ? 'btn-info' : 'btn-outline-info' }}">
-                                <i class="fas fa-concierge-bell me-1"></i>Servicios
-                            </button>
-                        </div>
 
-                        <!-- Búsqueda -->
-                        <div class="mb-3">
-                            <input type="text"
-                                wire:model.live="busquedaProductosServicios"
-                                class="form-control form-control-sm"
-                                placeholder="Buscar productos y servicios...">
-                        </div>
-
-                        <!-- Grid de productos y servicios con scroll vertical - SOLO 2 ITEMS POR FILA -->
-                        <div style="height: 650px; overflow-y: auto;" class="border rounded">
-                            <div class="p-2 row g-2">
-                                @php
-                                    $items = $this->obtenerProductosYServiciosFiltrados();
-                                @endphp
-                                @foreach($items as $item)
-                                    <!-- Solo 2 items por fila: col-6 -->
-                                    <div class="col-6">
-                                        <div class="border card h-100 position-relative"
-                                             style="cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;"
-                                             wire:click="{{ $item->esServicio ? 'agregarServicio' : 'agregarProductoPorClic' }}({{ $item->id }})"
-                                             onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 8px rgba(0,0,0,0.15)';"
-                                             onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 4px rgba(0,0,0,0.1)';">
-
-                                            <!-- Badge de tipo -->
-                                            <span class="badge {{ $item->esServicio ? 'bg-info' : 'bg-success' }} position-absolute top-0 start-0 m-1" style="z-index: 10; font-size: 0.65rem;">
-                                                <i class="fas {{ $item->esServicio ? 'fa-concierge-bell' : 'fa-box' }} me-1"></i>
-                                                {{ $item->esServicio ? 'Servicio' : 'Producto' }}
-                                            </span>
-
-                                            <!-- Imagen más grande para mejor visualización -->
-                                            @php
-                                                $imagenBase64 = $item->esServicio ? $this->getServicioImagen($item->id) : $this->getProductoImagen($item->id);
-                                            @endphp
-                                            @if($imagenBase64)
-                                                <img src="data:image/jpeg;base64,{{ $imagenBase64 }}"
-                                                     class="card-img-top"
-                                                     style="height: 140px; object-fit: cover;"
-                                                     alt="{{ $item->nombre }}">
-                                            @else
-                                                <div class="bg-light card-img-top d-flex align-items-center justify-content-center"
-                                                     style="height: 140px;">
-                                                    <i class="text-muted fas {{ $item->esServicio ? 'fa-concierge-bell' : 'fa-box' }} fa-3x"></i>
-                                                </div>
-                                            @endif
-
-                                            <div class="p-2 card-body">
-                                                <h6 class="mb-1 text-center card-title fw-bold" style="font-size: 0.8rem; line-height: 1.1;">{{ $item->nombre }}</h6>
-
-                                                @if(!$item->esServicio && !empty($item->codigo_barra))
-                                                    <p class="mb-1 text-center small text-muted" style="font-size: 0.7rem;">
-                                                        <i class="fas fa-barcode me-1"></i>{{ $item->codigo_barra }}
-                                                    </p>
-                                                @endif
-
-                                                <div class="text-center">
-                                                    <div class="mb-1">
-                                                        <span class="text-success fw-bold" style="font-size: 0.9rem;">
-                                                            L. {{ number_format($item->precio_base, 2) }}
-                                                        </span>
-                                                    </div>
-                                                    @if(!$item->esServicio)
-                                                        <div class="mb-2">
-                                                            <small class="text-muted" style="font-size: 0.7rem;">
-                                                                Stock: {{ $item->stockDisponible ?? 0 }}
-                                                            </small>
-                                                        </div>
-                                                    @endif
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                @endforeach
-
-                                @if($items->isEmpty())
-                                    <div class="p-4 text-center col-12">
-                                        <i class="mb-3 fas fa-search fa-2x text-muted"></i>
-                                        <p class="text-muted">No se encontraron {{ $tipoSeleccion === 'productos' ? 'productos' : ($tipoSeleccion === 'servicios' ? 'servicios' : 'elementos') }}</p>
-                                    </div>
-                                @endif
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                @else
-                <div class="flex items-center justify-center bg-white border border-gray-300 rounded-lg shadow-lg lg:col-span-1">
-                    <div class="p-8 text-center">
-                        <i class="mb-4 text-gray-400 fas fa-lock fa-3x"></i>
-                        <h5 class="mb-2 text-gray-500">Catálogo Visual No Disponible</h5>
-                        <p class="text-sm text-gray-400">El menú de servicios está inactivo</p>
-                    </div>
-                </div>
-                @endif
-
-            </div> <!-- End grid de dos columnas -->
-
-        </div> <!-- End contenedor principal -->
+        </div>  <!--End contenedor principal -->
 
     <!-- Modal de Búsqueda Avanzada -->
     @if($mostrarModalBusqueda)
-    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
-         @click.self="$wire.cerrarModalBusqueda()"
-         @keydown.escape.window="$wire.cerrarModalBusqueda()">
-        <div class="bg-white rounded-lg shadow-xl w-full max-w-6xl max-h-[90vh] overflow-hidden">
-            <div x-data x-init="$watch('theme', t => localStorage.setItem('theme', t))"
+    <div class="fixed inset-0 z-[100]" x-data="{ isOpen: true }">
+        <!-- Overlay -->
+        <div class="fixed inset-0 bg-black bg-opacity-50"
+             wire:click="cerrarModal('busqueda')"></div>
+
+        <!-- Modal -->
+        <div class="fixed inset-0 z-[101] flex items-center justify-center p-4"
+             x-show="isOpen"
+             x-init="isOpen = true"
+             x-transition:enter="transition ease-out duration-300"
+             x-transition:enter-start="opacity-0 scale-95"
+             x-transition:enter-end="opacity-100 scale-100"
+             x-transition:leave="transition ease-in duration-200"
+             x-transition:leave-start="opacity-100 scale-100"
+             x-transition:leave-end="opacity-0 scale-95">
+            
+            <div class="bg-white rounded-lg shadow-xl w-full max-w-6xl max-h-[90vh] overflow-hidden"
+                 @click.away="$wire.cerrarModal('busqueda')"
+                 @keydown.escape.window="$wire.cerrarModal('busqueda')">
+                <div x-data x-init="$watch('theme', t => localStorage.setItem('theme', t))"
                  class="flex flex-col h-full">
                 <!-- Header con tema -->
                 <div class="flex items-center justify-between px-6 py-4 text-white"
@@ -1075,7 +959,7 @@
                         <i class="fas fa-search me-2"></i>
                         Búsqueda de Productos
                     </h2>
-                    <button wire:click="cerrarModalBusqueda" class="text-white transition-colors hover:text-gray-200">
+                    <button wire:click="cerrarModal('busqueda')" class="text-white transition-colors hover:text-gray-200">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                         </svg>
@@ -1174,7 +1058,7 @@
                                                 @endif
                                             </p>
                                         </div>
-                                        
+
                                         <div class="mb-2">
                                             <p class="text-sm text-gray-500">{{ $producto->descripcion }}</p>
                                         </div>
@@ -1409,7 +1293,7 @@
                             </button>
                         @endif
                     </div>
-                    
+
                     <!-- Process button on the right -->
                     <div>
                         <button wire:click="procesarDistribucionPagos"

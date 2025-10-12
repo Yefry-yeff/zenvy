@@ -136,7 +136,7 @@
             showModal: false,
             timeout: null,
             lastActivity: Date.now(),
-            sessionTimeout: 2 * 60 * 60 * 1000, // 2 horas
+            sessionTimeout: 8 * 60 * 60 * 60 * 60 * 60 * 60 * 1000, // 2 horas
             resetTimer() {
                 if (this.timeout) {
                     clearTimeout(this.timeout);
