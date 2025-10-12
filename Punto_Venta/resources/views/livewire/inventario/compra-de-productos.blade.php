@@ -104,22 +104,63 @@
 
 
 
+            <!-- FILTROS Y BÚSQUEDA -->
+            <div class="p-4 mb-4 bg-white border shadow rounded-xl">
+                <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+                    <!-- Buscador -->
+                    <div class="md:col-span-1">
+                        <label class="block mb-2 text-sm font-medium text-gray-700">
+                            🔍 Buscar Compra
+                        </label>
+                        <input 
+                            type="text" 
+                            wire:model.live.debounce.300ms="busqueda"
+                            placeholder="N° factura o proveedor..."
+                            class="w-full px-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        >
+                    </div>
+
+                    <!-- Filtro por Estado -->
+                    <div class="md:col-span-1">
+                        <label class="block mb-2 text-sm font-medium text-gray-700">
+                            � Filtrar por Estado
+                        </label>
+                        <select 
+                            wire:model.live="filtroEstado"
+                            class="w-full px-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        >
+                            <option value="">Todos los estados</option>
+                            <option value="activo">Activo</option>
+                            <option value="pendiente">Pendiente</option>
+                            <option value="distribuido">Distribuido</option>
+                            <option value="anulado">Anulado</option>
+                        </select>
+                    </div>
+
+                    <!-- Filtro por Fecha -->
+                    <div class="md:col-span-1">
+                        <label class="block mb-2 text-sm font-medium text-gray-700">
+                            📅 Filtrar por Fecha
+                        </label>
+                        <input 
+                            type="date" 
+                            wire:model.live="filtroFecha"
+                            class="w-full px-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        >
+                    </div>
+                </div>
+
+                <!-- Información de resultados -->
+                <div class="mt-4 text-sm text-gray-600">
+                    Mostrando {{ $compras->firstItem() ?? 0 }} a {{ $compras->lastItem() ?? 0 }}
+                    de {{ $compras->total() }} compras
+                </div>
+            </div>
+
             <!-- TABLA DE COMPRAS -->
             <div class="p-4 bg-white border shadow rounded-xl">
                 <div class="mb-4 d-flex justify-content-between align-items-center">
                     <h2 class="text-lg font-semibold text-gray-700">📋 Compras Realizadas</h2>
-                    <div class="gap-3 d-flex align-items-center">
-
-        <!-- INFORMACIÓN DE RESULTADOS -->
-        <div class="px-4 py-2 bg-gray-100 border-b">
-            <div class="text-sm text-gray-600">
-                Showing {{ $compras->firstItem() ?? 0 }} to {{ $compras->lastItem() ?? 0 }}
-                of {{ $compras->total() }} results
-            </div>
-        </div>
-                        <small class="text-muted">Ordenadas por ID (más recientes primero)</small>
-                        <small class="text-muted">Total: {{ $compras->total() }} compras</small>
-                    </div>
                 </div>
 
                 <!-- TABLA DE COMPRAS -->

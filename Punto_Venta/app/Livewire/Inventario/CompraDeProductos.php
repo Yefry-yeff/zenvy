@@ -536,7 +536,7 @@ class CompraDeProductos extends Component
             })
             ->when($this->filtroEstado, function($query) {
                 $query->whereHas('estado', function($estadoQuery) {
-                    $estadoQuery->whereRaw('LOWER(nombre) = ?', [strtolower($this->filtroEstado)]);
+                    $estadoQuery->whereRaw('LOWER(descripcion) = ?', [strtolower($this->filtroEstado)]);
                 });
             })
             ->when($this->filtroFecha, function($query) {
@@ -577,7 +577,7 @@ class CompraDeProductos extends Component
 
         if ($this->filtroEstado) {
             $query->whereHas('estado', function($estadoQuery) {
-                $estadoQuery->whereRaw('LOWER(nombre) = ?', [strtolower($this->filtroEstado)]);
+                $estadoQuery->whereRaw('LOWER(descripcion) = ?', [strtolower($this->filtroEstado)]);
             });
         }
 
