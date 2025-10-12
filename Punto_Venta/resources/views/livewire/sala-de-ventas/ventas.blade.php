@@ -72,6 +72,21 @@
         </div>
     @endif
 
+    <!-- Botón flotante para trámites temporales -->
+    <div class="position-fixed" style="top: 100px; right: 20px; z-index: 1040;">
+        <button wire:click="abrirModalTramitesTemporales"
+                class="btn btn-warning shadow-lg d-flex align-items-center gap-2"
+                style="border-radius: 50px; padding: 12px 20px; font-weight: 600;">
+            <i class="fas fa-folder-open"></i>
+            <span>Trámites Temporales</span>
+            @if(($cantidadTramitesTemporales ?? 0) > 0)
+                <span class="badge bg-danger rounded-pill">
+                    {{ $cantidadTramitesTemporales }}
+                </span>
+            @endif
+        </button>
+    </div>
+
     <!-- Modal de selección de clientes -->
     @if($mostrarModalClientesFlag)
     <div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
@@ -945,13 +960,23 @@
                         <!-- Botón Procesar Factura -->
                         @if(count($productosFactura) > 0)
                         <div class="mt-4 text-center">
-                            <button type="button"
-                                wire:click="mostrarModalPago"
-                                class="px-5 py-3 btn btn-primary btn-lg"
-                                style="font-size: 1.1rem; font-weight: 600;">
-                                <i class="fas fa-file-invoice-dollar me-2"></i>
-                                Procesar Factura
-                            </button>
+                            <div class="gap-3 d-flex flex-column flex-md-row justify-content-center">
+                                <button type="button"
+                                    wire:click="guardarTramiteTemporal"
+                                    class="px-4 py-3 btn btn-warning"
+                                    style="font-size: 1rem; font-weight: 600;">
+                                    <i class="fas fa-save me-2"></i>
+                                    Guardar Temporal
+                                </button>
+                                
+                                <button type="button"
+                                    wire:click="mostrarModalPago"
+                                    class="px-5 py-3 btn btn-primary btn-lg"
+                                    style="font-size: 1.1rem; font-weight: 600;">
+                                    <i class="fas fa-file-invoice-dollar me-2"></i>
+                                    Procesar Factura
+                                </button>
+                            </div>
                         </div>
                         @endif
 
@@ -1628,6 +1653,117 @@
                 </div>
             </div>
         </div>
+    @endif
+
+    <!-- Modal de Trámites Temporales -->
+    @if($mostrarModalTramitesTemporales ?? false)
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+         @click.self="$wire.cerrarModalTramitesTemporales()"
+         @keydown.escape.window="$wire.cerrarModalTramitesTemporales()">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-5xl max-h-[90vh] overflow-hidden">
+            <!-- Header -->
+            <div class="flex items-center justify-between px-6 py-4 text-white bg-yellow-600">
+                <h2 class="text-lg font-semibold">
+                    <i class="fas fa-folder-open me-2"></i>
+                    Trámites Temporales de Ventas
+                </h2>
+                <button wire:click="cerrarModalTramitesTemporales" class="text-white transition-colors hover:text-gray-200">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+                @if(count($tramitesTemporales ?? []) > 0)
+                    <div class="mb-4">
+                        <p class="text-sm text-gray-600">
+                            Tienes <strong>{{ count($tramitesTemporales) }}</strong> venta(s) guardada(s) temporalmente
+                        </p>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full border border-gray-200 table-auto">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-4 py-3 text-left border-b">Cliente</th>
+                                    <th class="px-4 py-3 text-left border-b">Fecha Guardado</th>
+                                    <th class="px-4 py-3 text-left border-b">Productos</th>
+                                    <th class="px-4 py-3 text-center border-b">Total</th>
+                                    <th class="px-4 py-3 text-center border-b">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($tramitesTemporales as $index => $tramite)
+                                    <tr class="transition-colors hover:bg-gray-50">
+                                        <td class="px-4 py-3 border-b">
+                                            @if($tramite['modo_cliente_manual'] ?? false)
+                                                <div>
+                                                    <span class="font-medium">{{ $tramite['cliente_manual']['nombre'] ?? 'Cliente Manual' }}</span>
+                                                    @if($tramite['cliente_manual']['rtn'] ?? false)
+                                                        <br><small class="text-gray-600">RTN: {{ $tramite['cliente_manual']['rtn'] }}</small>
+                                                    @endif
+                                                </div>
+                                            @else
+                                                <span class="font-medium">{{ $tramite['cliente']['nombre'] ?? 'Consumidor Final' }}</span>
+                                            @endif
+                                        </td>
+                                        <td class="px-4 py-3 border-b">
+                                            <small class="text-gray-600">
+                                                {{ \Carbon\Carbon::parse($tramite['fecha_guardado'])->format('d/m/Y H:i') }}
+                                            </small>
+                                        </td>
+                                        <td class="px-4 py-3 border-b">
+                                            <span class="px-2 py-1 text-xs font-semibold text-blue-800 bg-blue-100 rounded">
+                                                {{ count($tramite['productos'] ?? []) }} productos
+                                            </span>
+                                        </td>
+                                        <td class="px-4 py-3 text-center border-b">
+                                            <span class="font-bold text-green-600">
+                                                L. {{ number_format($tramite['total'] ?? 0, 2) }}
+                                            </span>
+                                        </td>
+                                        <td class="px-4 py-3 text-center border-b">
+                                            <div class="flex justify-center gap-2">
+                                                <button wire:click="cargarTramiteTemporal({{ $index }})"
+                                                        class="px-3 py-1 text-xs font-medium text-white transition-colors bg-blue-600 rounded hover:bg-blue-700"
+                                                        title="Continuar con este trámite">
+                                                    <i class="fas fa-edit me-1"></i>
+                                                    Continuar
+                                                </button>
+                                                <button wire:click="eliminarTramiteTemporal({{ $index }})"
+                                                        class="px-3 py-1 text-xs font-medium text-white transition-colors bg-red-600 rounded hover:bg-red-700"
+                                                        title="Eliminar este trámite"
+                                                        onclick="return confirm('¿Está seguro de eliminar este trámite temporal?')">
+                                                    <i class="fas fa-trash me-1"></i>
+                                                    Eliminar
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @else
+                    <div class="py-12 text-center">
+                        <i class="mb-4 text-gray-400 fas fa-folder-open fa-4x"></i>
+                        <p class="text-lg text-gray-600">No hay trámites temporales guardados</p>
+                        <p class="mt-2 text-sm text-gray-500">
+                            Las ventas guardadas temporalmente aparecerán aquí
+                        </p>
+                    </div>
+                @endif
+            </div>
+
+            <div class="px-6 py-4 bg-gray-50">
+                <button wire:click="cerrarModalTramitesTemporales"
+                        class="px-4 py-2 text-white transition-colors bg-gray-600 rounded hover:bg-gray-700">
+                    Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
     @endif
 
 </div>

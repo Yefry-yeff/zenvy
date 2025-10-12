@@ -145,6 +145,11 @@ class Ventas extends Component
     public $productoSeleccionadoDescuento = null;
     public $porcentajeDescuentoProducto = 0;
 
+    // Propiedades para trámites temporales
+    public $mostrarModalTramitesTemporales = false;
+    public $tramitesTemporales = [];
+    public $cantidadTramitesTemporales = 0;
+
     protected $listeners = [
         'refreshComponent' => '$refresh',
         'abrirModal' => 'abrirModal',
@@ -218,6 +223,14 @@ class Ventas extends Component
         $this->mostrarModalBusqueda = false;
         $this->busquedaProductosServicios = '';
         $this->resultadosBusqueda = collect();
+
+        // Cargar trámites temporales
+        $this->cargarTramitesTemporales();
+
+        // Cargar trámite temporal si existe
+        if (session()->has('tramite_venta_a_cargar')) {
+            $this->cargarTramiteDesdeSession();
+        }
         $this->marcaSeleccionada = '';
         $this->categoriaSeleccionada = '';
         $this->subcategoriaSeleccionada = '';
@@ -3785,5 +3798,157 @@ class Ventas extends Component
     public function refrescarEstadoCatalogo()
     {
         $this->verificarEstadoMenuServicios();
+    }
+
+    // Métodos para trámites temporales
+    public function cargarTramitesTemporales()
+    {
+        $this->tramitesTemporales = session('tramites_temporales_ventas', []);
+        $this->cantidadTramitesTemporales = count($this->tramitesTemporales);
+    }
+
+    public function abrirModalTramitesTemporales()
+    {
+        $this->cargarTramitesTemporales();
+        $this->mostrarModalTramitesTemporales = true;
+    }
+
+    public function cerrarModalTramitesTemporales()
+    {
+        $this->mostrarModalTramitesTemporales = false;
+    }
+
+    public function guardarTramiteTemporal()
+    {
+        // Validar que hay productos en la factura
+        if (empty($this->productosFactura)) {
+            session()->flash('error', 'Debe agregar al menos un producto para guardar un trámite temporal.');
+            return;
+        }
+
+        $tramite = [
+            'cliente' => $this->cliente,
+            'cliente_manual' => [
+                'rtn' => $this->rtnManual,
+                'nombre' => $this->nombreCompletoManual,
+                'telefono' => $this->telefonoManual,
+                'correo' => $this->correoManual,
+                'direccion' => $this->direccionManual,
+            ],
+            'modo_cliente_manual' => $this->modoClienteManual,
+            'productos' => $this->productosFactura,
+            'descuento_tercera_edad' => $this->descuentoTerceraEdad,
+            'descuento_cuarta_edad' => $this->descuentoCuartaEdad,
+            'datos_descuento_adulto' => $this->datosDescuentoAdulto,
+            'subtotal' => $this->subtotal,
+            'total_isv' => $this->totalIsv,
+            'total' => $this->total,
+            'total_descuentos' => $this->totalDescuentos,
+            'fecha_guardado' => now()->toDateTimeString(),
+        ];
+
+        // Guardar en sesión
+        $tramites = session('tramites_temporales_ventas', []);
+        $tramites[] = $tramite;
+        session(['tramites_temporales_ventas' => $tramites]);
+
+        $this->cargarTramitesTemporales();
+        
+        session()->flash('success', '✅ Trámite guardado temporalmente. Puede continuar más tarde.');
+        
+        // Limpiar formulario
+        $this->resetearFactura();
+    }
+
+    public function cargarTramiteTemporal($index)
+    {
+        $tramites = session('tramites_temporales_ventas', []);
+        
+        if (isset($tramites[$index])) {
+            $tramite = $tramites[$index];
+            
+            // Restaurar datos del cliente
+            $this->cliente = $tramite['cliente'] ?? null;
+            $this->modoClienteManual = $tramite['modo_cliente_manual'] ?? false;
+            $this->rtnManual = $tramite['cliente_manual']['rtn'] ?? '';
+            $this->nombreCompletoManual = $tramite['cliente_manual']['nombre'] ?? '';
+            $this->telefonoManual = $tramite['cliente_manual']['telefono'] ?? '';
+            $this->correoManual = $tramite['cliente_manual']['correo'] ?? '';
+            $this->direccionManual = $tramite['cliente_manual']['direccion'] ?? '';
+            
+            // Restaurar productos
+            $this->productosFactura = $tramite['productos'] ?? [];
+            
+            // Restaurar descuentos
+            $this->descuentoTerceraEdad = $tramite['descuento_tercera_edad'] ?? false;
+            $this->descuentoCuartaEdad = $tramite['descuento_cuarta_edad'] ?? false;
+            $this->datosDescuentoAdulto = $tramite['datos_descuento_adulto'] ?? [];
+            
+            // Recalcular totales
+            $this->calcularTotales();
+            
+            // Eliminar el trámite de la lista de temporales
+            unset($tramites[$index]);
+            $tramites = array_values($tramites);
+            session(['tramites_temporales_ventas' => $tramites]);
+            
+            $this->cargarTramitesTemporales();
+            $this->cerrarModalTramitesTemporales();
+            
+            session()->flash('success', '✅ Trámite temporal cargado. Puede continuar editando.');
+        }
+    }
+
+    public function cargarTramiteDesdeSession()
+    {
+        $tramite = session('tramite_venta_a_cargar');
+        
+        if ($tramite) {
+            // Restaurar datos del cliente
+            $this->cliente = $tramite['cliente'] ?? null;
+            $this->modoClienteManual = $tramite['modo_cliente_manual'] ?? false;
+            $this->rtnManual = $tramite['cliente_manual']['rtn'] ?? '';
+            $this->nombreCompletoManual = $tramite['cliente_manual']['nombre'] ?? '';
+            $this->telefonoManual = $tramite['cliente_manual']['telefono'] ?? '';
+            $this->correoManual = $tramite['cliente_manual']['correo'] ?? '';
+            $this->direccionManual = $tramite['cliente_manual']['direccion'] ?? '';
+            
+            // Restaurar productos
+            $this->productosFactura = $tramite['productos'] ?? [];
+            
+            // Restaurar descuentos
+            $this->descuentoTerceraEdad = $tramite['descuento_tercera_edad'] ?? false;
+            $this->descuentoCuartaEdad = $tramite['descuento_cuarta_edad'] ?? false;
+            $this->datosDescuentoAdulto = $tramite['datos_descuento_adulto'] ?? [];
+            
+            // Recalcular totales
+            $this->calcularTotales();
+            
+            // Limpiar la sesión
+            session()->forget('tramite_venta_a_cargar');
+            
+            // Eliminar el trámite de la lista de temporales
+            $tramites = session('tramites_temporales_ventas', []);
+            $tramites = array_filter($tramites, function($t) use ($tramite) {
+                return $t['fecha_guardado'] !== $tramite['fecha_guardado'];
+            });
+            session(['tramites_temporales_ventas' => array_values($tramites)]);
+            
+            session()->flash('success', '✅ Trámite temporal cargado. Puede continuar editando.');
+        }
+    }
+
+    public function eliminarTramiteTemporal($index)
+    {
+        $tramites = session('tramites_temporales_ventas', []);
+        
+        if (isset($tramites[$index])) {
+            unset($tramites[$index]);
+            $tramites = array_values($tramites);
+            session(['tramites_temporales_ventas' => $tramites]);
+            
+            $this->cargarTramitesTemporales();
+            session()->flash('success', 'Trámite temporal eliminado correctamente.');
+        }
     }
 }
