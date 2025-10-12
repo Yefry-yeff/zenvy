@@ -850,9 +850,16 @@
     <div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
          @click.self="$wire.cerrarModalTramitesTemporales()"
          @keydown.escape.window="$wire.cerrarModalTramitesTemporales()">
-        <div class="bg-white rounded-lg shadow-xl w-full max-w-5xl max-h-[90vh] overflow-hidden">
-            <!-- Header -->
-            <div class="flex items-center justify-between px-6 py-4 text-white bg-yellow-600">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-6xl max-h-[90vh] overflow-hidden"
+             x-data="{ filtroTramite: '', filtroProveedor: '' }">
+            <!-- Header con tema -->
+            <div class="flex items-center justify-between px-6 py-4 text-white"
+                :class="{
+                    'bg-emerald-600': theme === 'verde',
+                    'bg-blue-600': theme === 'azul',
+                    'bg-gray-900': theme === 'oscuro',
+                    'bg-slate-700': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
+                }">
                 <h2 class="text-lg font-semibold">
                     <i class="fas fa-folder-open me-2"></i>
                     Trámites Temporales
@@ -872,6 +879,26 @@
                         </p>
                     </div>
 
+                    <!-- Filtros -->
+                    <div class="mb-4">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label text-sm fw-medium">Buscar por N° Factura</label>
+                                <input type="text" 
+                                       x-model="filtroTramite"
+                                       class="form-control"
+                                       placeholder="Ingrese número de factura...">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label text-sm fw-medium">Buscar por Proveedor</label>
+                                <input type="text" 
+                                       x-model="filtroProveedor"
+                                       class="form-control"
+                                       placeholder="Ingrese nombre de proveedor...">
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="overflow-x-auto">
                         <table class="min-w-full border border-gray-200 table-auto">
                             <thead class="bg-gray-50">
@@ -886,7 +913,9 @@
                             </thead>
                             <tbody>
                                 @foreach($tramitesTemporales as $index => $tramite)
-                                    <tr class="transition-colors hover:bg-gray-50">
+                                    <tr class="transition-colors hover:bg-gray-50"
+                                        x-show="(!filtroTramite || '{{ $tramite['numero_factura'] ?? '' }}'.toLowerCase().includes(filtroTramite.toLowerCase())) && 
+                                                (!filtroProveedor || '{{ $tramite['proveedor_nombre'] ?? '' }}'.toLowerCase().includes(filtroProveedor.toLowerCase()))">
                                         <td class="px-4 py-3 border-b">
                                             <span class="font-medium">{{ $tramite['numero_factura'] ?? 'N/A' }}</span>
                                         </td>

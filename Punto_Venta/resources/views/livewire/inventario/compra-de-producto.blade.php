@@ -1608,10 +1608,16 @@
                 <div class="row g-4">
                     @forelse($resultadosBusquedaModal ?? [] as $producto)
                         <div class="col-md-6 col-lg-4">
-                            <div class="card h-100 shadow-sm border cursor-pointer hover-shadow-lg"
+                            <div class="card h-100 shadow-sm border cursor-pointer"
                                  wire:click="seleccionarProductoModal({{ $producto['id'] }})"
-                                 style="cursor: pointer; transition: all 0.2s;"
-                                 title="Click para seleccionar">
+                                 style="cursor: pointer; transition: all 0.3s; border-width: 2px;"
+                                 title="Click para seleccionar"
+                                 :class="{
+                                    'hover:border-emerald-500 hover:shadow-lg': theme === 'verde',
+                                    'hover:border-blue-500 hover:shadow-lg': theme === 'azul',
+                                    'hover:border-gray-700 hover:shadow-lg': theme === 'oscuro',
+                                    'hover:border-slate-500 hover:shadow-lg': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
+                                 }">
                                 
                                 <div class="card-body">
                                     <!-- Nombre del producto -->
@@ -1666,16 +1672,6 @@
                                             L. {{ number_format($producto['precio_base'] ?? 0, 2) }}
                                         </p>
                                     </div>
-                                </div>
-
-                                <!-- Botón de agregar -->
-                                <div class="card-footer bg-light">
-                                    <button type="button"
-                                            wire:click.stop="seleccionarProductoModal({{ $producto['id'] }})"
-                                            class="btn btn-sm btn-primary w-100">
-                                        <i class="fas fa-plus me-1"></i>
-                                        Seleccionar
-                                    </button>
                                 </div>
                             </div>
                         </div>
