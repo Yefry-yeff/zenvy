@@ -19,7 +19,26 @@
 
         <!-- Filtros -->
         <div class="p-6 border-b bg-gray-50">
-            <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <div class="grid grid-cols-1 gap-4 @if($esAdministrador) md:grid-cols-4 @else md:grid-cols-3 @endif">
+                <!-- Filtro de Caja (Solo para Administradores) -->
+                @if($esAdministrador)
+                <div>
+                    <label class="block mb-2 text-sm font-medium text-gray-700">
+                        <i class="mr-1 fas fa-cash-register"></i>
+                        Caja
+                    </label>
+                    <select wire:model.live="cajaSeleccionada"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">Todas las cajas</option>
+                        @foreach($cajasDisponibles as $caja)
+                            <option value="{{ $caja->id }}">
+                                Caja #{{ $caja->id }} - {{ $caja->usuario_nombre }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+                @endif
+
                 <!-- Filtro de Fecha -->
                 <div>
                     <label class="block mb-2 text-sm font-medium text-gray-700">
@@ -158,9 +177,16 @@
                                             @endswitch
                                         </div>
 
-                                        <span class="text-sm text-gray-500">
-                                            Caja #{{ $transaccion['caja_id'] }}
-                                        </span>
+                                        @if($esAdministrador)
+                                            <div class="flex items-center px-2 py-1 ml-2 text-xs font-medium text-blue-800 bg-blue-100 rounded-full">
+                                                <i class="mr-1 fas fa-cash-register"></i>
+                                                Caja #{{ $transaccion['caja_id'] }} - {{ $transaccion['usuario_caja'] }}
+                                            </div>
+                                        @else
+                                            <span class="text-sm text-gray-500">
+                                                Caja #{{ $transaccion['caja_id'] }}
+                                            </span>
+                                        @endif
                                     </div>
 
                                     @if($transaccion['descripcion'])
