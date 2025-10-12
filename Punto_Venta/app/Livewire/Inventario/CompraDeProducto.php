@@ -47,6 +47,17 @@ class CompraDeProducto extends Component
     public $productosFiltrados = [];
     public $mostrarListaProductos = false;
 
+    // Modal de búsqueda avanzada
+    public $mostrarModalBusqueda = false;
+    public $busquedaModalProductos = '';
+    public $marcaSeleccionadaModal = '';
+    public $categoriaSeleccionadaModal = '';
+    public $subcategoriaSeleccionadaModal = '';
+    public $resultadosBusquedaModal = [];
+    public $marcasDisponibles = [];
+    public $categoriasDisponibles = [];
+    public $subcategoriasDisponibles = [];
+
     // Control de visibilidad de sección de productos
     public $mostrarSeccionProductosActiva = false;
 
@@ -89,6 +100,43 @@ class CompraDeProducto extends Component
         $this->cargarDatosIniciales();
         $this->compra['fecha_emision'] = now()->format('Y-m-d');
         $this->compra['fecha_recepcion'] = now()->format('Y-m-d');
+        
+        // Cargar trámite temporal si existe
+        if (session()->has('tramite_a_cargar')) {
+            $this->cargarTramiteDesdeSession();
+        }
+    }
+
+    public function cargarTramiteDesdeSession()
+    {
+        $tramite = session('tramite_a_cargar');
+        
+        if ($tramite) {
+            $this->compra['numero_factura'] = $tramite['numero_factura'] ?? '';
+            $this->compra['fecha_emision'] = $tramite['fecha_emision'] ?? now()->format('Y-m-d');
+            $this->compra['fecha_recepcion'] = $tramite['fecha_recepcion'] ?? now()->format('Y-m-d');
+            $this->compra['fecha_vencimiento'] = $tramite['fecha_vencimiento'] ?? '';
+            $this->proveedorSeleccionado = $tramite['proveedor_id'] ?? null;
+            $this->productosCompra = $tramite['productos'] ?? [];
+            
+            // Recalcular totales
+            $this->calcularTotales();
+            
+            // Activar la sección de productos
+            $this->mostrarSeccionProductosActiva = true;
+            
+            // Limpiar la sesión
+            session()->forget('tramite_a_cargar');
+            
+            // Eliminar el trámite de la lista de temporales
+            $tramites = session('tramites_temporales_compras', []);
+            $tramites = array_filter($tramites, function($t) use ($tramite) {
+                return $t['fecha_guardado'] !== $tramite['fecha_guardado'];
+            });
+            session(['tramites_temporales_compras' => array_values($tramites)]);
+            
+            session()->flash('success', '✅ Trámite temporal cargado. Puede continuar editando.');
+        }
     }
 
     public function cargarDatosIniciales()
@@ -602,6 +650,169 @@ class CompraDeProducto extends Component
         Log::info('Todos los clientes: ', $todosLosClientes->toArray());
 
         $this->mostrarAlertaError('Debug ejecutado. Revise los logs para ver la información de clientes.');
+    }
+
+    // Métodos para modal de búsqueda de productos
+    public function abrirModalBusqueda()
+    {
+        $this->mostrarModalBusqueda = true;
+        $this->busquedaModalProductos = '';
+        $this->marcaSeleccionadaModal = '';
+        $this->categoriaSeleccionadaModal = '';
+        $this->subcategoriaSeleccionadaModal = '';
+        $this->cargarDatosModalBusqueda();
+        $this->buscarProductosModal();
+    }
+
+    public function cerrarModalBusqueda()
+    {
+        $this->mostrarModalBusqueda = false;
+        $this->busquedaModalProductos = '';
+        $this->resultadosBusquedaModal = [];
+    }
+
+    public function cargarDatosModalBusqueda()
+    {
+        // Cargar marcas (sin filtro de estado_id porque la tabla marca no tiene esa columna)
+        $this->marcasDisponibles = \App\Models\Marca::orderBy('nombre')
+            ->get()
+            ->map(fn($m) => ['id' => $m->id, 'nombre' => $m->nombre])
+            ->toArray();
+
+        // Cargar categorías (sin filtro de estado_id porque la tabla categoria no tiene esa columna)
+        $this->categoriasDisponibles = \App\Models\Categoria::orderBy('nombre')
+            ->get()
+            ->map(fn($c) => ['id' => $c->id, 'nombre' => $c->nombre])
+            ->toArray();
+
+        // Cargar subcategorías (sin filtro de estado_id porque la tabla subcategoria no tiene esa columna)
+        $this->subcategoriasDisponibles = \App\Models\Subcategoria::orderBy('nombre')
+            ->get()
+            ->map(fn($s) => ['id' => $s->id, 'nombre' => $s->nombre])
+            ->toArray();
+    }
+
+    public function updatedBusquedaModalProductos()
+    {
+        $this->buscarProductosModal();
+    }
+
+    public function updatedMarcaSeleccionadaModal()
+    {
+        $this->buscarProductosModal();
+    }
+
+    public function updatedCategoriaSeleccionadaModal()
+    {
+        $this->buscarProductosModal();
+    }
+
+    public function updatedSubcategoriaSeleccionadaModal()
+    {
+        $this->buscarProductosModal();
+    }
+
+    public function buscarProductosModal()
+    {
+        $query = Producto::with(['marca', 'subcategoria.categoria'])
+            ->where('estado_id', 1);
+
+        // Filtro de búsqueda por texto
+        if ($this->busquedaModalProductos) {
+            $query->where(function($q) {
+                $q->where('nombre', 'like', '%' . $this->busquedaModalProductos . '%')
+                  ->orWhere('codigo_barra', 'like', '%' . $this->busquedaModalProductos . '%')
+                  ->orWhere('descripcion', 'like', '%' . $this->busquedaModalProductos . '%');
+            });
+        }
+
+        // Filtro por marca
+        if ($this->marcaSeleccionadaModal) {
+            $query->where('marca_id', $this->marcaSeleccionadaModal);
+        }
+
+        // Filtro por subcategoría
+        if ($this->subcategoriaSeleccionadaModal) {
+            $query->where('subcategoria_id', $this->subcategoriaSeleccionadaModal);
+        }
+
+        // Filtro por categoría (a través de subcategoría)
+        if ($this->categoriaSeleccionadaModal && !$this->subcategoriaSeleccionadaModal) {
+            $query->whereHas('subcategoria', function($q) {
+                $q->where('categoria_id', $this->categoriaSeleccionadaModal);
+            });
+        }
+
+        $productos = $query->limit(50)->get();
+
+        $this->resultadosBusquedaModal = $productos->map(function($producto) {
+            return [
+                'id' => $producto->id,
+                'nombre' => $producto->nombre,
+                'codigo_barra' => $producto->codigo_barra,
+                'precio_base' => $producto->precio_base,
+                'marca' => $producto->marca->nombre ?? null,
+                'subcategoria' => $producto->subcategoria->nombre ?? null,
+            ];
+        })->toArray();
+    }
+
+    public function seleccionarProductoModal($productoId)
+    {
+        $producto = Producto::with(['marca', 'subcategoria', 'unidadMedidaVenta'])->find($productoId);
+        
+        if ($producto) {
+            // Llenar el campo de búsqueda con el código de barras o nombre
+            $this->busquedaProducto = $producto->codigo_barra ?? $producto->nombre;
+            
+            // Establecer el producto temporal
+            $this->productoTemporal = [
+                'producto_id' => $producto->id,
+                'precio' => $producto->ultimo_costo_compra ?? $producto->precio_base ?? 0,
+                'cantidad_ingresada' => 1,
+                'fecha_expiracion' => '',
+                'unidad_medida_id' => $producto->unidad_medida_venta_id ?? null,
+                'isv' => 0,
+            ];
+
+            // Cerrar modal
+            $this->cerrarModalBusqueda();
+        }
+    }
+
+    // Métodos para trámites temporales
+    public function guardarTramiteTemporal()
+    {
+        // Validar que hay datos suficientes para guardar
+        if (empty($this->compra['numero_factura']) || !$this->proveedorSeleccionado || empty($this->productosCompra)) {
+            $this->mostrarAlerta = true;
+            $this->mensajeAlerta = 'Debe completar al menos el número de factura, proveedor y agregar productos para guardar un trámite temporal.';
+            return;
+        }
+
+        $proveedor = Cliente::find($this->proveedorSeleccionado);
+        
+        $tramite = [
+            'numero_factura' => $this->compra['numero_factura'],
+            'proveedor_id' => $this->proveedorSeleccionado,
+            'proveedor_nombre' => $proveedor ? $proveedor->nombre : 'N/A',
+            'fecha_emision' => $this->compra['fecha_emision'],
+            'fecha_recepcion' => $this->compra['fecha_recepcion'],
+            'fecha_vencimiento' => $this->compra['fecha_vencimiento'] ?? null,
+            'productos' => $this->productosCompra,
+            'total' => $this->total,
+            'fecha_guardado' => now()->toDateTimeString(),
+        ];
+
+        // Guardar en sesión
+        $tramites = session('tramites_temporales_compras', []);
+        $tramites[] = $tramite;
+        session(['tramites_temporales_compras' => $tramites]);
+
+        session()->flash('success', '✅ Trámite guardado temporalmente. Puede continuar más tarde.');
+        
+        // Volver a la lista
+        $this->volver();
     }
 
     public function render()

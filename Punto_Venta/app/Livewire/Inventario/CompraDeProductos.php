@@ -122,6 +122,11 @@ class CompraDeProductos extends Component
     public $progreso = null;
     public $detallesSincronizacion = null;
 
+    // Propiedades para trámites temporales
+    public $mostrarModalTramitesTemporales = false;
+    public $tramitesTemporales = [];
+    public $cantidadTramitesTemporales = 0;
+
     private $sincronizacionService;
 
     public function boot()
@@ -179,6 +184,9 @@ class CompraDeProductos extends Component
             $this->direccionOrden = $filtrosSesion['direccionOrden'] ?? 'desc';
             $this->page = $filtrosSesion['page'] ?? 1;
         }
+
+        // Cargar trámites temporales
+        $this->cargarTramitesTemporales();
 
         // Detectar si hay parámetros de otra vista
         $parametrosURL = request()->query();
@@ -518,6 +526,53 @@ class CompraDeProductos extends Component
     public function cerrarDetallesSincronizacion()
     {
         $this->detallesSincronizacion = null;
+    }
+
+    // Métodos para trámites temporales
+    public function cargarTramitesTemporales()
+    {
+        $this->tramitesTemporales = session('tramites_temporales_compras', []);
+        $this->cantidadTramitesTemporales = count($this->tramitesTemporales);
+    }
+
+    public function abrirModalTramitesTemporales()
+    {
+        $this->cargarTramitesTemporales();
+        $this->mostrarModalTramitesTemporales = true;
+    }
+
+    public function cerrarModalTramitesTemporales()
+    {
+        $this->mostrarModalTramitesTemporales = false;
+    }
+
+    public function cargarTramiteTemporal($index)
+    {
+        $tramites = session('tramites_temporales_compras', []);
+        
+        if (isset($tramites[$index])) {
+            $tramite = $tramites[$index];
+            
+            // Guardar el trámite en sesión para que lo cargue el componente CompraDeProducto
+            session(['tramite_a_cargar' => $tramite]);
+            
+            // Ir a la vista de crear compra
+            $this->dispatch('cambiarVista', ruta: 'Inventario.CompraDeProducto');
+        }
+    }
+
+    public function eliminarTramiteTemporal($index)
+    {
+        $tramites = session('tramites_temporales_compras', []);
+        
+        if (isset($tramites[$index])) {
+            unset($tramites[$index]);
+            $tramites = array_values($tramites); // Reindexar el array
+            session(['tramites_temporales_compras' => $tramites]);
+            
+            $this->cargarTramitesTemporales();
+            session()->flash('success', 'Trámite temporal eliminado correctamente.');
+        }
     }
 
     /**

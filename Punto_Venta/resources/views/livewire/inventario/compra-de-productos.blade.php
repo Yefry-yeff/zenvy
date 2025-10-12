@@ -61,6 +61,16 @@
                     <span>➕</span> Nueva Compra
                 </button>
 
+                <button wire:click="abrirModalTramitesTemporales"
+                        class="inline-flex items-center gap-1 px-3 py-2 text-sm text-white bg-yellow-600 rounded hover:bg-yellow-700">
+                    <span>📁</span> Trámites Temporales
+                    @if(($cantidadTramitesTemporales ?? 0) > 0)
+                        <span class="px-2 py-1 text-xs font-bold text-yellow-800 bg-yellow-200 rounded-full">
+                            {{ $cantidadTramitesTemporales }}
+                        </span>
+                    @endif
+                </button>
+
                 <!-- Botón Descargar reporte -->
                 <button wire:click="descargarExcel"
                     class="inline-flex items-center gap-1 px-3 py-2 text-sm text-white bg-green-600 rounded hover:bg-green-700 disabled:opacity-50"
@@ -833,6 +843,112 @@
                 </div>
             </div>
         </div>
+    @endif
+
+    <!-- Modal de Trámites Temporales -->
+    @if($mostrarModalTramitesTemporales ?? false)
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+         @click.self="$wire.cerrarModalTramitesTemporales()"
+         @keydown.escape.window="$wire.cerrarModalTramitesTemporales()">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-5xl max-h-[90vh] overflow-hidden">
+            <!-- Header -->
+            <div class="flex items-center justify-between px-6 py-4 text-white bg-yellow-600">
+                <h2 class="text-lg font-semibold">
+                    <i class="fas fa-folder-open me-2"></i>
+                    Trámites Temporales
+                </h2>
+                <button wire:click="cerrarModalTramitesTemporales" class="text-white transition-colors hover:text-gray-200">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+                @if(count($tramitesTemporales ?? []) > 0)
+                    <div class="mb-4">
+                        <p class="text-sm text-gray-600">
+                            Tienes <strong>{{ count($tramitesTemporales) }}</strong> trámite(s) guardado(s) temporalmente
+                        </p>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full border border-gray-200 table-auto">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-4 py-3 text-left border-b">N° Factura</th>
+                                    <th class="px-4 py-3 text-left border-b">Proveedor</th>
+                                    <th class="px-4 py-3 text-left border-b">Fecha Guardado</th>
+                                    <th class="px-4 py-3 text-left border-b">Productos</th>
+                                    <th class="px-4 py-3 text-center border-b">Total</th>
+                                    <th class="px-4 py-3 text-center border-b">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($tramitesTemporales as $index => $tramite)
+                                    <tr class="transition-colors hover:bg-gray-50">
+                                        <td class="px-4 py-3 border-b">
+                                            <span class="font-medium">{{ $tramite['numero_factura'] ?? 'N/A' }}</span>
+                                        </td>
+                                        <td class="px-4 py-3 border-b">
+                                            {{ $tramite['proveedor_nombre'] ?? 'N/A' }}
+                                        </td>
+                                        <td class="px-4 py-3 border-b">
+                                            <small class="text-gray-600">
+                                                {{ \Carbon\Carbon::parse($tramite['fecha_guardado'])->format('d/m/Y H:i') }}
+                                            </small>
+                                        </td>
+                                        <td class="px-4 py-3 border-b">
+                                            <span class="px-2 py-1 text-xs font-semibold text-blue-800 bg-blue-100 rounded">
+                                                {{ count($tramite['productos'] ?? []) }} productos
+                                            </span>
+                                        </td>
+                                        <td class="px-4 py-3 text-center border-b">
+                                            <span class="font-bold text-green-600">
+                                                L. {{ number_format($tramite['total'] ?? 0, 2) }}
+                                            </span>
+                                        </td>
+                                        <td class="px-4 py-3 text-center border-b">
+                                            <div class="flex justify-center gap-2">
+                                                <button wire:click="cargarTramiteTemporal({{ $index }})"
+                                                        class="px-3 py-1 text-xs font-medium text-white transition-colors bg-blue-600 rounded hover:bg-blue-700"
+                                                        title="Continuar con este trámite">
+                                                    <i class="fas fa-edit me-1"></i>
+                                                    Continuar
+                                                </button>
+                                                <button wire:click="eliminarTramiteTemporal({{ $index }})"
+                                                        class="px-3 py-1 text-xs font-medium text-white transition-colors bg-red-600 rounded hover:bg-red-700"
+                                                        title="Eliminar este trámite"
+                                                        onclick="return confirm('¿Está seguro de eliminar este trámite temporal?')">
+                                                    <i class="fas fa-trash me-1"></i>
+                                                    Eliminar
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @else
+                    <div class="py-12 text-center">
+                        <i class="mb-4 text-gray-400 fas fa-folder-open fa-4x"></i>
+                        <p class="text-lg text-gray-600">No hay trámites temporales guardados</p>
+                        <p class="mt-2 text-sm text-gray-500">
+                            Los trámites guardados temporalmente aparecerán aquí
+                        </p>
+                    </div>
+                @endif
+            </div>
+
+            <div class="px-6 py-4 bg-gray-50">
+                <button wire:click="cerrarModalTramitesTemporales"
+                        class="px-4 py-2 text-white transition-colors bg-gray-600 rounded hover:bg-gray-700">
+                    Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
     @endif
 
 </div>

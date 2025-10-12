@@ -167,21 +167,30 @@
                                         <label for="busqueda_producto" class="form-label">
                                             <strong>Código de Barras</strong> <span class="text-red-600">*</span>
                                         </label>
-                                        <div class="position-relative">
-                                            <input type="text"
-                                                   id="busqueda_producto"
-                                                   class="form-control"
-                                                   wire:model.live="busquedaProducto"
-                                                   onkeydown="if(event.key==='Enter'){event.preventDefault(); return false;}"
-                                                   placeholder="Escanear código de barras...">
-                                            @if($busquedaProducto && $productoTemporal['producto_id'])
-                                                <button type="button"
-                                                        class="btn btn-sm btn-outline-secondary position-absolute"
-                                                        style="right: 5px; top: 5px; padding: 2px 6px;"
-                                                        wire:click="limpiarBusqueda">
-                                                    ✕
-                                                </button>
-                                            @endif
+                                        <div class="d-flex gap-2">
+                                            <div class="position-relative flex-grow-1">
+                                                <input type="text"
+                                                       id="busqueda_producto"
+                                                       class="form-control"
+                                                       wire:model.live="busquedaProducto"
+                                                       onkeydown="if(event.key==='Enter'){event.preventDefault(); return false;}"
+                                                       placeholder="Escanear código de barras...">
+                                                @if($busquedaProducto && $productoTemporal['producto_id'])
+                                                    <button type="button"
+                                                            class="btn btn-sm btn-outline-secondary position-absolute"
+                                                            style="right: 5px; top: 5px; padding: 2px 6px;"
+                                                            wire:click="limpiarBusqueda">
+                                                        ✕
+                                                    </button>
+                                                @endif
+                                            </div>
+                                            <button type="button"
+                                                    wire:click="abrirModalBusqueda"
+                                                    class="btn btn-primary d-flex align-items-center gap-2"
+                                                    style="white-space: nowrap;">
+                                                <i class="fas fa-search"></i>
+                                                Buscar
+                                            </button>
                                         </div>
                                     </div>
 
@@ -836,12 +845,19 @@
                         <div class="gap-2 d-flex flex-column flex-md-row justify-content-end">
                             <button type="button"
                                     wire:click="resetFormulario"
-                                    class="order-2 btn btn-outline-secondary order-md-1">
+                                    class="order-3 btn btn-outline-secondary order-md-1">
                                 🔄 Limpiar Todo
                             </button>
 
+                            <button type="button"
+                                    wire:click="guardarTramiteTemporal"
+                                    class="order-2 btn btn-warning order-md-2"
+                                    @disabled(!$this->botonGuardarHabilitado)>
+                                📁 Guardar Temporal
+                            </button>
+
                             <button type="submit"
-                                    class="order-1 btn order-md-2"
+                                    class="order-1 btn order-md-3"
                                     @disabled(!$this->botonGuardarHabilitado)
                                     :class="{
                                         'btn-success': theme === 'verde' || !theme,
@@ -1499,5 +1515,169 @@
         // Verificar estado del botón periódicamente
         setInterval(actualizarBotonAgregar, 500);
     </script>
+
+    <!-- Modal de Búsqueda de Productos -->
+    @if($mostrarModalBusqueda ?? false)
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+         @click.self="$wire.cerrarModalBusqueda()"
+         @keydown.escape.window="$wire.cerrarModalBusqueda()">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-6xl max-h-[90vh] overflow-hidden"
+             x-data x-init="$watch('theme', t => localStorage.setItem('theme', t))">
+            <!-- Header con tema -->
+            <div class="flex items-center justify-between px-6 py-4 text-white"
+                :class="{
+                    'bg-emerald-600': theme === 'verde',
+                    'bg-blue-600': theme === 'azul',
+                    'bg-gray-900': theme === 'oscuro',
+                    'bg-slate-700': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
+                }">
+                <h2 class="text-lg font-semibold">
+                    <i class="fas fa-search me-2"></i>
+                    Búsqueda de Productos
+                </h2>
+                <button wire:click="cerrarModalBusqueda" class="text-white transition-colors hover:text-gray-200">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+                <!-- Barra de búsqueda -->
+                <div class="mb-4">
+                    <div class="position-relative">
+                        <div class="position-absolute start-0 top-50 translate-middle-y ps-3">
+                            <i class="text-gray-400 fas fa-search"></i>
+                        </div>
+                        <input type="text"
+                            wire:model.live.debounce.300ms="busquedaModalProductos"
+                            class="form-control ps-5"
+                            style="padding: 12px 12px 12px 40px;"
+                            placeholder="Buscar producto por nombre, código de barras o descripción...">
+                        <div wire:loading wire:target="busquedaModalProductos" 
+                             class="position-absolute end-0 top-50 translate-middle-y pe-3">
+                            <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                <span class="visually-hidden">Cargando...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Filtros en una fila -->
+                <div class="mb-4">
+                    <div class="row g-3">
+                        <!-- Marca -->
+                        <div class="col-md-4">
+                            <label class="form-label text-sm fw-medium">Marca</label>
+                            <select wire:model.live="marcaSeleccionadaModal"
+                                class="form-select">
+                                <option value="">Todas las marcas</option>
+                                @foreach($marcasDisponibles ?? [] as $marca)
+                                    <option value="{{ $marca['id'] }}">{{ $marca['nombre'] }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <!-- Categoría -->
+                        <div class="col-md-4">
+                            <label class="form-label text-sm fw-medium">Categoría</label>
+                            <select wire:model.live="categoriaSeleccionadaModal"
+                                class="form-select">
+                                <option value="">Todas las categorías</option>
+                                @foreach($categoriasDisponibles ?? [] as $categoria)
+                                    <option value="{{ $categoria['id'] }}">{{ $categoria['nombre'] }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <!-- Subcategoría -->
+                        <div class="col-md-4">
+                            <label class="form-label text-sm fw-medium">Subcategoría</label>
+                            <select wire:model.live="subcategoriaSeleccionadaModal"
+                                class="form-select">
+                                <option value="">Todas las subcategorías</option>
+                                @foreach($subcategoriasDisponibles ?? [] as $subcategoria)
+                                    <option value="{{ $subcategoria['id'] }}">{{ $subcategoria['nombre'] }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Resultados en tarjetas (Grid) -->
+                <div class="row g-4">
+                    @forelse($resultadosBusquedaModal ?? [] as $producto)
+                        <div class="col-md-6 col-lg-4">
+                            <div class="card h-100 shadow-sm border cursor-pointer hover-shadow-lg"
+                                 wire:click="seleccionarProductoModal({{ $producto['id'] }})"
+                                 style="cursor: pointer; transition: all 0.2s;"
+                                 title="Click para seleccionar">
+                                
+                                <div class="card-body">
+                                    <!-- Nombre del producto -->
+                                    <h6 class="mb-2 card-title fw-bold text-gray-800" style="min-height: 3rem;">
+                                        {{ $producto['nombre'] }}
+                                    </h6>
+
+                                    <!-- Código -->
+                                    <div class="mb-2">
+                                        <p class="mb-1 text-xs font-monospace text-muted">
+                                            @if($producto['codigo_barra'] ?? false)
+                                                <i class="me-1 fas fa-barcode"></i>{{ $producto['codigo_barra'] }}
+                                            @else
+                                                <i class="me-1 fas fa-hashtag"></i>SKU-{{ $producto['id'] }}
+                                            @endif
+                                        </p>
+                                    </div>
+
+                                    <!-- Categoría y Marca -->
+                                    <div class="mb-3 d-flex flex-wrap gap-2">
+                                        @if($producto['subcategoria'] ?? false)
+                                            <span class="badge bg-primary">
+                                                <i class="me-1 fas fa-tag"></i>
+                                                {{ $producto['subcategoria'] }}
+                                            </span>
+                                        @endif
+                                        @if($producto['marca'] ?? false)
+                                            <span class="badge bg-secondary">
+                                                <i class="me-1 fas fa-industry"></i>
+                                                {{ $producto['marca'] }}
+                                            </span>
+                                        @endif
+                                    </div>
+
+                                    <!-- Precio base -->
+                                    <div class="mt-auto">
+                                        <p class="mb-0 text-lg fw-bold text-success">
+                                            L. {{ number_format($producto['precio_base'] ?? 0, 2) }}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <!-- Botón de agregar -->
+                                <div class="card-footer bg-light">
+                                    <button type="button"
+                                            wire:click.stop="seleccionarProductoModal({{ $producto['id'] }})"
+                                            class="btn btn-sm btn-primary w-100">
+                                        <i class="fas fa-plus me-1"></i>
+                                        Seleccionar
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    @empty
+                        <div class="col-12">
+                            <div class="py-5 text-center text-muted">
+                                <i class="mb-3 fas fa-search fa-3x"></i>
+                                <p class="mb-0">No se encontraron productos</p>
+                                <small>Intente con otros términos de búsqueda o filtros</small>
+                            </div>
+                        </div>
+                    @endforelse
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
 
 </div> {{-- FIN ELEMENTO RAÍZ --}}
