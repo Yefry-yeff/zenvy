@@ -749,9 +749,11 @@ class CompraDeProducto extends Component
             return [
                 'id' => $producto->id,
                 'nombre' => $producto->nombre,
+                'descripcion' => $producto->descripcion,
                 'codigo_barra' => $producto->codigo_barra,
                 'precio_base' => $producto->precio_base,
                 'marca' => $producto->marca->nombre ?? null,
+                'categoria' => $producto->subcategoria->categoria->nombre ?? null,
                 'subcategoria' => $producto->subcategoria->nombre ?? null,
             ];
         })->toArray();

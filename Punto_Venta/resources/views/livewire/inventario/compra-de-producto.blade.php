@@ -1619,6 +1619,17 @@
                                         {{ $producto['nombre'] }}
                                     </h6>
 
+                                    <!-- Descripción del producto -->
+                                    @if($producto['descripcion'] ?? false)
+                                        <p class="mb-3 text-sm text-muted" style="min-height: 2.5rem; font-size: 0.875rem; line-height: 1.3;">
+                                            {{ Str::limit($producto['descripcion'], 80) }}
+                                        </p>
+                                    @else
+                                        <p class="mb-3 text-sm text-muted fst-italic" style="min-height: 2.5rem; font-size: 0.875rem;">
+                                            Sin descripción
+                                        </p>
+                                    @endif
+
                                     <!-- Código -->
                                     <div class="mb-2">
                                         <p class="mb-1 text-xs font-monospace text-muted">
@@ -1630,18 +1641,21 @@
                                         </p>
                                     </div>
 
-                                    <!-- Categoría y Marca -->
+                                    <!-- Marca, Categoría y Subcategoría -->
                                     <div class="mb-3 d-flex flex-wrap gap-2">
-                                        @if($producto['subcategoria'] ?? false)
-                                            <span class="badge bg-primary">
-                                                <i class="me-1 fas fa-tag"></i>
-                                                {{ $producto['subcategoria'] }}
-                                            </span>
-                                        @endif
                                         @if($producto['marca'] ?? false)
                                             <span class="badge bg-secondary">
-                                                <i class="me-1 fas fa-industry"></i>
-                                                {{ $producto['marca'] }}
+                                                <i class="me-1 fas fa-industry"></i>{{ $producto['marca'] }}
+                                            </span>
+                                        @endif
+                                        @if($producto['categoria'] ?? false)
+                                            <span class="badge bg-info">
+                                                <i class="me-1 fas fa-folder"></i>{{ $producto['categoria'] }}
+                                            </span>
+                                        @endif
+                                        @if($producto['subcategoria'] ?? false)
+                                            <span class="badge bg-primary">
+                                                <i class="me-1 fas fa-tag"></i>{{ $producto['subcategoria'] }}
                                             </span>
                                         @endif
                                     </div>
