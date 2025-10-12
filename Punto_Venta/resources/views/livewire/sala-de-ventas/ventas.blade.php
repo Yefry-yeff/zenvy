@@ -1660,9 +1660,16 @@
     <div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
          @click.self="$wire.cerrarModalTramitesTemporales()"
          @keydown.escape.window="$wire.cerrarModalTramitesTemporales()">
-        <div class="bg-white rounded-lg shadow-xl w-full max-w-5xl max-h-[90vh] overflow-hidden">
-            <!-- Header -->
-            <div class="flex items-center justify-between px-6 py-4 text-white bg-yellow-600">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-6xl max-h-[90vh] overflow-hidden"
+             x-data="{ filtroCliente: '', filtroFecha: '' }">
+            <!-- Header con tema -->
+            <div class="flex items-center justify-between px-6 py-4 text-white"
+                :class="{
+                    'bg-emerald-600': theme === 'verde',
+                    'bg-blue-600': theme === 'azul',
+                    'bg-gray-900': theme === 'oscuro',
+                    'bg-slate-700': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
+                }">
                 <h2 class="text-lg font-semibold">
                     <i class="fas fa-folder-open me-2"></i>
                     Trámites Temporales de Ventas
@@ -1682,6 +1689,25 @@
                         </p>
                     </div>
 
+                    <!-- Filtros -->
+                    <div class="mb-4">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label text-sm fw-medium">Buscar por Cliente</label>
+                                <input type="text" 
+                                       x-model="filtroCliente"
+                                       class="form-control"
+                                       placeholder="Ingrese nombre del cliente...">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label text-sm fw-medium">Buscar por Fecha</label>
+                                <input type="date" 
+                                       x-model="filtroFecha"
+                                       class="form-control">
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="overflow-x-auto">
                         <table class="min-w-full border border-gray-200 table-auto">
                             <thead class="bg-gray-50">
@@ -1695,7 +1721,18 @@
                             </thead>
                             <tbody>
                                 @foreach($tramitesTemporales as $index => $tramite)
-                                    <tr class="transition-colors hover:bg-gray-50">
+                                    @php
+                                        $nombreCliente = '';
+                                        if($tramite['modo_cliente_manual'] ?? false) {
+                                            $nombreCliente = $tramite['cliente_manual']['nombre'] ?? 'Cliente Manual';
+                                        } else {
+                                            $nombreCliente = $tramite['cliente']['nombre'] ?? 'Consumidor Final';
+                                        }
+                                        $fechaGuardado = \Carbon\Carbon::parse($tramite['fecha_guardado'])->format('Y-m-d');
+                                    @endphp
+                                    <tr class="transition-colors hover:bg-gray-50"
+                                        x-show="(!filtroCliente || '{{ $nombreCliente }}'.toLowerCase().includes(filtroCliente.toLowerCase())) && 
+                                                (!filtroFecha || '{{ $fechaGuardado }}' === filtroFecha)">
                                         <td class="px-4 py-3 border-b">
                                             @if($tramite['modo_cliente_manual'] ?? false)
                                                 <div>

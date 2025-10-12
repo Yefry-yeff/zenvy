@@ -186,8 +186,14 @@
                                             </div>
                                             <button type="button"
                                                     wire:click="abrirModalBusqueda"
-                                                    class="btn btn-primary d-flex align-items-center gap-2"
-                                                    style="white-space: nowrap;">
+                                                    class="btn d-flex align-items-center gap-2"
+                                                    style="white-space: nowrap;"
+                                                    :class="{
+                                                        'btn-success': theme === 'verde',
+                                                        'btn-primary': theme === 'azul',
+                                                        'btn-dark': theme === 'oscuro',
+                                                        'btn-secondary': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
+                                                    }">
                                                 <i class="fas fa-search"></i>
                                                 Buscar
                                             </button>
