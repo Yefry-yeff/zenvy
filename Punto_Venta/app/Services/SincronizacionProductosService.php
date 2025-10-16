@@ -166,17 +166,17 @@ class SincronizacionProductosService
                     ->first();
 
                 if ($productoZenvyActual) {
-                    // Para actualizaciones, NO sincronizar: codigo_barra, imagen, descuento_unitario
+                    // Para actualizaciones, NO sincronizar: codigo_barra, imagen, descuento_unitario, isv_id, unidad_medida_venta_id
                     // Para precio_base: solo sincronizar si es necesario ajustarlo al precio4
                     $datosActualizacion = [
                         'nombre' => $productoValencia->nombre,
                         'descripcion' => $productoValencia->descripcion,
-                        'isv_id' => $this->convertirIsvAId($productoValencia->isv),
+                        // NO sincronizar isv_id en actualizaciones (mantener valor local)
                         'ultimo_costo_compra' => $productoValencia->ultimo_costo_compra,
                         'costo_promedio' => $productoValencia->costo_promedio,
                         'codigo_estatal' => $productoValencia->codigo_estatal,
                         'marca_id' => $marcaIdZenvy,
-                        'unidad_medida_venta_id' => $unidadIdZenvy,
+                        // NO sincronizar unidad_medida_venta_id en actualizaciones (mantener valor local)
                         'estado_id' => $productoValencia->estado_producto_id,
                         'subcategoria_id' => $subcategoriaIdZenvy,
                         // Sincronizar precios 1-4 normalmente
@@ -203,6 +203,8 @@ class SincronizacionProductosService
                     // - codigo_barra (mantener valor actual)
                     // - imagen (mantener valor actual)
                     // - descuento_unitario (mantener valor actual)
+                    // - isv_id (mantener valor local - puede ser diferente según configuración de la tienda)
+                    // - unidad_medida_venta_id (mantener valor local - puede ser diferente según preferencias)
 
                     $this->conexionZenvy
                         ->table('producto')

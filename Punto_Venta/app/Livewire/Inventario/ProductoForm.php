@@ -438,7 +438,7 @@ class ProductoForm extends Component
                     $datosPermitidos = [
                         'nombre' => $producto->nombre,
                         'descripcion' => $producto->descripcion,
-                        'isv_id' => $producto->isv_id,
+                        'isv_id' => $datos['isv_id'], // Permitir modificar ISV
                         'precio_base' => $datos['precio_base'],
                         'ultimo_costo_compra' => $producto->ultimo_costo_compra,
                         'costo_promedio' => $producto->costo_promedio,
@@ -448,7 +448,7 @@ class ProductoForm extends Component
                         'estado_id' => $producto->estado_id,
                         'subcategoria_id' => $producto->subcategoria_id,
                         'marca_id' => $producto->marca_id,
-                        'unidad_medida_venta_id' => $producto->unidad_medida_venta_id,
+                        'unidad_medida_venta_id' => $datos['unidad_medida_venta_id'], // Permitir modificar unidad de medida
                         'users_id' => $producto->users_id,
                         'precio1' => $datos['precio1'],
                         'precio2' => $datos['precio2'],

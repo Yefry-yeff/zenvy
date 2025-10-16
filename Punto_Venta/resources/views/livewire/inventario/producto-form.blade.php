@@ -139,7 +139,7 @@
                             <div class="mb-4 p-3 bg-orange-50 border border-orange-200 rounded">
                                 <p class="text-sm text-orange-700">
                                     🏢 <strong>Producto sincronizado desde Valencia</strong> - Los campos principales son de solo lectura. 
-                                    Solo puedes modificar precios, descuentos e imagen.
+                                    Puedes modificar: precios, descuentos, imagen, unidad de medida y tipo de ISV.
                                 </p>
                             </div>
                         @endif
@@ -344,25 +344,12 @@
                         <div class="row">
                             <div class="mb-3 col-md-3">
                                 <label for="unidad_medida_venta" class="form-label">Unidad de Medida <span class="text-red-600">*</span></label>
-                                @if($esProductoValencia)
-                                    <select id="unidad_medida_venta" 
-                                            class="form-select bg-gray-100 text-gray-600" 
-                                            disabled 
-                                            style="cursor: not-allowed;" 
-                                            title="Campo solo de lectura">
-                                        <option value="{{ $form['unidad_medida_venta_id'] }}">
-                                            {{ collect($unidadesMedida)->where('id', $form['unidad_medida_venta_id'])->first()->nombre ?? 'N/A' }} 
-                                            ({{ collect($unidadesMedida)->where('id', $form['unidad_medida_venta_id'])->first()->simbolo ?? '' }})
-                                        </option>
-                                    </select>
-                                @else
-                                    <select id="unidad_medida_venta" class="form-select {{ $this->getClaseCampo('unidad_medida') }}" wire:model.defer="form.unidad_medida_venta_id">
-                                        <option value="">Seleccionar unidad</option>
-                                        @foreach($unidadesMedida as $unidad)
-                                            <option value="{{ $unidad->id }}">{{ $unidad->nombre }} ({{ $unidad->simbolo }})</option>
-                                        @endforeach
-                                    </select>
-                                @endif
+                                <select id="unidad_medida_venta" class="form-select {{ $this->getClaseCampo('unidad_medida') }}" wire:model.defer="form.unidad_medida_venta_id">
+                                    <option value="">Seleccionar unidad</option>
+                                    @foreach($unidadesMedida as $unidad)
+                                        <option value="{{ $unidad->id }}">{{ $unidad->nombre }} ({{ $unidad->simbolo }})</option>
+                                    @endforeach
+                                </select>
                                 @error('form.unidad_medida_venta_id')
                                     <div class="mt-1 text-sm text-danger">❌ Debe seleccionar una unidad de medida</div>
                                 @enderror
@@ -381,22 +368,12 @@
                             </div>
                             <div class="mb-3 col-md-3">
                                 <label for="isv_id" class="form-label">Tipo de ISV <span class="text-red-600">*</span></label>
-                                @if($esProductoValencia)
-                                    <select id="isv_id" 
-                                            class="form-select bg-gray-100 text-gray-600" 
-                                            disabled 
-                                            style="cursor: not-allowed;" 
-                                            title="Campo solo de lectura">
-                                        <option value="{{ $form['isv_id'] }}">{{ collect($isvs)->where('id', $form['isv_id'])->first()->cantidad ?? 'N/A' }}%</option>
-                                    </select>
-                                @else
-                                    <select id="isv_id" class="form-select {{ $this->getClaseCampo('isv_id') }}" wire:model.defer="form.isv_id">
-                                        <option value="">Seleccionar ISV</option>
-                                        @foreach($isvs as $isv)
-                                            <option value="{{ $isv->id }}">{{ $isv->cantidad }}%</option>
-                                        @endforeach
-                                    </select>
-                                @endif
+                                <select id="isv_id" class="form-select {{ $this->getClaseCampo('isv_id') }}" wire:model.defer="form.isv_id">
+                                    <option value="">Seleccionar ISV</option>
+                                    @foreach($isvs as $isv)
+                                        <option value="{{ $isv->id }}">{{ $isv->cantidad }}%</option>
+                                    @endforeach
+                                </select>
                                 @error('form.isv_id')
                                     <div class="mt-1 text-sm text-danger">❌ Debe seleccionar un tipo de ISV</div>
                                 @enderror
