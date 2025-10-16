@@ -26,6 +26,7 @@ class RecibirProductoCompra extends Component
 
     // Datos del formulario de distribución
     public $cantidadDistribuir = '';
+    public $cantidadAsignarStock = ''; // Nueva propiedad para cantidad en stock (solo Valencia)
     public $fechaDistribucion = '';
     public $bodegaDistribucion = '';
     public $segmentoDistribucion = '';
@@ -63,6 +64,7 @@ class RecibirProductoCompra extends Component
             $this->detallesCompra = CompraHasProducto::with([
                 'producto.marca',
                 'producto.unidadMedidaCompra',
+                'producto.unidadMedidaVenta',
                 'unidadMedida'
             ])
             ->where('compra_id', $this->compraId)
@@ -74,6 +76,8 @@ class RecibirProductoCompra extends Component
                     'nombre_producto' => $detalle->producto->nombre ?? 'N/A',
                     'marca' => $detalle->producto->marca->nombre ?? 'Sin marca',
                     'unidad_medida' => $detalle->unidadMedida->nombre ?? 'N/A',
+                    'unidad_medida_venta' => $detalle->producto->unidadMedidaVenta->nombre ?? 'N/A',
+                    'unidad_medida_venta_id' => $detalle->producto->unidad_medida_venta_id ?? null,
                     'precio_unitario' => $detalle->precio,
                     'cantidad_comprada' => $detalle->cantidad_ingresada,
                     'cantidad_sin_asignar' => $detalle->cantidad_sin_asignar,
@@ -271,6 +275,7 @@ class RecibirProductoCompra extends Component
         $this->mostrarModalDistribucion = false;
         $this->detalleSeleccionado = null;
         $this->cantidadDistribuir = '';
+        $this->cantidadAsignarStock = '';
         $this->bodegaDistribucion = '';
         $this->segmentoDistribucion = '';
         $this->seccionDistribucion = '';
@@ -281,7 +286,7 @@ class RecibirProductoCompra extends Component
 
     public function puedeConfirmarDistribucion()
     {
-        return $this->cantidadDistribuir &&
+        $validacionBase = $this->cantidadDistribuir &&
                $this->fechaDistribucion &&
                $this->bodegaDistribucion &&
                $this->segmentoDistribucion &&
@@ -290,6 +295,16 @@ class RecibirProductoCompra extends Component
                $this->cantidadDistribuir > 0 &&
                $this->detalleSeleccionado &&
                $this->cantidadDistribuir <= $this->detalleSeleccionado['cantidad_sin_asignar'];
+
+        // Si es producto de Valencia (TRASLADO), validar también cantidadAsignarStock
+        if ($this->compra && $this->compra->tipo_origen === 'TRASLADO') {
+            return $validacionBase &&
+                   $this->cantidadAsignarStock &&
+                   is_numeric($this->cantidadAsignarStock) &&
+                   $this->cantidadAsignarStock > 0;
+        }
+
+        return $validacionBase;
     }
 
     public function confirmarDistribucion()
@@ -303,6 +318,14 @@ class RecibirProductoCompra extends Component
         if (!is_numeric($this->cantidadDistribuir) || $this->cantidadDistribuir <= 0) {
             $this->mostrarError('La cantidad debe ser un número mayor a cero.');
             return;
+        }
+
+        // Validación adicional para productos de Valencia
+        if ($this->compra && $this->compra->tipo_origen === 'TRASLADO') {
+            if (!$this->cantidadAsignarStock || !is_numeric($this->cantidadAsignarStock) || $this->cantidadAsignarStock <= 0) {
+                $this->mostrarError('Para productos de Valencia, la cantidad a asignar en stock debe ser un número mayor a cero.');
+                return;
+            }
         }
 
         if (!$this->detalleSeleccionado) {
@@ -333,13 +356,18 @@ class RecibirProductoCompra extends Component
                 throw new \Exception("La cantidad disponible ha cambiado. Solo quedan {$detalleCompra->cantidad_sin_asignar} unidades disponibles.");
             }
 
+            // Determinar la cantidad para el stock (para Valencia usar cantidadAsignarStock, para otros usar cantidadDistribuir)
+            $cantidadParaStock = ($this->compra && $this->compra->tipo_origen === 'TRASLADO')
+                ? floatval($this->cantidadAsignarStock)
+                : $cantidadDistribuir;
+
             // Crear registro en recibido_bodega
             $recibidoBodega = RecibidoBodega::create([
                 'producto_id' => $this->detalleSeleccionado['producto_id'],
                 'seccion_id' => $this->seccionDistribucion,
                 'cantidad_compra_lote' => $cantidadDistribuir,
-                'cantidad_inicial_seccion' => $cantidadDistribuir,
-                'cantidad_disponible' => $cantidadDistribuir,
+                'cantidad_inicial_seccion' => $cantidadParaStock,
+                'cantidad_disponible' => $cantidadParaStock,
                 'fecha_recibido' => $this->fechaDistribucion,
                 'fecha_expiracion' => $detalleCompra->fecha_expiracion,
                 'comentario' => $this->comentarioDistribucion,
@@ -402,7 +430,15 @@ class RecibirProductoCompra extends Component
             // Preparar mensaje de éxito detallado
             $mensaje = "✅ Distribución exitosa:\n\n";
             $mensaje .= "📦 Producto: {$this->detalleSeleccionado['nombre_producto']}\n";
-            $mensaje .= "🔢 Cantidad: {$cantidadDistribuir} {$this->detalleSeleccionado['unidad_medida']}\n";
+            
+            // Si es producto de Valencia, mostrar ambas cantidades
+            if ($this->compra && $this->compra->tipo_origen === 'TRASLADO') {
+                $mensaje .= "🔢 Cantidad distribuida: {$cantidadDistribuir} {$this->detalleSeleccionado['unidad_medida']}\n";
+                $mensaje .= "� Cantidad en stock: {$cantidadParaStock} unidades\n";
+            } else {
+                $mensaje .= "�🔢 Cantidad: {$cantidadDistribuir} {$this->detalleSeleccionado['unidad_medida']}\n";
+            }
+            
             $mensaje .= "🏢 Bodega: {$this->nombreBodegaDistribucion}\n";
             $mensaje .= "📍 Ubicación: {$this->nombreSegmentoDistribucion} > {$this->nombreSeccionDistribucion}";
 

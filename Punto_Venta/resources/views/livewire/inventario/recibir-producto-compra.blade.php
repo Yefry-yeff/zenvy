@@ -34,6 +34,18 @@
                                 <h6 class="text-sm font-medium text-blue-800 mb-1">Información General</h6>
                                 <p class="text-sm mb-1"><strong>N° Factura:</strong> {{ $compra->numero_factura }}</p>
                                 <p class="text-sm mb-1"><strong>Proveedor:</strong> {{ $compra->proveedor->nombre ?? 'N/A' }}</p>
+                                <p class="text-sm mb-1">
+                                    <strong>Creado por:</strong>
+                                    @if($compra->tipo_origen === 'TRASLADO')
+                                        <span class="badge bg-orange-100 text-orange-800">Valencia</span>
+                                    @else
+                                        @if($compra->user && $compra->user->detalle)
+                                            {{ trim(($compra->user->detalle->primer_nombre ?? '') . ' ' . ($compra->user->detalle->segundo_nombre ?? '') . ' ' . ($compra->user->detalle->primer_apellido ?? '') . ' ' . ($compra->user->detalle->segundo_apellido ?? '')) }}
+                                        @else
+                                            {{ $compra->user->name ?? 'N/A' }}
+                                        @endif
+                                    @endif
+                                </p>
                                 <p class="text-sm mb-0">
                                     <strong>Tipo:</strong>
                                     @if($compra->tipo_origen === 'TRASLADO')
@@ -225,6 +237,37 @@
                             </div>
                         </div>
 
+                        <!-- Unidad de Medida y Cantidad en Stock (solo para productos de Valencia) -->
+                        @if($compra->tipo_origen === 'TRASLADO')
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="unidadMedida" class="form-label">Unidad de Medida del Producto</label>
+                                        <input type="text"
+                                               id="unidadMedida"
+                                               class="form-control bg-light"
+                                               value="{{ $detalleSeleccionado['unidad_medida_venta'] ?? 'N/A' }}"
+                                               readonly
+                                               disabled>
+                                        <small class="text-muted">Unidad de medida de venta del producto</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="cantidadAsignarStock" class="form-label">Cantidad a Asignar en Stock <span class="text-red-600">*</span></label>
+                                        <input type="number"
+                                               id="cantidadAsignarStock"
+                                               class="form-control"
+                                               wire:model.live="cantidadAsignarStock"
+                                               min="0.01"
+                                               step="0.01"
+                                               placeholder="Cantidad en stock">
+                                        <small class="text-muted">Cantidad que se agregará al inventario de la sección</small>
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
+
                         <!-- Selección de ubicación (Bodega > Segmento > Sección) -->
                         <div class="mb-3">
                             <label for="bodegaDistribucion" class="form-label">Bodega <span class="text-red-600">*</span></label>
@@ -294,7 +337,10 @@
                         @if($bodegaDistribucion && $segmentoDistribucion && $seccionDistribucion)
                             <div class="alert alert-success">
                                 <h6><i class="fas fa-check-circle me-2"></i>Resumen de Distribución</h6>
-                                <p class="mb-1"><strong>Cantidad:</strong> {{ $cantidadDistribuir }} {{ $detalleSeleccionado['unidad_medida'] }}</p>
+                                <p class="mb-1"><strong>Cantidad a Distribuir:</strong> {{ $cantidadDistribuir }} {{ $detalleSeleccionado['unidad_medida'] }}</p>
+                                @if($compra->tipo_origen === 'TRASLADO')
+                                    <p class="mb-1"><strong>Cantidad en Stock:</strong> {{ $cantidadAsignarStock ?? 0 }} {{ $detalleSeleccionado['unidad_medida_venta'] ?? 'N/A' }}</p>
+                                @endif
                                 <p class="mb-1"><strong>Ubicación:</strong> {{ $nombreBodegaDistribucion }} > {{ $nombreSegmentoDistribucion }} > {{ $nombreSeccionDistribucion }}</p>
                                 <p class="mb-0"><strong>Fecha:</strong> {{ $fechaDistribucion ? \Carbon\Carbon::parse($fechaDistribucion)->format('d/m/Y') : '' }}</p>
                             </div>
