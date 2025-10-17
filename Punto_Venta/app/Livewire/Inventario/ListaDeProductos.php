@@ -420,6 +420,12 @@ class ListaDeProductos extends Component
         return empty($filtros) ? 'Ninguno' : implode(', ', $filtros);
     }
 
+    public function editarStock($recibidoBodegaId)
+    {
+        // Emitir evento para cambiar al componente de edición de stock
+        $this->dispatch('cambiarVista', ruta: 'Inventario.StockForm', parametros: ['recibidoId' => $recibidoBodegaId]);
+    }
+
     public function render()
     {
         $productosRecibidos = $this->cargarDatos();

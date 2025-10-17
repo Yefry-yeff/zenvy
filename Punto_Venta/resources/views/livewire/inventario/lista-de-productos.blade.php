@@ -198,13 +198,12 @@
                                 <th class="px-4 py-3 text-center border-b">Fecha Expiración</th>
                                 <th class="px-4 py-3 text-center border-b">Estado</th>
                                 <th class="px-4 py-3 text-center border-b">Comentario</th>
+                                <th class="px-4 py-3 text-center border-b">Acciones</th>
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-200">
                             @foreach($productosRecibidos as $item)
-                                <tr class="hover:bg-gray-50 cursor-pointer {{ $item->cantidad_disponible > 10 ? 'bg-green-50' : ($item->cantidad_disponible > 0 ? 'bg-yellow-50' : 'bg-red-50') }}"
-                                    wire:click="editarProducto({{ $item->producto_id }})"
-                                    title="Clic para editar producto">
+                                <tr class="hover:bg-gray-50 {{ $item->cantidad_disponible > 10 ? 'bg-green-50' : ($item->cantidad_disponible > 0 ? 'bg-yellow-50' : 'bg-red-50') }}">
 
                                     <!-- Producto -->
                                     <td class="px-4 py-3 border-b">
@@ -293,6 +292,50 @@
                                         @else
                                             <span class="text-gray-400">-</span>
                                         @endif
+                                    </td>
+
+                                    <!-- Acciones -->
+                                    <td class="px-4 py-3 text-center border-b" x-data="{ open: false }">
+                                        <div class="relative inline-block text-left">
+                                            <button @click="open = !open" 
+                                                    @click.away="open = false"
+                                                    type="button" 
+                                                    class="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path>
+                                                </svg>
+                                            </button>
+
+                                            <!-- Dropdown Menu -->
+                                            <div x-show="open" 
+                                                 x-transition:enter="transition ease-out duration-100"
+                                                 x-transition:enter-start="transform opacity-0 scale-95"
+                                                 x-transition:enter-end="transform opacity-100 scale-100"
+                                                 x-transition:leave="transition ease-in duration-75"
+                                                 x-transition:leave-start="transform opacity-100 scale-100"
+                                                 x-transition:leave-end="transform opacity-0 scale-95"
+                                                 class="absolute right-0 z-10 w-48 mt-2 origin-top-right bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
+                                                 style="display: none;">
+                                                <div class="py-1">
+                                                    <button wire:click="editarProducto({{ $item->producto_id }})"
+                                                            @click="open = false"
+                                                            class="flex items-center w-full px-4 py-2 text-sm text-left text-gray-700 hover:bg-gray-100 hover:text-gray-900">
+                                                        <svg class="w-4 h-4 mr-3 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                                        </svg>
+                                                        Editar Producto
+                                                    </button>
+                                                    <button wire:click="editarStock({{ $item->id }})"
+                                                            @click="open = false"
+                                                            class="flex items-center w-full px-4 py-2 text-sm text-left text-gray-700 hover:bg-gray-100 hover:text-gray-900">
+                                                        <svg class="w-4 h-4 mr-3 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                                                        </svg>
+                                                        Editar Stock
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </td>
                                 </tr>
                             @endforeach
