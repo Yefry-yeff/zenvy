@@ -9,6 +9,8 @@ use App\Models\Bodega;
 use App\Models\Segmento;
 use App\Models\Seccion;
 use App\Models\RecibidoBodega;
+use App\Models\UnidadMedida;
+use App\Models\Producto;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -26,7 +28,9 @@ class RecibirProductoCompra extends Component
 
     // Datos del formulario de distribución
     public $cantidadDistribuir = '';
-    public $cantidadAsignarStock = ''; // Nueva propiedad para cantidad en stock (solo Valencia)
+    public $cantidadAsignarStock = ''; // Cantidad en stock para todas las compras
+    public $unidadMedidaProducto = ''; // Unidad de medida de venta del producto (editable)
+    public $nombreUnidadMedidaProducto = ''; // Nombre de la unidad seleccionada
     public $fechaDistribucion = '';
     public $bodegaDistribucion = '';
     public $segmentoDistribucion = '';
@@ -37,6 +41,7 @@ class RecibirProductoCompra extends Component
     public $bodegas = [];
     public $segmentos = [];
     public $secciones = [];
+    public $unidadesMedida = []; // Lista de unidades de medida disponibles
     public $nombreBodegaDistribucion = '';
     public $nombreSegmentoDistribucion = '';
     public $nombreSeccionDistribucion = '';
@@ -52,6 +57,7 @@ class RecibirProductoCompra extends Component
         $this->compraId = $compraId;
         $this->cargarDatosCompra();
         $this->cargarBodegas();
+        $this->cargarUnidadesMedida();
         $this->fechaDistribucion = now()->format('Y-m-d');
     }
 
@@ -70,14 +76,27 @@ class RecibirProductoCompra extends Component
             ->where('compra_id', $this->compraId)
             ->get()
             ->map(function($detalle) {
+                // Priorizar siempre la unidad de medida de venta del producto
+                $unidadMedidaVenta = null;
+                $unidadMedidaVentaId = null;
+                
+                if ($detalle->producto && $detalle->producto->unidadMedidaVenta) {
+                    $unidadMedidaVenta = $detalle->producto->unidadMedidaVenta->nombre;
+                    $unidadMedidaVentaId = $detalle->producto->unidad_medida_venta_id;
+                } elseif ($detalle->producto && $detalle->producto->unidad_medida_venta_id) {
+                    // Si tiene ID pero no se cargó la relación, intentar obtenerla
+                    $unidadMedidaVentaId = $detalle->producto->unidad_medida_venta_id;
+                    $unidadMedidaVenta = $detalle->producto->unidadMedidaVenta->nombre ?? 'N/A';
+                }
+                
                 return [
                     'id' => $detalle->id,
                     'codigo_producto' => $detalle->producto->id ?? 'N/A',
                     'nombre_producto' => $detalle->producto->nombre ?? 'N/A',
                     'marca' => $detalle->producto->marca->nombre ?? 'Sin marca',
                     'unidad_medida' => $detalle->unidadMedida->nombre ?? 'N/A',
-                    'unidad_medida_venta' => $detalle->producto->unidadMedidaVenta->nombre ?? 'N/A',
-                    'unidad_medida_venta_id' => $detalle->producto->unidad_medida_venta_id ?? null,
+                    'unidad_medida_venta' => $unidadMedidaVenta ?? 'N/A',
+                    'unidad_medida_venta_id' => $unidadMedidaVentaId,
                     'precio_unitario' => $detalle->precio,
                     'cantidad_comprada' => $detalle->cantidad_ingresada,
                     'cantidad_sin_asignar' => $detalle->cantidad_sin_asignar,
@@ -142,6 +161,31 @@ class RecibirProductoCompra extends Component
                 'user_role' => Auth::user()->rol->txt_nombre ?? 'Sin rol'
             ]);
             $this->bodegas = [];
+        }
+    }
+
+    public function cargarUnidadesMedida()
+    {
+        try {
+            // Cargar todas las unidades de medida como colección de Eloquent (igual que en producto-form)
+            $this->unidadesMedida = UnidadMedida::orderBy('nombre', 'asc')->get();
+
+        } catch (\Exception $e) {
+            \Log::error('Error al cargar unidades de medida', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            $this->unidadesMedida = collect([]);
+        }
+    }
+
+    public function updatedUnidadMedidaProducto()
+    {
+        if ($this->unidadMedidaProducto) {
+            $unidad = $this->unidadesMedida->firstWhere('id', $this->unidadMedidaProducto);
+            $this->nombreUnidadMedidaProducto = $unidad ? $unidad->nombre : '';
+        } else {
+            $this->nombreUnidadMedidaProducto = '';
         }
     }
 
@@ -242,6 +286,9 @@ class RecibirProductoCompra extends Component
 
             $this->detalleSeleccionado = $detalle;
             $this->cantidadDistribuir = '';
+            $this->cantidadAsignarStock = '';
+            $this->unidadMedidaProducto = $detalle['unidad_medida_venta_id'] ?? '';
+            $this->nombreUnidadMedidaProducto = $detalle['unidad_medida_venta'] ?? '';
             $this->bodegaDistribucion = '';
             $this->segmentoDistribucion = '';
             $this->seccionDistribucion = '';
@@ -249,15 +296,6 @@ class RecibirProductoCompra extends Component
 
             // Recargar bodegas para asegurar datos actualizados
             $this->cargarBodegas();
-
-            // Debug: verificar bodegas cargadas
-            Log::info('Modal abierto - Bodegas disponibles', [
-                'user_id' => Auth::id(),
-                'bodegas_count' => count($this->bodegas),
-                'producto' => $detalle['nombre_producto'],
-                'user_role' => Auth::user()->rol->txt_nombre ?? 'Sin rol',
-                'user_tienda_id' => Auth::user()->tienda_id
-            ]);
 
             $this->mostrarModalDistribucion = true;
 
@@ -276,6 +314,8 @@ class RecibirProductoCompra extends Component
         $this->detalleSeleccionado = null;
         $this->cantidadDistribuir = '';
         $this->cantidadAsignarStock = '';
+        $this->unidadMedidaProducto = '';
+        $this->nombreUnidadMedidaProducto = '';
         $this->bodegaDistribucion = '';
         $this->segmentoDistribucion = '';
         $this->seccionDistribucion = '';
@@ -286,25 +326,19 @@ class RecibirProductoCompra extends Component
 
     public function puedeConfirmarDistribucion()
     {
-        $validacionBase = $this->cantidadDistribuir &&
+        return $this->cantidadDistribuir &&
                $this->fechaDistribucion &&
                $this->bodegaDistribucion &&
                $this->segmentoDistribucion &&
                $this->seccionDistribucion &&
+               $this->unidadMedidaProducto &&
                is_numeric($this->cantidadDistribuir) &&
                $this->cantidadDistribuir > 0 &&
+               $this->cantidadAsignarStock &&
+               is_numeric($this->cantidadAsignarStock) &&
+               $this->cantidadAsignarStock > 0 &&
                $this->detalleSeleccionado &&
                $this->cantidadDistribuir <= $this->detalleSeleccionado['cantidad_sin_asignar'];
-
-        // Si es producto de Valencia (TRASLADO), validar también cantidadAsignarStock
-        if ($this->compra && $this->compra->tipo_origen === 'TRASLADO') {
-            return $validacionBase &&
-                   $this->cantidadAsignarStock &&
-                   is_numeric($this->cantidadAsignarStock) &&
-                   $this->cantidadAsignarStock > 0;
-        }
-
-        return $validacionBase;
     }
 
     public function confirmarDistribucion()
@@ -316,16 +350,19 @@ class RecibirProductoCompra extends Component
         }
 
         if (!is_numeric($this->cantidadDistribuir) || $this->cantidadDistribuir <= 0) {
-            $this->mostrarError('La cantidad debe ser un número mayor a cero.');
+            $this->mostrarError('La cantidad a distribuir debe ser un número mayor a cero.');
             return;
         }
 
-        // Validación adicional para productos de Valencia
-        if ($this->compra && $this->compra->tipo_origen === 'TRASLADO') {
-            if (!$this->cantidadAsignarStock || !is_numeric($this->cantidadAsignarStock) || $this->cantidadAsignarStock <= 0) {
-                $this->mostrarError('Para productos de Valencia, la cantidad a asignar en stock debe ser un número mayor a cero.');
-                return;
-            }
+        // Validación de cantidad en stock y unidad de medida (ahora para todos los productos)
+        if (!$this->cantidadAsignarStock || !is_numeric($this->cantidadAsignarStock) || $this->cantidadAsignarStock <= 0) {
+            $this->mostrarError('La cantidad a asignar en stock debe ser un número mayor a cero.');
+            return;
+        }
+
+        if (!$this->unidadMedidaProducto) {
+            $this->mostrarError('Debe seleccionar una unidad de medida para el producto.');
+            return;
         }
 
         if (!$this->detalleSeleccionado) {
@@ -356,10 +393,23 @@ class RecibirProductoCompra extends Component
                 throw new \Exception("La cantidad disponible ha cambiado. Solo quedan {$detalleCompra->cantidad_sin_asignar} unidades disponibles.");
             }
 
-            // Determinar la cantidad para el stock (para Valencia usar cantidadAsignarStock, para otros usar cantidadDistribuir)
-            $cantidadParaStock = ($this->compra && $this->compra->tipo_origen === 'TRASLADO')
-                ? floatval($this->cantidadAsignarStock)
-                : $cantidadDistribuir;
+            // Actualizar la unidad de medida de venta del producto si cambió
+            if ($this->unidadMedidaProducto != $this->detalleSeleccionado['unidad_medida_venta_id']) {
+                $producto = Producto::find($this->detalleSeleccionado['producto_id']);
+                if ($producto) {
+                    $producto->unidad_medida_venta_id = $this->unidadMedidaProducto;
+                    $producto->save();
+                    
+                    Log::info('Unidad de medida de venta actualizada', [
+                        'producto_id' => $producto->id,
+                        'unidad_anterior' => $this->detalleSeleccionado['unidad_medida_venta_id'],
+                        'unidad_nueva' => $this->unidadMedidaProducto
+                    ]);
+                }
+            }
+
+            // Usar cantidadAsignarStock para el inventario
+            $cantidadParaStock = floatval($this->cantidadAsignarStock);
 
             // Crear registro en recibido_bodega
             $recibidoBodega = RecibidoBodega::create([
@@ -430,15 +480,8 @@ class RecibirProductoCompra extends Component
             // Preparar mensaje de éxito detallado
             $mensaje = "✅ Distribución exitosa:\n\n";
             $mensaje .= "📦 Producto: {$this->detalleSeleccionado['nombre_producto']}\n";
-            
-            // Si es producto de Valencia, mostrar ambas cantidades
-            if ($this->compra && $this->compra->tipo_origen === 'TRASLADO') {
-                $mensaje .= "🔢 Cantidad distribuida: {$cantidadDistribuir} {$this->detalleSeleccionado['unidad_medida']}\n";
-                $mensaje .= "� Cantidad en stock: {$cantidadParaStock} unidades\n";
-            } else {
-                $mensaje .= "�🔢 Cantidad: {$cantidadDistribuir} {$this->detalleSeleccionado['unidad_medida']}\n";
-            }
-            
+            $mensaje .= "🔢 Cantidad distribuida: {$cantidadDistribuir} {$this->detalleSeleccionado['unidad_medida']}\n";
+            $mensaje .= "📊 Cantidad en stock: {$cantidadParaStock} {$this->nombreUnidadMedidaProducto}\n";
             $mensaje .= "🏢 Bodega: {$this->nombreBodegaDistribucion}\n";
             $mensaje .= "📍 Ubicación: {$this->nombreSegmentoDistribucion} > {$this->nombreSeccionDistribucion}";
 

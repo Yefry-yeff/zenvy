@@ -212,6 +212,7 @@ class ListaDeProductos extends Component
                 ->join('tienda as t', 'b.tienda_id', '=', 't.id')
                 ->leftJoin('marca as m', 'p.marca_id', '=', 'm.id')
                 ->leftJoin('unidad_medida as um', 'rb.unidad_medida_id', '=', 'um.id')
+                ->leftJoin('unidad_medida as umv', 'p.unidad_medida_venta_id', '=', 'umv.id')
                 ->select(
                     'rb.id',
                     'rb.cantidad_disponible',
@@ -229,7 +230,8 @@ class ListaDeProductos extends Component
                     't.denominacion_social as tienda_nombre',
                     'seg.descripcion as segmento_descripcion',
                     'sec.descripcion as seccion_descripcion',
-                    'um.nombre as unidad_medida'
+                    'um.nombre as unidad_medida',
+                    'umv.nombre as unidad_medida_venta'
                 )
                 ->where('rb.estado_id', 1); // Solo activos
 

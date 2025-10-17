@@ -494,6 +494,21 @@ class CompraDeProducto extends Component
 
             DB::beginTransaction();
 
+            // Obtener el nombre completo del usuario autenticado
+            $usuario = Auth::user();
+            $nombreUsuario = 'N/A';
+            
+            if ($usuario && $usuario->detalle) {
+                $nombreUsuario = trim(
+                    ($usuario->detalle->primer_nombre ?? '') . ' ' .
+                    ($usuario->detalle->segundo_nombre ?? '') . ' ' .
+                    ($usuario->detalle->primer_apellido ?? '') . ' ' .
+                    ($usuario->detalle->segundo_apellido ?? '')
+                );
+            } elseif ($usuario) {
+                $nombreUsuario = $usuario->name ?? 'N/A';
+            }
+
             // Crear la compra principal
             $compra = Compra::create([
                 'numero_factura' => $this->compra['numero_factura'],
@@ -502,6 +517,7 @@ class CompraDeProducto extends Component
                 'fecha_recepcion' => $this->compra['fecha_recepcion'],
                 'estado_id' => 1, // Estado "Activo" por defecto
                 'cliente_id' => $this->proveedorSeleccionado, // Proveedor seleccionado
+                'user' => $nombreUsuario, // Usuario que creó la compra
             ]);
 
             // Guardar los productos de la compra

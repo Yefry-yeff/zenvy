@@ -60,7 +60,14 @@ class SincronizacionComprasService
                     $compraExistente = Compra::where('numero_factura', $numeroFactura)->first();
                     
                     if ($compraExistente) {
-                        Log::info("Compra con número de factura {$numeroFactura} ya existe, omitiendo...");
+                        // Si la compra existe y el campo user está vacío, actualizarlo con 'Valencia'
+                        if (empty($compraExistente->user)) {
+                            $compraExistente->user = 'Valencia';
+                            $compraExistente->save();
+                            Log::info("Compra {$numeroFactura} actualizada con user='Valencia'");
+                        } else {
+                            Log::info("Compra con número de factura {$numeroFactura} ya existe, omitiendo...");
+                        }
                         continue;
                     }
 
@@ -188,6 +195,7 @@ class SincronizacionComprasService
                 'fecha_recepcion' => now()->format('Y-m-d'), // Fecha actual de sincronización
                 'estado_id' => $datosCompra->estado_id,
                 'cliente_id' => $datosCompra->cliente_id,
+                'user' => 'Valencia', // Usuario que creó la compra desde Valencia
                 'created_at' => now(),
                 'updated_at' => now()
             ]);

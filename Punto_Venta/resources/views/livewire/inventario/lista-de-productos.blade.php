@@ -249,7 +249,7 @@
                                         <span class="font-bold {{ $item->cantidad_disponible > 10 ? 'text-green-600' : ($item->cantidad_disponible > 0 ? 'text-yellow-600' : 'text-red-600') }}">
                                             {{ number_format($item->cantidad_disponible, 0) }}
                                         </span>
-                                        <div class="text-xs text-gray-500">{{ $item->unidad_medida ?? 'Unidad' }}</div>
+                                        <div class="text-xs text-gray-500">{{ $item->unidad_medida_venta ?? $item->unidad_medida ?? 'Unidad' }}</div>
                                     </td>
 
                                     <!-- Fecha Recibido -->
