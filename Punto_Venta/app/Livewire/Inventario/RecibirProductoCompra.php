@@ -443,14 +443,22 @@ class RecibirProductoCompra extends Component
                 ->count();
 
             // Actualizar estado según la distribución
+            // Lógica de estados:
+            // - Activo (1): Ningún producto distribuido
+            // - Pendiente (5): Al menos un producto distribuido pero quedan productos sin completar
+            // - Distribuido (3): Todos los productos completamente distribuidos
+            // - Anulado: No se modifica desde aquí
+            
             if ($productosConCantidadPendiente == 0) {
-                // Todos los productos están completamente distribuidos
+                // Caso 1: Todos los productos están completamente distribuidos
+                $estadoAnterior = $compra->estado_id;
                 $compra->estado_id = 3; // Estado "Distribuido"
                 $compra->save();
 
                 Log::info('Compra marcada como distribuida', [
                     'compra_id' => $compra->id,
                     'numero_factura' => $compra->numero_factura,
+                    'estado_anterior' => $estadoAnterior,
                     'nuevo_estado_id' => 3
                 ]);
 
@@ -458,21 +466,43 @@ class RecibirProductoCompra extends Component
                 $this->dispatch('compra-distribuida', $compra->id);
                 $this->dispatch('estado-compra-actualizado', $compra->id, 'distribuido');
                 $this->dispatch('compra-actualizada', $compra->id);
-            } elseif ($productosConDistribucionParcial > 0 && $compra->estado_id == 1) {
-                // Hay productos con distribución parcial y la compra está en estado "Activo"
-                $compra->estado_id = 5; // Estado "Pendiente"
-                $compra->save();
-
-                Log::info('Compra marcada como pendiente por distribución parcial', [
+                
+            } elseif ($productosConCantidadPendiente > 0) {
+                // Caso 2: Hay productos con cantidad pendiente
+                Log::info('Verificando cambio de estado a pendiente', [
                     'compra_id' => $compra->id,
-                    'numero_factura' => $compra->numero_factura,
-                    'productos_con_distribucion_parcial' => $productosConDistribucionParcial,
-                    'nuevo_estado_id' => 5
+                    'estado_actual' => $compra->estado_id,
+                    'productos_con_cantidad_pendiente' => $productosConCantidadPendiente,
+                    'puede_cambiar' => in_array($compra->estado_id, [1, 5]) ? 'SI' : 'NO'
                 ]);
+                
+                // Cambiar a Pendiente solo si está en Activo (1) o ya está en Pendiente (5)
+                // No cambiar si está en Distribuido (3) o Anulado
+                if (in_array($compra->estado_id, [1, 5])) {
+                    $estadoAnterior = $compra->estado_id;
+                    $compra->estado_id = 5; // Estado "Pendiente"
+                    $compra->save();
 
-                // Emitir eventos para notificar a otros componentes
-                $this->dispatch('estado-compra-actualizado', $compra->id, 'pendiente');
-                $this->dispatch('compra-actualizada', $compra->id);
+                    Log::info('Compra marcada como pendiente', [
+                        'compra_id' => $compra->id,
+                        'numero_factura' => $compra->numero_factura,
+                        'estado_anterior' => $estadoAnterior,
+                        'productos_con_cantidad_pendiente' => $productosConCantidadPendiente,
+                        'productos_con_distribucion_parcial' => $productosConDistribucionParcial,
+                        'nuevo_estado_id' => 5,
+                        'guardado' => 'SI'
+                    ]);
+
+                    // Emitir eventos para notificar a otros componentes
+                    $this->dispatch('estado-compra-actualizado', $compra->id, 'pendiente');
+                    $this->dispatch('compra-actualizada', $compra->id);
+                } else {
+                    Log::warning('Estado no cambiado a pendiente', [
+                        'compra_id' => $compra->id,
+                        'estado_actual' => $compra->estado_id,
+                        'razon' => 'Estado no es Activo (1) ni Pendiente (5)'
+                    ]);
+                }
             }
 
             DB::commit();
