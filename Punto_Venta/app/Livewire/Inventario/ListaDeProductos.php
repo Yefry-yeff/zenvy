@@ -233,7 +233,8 @@ class ListaDeProductos extends Component
                     'um.nombre as unidad_medida',
                     'umv.nombre as unidad_medida_venta'
                 )
-                ->where('rb.estado_id', 1); // Solo activos
+                ->where('rb.estado_id', 1) // Solo activos
+                ->where('b.id', '!=', 2); // Excluir bodega ID 2 (productos sin venta)
 
             // Filtrar por tienda si no es admin
             if ($user->rol && $user->rol->txt_nombre !== 'Admin') {

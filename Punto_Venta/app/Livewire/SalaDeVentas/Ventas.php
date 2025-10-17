@@ -3348,6 +3348,7 @@ class Ventas extends Component
 
         try {
             // Obtener stock total disponible
+            // NOTA: Se excluye la bodega ID 2 porque no suma al stock para venta
             $stockTotal = DB::table('recibido_bodega as rb')
                 ->join('seccion as s', 'rb.seccion_id', '=', 's.id')
                 ->join('segmento as seg', 's.segmento_id', '=', 'seg.id')
@@ -3355,6 +3356,7 @@ class Ventas extends Component
                 ->where('b.tienda_id', $this->tiendaUsuario)
                 ->where('b.principal', 1)
                 ->where('b.estado_id', 1)
+                ->where('b.id', '!=', 2) // Excluir bodega ID 2 (productos sin venta)
                 ->where('rb.producto_id', $productoId)
                 ->where('rb.estado_id', 1)
                 ->sum('rb.cantidad_disponible');
