@@ -26,11 +26,56 @@
             height: 3rem;
         }
 
+        /* Clase form-control base (igual que cliente-form) */
+        .form-control {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            transition: all 0.15s ease-in-out;
+        }
+
         /* Focus states mejorados */
-        input:focus, select:focus {
+        input:focus, select:focus, .form-control:focus {
             outline: none;
             border-color: #3b82f6;
             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        /* Campo con error - solo rojos (igual que cliente-form) */
+        .is-invalid, .campo-obligatorio-vacio {
+            border: 2px solid #dc3545 !important;
+            background-color: #fff5f5 !important;
+            box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25) !important;
+        }
+
+        /* Mensaje de error personalizado (igual que cliente-form) */
+        .text-danger {
+            color: #dc3545 !important;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        /* Alerta flotante personalizada (igual que cliente-form) */
+        .alert-campo-obligatorio {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            background: #f8d7da;
+            color: #721c24;
+            padding: 12px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+            border-left: 4px solid #dc3545;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
         }
     </style>
 
@@ -42,15 +87,14 @@
         </div>
     @endif
 
-    @if($mostrarAlerta)
-        <div class="fixed z-50 px-4 py-3 mb-4 text-yellow-700 bg-yellow-100 border border-yellow-400 rounded shadow-lg top-5 right-5 animate-fade-in-up" role="alert">
-            <strong class="font-bold">⚠️ Atención</strong>
-            <span class="block sm:inline">{{ $mensajeAlerta }}</span>
-            <button wire:click="cerrarAlerta" class="float-right text-2xl font-bold leading-none bg-transparent border-0 cursor-pointer">×</button>
-        </div>
-    @endif
-
-    <!-- Contenedor principal -->
+    <!-- Alerta de validación backend (igual que cliente-form) -->
+            @if($mostrarAlerta)
+                <div class="alert-campo-obligatorio">
+                    <strong>⚠️ Campo Obligatorio</strong>
+                    <button wire:click="cerrarAlerta" style="float: right; background: none; border: none; font-size: 18px; cursor: pointer;">×</button>
+                    <br><small>{{ $mensajeAlerta }}</small>
+                </div>
+            @endif    <!-- Contenedor principal -->
     <div class="mx-auto space-y-6 max-w-7xl">
         
         <!-- HEADER -->
@@ -81,7 +125,7 @@
                         </label>
                         <input type="text" 
                                wire:model.live="compra.numero_factura"
-                               class="w-full px-3 py-2 border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-200"
+                               class="form-control {{ $this->getClaseCampo('compra.numero_factura') }}"
                                placeholder="000-000-00-00000000">
                         @error('compra.numero_factura')
                             <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
@@ -93,7 +137,7 @@
                             Proveedor <span class="text-red-600">*</span>
                         </label>
                         <select wire:model.defer="proveedorSeleccionado"
-                                class="w-full px-3 py-2 border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-200">
+                                class="form-control {{ $this->getClaseCampo('proveedorSeleccionado') }}">
                             <option value="">Seleccionar proveedor</option>
                             @forelse($proveedores as $proveedor)
                                 <option value="{{ $proveedor['id'] }}">
@@ -115,7 +159,7 @@
                         </label>
                         <input type="date" 
                                wire:model.defer="compra.fecha_emision"
-                               class="w-full px-3 py-2 border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-200">
+                               class="form-control {{ $this->getClaseCampo('compra.fecha_emision') }}">
                         @error('compra.fecha_emision')
                             <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
                         @enderror
@@ -130,7 +174,7 @@
                         </label>
                         <input type="date" 
                                wire:model.defer="compra.fecha_recepcion"
-                               class="w-full px-3 py-2 border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-200">
+                               class="form-control {{ $this->getClaseCampo('compra.fecha_recepcion') }}">
                     </div>
 
                     <div>
@@ -139,7 +183,7 @@
                         </label>
                         <input type="date" 
                                wire:model.defer="compra.fecha_vencimiento"
-                               class="w-full px-3 py-2 border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-200">
+                               class="form-control">
                     </div>
                 </div>
             </div>

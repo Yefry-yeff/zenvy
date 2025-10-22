@@ -76,6 +76,11 @@ class CompraDeProducto extends Component
     public $totalIsv = 0;
     public $total = 0;
 
+    // Propiedades para validación de campos (igual que cliente-form)
+    public $camposConError = [];
+    public $campoConError = false;
+    public $erroresValidacion = [];
+
     protected $rules = [
         'compra.numero_factura' => 'required|string|max:90',
         'compra.fecha_emision' => 'required|date',
@@ -549,11 +554,10 @@ class CompraDeProducto extends Component
     public function guardarCompra()
     {
         try {
-            // Validar campos básicos primero
-            $this->validate();
-
-            // Validar número de factura único
-            $this->validarNumeroFacturaUnico();
+            // Usar el nuevo sistema de validación (igual que cliente-form)
+            if (!$this->validarAntesDeGuardar()) {
+                return; // Si hay errores, no continuar
+            }
 
             DB::beginTransaction();
 
@@ -871,11 +875,9 @@ class CompraDeProducto extends Component
     // Métodos para trámites temporales
     public function guardarTramiteTemporal()
     {
-        // Validar que hay datos suficientes para guardar
-        if (empty($this->compra['numero_factura']) || !$this->proveedorSeleccionado || empty($this->productosCompra)) {
-            $this->mostrarAlerta = true;
-            $this->mensajeAlerta = 'Debe completar al menos el número de factura, proveedor y agregar productos para guardar un trámite temporal.';
-            return;
+        // Usar validación específica para guardado temporal
+        if (!$this->validarParaGuardadoTemporal()) {
+            return; // Si hay errores, no continuar
         }
 
         $proveedor = Cliente::find($this->proveedorSeleccionado);
@@ -901,6 +903,199 @@ class CompraDeProducto extends Component
         
         // Volver a la lista
         $this->volver();
+    }
+
+    // Métodos de validación de campos (igual que cliente-form)
+    public function getClaseCampo($campo = null)
+    {
+        if ($campo && in_array($campo, $this->camposConError)) {
+            return 'is-invalid campo-obligatorio-vacio';
+        }
+        return '';
+    }
+
+    public function mostrarErrorCampo($campo)
+    {
+        if (!in_array($campo, $this->camposConError)) {
+            $this->camposConError[] = $campo;
+        }
+        $this->campoConError = true;
+    }
+
+    public function limpiarErrorCampo($campo)
+    {
+        $this->camposConError = array_filter($this->camposConError, function($c) use ($campo) {
+            return $c !== $campo;
+        });
+        
+        if (empty($this->camposConError)) {
+            $this->campoConError = false;
+        }
+    }
+
+    public function limpiarTodosLosErrores()
+    {
+        $this->camposConError = [];
+        $this->campoConError = false;
+        $this->erroresValidacion = [];
+    }
+
+    public function validarAntesDeGuardar()
+    {
+        $this->limpiarTodosLosErrores();
+        
+        try {
+            // Validación paso a paso - se detiene en el primer error encontrado (igual que cliente-form)
+            
+            // 1. Validar número de factura
+            if (empty($this->compra['numero_factura'])) {
+                $this->mostrarErrorCampo('compra.numero_factura');
+                $this->mostrarAlerta = true;
+                $this->mensajeAlerta = 'El campo Número de Factura es obligatorio';
+                return false;
+            }
+
+            // 2. Validar que el número de factura sea único
+            try {
+                $this->validarNumeroFacturaUnico();
+            } catch (\Exception $e) {
+                $this->mostrarErrorCampo('compra.numero_factura');
+                $this->mostrarAlerta = true;
+                $this->mensajeAlerta = $e->getMessage();
+                return false;
+            }
+
+            // 3. Validar proveedor
+            if (empty($this->proveedorSeleccionado)) {
+                $this->mostrarErrorCampo('proveedorSeleccionado');
+                $this->mostrarAlerta = true;
+                $this->mensajeAlerta = 'El campo Proveedor es obligatorio';
+                return false;
+            }
+
+            // 4. Validar fecha de emisión
+            if (empty($this->compra['fecha_emision'])) {
+                $this->mostrarErrorCampo('compra.fecha_emision');
+                $this->mostrarAlerta = true;
+                $this->mensajeAlerta = 'El campo Fecha de Emisión es obligatorio';
+                return false;
+            }
+
+            // 5. Validar fecha de recepción
+            if (empty($this->compra['fecha_recepcion'])) {
+                $this->mostrarErrorCampo('compra.fecha_recepcion');
+                $this->mostrarAlerta = true;
+                $this->mensajeAlerta = 'El campo Fecha de Recepción es obligatorio';
+                return false;
+            }
+
+            // 6. Validar que tenga al menos un producto
+            if (empty($this->productosCompra)) {
+                $this->mostrarAlerta = true;
+                $this->mensajeAlerta = 'Debe agregar al menos un producto a la compra';
+                return false;
+            }
+
+            // 7. Validar productos individuales (solo si hay productos)
+            foreach ($this->productosCompra as $index => $producto) {
+                if (empty($producto['producto_id'])) {
+                    $this->mostrarAlerta = true;
+                    $this->mensajeAlerta = "Debe seleccionar un producto en la posición " . ($index + 1);
+                    return false;
+                }
+
+                if (empty($producto['precio']) || $producto['precio'] <= 0) {
+                    $this->mostrarAlerta = true;
+                    $this->mensajeAlerta = "El precio del producto en la posición " . ($index + 1) . " debe ser mayor a 0";
+                    return false;
+                }
+
+                if (empty($producto['cantidad_ingresada']) || $producto['cantidad_ingresada'] <= 0) {
+                    $this->mostrarAlerta = true;
+                    $this->mensajeAlerta = "La cantidad del producto en la posición " . ($index + 1) . " debe ser mayor a 0";
+                    return false;
+                }
+
+                if (empty($producto['unidad_medida_id'])) {
+                    $this->mostrarAlerta = true;
+                    $this->mensajeAlerta = "Debe seleccionar una unidad de medida para el producto en la posición " . ($index + 1);
+                    return false;
+                }
+            }
+
+            return true;
+
+        } catch (\Exception $e) {
+            Log::error('Error en validación: ' . $e->getMessage());
+            $this->erroresValidacion[] = 'Error en la validación: ' . $e->getMessage();
+            $this->mostrarAlerta = true;
+            $this->mensajeAlerta = 'Error en la validación';
+            return false;
+        }
+    }
+
+    public function validarParaGuardadoTemporal()
+    {
+        $this->limpiarTodosLosErrores();
+        
+        try {
+            // Para guardado temporal solo necesitamos al menos un producto
+            if (empty($this->productosCompra)) {
+                $this->mostrarAlerta = true;
+                $this->mensajeAlerta = 'Debe agregar al menos un producto para guardar temporalmente';
+                return false;
+            }
+
+            // Validar que los productos agregados tengan información básica
+            foreach ($this->productosCompra as $index => $producto) {
+                if (empty($producto['producto_id'])) {
+                    $this->mostrarAlerta = true;
+                    $this->mensajeAlerta = "Debe seleccionar un producto en la posición " . ($index + 1);
+                    return false;
+                }
+            }
+
+            return true;
+
+        } catch (\Exception $e) {
+            Log::error('Error en validación temporal: ' . $e->getMessage());
+            $this->mostrarAlerta = true;
+            $this->mensajeAlerta = 'Error en la validación: ' . $e->getMessage();
+            return false;
+        }
+    }
+
+    // Listeners para limpiar errores cuando cambien los campos
+    public function updated($propertyName)
+    {
+        // Limpiar error del campo específico cuando cambie
+        if (str_contains($propertyName, 'compra.numero_factura') && !empty($this->compra['numero_factura'])) {
+            $this->limpiarErrorCampo('compra.numero_factura');
+        }
+        
+        if (str_contains($propertyName, 'compra.fecha_emision') && !empty($this->compra['fecha_emision'])) {
+            $this->limpiarErrorCampo('compra.fecha_emision');
+        }
+        
+        if (str_contains($propertyName, 'compra.fecha_recepcion') && !empty($this->compra['fecha_recepcion'])) {
+            $this->limpiarErrorCampo('compra.fecha_recepcion');
+        }
+        
+        if (str_contains($propertyName, 'proveedorSeleccionado') && !empty($this->proveedorSeleccionado)) {
+            $this->limpiarErrorCampo('proveedorSeleccionado');
+        }
+
+        // Limpiar alerta si no hay más errores y si el campo específico se completó
+        if (empty($this->camposConError)) {
+            $this->mostrarAlerta = false;
+            $this->mensajeAlerta = '';
+        }
+    }
+
+    public function dehydrate()
+    {
+        // Limpiar propiedades que pueden causar problemas en DOM morphing
+        $this->dispatch('limpiar-alertas-dom');
     }
 
     public function render()
