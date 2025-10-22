@@ -1284,6 +1284,27 @@ class CompraDeProducto extends Component
     {
         // Limpiar propiedades que pueden causar problemas en DOM morphing
         $this->dispatch('limpiar-alertas-dom');
+        
+        // Limpiar arrays grandes para mejorar rendimiento
+        if (count($this->resultadosBusquedaModal) > 30) {
+            $this->resultadosBusquedaModal = [];
+        }
+        
+        // Limpiar propiedades temporales que pueden causar conflictos
+        if (!$this->mostrarModalBusqueda) {
+            $this->busquedaModalProductos = '';
+        }
+        
+        // Forzar limpieza de cache de productos si hay muchos elementos
+        if (count($this->productos) > 100) {
+            $this->productos = [];
+        }
+    }
+
+    public function destroying()
+    {
+        // Limpieza al destruir el componente
+        $this->dispatch('cleanup-component');
     }
 
     public function render()

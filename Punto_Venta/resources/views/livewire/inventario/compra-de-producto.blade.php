@@ -207,8 +207,8 @@
 
             <div class="p-4">
                 <!-- Escanear producto -->
-                <div class="mb-4">
-                    <form wire:submit.prevent="agregarProducto">
+                <div class="mb-4" wire:key="seccion-productos-main">
+                    <form wire:submit.prevent="agregarProducto" wire:key="form-agregar-producto">
                         <!-- FILA 1: Código de barras + Botón Buscar (igual que ventas) -->
                         <div class="mb-4">
                             <div class="space-y-1">
@@ -218,24 +218,19 @@
                                         <input type="text"
                                             id="codigo_barras_compra"
                                             wire:model.defer="codigoBarras"
+                                            wire:key="codigo-barras-input"
                                             class="w-full h-10 border border-gray-300 rounded-l-lg focus:ring-2 focus:ring-blue-200 focus:border-blue-500"
                                             placeholder="Escanee el código de barras o presione Enter"
                                             autocomplete="off"
                                             x-init="
-                                                setTimeout(() => $el.focus(), 100);
-                                                $wire.on('producto-agregado', () => {
-                                                    setTimeout(() => $el.focus(), 100);
-                                                });
-                                                $wire.on('producto-encontrado', () => {
-                                                    setTimeout(() => $el.focus(), 100);
-                                                });
+                                                $el && document.contains($el) && $nextTick(() => $el.focus());
+                                                $wire.on('producto-agregado', () => $el && document.contains($el) && $nextTick(() => $el.focus()));
+                                                $wire.on('producto-encontrado', () => $el && document.contains($el) && $nextTick(() => $el.focus()));
                                             "
                                             @keydown.enter.prevent="
-                                                if ($event.target.value.trim()) {
-                                                    $wire.agregarProductoPorCodigo();
-                                                }
-                                                $event.target.value = ''; 
-                                                setTimeout(() => $event.target.focus(), 100);
+                                                $event.target.value.trim() && $wire.agregarProductoPorCodigo();
+                                                $event.target.value = '';
+                                                $event.target && document.contains($event.target) && $nextTick(() => $event.target.focus());
                                             "
                                             autofocus>
                                     </div>
@@ -256,13 +251,13 @@
                         </div>
 
                         <!-- FILA 2: Cuadro de producto encontrado -->
-                        <div class="mb-4">
+                        <div class="mb-4" wire:key="producto-temporal-container">
                             @if($productoTemporal['producto_id'])
                                 @php
                                     $productoSeleccionado = collect($productos)->firstWhere('id', $productoTemporal['producto_id']);
                                 @endphp
                                 @if($productoSeleccionado)
-                                    <div class="p-3 border border-blue-200 rounded-lg bg-blue-50">
+                                    <div class="p-3 border border-blue-200 rounded-lg bg-blue-50" wire:key="producto-info-{{ $productoTemporal['producto_id'] }}">
                                         <p class="text-sm font-semibold text-blue-900">
                                             📦 {{ $productoSeleccionado->nombre ?? $productoSeleccionado['nombre'] ?? 'N/A' }}
                                         </p>
@@ -273,14 +268,12 @@
                                     </div>
                                 @endif
                             @else
-                                <div class="p-3 text-center border border-gray-200 rounded-lg bg-gray-50">
+                                <div class="p-3 text-center border border-gray-200 rounded-lg bg-gray-50" wire:key="esperando-producto">
                                     <p class="text-sm text-gray-500">Esperando escaneo de producto...</p>
                                 </div>
                             @endif
-                        </div>
-
-                        <!-- FILA 3: Campos del producto (Precio, Unidad, Cantidad, Stock, ISV, F.Exp) -->
-                        <div class="grid grid-cols-2 gap-3 mb-4 md:grid-cols-3 lg:grid-cols-6">
+                        </div>                        <!-- FILA 3: Campos del producto (Precio, Unidad, Cantidad, Stock, ISV, F.Exp) -->
+                        <div class="grid grid-cols-2 gap-3 mb-4 md:grid-cols-3 lg:grid-cols-6" wire:key="formulario-producto-{{ $productoTemporal['producto_id'] ?? 'empty' }}">
                             <!-- Precio Unit. -->
                             <div>
                                 <label class="block mb-1 text-sm font-medium text-gray-700">Precio Unit.</label>
@@ -392,7 +385,7 @@
                         </thead>
                         <tbody style="font-size: 0.65rem;" class="text-center">
                             @foreach($productosCompra as $index => $producto)
-                                <tr>
+                                <tr wire:key="producto-compra-{{ $index }}-{{ $producto['producto_id'] ?? 'unknown' }}">
                                     <td class="text-left">
                                         <strong>{{ $producto['producto_nombre'] }}</strong>
                                     </td>
@@ -628,7 +621,8 @@
                         </thead>
                         <tbody class="divide-y divide-gray-200">
                             @forelse($resultadosBusquedaModal as $resultado)
-                                <tr class="transition-colors cursor-pointer hover:bg-gray-50" 
+                                <tr wire:key="resultado-busqueda-{{ $resultado['id'] }}" 
+                                    class="transition-colors cursor-pointer hover:bg-gray-50" 
                                     @dblclick="$wire.seleccionarProductoDesdeModal({{ $resultado['id'] }})"
                                     title="Doble clic para seleccionar">
                                     <td class="px-4 py-3 font-mono text-xs">{{ $resultado['codigo_barra'] ?? 'N/A' }}</td>
@@ -844,3 +838,19 @@
     @endif
 
 </div>
+
+<!-- Script de limpieza simplificado -->
+<script>
+document.addEventListener('livewire:initialized', () => {
+    Livewire.on('cleanup-component', () => {
+        // Limpiar timeouts activos de forma segura
+        try {
+            for (let i = 1; i < 1000; i++) {
+                clearTimeout(i);
+            }
+        } catch (e) {
+            // Ignorar errores de limpieza
+        }
+    });
+});
+</script>
