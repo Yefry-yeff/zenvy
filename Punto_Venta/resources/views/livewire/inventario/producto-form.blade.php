@@ -341,8 +341,9 @@
                     <div class="p-4 bg-white border shadow rounded-xl">
                         <h2 class="mb-4 text-lg font-semibold text-gray-700">💰 Datos de Venta</h2>
 
+                        <!-- Primera fila: ISV, Descuento Unitario y Descuentos Especiales -->
                         <div class="row">
-                            <div class="mb-3 col-md-6">
+                            <div class="mb-3 col-md-3">
                                 <label for="isv_id" class="form-label">Tipo de ISV <span class="text-red-600">*</span></label>
                                 <select id="isv_id" class="form-select {{ $this->getClaseCampo('isv_id') }}" wire:model.defer="form.isv_id">
                                     <option value="">Seleccionar ISV</option>
@@ -354,7 +355,7 @@
                                     <div class="mt-1 text-sm text-danger">❌ Debe seleccionar un tipo de ISV</div>
                                 @enderror
                             </div>
-                            <div class="mb-3 col-md-6">
+                            <div class="mb-3 col-md-3">
                                 <label for="descuento_unitario" class="form-label">Descuento Unitario</label>
                                 <div class="input-group">
                                     <input type="number" id="descuento_unitario" class="form-control"
@@ -365,13 +366,9 @@
                                     <div class="mt-1 text-sm text-danger">{{ $message }}</div>
                                 @enderror
                             </div>
-                        </div>
-
-                        <!-- Descuentos Especiales -->
-                        <div class="row">
                             <div class="mb-3 col-md-6">
                                 <label class="form-label">Descuentos Especiales</label>
-                                <div class="p-3 border rounded">
+                                <div class="p-2 border rounded">
                                     <div class="form-check">
                                         <input class="form-check-input" type="checkbox" id="descuento_tercera" wire:model.defer="form.descuento_tercera">
                                         <label class="form-check-label" for="descuento_tercera">
@@ -392,49 +389,6 @@
                                     <div class="mt-1 text-sm text-danger">{{ $message }}</div>
                                 @enderror
                             </div>
-                            
-                            <!-- Precios de Venta Valencia (Solo cuando producto_valencia = 1) -->
-                            @if(isset($form['producto_valencia']) && $form['producto_valencia'] == 1)
-                            <div class="mb-3 col-md-6">
-                                <label class="form-label">Precios Valencia</label>
-                                <div class="p-3 border rounded bg-light">
-                                    <div class="row g-2">
-                                        <div class="col-6">
-                                            <label class="form-label text-xs">Precio A</label>
-                                            <div class="input-group input-group-sm">
-                                                <span class="input-group-text">L.</span>
-                                                <input type="number" class="form-control" wire:model.defer="form.precio1" step="0.01" readonly>
-                                            </div>
-                                        </div>
-                                        <div class="col-6">
-                                            <label class="form-label text-xs">Precio B</label>
-                                            <div class="input-group input-group-sm">
-                                                <span class="input-group-text">L.</span>
-                                                <input type="number" class="form-control" wire:model.defer="form.precio2" step="0.01" readonly>
-                                            </div>
-                                        </div>
-                                        <div class="col-6">
-                                            <label class="form-label text-xs">Precio C</label>
-                                            <div class="input-group input-group-sm">
-                                                <span class="input-group-text">L.</span>
-                                                <input type="number" class="form-control" wire:model.defer="form.precio3" step="0.01" readonly>
-                                            </div>
-                                        </div>
-                                        <div class="col-6">
-                                            <label class="form-label text-xs">Precio D</label>
-                                            <div class="input-group input-group-sm">
-                                                <span class="input-group-text">L.</span>
-                                                <input type="number" class="form-control" wire:model.defer="form.precio4" step="0.01" readonly>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <small class="text-muted d-block mt-2">
-                                        <i class="fas fa-info-circle me-1"></i>
-                                        Precios específicos de Valencia (solo lectura)
-                                    </small>
-                                </div>
-                            </div>
-                            @endif
                         </div>
 
                         <!-- Precios de Venta por Unidad de Medida -->
@@ -566,6 +520,49 @@
                             </div>
                             @endif
                         </div>
+
+                        <!-- Precios de Venta Valencia (Solo cuando producto_valencia = 1) -->
+                        @if(isset($form['producto_valencia']) && $form['producto_valencia'] == 1)
+                        <div class="mt-4">
+                            <h3 class="mb-3 text-md font-semibold text-gray-700">💰 Precios Valencia</h3>
+                            <div class="p-3 border rounded bg-light">
+                                <div class="row g-3">
+                                    <div class="col-md-3">
+                                        <label class="form-label">Precio A</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text">L.</span>
+                                            <input type="number" class="form-control bg-gray-100" wire:model.defer="form.precio1" step="0.01" readonly>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">Precio B</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text">L.</span>
+                                            <input type="number" class="form-control bg-gray-100" wire:model.defer="form.precio2" step="0.01" readonly>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">Precio C</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text">L.</span>
+                                            <input type="number" class="form-control bg-gray-100" wire:model.defer="form.precio3" step="0.01" readonly>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">Precio D</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text">L.</span>
+                                            <input type="number" class="form-control bg-gray-100" wire:model.defer="form.precio4" step="0.01" readonly>
+                                        </div>
+                                    </div>
+                                </div>
+                                <small class="text-muted d-block mt-2">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Precios específicos de Valencia (solo lectura)
+                                </small>
+                            </div>
+                        </div>
+                        @endif
                     </div>
                 </div>
 
