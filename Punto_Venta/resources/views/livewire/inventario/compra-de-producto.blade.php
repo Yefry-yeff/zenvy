@@ -474,7 +474,8 @@
                                     if (!isset($isvPorcentajes[$porcentaje])) {
                                         $isvPorcentajes[$porcentaje] = 0;
                                     }
-                                    $subtotalProducto = $producto['precio'] * $producto['cantidad_ingresada'];
+                                    // Usar el subtotal ya calculado del producto
+                                    $subtotalProducto = $producto['sub_total_producto'];
                                     $isvProducto = $subtotalProducto * ($porcentaje / 100);
                                     $isvPorcentajes[$porcentaje] += $isvProducto;
                                     $totalIsvMonto += $isvProducto;
