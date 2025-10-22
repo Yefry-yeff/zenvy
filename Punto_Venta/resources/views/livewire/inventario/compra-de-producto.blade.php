@@ -79,6 +79,8 @@
         }
     </style>
 
+
+
     <!-- Alertas -->
     @if(session()->has('error'))
         <div class="fixed z-50 px-4 py-3 mb-4 text-red-700 bg-red-100 border border-red-400 rounded shadow-lg top-5 right-5 animate-fade-in-up" role="alert">
@@ -519,7 +521,7 @@
             </button>
 
             <button type="button"
-                    wire:click="guardarCompra"
+                    wire:click="mostrarConfirmacionProcesar"
                     @disabled(!$this->botonGuardarHabilitado)
                     class="px-6 py-3 font-semibold text-white transition-colors rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
                     :class="{
@@ -655,4 +657,173 @@
         </div>
     </div>
     @endif
+
+    <!-- MODAL DE CONFIRMACIÓN PARA PROCESAR COMPRA -->
+    @if($mostrarModalConfirmacion)
+        <div class="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm" 
+             style="background: rgba(0, 0, 0, 0.4);"
+             x-data="{ show: @entangle('mostrarModalConfirmacion') }"
+             x-show="show"
+             x-transition:enter="transition ease-out duration-300"
+             x-transition:enter-start="opacity-0"
+             x-transition:enter-end="opacity-100">
+            
+            <div class="relative w-full max-w-lg p-8 mx-4 bg-white rounded-2xl shadow-2xl border border-gray-100"
+                 x-transition:enter="transition ease-out duration-300 transform"
+                 x-transition:enter-start="opacity-0 scale-90 translate-y-8"
+                 x-transition:enter-end="opacity-100 scale-100 translate-y-0">
+                
+                <!-- Encabezado del modal con gradiente -->
+                <div class="text-center mb-6">
+                    <div class="relative inline-flex items-center justify-center w-20 h-20 mx-auto mb-4">
+                        <div class="absolute inset-0 bg-gradient-to-r from-amber-400 via-orange-500 to-amber-600 rounded-full shadow-lg animate-pulse"></div>
+                        <div class="relative flex items-center justify-center w-16 h-16 bg-white rounded-full shadow-inner">
+                            <i class="text-3xl text-transparent bg-gradient-to-r from-amber-500 to-orange-600 bg-clip-text fas fa-exclamation-triangle"></i>
+                        </div>
+                    </div>
+                    
+                    <h3 class="text-2xl font-bold text-gray-800 mb-2">
+                        ¿Procesar Compra?
+                    </h3>
+                    <div class="w-16 h-1 bg-gradient-to-r from-amber-500 to-orange-600 mx-auto rounded-full"></div>
+                </div>
+                
+                <!-- Información de la compra con diseño mejorado -->
+                <div class="bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl p-6 mb-6 border border-amber-100">
+                    <div class="text-center space-y-3">
+                        <div class="flex items-center justify-center space-x-2">
+                            <i class="text-amber-600 fas fa-file-invoice-dollar"></i>
+                            <span class="text-sm font-medium text-gray-600">Factura N°</span>
+                        </div>
+                        <div class="text-2xl font-bold text-gray-800">{{ $compra['numero_factura'] }}</div>
+                        
+                        <div class="border-t border-amber-200 pt-3">
+                            <div class="flex items-center justify-center space-x-2 mb-1">
+                                <i class="text-orange-600 fas fa-cash-register"></i>
+                                <span class="text-sm font-medium text-gray-600">Total a Procesar</span>
+                            </div>
+                            <div class="text-3xl font-bold text-orange-600">
+                                L. {{ number_format($total, 2) }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Botones con diseño profesional -->
+                <div class="flex space-x-4">
+                    <button type="button"
+                            wire:click="cancelarProcesamiento"
+                            class="flex-1 px-6 py-3 text-sm font-semibold text-gray-700 bg-white border-2 border-gray-300 rounded-xl hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 transform hover:scale-105 active:scale-95">
+                        <i class="mr-2 fas fa-times"></i>
+                        Cancelar
+                    </button>
+                    <button type="button"
+                            wire:click="confirmarProcesamiento"
+                            class="flex-1 px-6 py-3 text-sm font-semibold text-white bg-gradient-to-r from-amber-500 to-orange-600 rounded-xl hover:from-amber-600 hover:to-orange-700 transition-all duration-200 transform hover:scale-105 active:scale-95 shadow-lg hover:shadow-xl">
+                        <i class="mr-2 fas fa-shopping-cart"></i>
+                        Sí, Procesar
+                    </button>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    <!-- MODAL DE COMPRA EXITOSA -->
+    @if($mostrarModalCompraExitosa)
+        <div class="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm" 
+             style="background: rgba(0, 0, 0, 0.4);"
+             x-data="{ show: @entangle('mostrarModalCompraExitosa') }"
+             x-show="show"
+             x-transition:enter="transition ease-out duration-500"
+             x-transition:enter-start="opacity-0"
+             x-transition:enter-end="opacity-100">
+            
+            <div class="relative w-full max-w-lg p-8 mx-4 bg-white rounded-2xl shadow-2xl border border-gray-100"
+                 x-transition:enter="transition ease-out duration-500 transform"
+                 x-transition:enter-start="opacity-0 scale-75 translate-y-16"
+                 x-transition:enter-end="opacity-100 scale-100 translate-y-0">
+                
+                <!-- Celebración visual -->
+                <div class="absolute -top-4 -right-4 w-8 h-8 bg-gradient-to-r from-yellow-400 to-amber-500 rounded-full animate-bounce delay-100 shadow-lg">
+                    <i class="text-white text-xs fas fa-star absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"></i>
+                </div>
+                <div class="absolute -top-2 -left-4 w-6 h-6 bg-gradient-to-r from-emerald-400 to-green-500 rounded-full animate-bounce delay-300 shadow-lg">
+                    <i class="text-white text-xs fas fa-check absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"></i>
+                </div>
+                <div class="absolute top-8 -right-2 w-4 h-4 bg-gradient-to-r from-blue-400 to-cyan-500 rounded-full animate-bounce delay-500 shadow-lg"></div>
+                
+                <!-- Encabezado del modal con animación de éxito -->
+                <div class="text-center mb-6">
+                    <div class="relative inline-flex items-center justify-center w-24 h-24 mx-auto mb-4">
+                        <div class="absolute inset-0 bg-gradient-to-r from-green-400 via-emerald-500 to-teal-500 rounded-full shadow-lg animate-pulse"></div>
+                        <div class="relative flex items-center justify-center w-20 h-20 bg-white rounded-full shadow-inner">
+                            <i class="text-4xl text-transparent bg-gradient-to-r from-green-400 to-emerald-500 bg-clip-text fas fa-check-circle animate-bounce"></i>
+                        </div>
+                    </div>
+                    
+                    <h3 class="text-2xl font-bold text-gray-800 mb-2">
+                        ¡Compra Procesada Exitosamente!
+                    </h3>
+                    <div class="w-20 h-1 bg-gradient-to-r from-green-400 to-emerald-500 mx-auto rounded-full"></div>
+                </div>
+                
+                <!-- Información de confirmación con diseño mejorado -->
+                <div class="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-6 mb-6 border border-green-100">
+                    <div class="text-center space-y-4">
+                        <!-- Número de factura -->
+                        <div class="bg-white rounded-lg p-4 shadow-sm border border-green-200">
+                            <div class="flex items-center justify-center space-x-2 mb-2">
+                                <i class="text-green-600 fas fa-receipt"></i>
+                                <span class="text-sm font-medium text-gray-600">Factura Procesada</span>
+                            </div>
+                            <div class="text-xl font-bold text-gray-800">{{ $numeroFacturaProcesada }}</div>
+                        </div>
+                        
+                        <!-- Total procesado -->
+                        <div class="bg-white rounded-lg p-4 shadow-sm border border-green-200">
+                            <div class="flex items-center justify-center space-x-2 mb-2">
+                                <i class="text-emerald-600 fas fa-coins"></i>
+                                <span class="text-sm font-medium text-gray-600">Total Procesado</span>
+                            </div>
+                            <div class="text-2xl font-bold text-emerald-600">
+                                L. {{ number_format($totalCompraProcesada, 2) }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Botones de acción con diseño profesional -->
+                <div class="space-y-3">
+                    <button type="button"
+                            wire:click="recibirProductos"
+                            class="w-full px-6 py-4 text-sm font-semibold text-white bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl hover:from-green-600 hover:to-emerald-700 transition-all duration-200 transform hover:scale-105 active:scale-95 shadow-lg hover:shadow-xl">
+                        <div class="flex items-center justify-center space-x-3">
+                            <i class="text-lg fas fa-box-open"></i>
+                            <span>Recibir Productos</span>
+                            <i class="text-xs fas fa-chevron-right"></i>
+                        </div>
+                    </button>
+                    
+                    <button type="button"
+                            wire:click="nuevaCompra"
+                            class="w-full px-6 py-4 text-sm font-semibold text-gray-700 bg-white border-2 border-gray-300 rounded-xl hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 transform hover:scale-105 active:scale-95">
+                        <div class="flex items-center justify-center space-x-3">
+                            <i class="text-lg fas fa-file-plus"></i>
+                            <span>Ingresar Nueva Compra</span>
+                            <i class="text-xs fas fa-plus"></i>
+                        </div>
+                    </button>
+                </div>
+                
+                <!-- Mensaje adicional -->
+                <div class="mt-4 text-center">
+                    <p class="text-xs text-gray-500">
+                        <i class="mr-1 fas fa-info-circle"></i>
+                        La compra ha sido registrada exitosamente en el sistema
+                    </p>
+                </div>
+            </div>
+        </div>
+    @endif
+
 </div>

@@ -12,6 +12,7 @@ use App\Models\TipoCliente;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use App\Livewire\DynamicContent;
 
 class CompraDeProducto extends Component
 {
@@ -71,6 +72,12 @@ class CompraDeProducto extends Component
     public $mensajeModalExito = '';
     public $mensajeModalError = '';
 
+    // Nuevos modales para confirmación y éxito
+    public $mostrarModalConfirmacion = false;
+    public $mostrarModalCompraExitosa = false;
+    public $numeroFacturaProcesada = '';
+    public $totalCompraProcesada = 0;
+
     // Totales
     public $subtotal = 0;
     public $totalIsv = 0;
@@ -107,7 +114,7 @@ class CompraDeProducto extends Component
         $this->cargarDatosIniciales();
         $this->compra['fecha_emision'] = now()->format('Y-m-d');
         $this->compra['fecha_recepcion'] = now()->format('Y-m-d');
-        
+
         // Cargar trámite temporal si existe
         if (session()->has('tramite_a_cargar')) {
             $this->cargarTramiteDesdeSession();
@@ -117,7 +124,7 @@ class CompraDeProducto extends Component
     public function cargarTramiteDesdeSession()
     {
         $tramite = session('tramite_a_cargar');
-        
+
         if ($tramite) {
             $this->compra['numero_factura'] = $tramite['numero_factura'] ?? '';
             $this->compra['fecha_emision'] = $tramite['fecha_emision'] ?? now()->format('Y-m-d');
@@ -125,23 +132,23 @@ class CompraDeProducto extends Component
             $this->compra['fecha_vencimiento'] = $tramite['fecha_vencimiento'] ?? '';
             $this->proveedorSeleccionado = $tramite['proveedor_id'] ?? null;
             $this->productosCompra = $tramite['productos'] ?? [];
-            
+
             // Recalcular totales
             $this->calcularTotales();
-            
+
             // Activar la sección de productos
             $this->mostrarSeccionProductosActiva = true;
-            
+
             // Limpiar la sesión
             session()->forget('tramite_a_cargar');
-            
+
             // Eliminar el trámite de la lista de temporales
             $tramites = session('tramites_temporales_compras', []);
             $tramites = array_filter($tramites, function($t) use ($tramite) {
                 return $t['fecha_guardado'] !== $tramite['fecha_guardado'];
             });
             session(['tramites_temporales_compras' => array_values($tramites)]);
-            
+
             session()->flash('success', '✅ Trámite temporal cargado. Puede continuar editando.');
         }
     }
@@ -236,7 +243,7 @@ class CompraDeProducto extends Component
         if (!empty($this->busquedaProducto)) {
             // Limpiar espacios en blanco
             $codigoBarra = trim($this->busquedaProducto);
-            
+
             // Buscar producto por código de barras exacto (solo campos de la tabla producto)
             $productoPorCodigo = DB::table('producto')
                 ->where('codigo_barra', $codigoBarra)
@@ -250,7 +257,7 @@ class CompraDeProducto extends Component
                 return;
             }
         }
-        
+
         // No mostrar lista de productos filtrados (solo funciona con códigos exactos)
         $this->productosFiltrados = [];
         $this->mostrarListaProductos = false;
@@ -295,7 +302,7 @@ class CompraDeProducto extends Component
     {
         $cantidadRecibida = (int) ($this->productoTemporal['cantidad_recibida'] ?? 1);
         $cantidadPorUnidad = (int) ($this->productoTemporal['cantidad_por_unidad'] ?? 1);
-        
+
         $this->productoTemporal['cantidad_ingresada'] = $cantidadRecibida * $cantidadPorUnidad;
     }
 
@@ -303,7 +310,7 @@ class CompraDeProducto extends Component
     {
         // Asegurar que sea un número entero positivo
         $cantidad = (int) $value;
-        
+
         if ($cantidad < 1) {
             $this->productoTemporal['cantidad_ingresada'] = 1;
         } else {
@@ -470,7 +477,7 @@ class CompraDeProducto extends Component
 
         if (isset($this->productosCompra[$index])) {
             $cantidadPorUnidad = $this->productosCompra[$index]['cantidad_por_unidad'] ?? 1;
-            
+
             // Actualizar cantidad_recibida y recalcular cantidad_ingresada
             $this->productosCompra[$index]['cantidad_recibida'] = $nuevaCantidadRecibida;
             $this->productosCompra[$index]['cantidad_ingresada'] = $nuevaCantidadRecibida * $cantidadPorUnidad;
@@ -564,7 +571,7 @@ class CompraDeProducto extends Component
             // Obtener el nombre completo del usuario autenticado
             $usuario = Auth::user();
             $nombreUsuario = 'N/A';
-            
+
             if ($usuario && $usuario->detalle) {
                 $nombreUsuario = trim(
                     ($usuario->detalle->primer_nombre ?? '') . ' ' .
@@ -605,11 +612,12 @@ class CompraDeProducto extends Component
 
             DB::commit();
 
-            $this->mostrarModalExito = true;
-            $this->mensajeModalExito = 'Compra registrada exitosamente';
+            // Guardar información para el modal de éxito
+            $this->numeroFacturaProcesada = $this->compra['numero_factura'];
+            $this->totalCompraProcesada = $this->total;
 
-            // Limpiar formulario
-            $this->resetFormulario();
+            // Mostrar modal de compra exitosa
+            $this->mostrarModalCompraExitosa = true;
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -707,6 +715,104 @@ class CompraDeProducto extends Component
     {
         $this->mostrarAlerta = false;
         $this->mensajeAlerta = '';
+    }
+
+    public function mostrarConfirmacionProcesar()
+    {
+        // Primero validar que todos los campos estén correctos
+        if (!$this->validarAntesDeGuardar()) {
+            return; // Si hay errores, no mostrar confirmación
+        }
+
+        // Si la validación pasa, mostrar modal de confirmación
+        $this->mostrarModalConfirmacion = true;
+    }
+
+    public function cancelarProcesamiento()
+    {
+        $this->mostrarModalConfirmacion = false;
+    }
+
+    public function confirmarProcesamiento()
+    {
+        // Cerrar modal de confirmación
+        $this->mostrarModalConfirmacion = false;
+
+        // Procesar la compra
+        $this->guardarCompra();
+    }
+
+    public function nuevaCompra()
+    {
+        // Limpiar todo el formulario para nueva compra
+        $this->mostrarModalCompraExitosa = false;
+        $this->reiniciarFormulario();
+
+        session()->flash('success', '✅ Listo para nueva compra');
+    }
+
+    public function recibirProductos()
+    {
+        // Cerrar modal
+        $this->mostrarModalCompraExitosa = false;
+        
+        try {
+            // Buscar la compra por número de factura para obtener el ID
+            $compra = Compra::with(['estado'])->where('numero_factura', $this->numeroFacturaProcesada)->first();
+            
+            if ($compra && $compra->estado && (strtolower($compra->estado->nombre) === 'activo' || strtolower($compra->estado->nombre) === 'pendiente' || $compra->estado_id == 5)) {
+                // Usar exactamente la misma lógica que CompraDeProductos
+                $this->dispatch('cambiarVista', ruta: 'Inventario.RecibirProductoCompra', parametros: ['compraId' => $compra->id]);
+                
+                session()->flash('success', '🚛 Dirigiendo a recepción de productos...');
+                
+            } else {
+                session()->flash('error', 'Solo se pueden recibir productos de compras en estado "activo" o "pendiente".');
+            }
+            
+        } catch (\Exception $e) {
+            Log::error('Error al cambiar a recibir productos: ' . $e->getMessage());
+            session()->flash('error', 'Error al acceder a la recepción de productos');
+        }
+    }    public function reiniciarFormulario()
+    {
+        // Limpiar datos de la compra
+        $this->compra = [
+            'numero_factura' => '',
+            'fecha_vencimiento' => '',
+            'fecha_emision' => now()->format('Y-m-d'),
+            'fecha_recepcion' => now()->format('Y-m-d'),
+        ];
+
+        $this->proveedorSeleccionado = null;
+        $this->productosCompra = [];
+
+        // Limpiar producto temporal
+        $this->productoTemporal = [
+            'producto_id' => null,
+            'precio' => 0,
+            'cantidad_recibida' => 1,
+            'cantidad_por_unidad' => 1,
+            'cantidad_ingresada' => 1,
+            'fecha_expiracion' => '',
+            'unidad_medida_id' => null,
+            'isv' => 0,
+        ];
+
+        // Limpiar búsquedas
+        $this->busquedaProducto = '';
+        $this->mostrarListaProductos = false;
+
+        // Limpiar errores y alertas
+        $this->limpiarTodosLosErrores();
+        $this->mostrarAlerta = false;
+        $this->mensajeAlerta = '';
+
+        // Recalcular totales
+        $this->calcularTotales();
+
+        // Ocultar sección de productos
+        $this->mostrarSeccionProductosActiva = false;
     }
 
     public function volver()
@@ -850,11 +956,11 @@ class CompraDeProducto extends Component
     public function seleccionarProductoModal($productoId)
     {
         $producto = Producto::with(['marca', 'subcategoria', 'unidadMedidaVenta'])->find($productoId);
-        
+
         if ($producto) {
             // Llenar el campo de búsqueda con el código de barras o nombre
             $this->busquedaProducto = $producto->codigo_barra ?? $producto->nombre;
-            
+
             // Establecer el producto temporal
             $this->productoTemporal = [
                 'producto_id' => $producto->id,
@@ -881,7 +987,7 @@ class CompraDeProducto extends Component
         }
 
         $proveedor = Cliente::find($this->proveedorSeleccionado);
-        
+
         $tramite = [
             'numero_factura' => $this->compra['numero_factura'],
             'proveedor_id' => $this->proveedorSeleccionado,
@@ -900,7 +1006,7 @@ class CompraDeProducto extends Component
         session(['tramites_temporales_compras' => $tramites]);
 
         session()->flash('success', '✅ Trámite guardado temporalmente. Puede continuar más tarde.');
-        
+
         // Volver a la lista
         $this->volver();
     }
@@ -927,7 +1033,7 @@ class CompraDeProducto extends Component
         $this->camposConError = array_filter($this->camposConError, function($c) use ($campo) {
             return $c !== $campo;
         });
-        
+
         if (empty($this->camposConError)) {
             $this->campoConError = false;
         }
@@ -943,10 +1049,10 @@ class CompraDeProducto extends Component
     public function validarAntesDeGuardar()
     {
         $this->limpiarTodosLosErrores();
-        
+
         try {
             // Validación paso a paso - se detiene en el primer error encontrado (igual que cliente-form)
-            
+
             // 1. Validar número de factura
             if (empty($this->compra['numero_factura'])) {
                 $this->mostrarErrorCampo('compra.numero_factura');
@@ -1037,7 +1143,7 @@ class CompraDeProducto extends Component
     public function validarParaGuardadoTemporal()
     {
         $this->limpiarTodosLosErrores();
-        
+
         try {
             // Para guardado temporal solo necesitamos al menos un producto
             if (empty($this->productosCompra)) {
@@ -1072,15 +1178,15 @@ class CompraDeProducto extends Component
         if (str_contains($propertyName, 'compra.numero_factura') && !empty($this->compra['numero_factura'])) {
             $this->limpiarErrorCampo('compra.numero_factura');
         }
-        
+
         if (str_contains($propertyName, 'compra.fecha_emision') && !empty($this->compra['fecha_emision'])) {
             $this->limpiarErrorCampo('compra.fecha_emision');
         }
-        
+
         if (str_contains($propertyName, 'compra.fecha_recepcion') && !empty($this->compra['fecha_recepcion'])) {
             $this->limpiarErrorCampo('compra.fecha_recepcion');
         }
-        
+
         if (str_contains($propertyName, 'proveedorSeleccionado') && !empty($this->proveedorSeleccionado)) {
             $this->limpiarErrorCampo('proveedorSeleccionado');
         }
