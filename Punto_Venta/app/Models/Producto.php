@@ -107,6 +107,13 @@ class Producto extends Model
         return $this->hasMany(RecibidoBodega::class, 'producto_id');
     }
 
+    public function preciosVenta()
+    {
+        return $this->hasMany(PrecioHasVenta::class, 'producto_id')
+                    ->where('estado_id', 1)
+                    ->orderBy('cantidad', 'asc');
+    }
+
     // Static methods for SP operations
     public static function crearProducto($datos)
     {

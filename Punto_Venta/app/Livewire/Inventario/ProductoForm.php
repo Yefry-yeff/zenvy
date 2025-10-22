@@ -84,6 +84,28 @@ class ProductoForm extends Component
     public $sincronizandoValencia = false;
     private $sincronizacionProductosService;
 
+    // Propiedades para precios de venta por unidad de medida
+    public $preciosVenta = [];
+    public $nuevoPrecioVenta = [
+        'unidad_medida_id' => null,
+        'cantidad' => 1,
+        'precio' => 0
+    ];
+    
+    // Propiedades para modal de edición de precio
+    public $mostrarModalEditarPrecio = false;
+    public $precioEditando = [
+        'index' => null,
+        'id' => null,
+        'unidad_medida_id' => null,
+        'cantidad' => 1,
+        'precio' => 0
+    ];
+    
+    // Propiedades para modal de eliminación de precio
+    public $modalEliminarPrecioAbierto = false;
+    public $precioAEliminar = null;
+
     protected $rules = [
         'form.nombre' => 'required|string|max:255',
         'form.descripcion' => 'nullable|string|max:255',
@@ -93,13 +115,13 @@ class ProductoForm extends Component
         'form.subcategoria_id' => 'required|integer|exists:subcategoria,id',
         'form.marca_id' => 'required|integer|exists:marca,id',
         'form.isv_id' => 'required|integer|exists:isv,id',
-        'form.precio_base' => 'required|numeric|min:0.01',
+        'form.precio_base' => 'nullable|numeric|min:0.01',
         'form.descuento_unitario' => 'nullable|numeric|min:0',
         'form.descuento_tercera' => 'boolean',
         'form.descuento_cuarta' => 'boolean',
         'form.ultimo_costo_compra' => 'nullable|numeric|min:0',
         'form.costo_promedio' => 'nullable|numeric|min:0',
-        'form.unidad_medida_venta_id' => 'required|integer|exists:unidad_medida,id',
+        'form.unidad_medida_venta_id' => 'nullable|integer|exists:unidad_medida,id',
         'form.producto_valencia' => 'nullable|integer|in:0,1',
         'form.precio1' => 'nullable|numeric|min:0',
         'form.precio2' => 'nullable|numeric|min:0',
@@ -119,10 +141,8 @@ class ProductoForm extends Component
         'form.marca_id.exists' => 'La marca seleccionada no existe',
         'form.isv_id.required' => 'El tipo de ISV es obligatorio',
         'form.isv_id.exists' => 'El tipo de ISV seleccionado no existe',
-        'form.precio_base.required' => 'El precio base es obligatorio',
         'form.precio_base.min' => 'El precio base debe ser mayor a 0',
         'form.descuento_unitario.min' => 'El descuento unitario no puede ser negativo',
-        'form.unidad_medida_venta_id.required' => 'La unidad de medida es obligatoria',
         'form.unidad_medida_venta_id.exists' => 'La unidad de medida seleccionada no existe',
         'imagen.image' => 'El archivo debe ser una imagen válida',
         'imagen.max' => 'La imagen no puede ser mayor a 5MB',
@@ -286,8 +306,57 @@ class ProductoForm extends Component
             $this->cargarUnidadesMedida();
             $this->cargarIsvs();
 
+            // Cargar precios de venta existentes
+            $this->cargarPreciosVenta();
+
             // Marcar si tiene imagen anterior (sin cargar los datos BLOB)
             $this->tieneImagenAnterior = $producto->imagen !== null;
+        }
+    }
+
+    private function cargarPreciosVenta()
+    {
+        if ($this->productoId) {
+            Log::info('Cargando precios de venta', ['producto_id' => $this->productoId]);
+            
+            $preciosDB = DB::table('precio_has_venta')
+                ->where('producto_id', $this->productoId)
+                ->where('estado_id', 1)
+                ->orderBy('cantidad', 'asc')
+                ->get();
+
+            Log::info('Precios encontrados en BD', [
+                'cantidad' => $preciosDB->count(),
+                'precios' => $preciosDB->toArray()
+            ]);
+
+            $this->preciosVenta = $preciosDB->map(function($precio) {
+                return [
+                    'id' => $precio->id,
+                    'unidad_medida_id' => $precio->unidad_medida_id,
+                    'cantidad' => $precio->cantidad,
+                    'precio' => $precio->precio
+                ];
+            })->toArray();
+            
+            Log::info('Array preciosVenta después de mapear', [
+                'precios' => $this->preciosVenta
+            ]);
+
+            // Si no hay precios y existe precio_base y unidad_medida_venta_id, agregarlo automáticamente
+            if (empty($this->preciosVenta) && 
+                isset($this->form['precio_base']) && $this->form['precio_base'] > 0 &&
+                isset($this->form['unidad_medida_venta_id']) && $this->form['unidad_medida_venta_id']) {
+                
+                Log::info('Auto-migrando precio_base a preciosVenta');
+                
+                $this->preciosVenta[] = [
+                    'id' => null,
+                    'unidad_medida_id' => $this->form['unidad_medida_venta_id'],
+                    'cantidad' => 1,
+                    'precio' => $this->form['precio_base']
+                ];
+            }
         }
     }
 
@@ -382,6 +451,236 @@ class ProductoForm extends Component
         }
     }
 
+    // Métodos para gestionar precios de venta
+    public function agregarPrecioVenta()
+    {
+        // Validar que los campos estén completos
+        if (empty($this->nuevoPrecioVenta['unidad_medida_id'])) {
+            session()->flash('error', 'Debe seleccionar una unidad de medida');
+            return;
+        }
+
+        if (empty($this->nuevoPrecioVenta['cantidad']) || $this->nuevoPrecioVenta['cantidad'] <= 0) {
+            session()->flash('error', 'La cantidad debe ser mayor a 0');
+            return;
+        }
+
+        if (empty($this->nuevoPrecioVenta['precio']) || $this->nuevoPrecioVenta['precio'] <= 0) {
+            session()->flash('error', 'El precio debe ser mayor a 0');
+            return;
+        }
+
+        // Verificar que no exista la misma combinación de unidad y cantidad
+        $existe = collect($this->preciosVenta)->first(function($precio) {
+            return $precio['unidad_medida_id'] == $this->nuevoPrecioVenta['unidad_medida_id'] 
+                && $precio['cantidad'] == $this->nuevoPrecioVenta['cantidad'];
+        });
+
+        if ($existe) {
+            session()->flash('error', 'Ya existe un precio para esta unidad de medida y cantidad');
+            return;
+        }
+
+        // Agregar el nuevo precio
+        $this->preciosVenta[] = [
+            'id' => null, // Se generará al guardar
+            'unidad_medida_id' => $this->nuevoPrecioVenta['unidad_medida_id'],
+            'cantidad' => $this->nuevoPrecioVenta['cantidad'],
+            'precio' => $this->nuevoPrecioVenta['precio']
+        ];
+
+        // Ordenar por cantidad
+        usort($this->preciosVenta, function($a, $b) {
+            return $a['cantidad'] <=> $b['cantidad'];
+        });
+
+        // Limpiar el formulario
+        $this->nuevoPrecioVenta = [
+            'unidad_medida_id' => null,
+            'cantidad' => 1,
+            'precio' => 0
+        ];
+    }
+
+    public function eliminarPrecioVenta($index)
+    {
+        if (isset($this->preciosVenta[$index])) {
+            unset($this->preciosVenta[$index]);
+            $this->preciosVenta = array_values($this->preciosVenta); // Reindexar
+            session()->flash('success', 'Precio eliminado correctamente');
+        }
+    }
+    
+    public function abrirModalEditarPrecio($index)
+    {
+        if (isset($this->preciosVenta[$index])) {
+            $this->precioEditando = [
+                'index' => $index,
+                'id' => $this->preciosVenta[$index]['id'] ?? null,
+                'unidad_medida_id' => $this->preciosVenta[$index]['unidad_medida_id'],
+                'cantidad' => $this->preciosVenta[$index]['cantidad'],
+                'precio' => $this->preciosVenta[$index]['precio']
+            ];
+            $this->mostrarModalEditarPrecio = true;
+        }
+    }
+    
+    public function cerrarModalEditarPrecio()
+    {
+        $this->mostrarModalEditarPrecio = false;
+        $this->precioEditando = [
+            'index' => null,
+            'id' => null,
+            'unidad_medida_id' => null,
+            'cantidad' => 1,
+            'precio' => 0
+        ];
+    }
+    
+    public function guardarEdicionPrecio()
+    {
+        // Validar que existe un índice válido
+        if ($this->precioEditando['index'] === null || !isset($this->preciosVenta[$this->precioEditando['index']])) {
+            session()->flash('error', 'No se pudo identificar el precio a editar');
+            return;
+        }
+        
+        // Validar campos
+        if (empty($this->precioEditando['unidad_medida_id'])) {
+            session()->flash('error', 'Debe seleccionar una unidad de medida');
+            return;
+        }
+        
+        if ($this->precioEditando['cantidad'] <= 0) {
+            session()->flash('error', 'La cantidad debe ser mayor a 0');
+            return;
+        }
+        
+        if ($this->precioEditando['precio'] <= 0) {
+            session()->flash('error', 'El precio debe ser mayor a 0');
+            return;
+        }
+        
+        // Verificar que no exista otro precio con la misma unidad y cantidad (excepto el actual)
+        foreach ($this->preciosVenta as $index => $precio) {
+            if ($index != $this->precioEditando['index']) {
+                if ($precio['unidad_medida_id'] == $this->precioEditando['unidad_medida_id'] && 
+                    $precio['cantidad'] == $this->precioEditando['cantidad']) {
+                    session()->flash('error', 'Ya existe un precio para esta unidad de medida con esta cantidad');
+                    return;
+                }
+            }
+        }
+        
+        // Actualizar el precio en el array
+        $indexToUpdate = $this->precioEditando['index'];
+        $this->preciosVenta[$indexToUpdate] = [
+            'id' => $this->precioEditando['id'],
+            'unidad_medida_id' => $this->precioEditando['unidad_medida_id'],
+            'cantidad' => $this->precioEditando['cantidad'],
+            'precio' => $this->precioEditando['precio']
+        ];
+        
+        // Ordenar por cantidad
+        usort($this->preciosVenta, function($a, $b) {
+            return $a['cantidad'] <=> $b['cantidad'];
+        });
+        
+        $this->cerrarModalEditarPrecio();
+    }
+    
+    public function inactivarPrecioVenta($index)
+    {
+        // Solo eliminar del array, no guardar en BD hasta que se presione "Actualizar Producto"
+        if (isset($this->preciosVenta[$index])) {
+            unset($this->preciosVenta[$index]);
+            $this->preciosVenta = array_values($this->preciosVenta);
+        }
+        
+        $this->cerrarModalEliminarPrecio();
+    }
+    
+    public function abrirModalEliminarPrecio($index)
+    {
+        $this->precioAEliminar = $index;
+        $this->modalEliminarPrecioAbierto = true;
+    }
+    
+    public function cerrarModalEliminarPrecio()
+    {
+        $this->modalEliminarPrecioAbierto = false;
+        $this->precioAEliminar = null;
+    }
+    
+    public function confirmarEliminarPrecio()
+    {
+        if ($this->precioAEliminar !== null) {
+            $this->inactivarPrecioVenta($this->precioAEliminar);
+        }
+    }
+
+    private function guardarPreciosVenta($productoId)
+    {
+        try {
+            Log::info('Iniciando guardarPreciosVenta', [
+                'producto_id' => $productoId,
+                'precios_a_guardar' => $this->preciosVenta
+            ]);
+            
+            // Primero, desactivar todos los precios existentes (soft delete)
+            $preciosDesactivados = DB::table('precio_has_venta')
+                ->where('producto_id', $productoId)
+                ->update(['estado_id' => 2]); // 2 = Inactivo
+            
+            Log::info('Precios desactivados', ['cantidad' => $preciosDesactivados]);
+
+            // Luego, insertar o reactivar los precios actuales
+            foreach ($this->preciosVenta as $index => $precio) {
+                Log::info("Procesando precio $index", ['precio' => $precio]);
+                
+                if (isset($precio['id']) && $precio['id']) {
+                    // Actualizar precio existente
+                    $actualizado = DB::table('precio_has_venta')
+                        ->where('id', $precio['id'])
+                        ->update([
+                            'unidad_medida_id' => $precio['unidad_medida_id'],
+                            'cantidad' => $precio['cantidad'],
+                            'precio' => $precio['precio'],
+                            'estado_id' => 1,
+                            'users_id' => Auth::id(),
+                            'updated_at' => now()
+                        ]);
+                    Log::info("Precio actualizado", ['id' => $precio['id'], 'filas_afectadas' => $actualizado]);
+                } else {
+                    // Insertar nuevo precio
+                    $insertId = DB::table('precio_has_venta')->insertGetId([
+                        'producto_id' => $productoId,
+                        'unidad_medida_id' => $precio['unidad_medida_id'],
+                        'cantidad' => $precio['cantidad'],
+                        'precio' => $precio['precio'],
+                        'users_id' => Auth::id(),
+                        'estado_id' => 1,
+                        'created_at' => now(),
+                        'updated_at' => now()
+                    ]);
+                    Log::info("Nuevo precio insertado", ['id_insertado' => $insertId]);
+                }
+            }
+
+            Log::info('Precios de venta guardados exitosamente', [
+                'producto_id' => $productoId,
+                'cantidad_precios' => count($this->preciosVenta)
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error al guardar precios de venta', [
+                'producto_id' => $productoId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            throw $e;
+        }
+    }
+
     public function guardar()
     {
         // Verificar campos críticos antes de la validación completa
@@ -394,8 +693,6 @@ class ProductoForm extends Component
                 'marca' => 'Debe seleccionar una marca',
                 'categoria' => 'Debe seleccionar una categoría',
                 'subcategoria' => 'Debe seleccionar una subcategoría',
-                'precio_base' => 'El precio base es obligatorio',
-                'unidad_medida' => 'Debe seleccionar una unidad de medida',
                 'isv_id' => 'Debe seleccionar un tipo de ISV'
             ];
 
@@ -403,18 +700,37 @@ class ProductoForm extends Component
             return;
         }
 
-        // Verificación específica para precio_base = 0
-        if ($this->form['precio_base'] == 0) {
-            $this->mostrarErrorCampo('precio_base', 'El precio base no puede ser 0, debe ser mayor a 0');
+        // Limpiar alertas antes de validar
+        $this->cerrarAlerta();
+        
+        // Log ANTES de validar precios
+        Log::info('Estado de preciosVenta ANTES de validaciones', [
+            'precios' => $this->preciosVenta,
+            'cantidad' => count($this->preciosVenta),
+            'es_array' => is_array($this->preciosVenta)
+        ]);
+        
+        // Validar que haya al menos un precio de venta configurado
+        if (empty($this->preciosVenta)) {
+            $this->mostrarErrorCampo('preciosVenta', 'Debe configurar al menos un precio de venta');
             return;
         }
 
-        // Limpiar alertas antes de validar
-        $this->cerrarAlerta();
-
         try {
+            // Log ANTES de validate()
+            Log::info('preciosVenta ANTES de $this->validate()', [
+                'precios' => $this->preciosVenta,
+                'cantidad' => count($this->preciosVenta)
+            ]);
+            
             // Validar los datos del formulario con reglas dinámicas
             $this->validate($this->getRules());
+            
+            // Log DESPUÉS de validate()
+            Log::info('preciosVenta DESPUÉS de $this->validate()', [
+                'precios' => $this->preciosVenta,
+                'cantidad' => count($this->preciosVenta)
+            ]);
 
             $datos = $this->form;
             $datos['users_id'] = Auth::id();
@@ -465,6 +781,14 @@ class ProductoForm extends Component
                     }
                     ProductoModel::actualizarProducto($this->productoId, $datosPermitidos);
                     Log::info('Producto Valencia actualizado exitosamente', ['id' => $this->productoId]);
+                    
+                    // Guardar precios de venta para productos de Valencia
+                    Log::info('ANTES de guardar precios Valencia - Array preciosVenta:', [
+                        'precios' => $this->preciosVenta,
+                        'cantidad' => count($this->preciosVenta)
+                    ]);
+                    $this->guardarPreciosVenta($this->productoId);
+                    
                     $this->mostrarExito('Producto de Valencia actualizado exitosamente.');
                     $this->dispatch('redirigirEnTresSeg');
                     return;
@@ -490,6 +814,14 @@ class ProductoForm extends Component
             if ($this->isEditing) {
                 ProductoModel::actualizarProducto($this->productoId, $datos);
                 Log::info('Producto actualizado exitosamente', ['id' => $this->productoId]);
+                
+                // Guardar precios de venta
+                Log::info('ANTES de guardar precios - Array preciosVenta:', [
+                    'precios' => $this->preciosVenta,
+                    'cantidad' => count($this->preciosVenta)
+                ]);
+                $this->guardarPreciosVenta($this->productoId);
+                
                 $this->mostrarExito('Producto actualizado exitosamente.');
             } else {
                 $resultado = ProductoModel::crearProducto($datos);
@@ -497,6 +829,16 @@ class ProductoForm extends Component
                 if ((empty($datos['codigo_barra']) || trim($datos['codigo_barra']) === '') && is_array($resultado) && isset($resultado[0]->id)) {
                     ProductoModel::actualizarProducto($resultado[0]->id, array_merge($datos, ['codigo_barra' => (string)$resultado[0]->id]));
                 }
+                
+                // Guardar precios de venta para el nuevo producto
+                if (is_array($resultado) && isset($resultado[0]->id)) {
+                    Log::info('ANTES de guardar precios - Array preciosVenta:', [
+                        'precios' => $this->preciosVenta,
+                        'cantidad' => count($this->preciosVenta)
+                    ]);
+                    $this->guardarPreciosVenta($resultado[0]->id);
+                }
+                
                 Log::info('Producto creado exitosamente', ['resultado' => $resultado]);
                 $this->mostrarExito('Producto creado exitosamente.');
             }
@@ -716,7 +1058,7 @@ class ProductoForm extends Component
     // Método para verificar si todos los campos críticos están completos
     public function verificarCamposCriticos()
     {
-        $camposCriticos = ['nombre', 'marca', 'categoria', 'subcategoria', 'precio_base', 'unidad_medida', 'isv_id'];
+        $camposCriticos = ['nombre', 'marca', 'categoria', 'subcategoria', 'isv_id'];
         $camposVacios = [];
 
         foreach ($camposCriticos as $campo) {
@@ -733,12 +1075,6 @@ class ProductoForm extends Component
                     break;
                 case 'subcategoria':
                     $valor = $this->form['subcategoria_id'];
-                    break;
-                case 'precio_base':
-                    $valor = $this->form['precio_base'];
-                    break;
-                case 'unidad_medida':
-                    $valor = $this->form['unidad_medida_venta_id'];
                     break;
                 case 'isv_id':
                     $valor = $this->form['isv_id'];
@@ -769,15 +1105,6 @@ class ProductoForm extends Component
                 // En creación, validar que el código no exista
                 $rules['form.codigo_barra'] = 'nullable|string|max:100|unique:producto,codigo_barra';
             }
-        }
-
-        // Validación especial para productos de Valencia: precio_base >= precio4
-        if ($this->esProductoValencia && isset($this->form['precio4']) && $this->form['precio4'] > 0) {
-            $precio4 = $this->form['precio4'];
-            $rules['form.precio_base'] = 'required|numeric|min:' . $precio4;
-
-            // Agregar mensaje personalizado para esta validación específica
-            $this->messages['form.precio_base.min'] = 'Para productos de Valencia, el precio base no puede ser menor que el precio4 (L. ' . number_format($precio4 ?? 0, 2) . ')';
         }
 
         return $rules;

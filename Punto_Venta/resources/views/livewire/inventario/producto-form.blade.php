@@ -342,31 +342,7 @@
                         <h2 class="mb-4 text-lg font-semibold text-gray-700">💰 Datos de Venta</h2>
 
                         <div class="row">
-                            <div class="mb-3 col-md-3">
-                                <label for="unidad_medida_venta" class="form-label">Unidad de Medida <span class="text-red-600">*</span></label>
-                                <select id="unidad_medida_venta" class="form-select {{ $this->getClaseCampo('unidad_medida') }}" wire:model.defer="form.unidad_medida_venta_id">
-                                    <option value="">Seleccionar unidad</option>
-                                    @foreach($unidadesMedida as $unidad)
-                                        <option value="{{ $unidad->id }}">{{ $unidad->nombre }} ({{ $unidad->simbolo }})</option>
-                                    @endforeach
-                                </select>
-                                @error('form.unidad_medida_venta_id')
-                                    <div class="mt-1 text-sm text-danger">❌ Debe seleccionar una unidad de medida</div>
-                                @enderror
-                            </div>
-                            <div class="mb-3 col-md-3">
-                                <label for="precio_base" class="form-label">Precio Base <span class="text-red-600">*</span></label>
-                                <div class="input-group">
-                                    <span class="input-group-text">L.</span>
-                                    <input type="number" id="precio_base" class="form-control {{ $this->getClaseCampo('precio_base') }}"
-                                           wire:model.live="form.precio_base" step="0.01" 
-                                           min="0" placeholder="0.00">
-                                </div>
-                                @error('form.precio_base')
-                                    <div class="mt-1 text-sm text-danger">❌ El precio base es obligatorio</div>
-                                @enderror
-                            </div>
-                            <div class="mb-3 col-md-3">
+                            <div class="mb-3 col-md-6">
                                 <label for="isv_id" class="form-label">Tipo de ISV <span class="text-red-600">*</span></label>
                                 <select id="isv_id" class="form-select {{ $this->getClaseCampo('isv_id') }}" wire:model.defer="form.isv_id">
                                     <option value="">Seleccionar ISV</option>
@@ -378,7 +354,7 @@
                                     <div class="mt-1 text-sm text-danger">❌ Debe seleccionar un tipo de ISV</div>
                                 @enderror
                             </div>
-                            <div class="mb-3 col-md-3">
+                            <div class="mb-3 col-md-6">
                                 <label for="descuento_unitario" class="form-label">Descuento Unitario</label>
                                 <div class="input-group">
                                     <input type="number" id="descuento_unitario" class="form-control"
@@ -416,91 +392,179 @@
                                     <div class="mt-1 text-sm text-danger">{{ $message }}</div>
                                 @enderror
                             </div>
-                                                <!-- Precios de Venta Valencia (Solo cuando producto_valencia = 1) -->
-                        @if(isset($form['producto_valencia']) && $form['producto_valencia'] == 1)
-                        <div class="row">
-                            <div class="col-md-12">
-                                <div class="p-3 mb-3 border rounded bg-light">
-                                    <div class="row">
-                                        <div class="mb-3 col-md-3">
-                                            <label for="precio1" class="form-label">Precio A</label>
-                                            <div class="input-group">
+                            
+                            <!-- Precios de Venta Valencia (Solo cuando producto_valencia = 1) -->
+                            @if(isset($form['producto_valencia']) && $form['producto_valencia'] == 1)
+                            <div class="mb-3 col-md-6">
+                                <label class="form-label">Precios Valencia</label>
+                                <div class="p-3 border rounded bg-light">
+                                    <div class="row g-2">
+                                        <div class="col-6">
+                                            <label class="form-label text-xs">Precio A</label>
+                                            <div class="input-group input-group-sm">
                                                 <span class="input-group-text">L.</span>
-                                                <input type="number"
-                                                       id="precio1"
-                                                       class="form-control"
-                                                       wire:model.defer="form.precio1"
-                                                       step="0.01"
-                                                       min="0"
-                                                       placeholder="0.00"
-                                                       readonly>
+                                                <input type="number" class="form-control" wire:model.defer="form.precio1" step="0.01" readonly>
                                             </div>
-                                            @error('form.precio1')
-                                                <div class="mt-1 text-sm text-danger">{{ $message }}</div>
-                                            @enderror
                                         </div>
-                                        <div class="mb-3 col-md-3">
-                                            <label for="precio2" class="form-label">Precio B</label>
-                                            <div class="input-group">
+                                        <div class="col-6">
+                                            <label class="form-label text-xs">Precio B</label>
+                                            <div class="input-group input-group-sm">
                                                 <span class="input-group-text">L.</span>
-                                                <input type="number"
-                                                       id="precio2"
-                                                       class="form-control"
-                                                       wire:model.defer="form.precio2"
-                                                       step="0.01"
-                                                       min="0"
-                                                       placeholder="0.00"
-                                                       readonly>
+                                                <input type="number" class="form-control" wire:model.defer="form.precio2" step="0.01" readonly>
                                             </div>
-                                            @error('form.precio2')
-                                                <div class="mt-1 text-sm text-danger">{{ $message }}</div>
-                                            @enderror
                                         </div>
-                                        <div class="mb-3 col-md-3">
-                                            <label for="precio3" class="form-label">Precio C</label>
-                                            <div class="input-group">
+                                        <div class="col-6">
+                                            <label class="form-label text-xs">Precio C</label>
+                                            <div class="input-group input-group-sm">
                                                 <span class="input-group-text">L.</span>
-                                                <input type="number"
-                                                       id="precio3"
-                                                       class="form-control"
-                                                       wire:model.defer="form.precio3"
-                                                       step="0.01"
-                                                       min="0"
-                                                       placeholder="0.00"
-                                                       readonly>
+                                                <input type="number" class="form-control" wire:model.defer="form.precio3" step="0.01" readonly>
                                             </div>
-                                            @error('form.precio3')
-                                                <div class="mt-1 text-sm text-danger">{{ $message }}</div>
-                                            @enderror
                                         </div>
-                                        <div class="mb-3 col-md-3">
-                                            <label for="precio4" class="form-label">Precio D</label>
-                                            <div class="input-group">
+                                        <div class="col-6">
+                                            <label class="form-label text-xs">Precio D</label>
+                                            <div class="input-group input-group-sm">
                                                 <span class="input-group-text">L.</span>
-                                                <input type="number"
-                                                       id="precio4"
-                                                       class="form-control"
-                                                       wire:model.defer="form.precio4"
-                                                       step="0.01"
-                                                       min="0"
-                                                       placeholder="0.00"
-                                                       readonly>
+                                                <input type="number" class="form-control" wire:model.defer="form.precio4" step="0.01" readonly>
                                             </div>
-                                            @error('form.precio4')
-                                                <div class="mt-1 text-sm text-danger">{{ $message }}</div>
-                                            @enderror
                                         </div>
                                     </div>
-                                    <div class="mt-2">
-                                        <small class="text-muted">
-                                            <i class="fas fa-info-circle me-1"></i>
-                                            Estos precios son específicos para productos Valencia y son de solo lectura.
-                                        </small>
-                                    </div>
+                                    <small class="text-muted d-block mt-2">
+                                        <i class="fas fa-info-circle me-1"></i>
+                                        Precios específicos de Valencia (solo lectura)
+                                    </small>
                                 </div>
                             </div>
+                            @endif
                         </div>
-                        @endif
+
+                        <!-- Precios de Venta por Unidad de Medida -->
+                        <div class="mt-4">
+                            <h6 class="mb-3 text-gray-700 border-bottom pb-2">
+                                <i class="fas fa-tags me-2"></i>Precios de Venta por Unidad
+                            </h6>
+
+                            <!-- Formulario para agregar nuevo precio -->
+                            <div class="p-3 mb-3 border rounded bg-light">
+                                <h6 class="mb-3 text-gray-700"><i class="fas fa-plus-circle me-2"></i>Agregar Precio</h6>
+                                <div class="row align-items-end">
+                                    <div class="mb-3 col-md-3">
+                                        <label for="nueva_unidad_medida" class="form-label">Unidad de Medida <span class="text-red-600">*</span></label>
+                                        <select id="nueva_unidad_medida" 
+                                                class="form-select" 
+                                                wire:model="nuevoPrecioVenta.unidad_medida_id">
+                                            <option value="">Seleccionar unidad</option>
+                                            @foreach($unidadesMedida as $unidad)
+                                                <option value="{{ $unidad->id }}">{{ $unidad->nombre }} ({{ $unidad->simbolo }})</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                    <div class="mb-3 col-md-2">
+                                        <label for="nueva_cantidad" class="form-label">Cantidad <span class="text-red-600">*</span></label>
+                                        <input type="number" 
+                                               id="nueva_cantidad" 
+                                               class="form-control" 
+                                               wire:model="nuevoPrecioVenta.cantidad"
+                                               min="1" 
+                                               step="1"
+                                               placeholder="1">
+                                    </div>
+                                    <div class="mb-3 col-md-3">
+                                        <label for="nuevo_precio" class="form-label">Precio <span class="text-red-600">*</span></label>
+                                        <div class="input-group">
+                                            <span class="input-group-text">L.</span>
+                                            <input type="number" 
+                                                   id="nuevo_precio" 
+                                                   class="form-control" 
+                                                   wire:model="nuevoPrecioVenta.precio"
+                                                   step="0.01" 
+                                                   min="0" 
+                                                   placeholder="0.00">
+                                        </div>
+                                    </div>
+                                    <div class="mb-3 col-md-4">
+                                        <button type="button" 
+                                                wire:click="agregarPrecioVenta" 
+                                                class="w-100 btn"
+                                                :class="{
+                                                    'btn-success': theme === 'verde',
+                                                    'btn-primary': theme === 'azul',
+                                                    'btn-dark': theme === 'oscuro',
+                                                    'btn-secondary': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
+                                                }">
+                                            <i class="fas fa-plus me-1"></i> Agregar Precio
+                                        </button>
+                                    </div>
+                                </div>
+                                @if(session('error'))
+                                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                        {{ session('error') }}
+                                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                    </div>
+                                @endif
+                                @if(session('success'))
+                                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                                        {{ session('success') }}
+                                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                    </div>
+                                @endif
+                            </div>
+
+                            <!-- Tabla de precios existentes -->
+                            @if(count($preciosVenta) > 0)
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-hover table-sm">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th class="text-center">#</th>
+                                            <th>Unidad de Medida</th>
+                                            <th class="text-center">Cantidad</th>
+                                            <th class="text-end">Precio Total</th>
+                                            <th class="text-end">Precio Unitario</th>
+                                            <th class="text-center" style="width: 80px;">Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach($preciosVenta as $index => $precio)
+                                            @php
+                                                $unidad = collect($unidadesMedida)->firstWhere('id', $precio['unidad_medida_id']);
+                                                $precioUnitario = $precio['cantidad'] > 0 ? $precio['precio'] / $precio['cantidad'] : 0;
+                                            @endphp
+                                            <tr style="cursor: pointer;">
+                                                <td class="text-center" wire:click="abrirModalEditarPrecio({{ $index }})">{{ $index + 1 }}</td>
+                                                <td wire:click="abrirModalEditarPrecio({{ $index }})">
+                                                    <span class="badge bg-info">
+                                                        {{ $unidad->nombre ?? 'N/A' }} ({{ $unidad->simbolo ?? '' }})
+                                                    </span>
+                                                </td>
+                                                <td class="text-center" wire:click="abrirModalEditarPrecio({{ $index }})">
+                                                    <strong>{{ $precio['cantidad'] }}</strong> 
+                                                    {{ $precio['cantidad'] > 1 ? 'unidades' : 'unidad' }}
+                                                </td>
+                                                <td class="text-end" wire:click="abrirModalEditarPrecio({{ $index }})">
+                                                    <span class="text-success fw-bold">L. {{ number_format($precio['precio'], 2) }}</span>
+                                                </td>
+                                                <td class="text-end" wire:click="abrirModalEditarPrecio({{ $index }})">
+                                                    <small class="text-muted">L. {{ number_format($precioUnitario, 2) }} c/u</small>
+                                                </td>
+                                                <td class="text-center">
+                                                    <button type="button" 
+                                                            wire:click="abrirModalEliminarPrecio({{ $index }})" 
+                                                            class="btn btn-danger btn-sm"
+                                                            title="Eliminar precio">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                            @else
+                            <div class="p-4 text-center text-gray-500 border rounded bg-light">
+                                <i class="mb-2 fas fa-box-open fa-2x"></i>
+                                <p class="mb-0">No hay precios de venta configurados. Agrega el primer precio usando el formulario anterior.</p>
+                            </div>
+                            @endif
                         </div>
                     </div>
                 </div>
@@ -641,6 +705,217 @@
         </div>
     @endif
 
+    <!-- Modal para editar precio -->
+    <div x-data="{ open: @entangle('mostrarModalEditarPrecio') }"
+         x-show="open"
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0 transform scale-90"
+         x-transition:enter-end="opacity-100 transform scale-100"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100 transform scale-100"
+         x-transition:leave-end="opacity-0 transform scale-90"
+         x-cloak
+         class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+         @click.self="$wire.cerrarModalEditarPrecio()"
+         @keydown.escape.window="$wire.cerrarModalEditarPrecio()">
+
+        <div class="w-full max-w-lg mx-4">
+            <div class="overflow-hidden bg-white rounded-lg shadow-xl">
+                <!-- Header -->
+                <div class="p-4 text-white"
+                     :class="{
+                         'bg-emerald-600': theme === 'verde',
+                         'bg-blue-600': theme === 'azul',
+                         'bg-gray-900': theme === 'oscuro',
+                         'bg-slate-700': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
+                     }">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <i class="fas fa-edit mr-2"></i>
+                            <h3 class="text-lg font-semibold">Editar Precio de Venta</h3>
+                        </div>
+                        <button wire:click="cerrarModalEditarPrecio" class="text-white hover:text-gray-200">
+                            <i class="fas fa-times text-xl"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Body -->
+                <div class="p-6">
+                    @if(session('error'))
+                        <div class="alert alert-danger alert-dismissible fade show mb-3" role="alert">
+                            {{ session('error') }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    @endif
+                    
+                    <div class="mb-4">
+                        <label for="editar_unidad_medida" class="form-label fw-bold">
+                            <i class="fas fa-ruler me-1"></i>Unidad de Medida <span class="text-red-600">*</span>
+                        </label>
+                        <select id="editar_unidad_medida" 
+                                class="form-select" 
+                                wire:model="precioEditando.unidad_medida_id">
+                            <option value="">Seleccionar unidad</option>
+                            @foreach($unidadesMedida as $unidad)
+                                <option value="{{ $unidad->id }}">{{ $unidad->nombre }} ({{ $unidad->simbolo }})</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="editar_cantidad" class="form-label fw-bold">
+                            <i class="fas fa-sort-numeric-up me-1"></i>Cantidad <span class="text-red-600">*</span>
+                        </label>
+                        <input type="number" 
+                               id="editar_cantidad" 
+                               class="form-control form-control-lg" 
+                               wire:model="precioEditando.cantidad"
+                               min="1" 
+                               step="1"
+                               placeholder="Ej: 1, 12, 24">
+                        <small class="text-muted">Número de unidades por esta presentación</small>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="editar_precio" class="form-label fw-bold">
+                            <i class="fas fa-dollar-sign me-1"></i>Precio Total <span class="text-red-600">*</span>
+                        </label>
+                        <div class="input-group input-group-lg">
+                            <span class="input-group-text">L.</span>
+                            <input type="number" 
+                                   id="editar_precio" 
+                                   class="form-control" 
+                                   wire:model="precioEditando.precio"
+                                   step="0.01" 
+                                   min="0" 
+                                   placeholder="0.00">
+                        </div>
+                        @if(isset($precioEditando['cantidad']) && $precioEditando['cantidad'] > 0 && isset($precioEditando['precio']) && $precioEditando['precio'] > 0)
+                            <small class="text-success fw-bold">
+                                <i class="fas fa-calculator me-1"></i>
+                                Precio unitario: L. {{ number_format($precioEditando['precio'] / $precioEditando['cantidad'], 2) }} c/u
+                            </small>
+                        @endif
+                    </div>
+                </div>
+
+                <!-- Footer -->
+                <div class="px-6 py-3 bg-gray-50 text-end">
+                    <button wire:click="cerrarModalEditarPrecio"
+                            class="btn btn-secondary me-2">
+                        <i class="fas fa-times me-1"></i>Cancelar
+                    </button>
+                    <button wire:click="guardarEdicionPrecio"
+                            class="btn"
+                            :class="{
+                                'btn-success': theme === 'verde',
+                                'btn-primary': theme === 'azul',
+                                'btn-dark': theme === 'oscuro',
+                                'btn-secondary': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
+                            }">
+                        <i class="fas fa-save me-1"></i>Guardar Cambios
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para eliminar precio -->
+    <div wire:key="modal-eliminar-precio-{{ $precioAEliminar ?? 'none' }}">
+        <div class="modal fade show"
+             tabindex="-1"
+             style="display: @if($modalEliminarPrecioAbierto) block @else none @endif; background: rgba(0,0,0,0.5); z-index: 1050;"
+             aria-modal="true"
+             role="dialog"
+             @click.self="@this.cerrarModalEliminarPrecio()"
+        >
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="text-white bg-red-600 modal-header">
+                        <h5 class="modal-title">
+                            <i class="fas fa-trash me-2"></i>Eliminar Precio de Venta
+                        </h5>
+                        <button type="button" 
+                                class="btn-close btn-close-white" 
+                                wire:click="cerrarModalEliminarPrecio"
+                                aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        @if($precioAEliminar !== null && isset($preciosVenta[$precioAEliminar]))
+                            @php
+                                $precioEliminar = $preciosVenta[$precioAEliminar];
+                                $unidadEliminar = collect($unidadesMedida)->firstWhere('id', $precioEliminar['unidad_medida_id']);
+                                $precioUnitarioEliminar = $precioEliminar['cantidad'] > 0 ? $precioEliminar['precio'] / $precioEliminar['cantidad'] : 0;
+                            @endphp
+                            
+                            <div class="alert alert-warning">
+                                <h6><strong>⚠️ Confirmación de eliminación</strong></h6>
+                                <p class="mb-0">¿Está seguro que desea eliminar este precio de venta?</p>
+                            </div>
+
+                            <div class="p-3 border rounded bg-light">
+                                <h6 class="mb-3"><i class="fas fa-info-circle me-2"></i>Detalles del precio:</h6>
+                                <table class="table table-sm table-borderless mb-0">
+                                    <tr>
+                                        <td class="fw-bold" style="width: 150px;">Unidad de Medida:</td>
+                                        <td>
+                                            <span class="badge bg-info">
+                                                {{ $unidadEliminar->nombre ?? 'N/A' }} ({{ $unidadEliminar->simbolo ?? '' }})
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="fw-bold">Cantidad:</td>
+                                        <td><strong>{{ $precioEliminar['cantidad'] }}</strong> {{ $precioEliminar['cantidad'] > 1 ? 'unidades' : 'unidad' }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="fw-bold">Precio Total:</td>
+                                        <td><span class="text-success fw-bold">L. {{ number_format($precioEliminar['precio'], 2) }}</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="fw-bold">Precio Unitario:</td>
+                                        <td><span class="text-muted">L. {{ number_format($precioUnitarioEliminar, 2) }} c/u</span></td>
+                                    </tr>
+                                </table>
+                            </div>
+
+                            <div class="mt-3 alert alert-danger">
+                                <small>
+                                    <strong><i class="fas fa-exclamation-triangle me-1"></i>Advertencia:</strong>
+                                    @if(isset($precioEliminar['id']))
+                                        Este precio será marcado como <strong>inactivo</strong> en la base de datos.
+                                    @else
+                                        Este precio será eliminado permanentemente (aún no se ha guardado en la base de datos).
+                                    @endif
+                                    Esta acción no se puede deshacer.
+                                </small>
+                            </div>
+
+                            <div class="flex justify-end gap-2 mt-4">
+                                <button type="button" class="btn btn-secondary" wire:click="cerrarModalEliminarPrecio">
+                                    <i class="fas fa-times me-1"></i> No, cancelar
+                                </button>
+                                <button type="button" class="btn btn-danger" wire:click="confirmarEliminarPrecio">
+                                    <i class="fas fa-trash me-1"></i> Sí, eliminar
+                                </button>
+                            </div>
+                        @else
+                            <div class="alert alert-danger">
+                                <p class="mb-0">No se pudo identificar el precio a eliminar.</p>
+                            </div>
+                            <div class="flex justify-end gap-2 mt-4">
+                                <button type="button" class="btn btn-secondary" wire:click="cerrarModalEliminarPrecio">
+                                    <i class="fas fa-times me-1"></i> Cerrar
+                                </button>
+                            </div>
+                        @endif
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Estilos CSS para validación -->
     <style>
         /* Campo con error - solo rojos */
@@ -687,6 +962,16 @@
         /* Ocultar elementos antes de que Alpine.js los maneje */
         [x-cloak] {
             display: none !important;
+        }
+        
+        /* Filas clicables en tabla de precios */
+        .table tbody tr[style*="cursor: pointer"] td:not(:last-child):hover {
+            background-color: #f0f8ff !important;
+            transition: background-color 0.2s ease;
+        }
+        
+        .table tbody tr[style*="cursor: pointer"]:hover td:not(:last-child) {
+            background-color: #e3f2fd !important;
         }
 
         /* Estilos adicionales para modales */
