@@ -217,12 +217,22 @@
                                     <div class="flex-1">
                                         <input type="text"
                                             id="codigo_barras_compra"
-                                            wire:model.live.debounce.500ms="busquedaProducto"
+                                            wire:model.defer="codigoBarras"
+                                            wire:keydown.enter="agregarProductoPorCodigo"
                                             class="w-full h-10 border border-gray-300 rounded-l-lg focus:ring-2 focus:ring-blue-200 focus:border-blue-500"
-                                            placeholder="Escanee el código de barras"
+                                            placeholder="Escanee el código de barras o presione Enter"
                                             autocomplete="off"
-                                            x-init="setTimeout(() => $el.focus(), 100)"
-                                            @keydown.enter="$event.preventDefault()">
+                                            x-init="
+                                                setTimeout(() => $el.focus(), 100);
+                                                $wire.on('producto-agregado', () => {
+                                                    setTimeout(() => $el.focus(), 100);
+                                                });
+                                                $wire.on('producto-encontrado', () => {
+                                                    setTimeout(() => $el.focus(), 100);
+                                                });
+                                            "
+                                            @keydown.enter="$event.target.value = ''; setTimeout(() => $event.target.focus(), 100)"
+                                            autofocus>
                                     </div>
                                     <button type="button"
                                         wire:click="abrirModalBusqueda"

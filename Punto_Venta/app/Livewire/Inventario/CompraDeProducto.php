@@ -49,6 +49,10 @@ class CompraDeProducto extends Component
     public $busquedaProducto = '';
     public $productosFiltrados = [];
     public $mostrarListaProductos = false;
+    
+    // Código de barras para escáner
+    public $codigoBarras = '';
+    public $productoSeleccionado = null;
 
     // Modal de búsqueda avanzada
     public $mostrarModalBusqueda = false;
@@ -457,6 +461,9 @@ class CompraDeProducto extends Component
 
         // Recalcular totales
         $this->calcularTotales();
+
+        // Disparar evento para enfocar el campo de código de barras
+        $this->dispatch('producto-agregado');
     }
 
     public function eliminarProducto($index)
@@ -1191,11 +1198,79 @@ class CompraDeProducto extends Component
             $this->limpiarErrorCampo('proveedorSeleccionado');
         }
 
+        // Si se actualiza el código de barras, limpiar mensajes de error previos
+        if (str_contains($propertyName, 'codigoBarras')) {
+            // Limpiar mensaje de flash si hay uno
+            session()->forget(['error', 'success']);
+        }
+
         // Limpiar alerta si no hay más errores y si el campo específico se completó
         if (empty($this->camposConError)) {
             $this->mostrarAlerta = false;
             $this->mensajeAlerta = '';
         }
+    }
+
+    public function agregarProductoPorCodigo()
+    {
+        if (empty($this->codigoBarras)) {
+            return;
+        }
+
+        // Buscar producto por código de barras
+        $producto = Producto::with(['unidadMedida', 'isv', 'marca', 'subcategoria'])
+            ->where('codigo_barra', $this->codigoBarras)
+            ->where('estado_id', 1) // Solo productos activos
+            ->first();
+
+        if (!$producto) {
+            session()->flash('error', 'Producto no encontrado con código: ' . $this->codigoBarras);
+            $this->codigoBarras = '';
+            return;
+        }
+
+        // Obtener la unidad de medida del producto
+        $unidadMedida = $producto->unidadMedida;
+        if (!$unidadMedida) {
+            session()->flash('error', 'Este producto no tiene unidad de medida configurada');
+            $this->codigoBarras = '';
+            return;
+        }
+
+        // Guardar la información completa del producto seleccionado
+        $this->productoSeleccionado = [
+            'id' => $producto->id,
+            'nombre' => $producto->nombre,
+            'codigo_barra' => $producto->codigo_barra,
+            'precio_base' => $producto->precio_base ?? 0,
+            'descripcion' => $producto->descripcion ?? '',
+            'marca' => $producto->marca->nombre ?? 'N/A',
+            'subcategoria' => $producto->subcategoria->nombre ?? 'N/A',
+        ];
+
+        // Actualizar el producto en el formulario temporal
+        $this->productoTemporal = [
+            'producto_id' => $producto->id,
+            'precio' => $producto->precio_base ?? 0,
+            'cantidad_recibida' => 1,
+            'cantidad_por_unidad' => 1,
+            'cantidad_ingresada' => 1,
+            'fecha_expiracion' => '',
+            'unidad_medida_id' => $unidadMedida->id,
+            'isv' => $producto->isv ? $producto->isv->cantidad : 0,
+        ];
+
+        // Activar la sección de productos si no está activa
+        $this->mostrarSeccionProductosActiva = true;
+
+        // Limpiar código de barras
+        $this->codigoBarras = '';
+
+        // Mensaje actualizado para indicar que se seleccionó/actualizó el producto
+        session()->flash('success', '✅ Producto seleccionado: ' . $producto->nombre);
+
+        // Disparar evento para enfocar el campo de código de barras
+        $this->dispatch('producto-encontrado');
     }
 
     public function dehydrate()
