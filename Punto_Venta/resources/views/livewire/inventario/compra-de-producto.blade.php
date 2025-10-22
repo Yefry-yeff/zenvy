@@ -218,7 +218,6 @@
                                         <input type="text"
                                             id="codigo_barras_compra"
                                             wire:model.defer="codigoBarras"
-                                            wire:keydown.enter="agregarProductoPorCodigo"
                                             class="w-full h-10 border border-gray-300 rounded-l-lg focus:ring-2 focus:ring-blue-200 focus:border-blue-500"
                                             placeholder="Escanee el código de barras o presione Enter"
                                             autocomplete="off"
@@ -231,7 +230,13 @@
                                                     setTimeout(() => $el.focus(), 100);
                                                 });
                                             "
-                                            @keydown.enter="$event.target.value = ''; setTimeout(() => $event.target.focus(), 100)"
+                                            @keydown.enter.prevent="
+                                                if ($event.target.value.trim()) {
+                                                    $wire.agregarProductoPorCodigo();
+                                                }
+                                                $event.target.value = ''; 
+                                                setTimeout(() => $event.target.focus(), 100);
+                                            "
                                             autofocus>
                                     </div>
                                     <button type="button"
