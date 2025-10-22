@@ -585,7 +585,12 @@
                         <input type="text"
                                wire:model.live.debounce.500ms="busquedaModalProductos"
                                class="w-full px-3 py-2 border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-200"
-                               placeholder="Buscar producto...">
+                               placeholder="Buscar producto... (Enter para agregar el primero)"
+                               @keydown.enter.prevent="
+                                   if ($wire.resultadosBusquedaModal && $wire.resultadosBusquedaModal.length > 0) {
+                                       $wire.seleccionarYAgregarPrimerResultado();
+                                   }
+                               ">
                     </div>
 
                     <!-- Filtro por Marca -->
@@ -628,24 +633,33 @@
                         </thead>
                         <tbody class="divide-y divide-gray-200">
                             @forelse($resultadosBusquedaModal as $resultado)
-                                <tr class="transition-colors hover:bg-gray-50">
+                                <tr class="transition-colors cursor-pointer hover:bg-gray-50" 
+                                    @dblclick="$wire.seleccionarYAgregarProducto({{ $resultado['id'] }})"
+                                    title="Doble clic para agregar directamente">
                                     <td class="px-4 py-3 font-mono text-xs">{{ $resultado['codigo_barra'] ?? 'N/A' }}</td>
                                     <td class="px-4 py-3 font-semibold">{{ $resultado['nombre'] }}</td>
                                     <td class="px-4 py-3 text-gray-600">{{ $resultado['marca'] ?? 'N/A' }}</td>
                                     <td class="px-4 py-3 text-gray-600">{{ $resultado['categoria'] ?? 'N/A' }}</td>
                                     <td class="px-4 py-3 font-semibold text-right">L. {{ number_format($resultado['precio_base'] ?? 0, 2) }}</td>
                                     <td class="px-4 py-3 text-center">
-                                        <button type="button"
-                                                wire:click="seleccionarProductoDesdeModal({{ $resultado['id'] }})"
-                                                class="px-3 py-1 text-sm text-white transition-colors rounded"
-                                                :class="{
-                                                    'bg-emerald-600 hover:bg-emerald-700': theme === 'verde',
-                                                    'bg-blue-600 hover:bg-blue-700': theme === 'azul',
-                                                    'bg-gray-900 hover:bg-gray-800': theme === 'oscuro',
-                                                    'bg-slate-700 hover:bg-slate-600': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
-                                                }">
-                                            Seleccionar
-                                        </button>
+                                        <div class="flex justify-center space-x-2">
+                                            <button type="button"
+                                                    wire:click="seleccionarProductoDesdeModal({{ $resultado['id'] }})"
+                                                    class="px-2 py-1 text-xs text-white transition-colors rounded"
+                                                    :class="{
+                                                        'bg-emerald-600 hover:bg-emerald-700': theme === 'verde',
+                                                        'bg-blue-600 hover:bg-blue-700': theme === 'azul',
+                                                        'bg-gray-900 hover:bg-gray-800': theme === 'oscuro',
+                                                        'bg-slate-700 hover:bg-slate-600': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
+                                                    }">
+                                                <i class="fas fa-check"></i> Seleccionar
+                                            </button>
+                                            <button type="button"
+                                                    wire:click="seleccionarYAgregarProducto({{ $resultado['id'] }})"
+                                                    class="px-2 py-1 text-xs text-white transition-colors bg-orange-600 rounded hover:bg-orange-700">
+                                                <i class="fas fa-plus"></i> Agregar
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                             @empty

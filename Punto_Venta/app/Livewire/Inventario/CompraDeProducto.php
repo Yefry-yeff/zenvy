@@ -985,6 +985,33 @@ class CompraDeProducto extends Component
         }
     }
 
+    // Nuevos métodos para agregar productos directamente desde búsqueda
+    public function seleccionarProductoDesdeModal($productoId)
+    {
+        // Usar el método existente para seleccionar
+        $this->seleccionarProductoModal($productoId);
+    }
+
+    public function seleccionarYAgregarProducto($productoId)
+    {
+        // Primero seleccionar el producto
+        $this->seleccionarProductoModal($productoId);
+        
+        // Luego agregarlo automáticamente si está válido
+        if ($this->productoTemporal['producto_id']) {
+            $this->agregarProducto();
+            session()->flash('success', '✅ Producto agregado directamente a la compra');
+        }
+    }
+
+    public function seleccionarYAgregarPrimerResultado()
+    {
+        if (!empty($this->resultadosBusquedaModal)) {
+            $primerProducto = $this->resultadosBusquedaModal[0];
+            $this->seleccionarYAgregarProducto($primerProducto['id']);
+        }
+    }
+
     // Métodos para trámites temporales
     public function guardarTramiteTemporal()
     {
