@@ -678,7 +678,7 @@
                     <div class="relative inline-flex items-center justify-center w-20 h-20 mx-auto mb-4">
                         <div class="absolute inset-0 bg-gradient-to-r from-amber-400 via-orange-500 to-amber-600 rounded-full shadow-lg animate-pulse"></div>
                         <div class="relative flex items-center justify-center w-16 h-16 bg-white rounded-full shadow-inner">
-                            <i class="text-3xl text-transparent bg-gradient-to-r from-amber-500 to-orange-600 bg-clip-text fas fa-exclamation-triangle"></i>
+                            <i class="text-3xl text-amber-600 fas fa-exclamation-triangle"></i>
                         </div>
                     </div>
                     
@@ -719,7 +719,7 @@
                     </button>
                     <button type="button"
                             wire:click="confirmarProcesamiento"
-                            class="flex-1 px-6 py-3 text-sm font-semibold text-white bg-gradient-to-r from-amber-500 to-orange-600 rounded-xl hover:from-amber-600 hover:to-orange-700 transition-all duration-200 transform hover:scale-105 active:scale-95 shadow-lg hover:shadow-xl">
+                            class="flex-1 px-6 py-3 text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 rounded-xl transition-all duration-200 transform hover:scale-105 active:scale-95 shadow-lg hover:shadow-xl">
                         <i class="mr-2 fas fa-shopping-cart"></i>
                         Sí, Procesar
                     </button>
@@ -757,7 +757,7 @@
                     <div class="relative inline-flex items-center justify-center w-24 h-24 mx-auto mb-4">
                         <div class="absolute inset-0 bg-gradient-to-r from-green-400 via-emerald-500 to-teal-500 rounded-full shadow-lg animate-pulse"></div>
                         <div class="relative flex items-center justify-center w-20 h-20 bg-white rounded-full shadow-inner">
-                            <i class="text-4xl text-transparent bg-gradient-to-r from-green-400 to-emerald-500 bg-clip-text fas fa-check-circle animate-bounce"></i>
+                            <i class="text-4xl text-green-500 fas fa-check-circle animate-bounce"></i>
                         </div>
                     </div>
                     
@@ -796,7 +796,7 @@
                 <div class="space-y-3">
                     <button type="button"
                             wire:click="recibirProductos"
-                            class="w-full px-6 py-4 text-sm font-semibold text-white bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl hover:from-green-600 hover:to-emerald-700 transition-all duration-200 transform hover:scale-105 active:scale-95 shadow-lg hover:shadow-xl">
+                            class="w-full px-6 py-4 text-sm font-semibold text-white bg-green-500 hover:bg-green-600 rounded-xl transition-all duration-200 transform hover:scale-105 active:scale-95 shadow-lg hover:shadow-xl">
                         <div class="flex items-center justify-center space-x-3">
                             <i class="text-lg fas fa-box-open"></i>
                             <span>Recibir Productos</span>
