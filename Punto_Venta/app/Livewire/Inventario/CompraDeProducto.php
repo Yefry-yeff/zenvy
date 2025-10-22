@@ -36,6 +36,8 @@ class CompraDeProducto extends Component
     public $productoTemporal = [
         'producto_id' => null,
         'precio' => 0,
+        'cantidad_recibida' => 1,
+        'cantidad_por_unidad' => 1, // Cuántas unidades tiene cada paquete/caja
         'cantidad_ingresada' => 1,
         'fecha_expiracion' => '',
         'unidad_medida_id' => null,
@@ -230,14 +232,16 @@ class CompraDeProducto extends Component
             // Limpiar espacios en blanco
             $codigoBarra = trim($this->busquedaProducto);
             
-            // Buscar producto por código de barras exacto
-            $productoPorCodigo = collect($this->productos)->first(function($producto) use ($codigoBarra) {
-                return $producto['codigo_barra'] === $codigoBarra;
-            });
+            // Buscar producto por código de barras exacto (solo campos de la tabla producto)
+            $productoPorCodigo = DB::table('producto')
+                ->where('codigo_barra', $codigoBarra)
+                ->where('estado_id', 1)
+                ->select('id')
+                ->first();
 
             if ($productoPorCodigo) {
                 // Auto-seleccionar producto si coincide el código de barras exacto
-                $this->seleccionarProducto($productoPorCodigo['id']);
+                $this->seleccionarProducto($productoPorCodigo->id);
                 return;
             }
         }
@@ -271,6 +275,25 @@ class CompraDeProducto extends Component
     }
 
     // Validación en tiempo real para cantidad ingresada manualmente
+    // Calcular automáticamente cantidad_ingresada cuando cambia cantidad_recibida o cantidad_por_unidad
+    public function updatedProductoTemporalCantidadRecibida()
+    {
+        $this->calcularCantidadIngresada();
+    }
+
+    public function updatedProductoTemporalCantidadPorUnidad()
+    {
+        $this->calcularCantidadIngresada();
+    }
+
+    private function calcularCantidadIngresada()
+    {
+        $cantidadRecibida = (int) ($this->productoTemporal['cantidad_recibida'] ?? 1);
+        $cantidadPorUnidad = (int) ($this->productoTemporal['cantidad_por_unidad'] ?? 1);
+        
+        $this->productoTemporal['cantidad_ingresada'] = $cantidadRecibida * $cantidadPorUnidad;
+    }
+
     public function updatedProductoTemporalCantidadIngresada($value)
     {
         // Asegurar que sea un número entero positivo
@@ -385,10 +408,13 @@ class CompraDeProducto extends Component
 
         // Calcular subtotal e ISV para este producto
         $precio = (float) $this->productoTemporal['precio'];
-        $cantidad = (int) $this->productoTemporal['cantidad_ingresada'];
+        $cantidadRecibida = (int) ($this->productoTemporal['cantidad_recibida'] ?? 0);
+        $cantidadPorUnidad = (int) ($this->productoTemporal['cantidad_por_unidad'] ?? 1);
+        $cantidadIngresada = $cantidadRecibida * $cantidadPorUnidad; // Cálculo automático
         $isv = (float) $this->productoTemporal['isv'];
 
-        $subtotalProducto = $precio * $cantidad;
+        // El subtotal se calcula con la cantidad recibida (paquetes/cajas)
+        $subtotalProducto = $precio * $cantidadRecibida;
         $isvProducto = $subtotalProducto * ($isv / 100);
         $totalProducto = $subtotalProducto + $isvProducto;
 
@@ -396,14 +422,16 @@ class CompraDeProducto extends Component
         $producto = collect($this->productos)->firstWhere('id', $this->productoTemporal['producto_id']);
         $unidadMedida = collect($this->unidadesMedida)->firstWhere('id', $this->productoTemporal['unidad_medida_id']);
 
-        // Agregar producto a la lista
+        // Agregar producto a la lista (sin dispatch, más rápido)
         $this->productosCompra[] = [
             'producto_id' => $this->productoTemporal['producto_id'],
             'producto_nombre' => $producto['nombre'],
             'producto_codigo' => $producto['codigo_barra'],
             'precio' => $precio,
-            'cantidad_ingresada' => $cantidad,
-            'cantidad_sin_asignar' => $cantidad, // Inicialmente toda la cantidad sin asignar
+            'cantidad_recibida' => $cantidadRecibida, // Paquetes/cajas recibidos
+            'cantidad_por_unidad' => $cantidadPorUnidad, // Unidades por paquete
+            'cantidad_ingresada' => $cantidadIngresada, // Cantidad unitaria total (calculada)
+            'cantidad_sin_asignar' => $cantidadIngresada, // Inicialmente toda sin asignar
             'fecha_expiracion' => $this->productoTemporal['fecha_expiracion'] ?: null,
             'unidad_medida_id' => $this->productoTemporal['unidad_medida_id'],
             'unidad_medida_nombre' => $unidadMedida['nombre'] ?? '',
@@ -424,6 +452,39 @@ class CompraDeProducto extends Component
         unset($this->productosCompra[$index]);
         $this->productosCompra = array_values($this->productosCompra); // Reindexar array
         $this->calcularTotales();
+    }
+
+    public function actualizarCantidadRecibida($index, $nuevaCantidadRecibida)
+    {
+        $nuevaCantidadRecibida = (int) $nuevaCantidadRecibida;
+
+        if ($nuevaCantidadRecibida <= 0) {
+            $this->mostrarAlertaError('La cantidad recibida debe ser mayor a cero');
+            return;
+        }
+
+        if (isset($this->productosCompra[$index])) {
+            $cantidadPorUnidad = $this->productosCompra[$index]['cantidad_por_unidad'] ?? 1;
+            
+            // Actualizar cantidad_recibida y recalcular cantidad_ingresada
+            $this->productosCompra[$index]['cantidad_recibida'] = $nuevaCantidadRecibida;
+            $this->productosCompra[$index]['cantidad_ingresada'] = $nuevaCantidadRecibida * $cantidadPorUnidad;
+            $this->productosCompra[$index]['cantidad_sin_asignar'] = $nuevaCantidadRecibida * $cantidadPorUnidad;
+
+            // Recalcular los totales para este producto (subtotal se calcula con cantidad_recibida)
+            $precio = $this->productosCompra[$index]['precio'];
+            $isv = $this->productosCompra[$index]['isv'];
+
+            $subtotalProducto = $precio * $nuevaCantidadRecibida; // Precio x Cant. Recibida
+            $isvProducto = $subtotalProducto * ($isv / 100);
+            $totalProducto = $subtotalProducto + $isvProducto;
+
+            $this->productosCompra[$index]['sub_total_producto'] = $subtotalProducto;
+            $this->productosCompra[$index]['precio_total'] = $totalProducto;
+
+            // Recalcular totales generales
+            $this->calcularTotales();
+        }
     }
 
     public function actualizarCantidad($index, $nuevaCantidad)
@@ -474,7 +535,9 @@ class CompraDeProducto extends Component
         $this->productoTemporal = [
             'producto_id' => null,
             'precio' => 0,
-            'cantidad_ingresada' => 1,
+            'cantidad_recibida' => 1, // Paquetes/cajas recibidos
+            'cantidad_por_unidad' => 1, // Unidades por paquete
+            'cantidad_ingresada' => 1, // Cantidad unitaria para stock
             'fecha_expiracion' => '',
             'unidad_medida_id' => null,
             'isv' => 0,
@@ -689,22 +752,23 @@ class CompraDeProducto extends Component
 
     public function cargarDatosModalBusqueda()
     {
-        // Cargar marcas (sin filtro de estado_id porque la tabla marca no tiene esa columna)
-        $this->marcasDisponibles = \App\Models\Marca::orderBy('nombre')
+        // Cargar solo los datos esenciales para mejorar rendimiento
+        $this->marcasDisponibles = DB::table('marca')
+            ->select('id', 'nombre')
+            ->orderBy('nombre')
             ->get()
-            ->map(fn($m) => ['id' => $m->id, 'nombre' => $m->nombre])
             ->toArray();
 
-        // Cargar categorías (sin filtro de estado_id porque la tabla categoria no tiene esa columna)
-        $this->categoriasDisponibles = \App\Models\Categoria::orderBy('nombre')
+        $this->categoriasDisponibles = DB::table('categoria')
+            ->select('id', 'nombre')
+            ->orderBy('nombre')
             ->get()
-            ->map(fn($c) => ['id' => $c->id, 'nombre' => $c->nombre])
             ->toArray();
 
-        // Cargar subcategorías (sin filtro de estado_id porque la tabla subcategoria no tiene esa columna)
-        $this->subcategoriasDisponibles = \App\Models\Subcategoria::orderBy('nombre')
+        $this->subcategoriasDisponibles = DB::table('subcategoria')
+            ->select('id', 'nombre')
+            ->orderBy('nombre')
             ->get()
-            ->map(fn($s) => ['id' => $s->id, 'nombre' => $s->nombre])
             ->toArray();
     }
 
@@ -730,15 +794,17 @@ class CompraDeProducto extends Component
 
     public function buscarProductosModal()
     {
-        $query = Producto::with(['marca', 'subcategoria.categoria'])
-            ->where('estado_id', 1);
+        // Limitar a 30 resultados para mejorar rendimiento
+        $query = Producto::select('producto.id', 'producto.nombre', 'producto.descripcion', 'producto.codigo_barra', 'producto.precio_base', 'producto.marca_id', 'producto.subcategoria_id')
+            ->where('producto.estado_id', 1);
 
-        // Filtro de búsqueda por texto
-        if ($this->busquedaModalProductos) {
-            $query->where(function($q) {
-                $q->where('nombre', 'like', '%' . $this->busquedaModalProductos . '%')
-                  ->orWhere('codigo_barra', 'like', '%' . $this->busquedaModalProductos . '%')
-                  ->orWhere('descripcion', 'like', '%' . $this->busquedaModalProductos . '%');
+        // Filtro de búsqueda por texto (solo si hay 3+ caracteres)
+        if ($this->busquedaModalProductos && strlen($this->busquedaModalProductos) >= 3) {
+            $busqueda = $this->busquedaModalProductos;
+            $query->where(function($q) use ($busqueda) {
+                $q->where('nombre', 'like', '%' . $busqueda . '%')
+                  ->orWhere('codigo_barra', 'like', '%' . $busqueda . '%')
+                  ->orWhere('descripcion', 'like', '%' . $busqueda . '%');
             });
         }
 
@@ -754,12 +820,14 @@ class CompraDeProducto extends Component
 
         // Filtro por categoría (a través de subcategoría)
         if ($this->categoriaSeleccionadaModal && !$this->subcategoriaSeleccionadaModal) {
-            $query->whereHas('subcategoria', function($q) {
-                $q->where('categoria_id', $this->categoriaSeleccionadaModal);
-            });
+            $query->join('subcategoria', 'producto.subcategoria_id', '=', 'subcategoria.id')
+                  ->where('subcategoria.categoria_id', $this->categoriaSeleccionadaModal);
         }
 
-        $productos = $query->limit(50)->get();
+        // Cargar solo 30 resultados y las relaciones necesarias
+        $productos = $query->with(['marca:id,nombre', 'subcategoria:id,nombre,categoria_id', 'subcategoria.categoria:id,nombre'])
+            ->limit(30)
+            ->get();
 
         $this->resultadosBusquedaModal = $productos->map(function($producto) {
             return [
@@ -787,6 +855,8 @@ class CompraDeProducto extends Component
             $this->productoTemporal = [
                 'producto_id' => $producto->id,
                 'precio' => $producto->ultimo_costo_compra ?? $producto->precio_base ?? 0,
+                'cantidad_recibida' => 1,
+                'cantidad_por_unidad' => 1,
                 'cantidad_ingresada' => 1,
                 'fecha_expiracion' => '',
                 'unidad_medida_id' => $producto->unidad_medida_venta_id ?? null,

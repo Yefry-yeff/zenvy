@@ -15,7 +15,8 @@ class CompraHasProducto extends Model
 
     protected $fillable = [
         'precio',
-        'cantidad_ingresada',
+        'cantidad_recibida',       // Nueva: cantidad de paquetes/cajas/etc recibidos
+        'cantidad_ingresada',      // Cantidad unitaria que se ingresa al stock
         'cantidad_sin_asignar',
         'fecha_expiracion',
         'sub_total_producto',
