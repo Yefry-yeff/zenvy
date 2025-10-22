@@ -404,6 +404,12 @@ class CompraDeProducto extends Component
             return;
         }
 
+        // Validar que tenemos información del producto seleccionado
+        if (!$this->productoSeleccionado) {
+            $this->mostrarAlertaError('No se ha seleccionado un producto válido. Escanee el código de barras nuevamente.');
+            return;
+        }
+
         if ($this->productoTemporal['precio'] <= 0) {
             $this->mostrarAlertaError('El precio debe ser mayor a cero');
             return;
@@ -434,15 +440,18 @@ class CompraDeProducto extends Component
         $isvProducto = $subtotalProducto * ($isv / 100);
         $totalProducto = $subtotalProducto + $isvProducto;
 
-        // Obtener información del producto
-        $producto = collect($this->productos)->firstWhere('id', $this->productoTemporal['producto_id']);
+        // Obtener información del producto y unidad de medida
         $unidadMedida = collect($this->unidadesMedida)->firstWhere('id', $this->productoTemporal['unidad_medida_id']);
+
+        // Usar la información del producto seleccionado si está disponible
+        $nombreProducto = $this->productoSeleccionado['nombre'] ?? 'Producto desconocido';
+        $codigoProducto = $this->productoSeleccionado['codigo_barra'] ?? 'N/A';
 
         // Agregar producto a la lista (sin dispatch, más rápido)
         $this->productosCompra[] = [
             'producto_id' => $this->productoTemporal['producto_id'],
-            'producto_nombre' => $producto['nombre'],
-            'producto_codigo' => $producto['codigo_barra'],
+            'producto_nombre' => $nombreProducto,
+            'producto_codigo' => $codigoProducto,
             'precio' => $precio,
             'cantidad_recibida' => $cantidadRecibida, // Paquetes/cajas recibidos
             'cantidad_por_unidad' => $cantidadPorUnidad, // Unidades por paquete
@@ -561,6 +570,7 @@ class CompraDeProducto extends Component
             'unidad_medida_id' => null,
             'isv' => 0,
         ];
+        $this->productoSeleccionado = null; // Limpiar información del producto seleccionado
         $this->busquedaProducto = '';
         $this->mostrarListaProductos = false;
     }
@@ -968,6 +978,17 @@ class CompraDeProducto extends Component
             // Llenar el campo de búsqueda con el código de barras o nombre
             $this->busquedaProducto = $producto->codigo_barra ?? $producto->nombre;
 
+            // Guardar la información completa del producto seleccionado
+            $this->productoSeleccionado = [
+                'id' => $producto->id,
+                'nombre' => $producto->nombre,
+                'codigo_barra' => $producto->codigo_barra,
+                'precio_base' => $producto->precio_base ?? 0,
+                'descripcion' => $producto->descripcion ?? '',
+                'marca' => $producto->marca->nombre ?? 'N/A',
+                'subcategoria' => $producto->subcategoria->nombre ?? 'N/A',
+            ];
+
             // Establecer el producto temporal
             $this->productoTemporal = [
                 'producto_id' => $producto->id,
@@ -1233,6 +1254,7 @@ class CompraDeProducto extends Component
         if (!$producto) {
             session()->flash('error', 'Producto no encontrado con código: ' . $this->codigoBarras);
             $this->codigoBarras = '';
+            $this->productoSeleccionado = null; // Limpiar producto seleccionado
             return;
         }
 
@@ -1241,6 +1263,7 @@ class CompraDeProducto extends Component
         if (!$unidadMedida) {
             session()->flash('error', 'Este producto no tiene unidad de medida configurada');
             $this->codigoBarras = '';
+            $this->productoSeleccionado = null; // Limpiar producto seleccionado
             return;
         }
 

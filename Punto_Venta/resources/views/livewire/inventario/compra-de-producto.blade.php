@@ -252,24 +252,27 @@
 
                         <!-- FILA 2: Cuadro de producto encontrado -->
                         <div class="mb-4" wire:key="producto-temporal-container">
-                            @if($productoTemporal['producto_id'])
-                                @php
-                                    $productoSeleccionado = collect($productos)->firstWhere('id', $productoTemporal['producto_id']);
-                                @endphp
-                                @if($productoSeleccionado)
-                                    <div class="p-3 border border-blue-200 rounded-lg bg-blue-50" wire:key="producto-info-{{ $productoTemporal['producto_id'] }}">
-                                        <p class="text-sm font-semibold text-blue-900">
-                                            📦 {{ $productoSeleccionado->nombre ?? $productoSeleccionado['nombre'] ?? 'N/A' }}
-                                        </p>
-                                        <p class="text-xs text-blue-700">
-                                            Marca: {{ $productoSeleccionado->marca ?? $productoSeleccionado['marca'] ?? 'N/A' }} | 
-                                            Categoría: {{ $productoSeleccionado->subcategoria ?? $productoSeleccionado['subcategoria'] ?? 'N/A' }}
-                                        </p>
-                                    </div>
-                                @endif
+                            @if($productoTemporal['producto_id'] && $productoSeleccionado)
+                                <div class="p-3 border border-blue-200 rounded-lg bg-blue-50" wire:key="producto-info-{{ $productoTemporal['producto_id'] }}">
+                                    <p class="text-sm font-semibold text-blue-900">
+                                        📦 {{ $productoSeleccionado['nombre'] ?? 'Producto seleccionado' }}
+                                    </p>
+                                    <p class="text-xs text-blue-700">
+                                        Código: {{ $productoSeleccionado['codigo_barra'] ?? 'N/A' }} | 
+                                        Marca: {{ $productoSeleccionado['marca'] ?? 'N/A' }} | 
+                                        Categoría: {{ $productoSeleccionado['subcategoria'] ?? 'N/A' }}
+                                    </p>
+                                    <p class="text-xs text-blue-600 mt-1">
+                                        <i class="fas fa-info-circle mr-1"></i>
+                                        Precio base: L. {{ number_format($productoSeleccionado['precio_base'] ?? 0, 2) }}
+                                    </p>
+                                </div>
                             @else
                                 <div class="p-3 text-center border border-gray-200 rounded-lg bg-gray-50" wire:key="esperando-producto">
-                                    <p class="text-sm text-gray-500">Esperando escaneo de producto...</p>
+                                    <p class="text-sm text-gray-500">
+                                        <i class="fas fa-barcode mr-2"></i>
+                                        Esperando escaneo de producto...
+                                    </p>
                                 </div>
                             @endif
                         </div>                        <!-- FILA 3: Campos del producto (Precio, Unidad, Cantidad, Stock, ISV, F.Exp) -->
