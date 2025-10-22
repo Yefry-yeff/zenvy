@@ -855,72 +855,47 @@ class Ventas extends Component
             return; // El error ya se muestra en validarStockProducto
         }
 
-        // Verificar si el producto ya existe en el carrito
-        $productoExistente = false;
-        foreach ($this->productosFactura as $index => $item) {
-            if ($item['id'] == $producto->id && 
-                isset($item['precio_id']) && $item['precio_id'] == $precioDefecto->precio_id) {
-                // Producto con la misma unidad de medida existe, incrementar cantidad
-                $this->productosFactura[$index]['cantidad']++;
-                
-                // Recalcular descuento unitario con nueva cantidad
-                if (($producto->descuento_unitario ?? 0) > 0) {
-                    $this->productosFactura[$index]['descuento_unitario_aplicado'] = 
-                        $producto->descuento_unitario * $precioDefecto->cantidad * $this->productosFactura[$index]['cantidad'];
-                }
-                
-                // Recalcular subtotal
-                $subtotalOriginal = $precioDefecto->precio * $this->productosFactura[$index]['cantidad'];
-                $descuentoUnitarioAplicado = $this->productosFactura[$index]['descuento_unitario_aplicado'];
-                $this->productosFactura[$index]['subtotal_con_descuento'] = $subtotalOriginal - $descuentoUnitarioAplicado;
-                
-                $productoExistente = true;
-                break;
-            }
+        // CAMBIO: Siempre agregar una nueva línea, permitir múltiples líneas del mismo producto con diferentes unidades
+        // Obtener el valor de ISV desde la relación
+        $valorIsv = $producto->isv ? $producto->isv->cantidad : 0;
+
+        // Calcular descuento unitario automático si existe
+        $subtotalOriginal = $precioDefecto->precio;
+        $descuentoUnitarioAplicado = 0;
+
+        if (($producto->descuento_unitario ?? 0) > 0) {
+            // El descuento es un valor monetario que se aplica por cantidad
+            $descuentoUnitarioAplicado = $producto->descuento_unitario * $precioDefecto->cantidad;
         }
 
-        if (!$productoExistente) {
-            // Obtener el valor de ISV desde la relación
-            $valorIsv = $producto->isv ? $producto->isv->cantidad : 0;
-
-            // Calcular descuento unitario automático si existe
-            $subtotalOriginal = $precioDefecto->precio;
-            $descuentoUnitarioAplicado = 0;
-
-            if (($producto->descuento_unitario ?? 0) > 0) {
-                // El descuento es un valor monetario que se aplica por cantidad
-                $descuentoUnitarioAplicado = $producto->descuento_unitario * $precioDefecto->cantidad;
-            }
-
-            $this->productosFactura[] = [
-                'id' => $producto->id,
-                'nombre' => $producto->nombre,
-                'codigo' => $producto->codigo_barra,
-                'precio' => $precioDefecto->precio, // Precio de la unidad de medida
-                'precio_id' => $precioDefecto->precio_id,
-                'unidad_medida_id' => $precioDefecto->unidad_medida_id,
-                'unidad_medida_nombre' => $precioDefecto->unidad_nombre,
-                'unidad_medida_simbolo' => $precioDefecto->unidad_simbolo,
-                'cantidad_por_unidad' => $precioDefecto->cantidad, // Unidades reales del producto
-                'precios_disponibles' => $preciosDisponibles->toArray(),
-                'producto_valencia' => $producto->producto_valencia,
-                // Agregar precios de Valencia para el dropdown
-                'precio1' => $producto->precio1 ?? 0,
-                'precio2' => $producto->precio2 ?? 0,
-                'precio3' => $producto->precio3 ?? 0,
-                'precio4' => $producto->precio4 ?? 0,
-                'precio_base' => $producto->precio_base ?? 0,
-                'tipo_precio' => 'precio_has_venta', // Indicar que usa precio_has_venta por defecto
-                'isv' => $valorIsv,
-                'cantidad' => 1, // Cantidad editable
-                'descuento_tercera' => $producto->descuento_tercera ?? 0,
-                'descuento_cuarta' => $producto->descuento_cuarta ?? 0,
-                'descuento_unitario_producto' => $producto->descuento_unitario ?? 0,
-                'descuento_unitario_aplicado' => $descuentoUnitarioAplicado,
-                'descuento_aplicado' => 0,
-                'subtotal_con_descuento' => $subtotalOriginal - $descuentoUnitarioAplicado
-            ];
-        }
+        $this->productosFactura[] = [
+            'id' => $producto->id,
+            'nombre' => $producto->nombre,
+            'codigo' => $producto->codigo_barra,
+            'precio' => $precioDefecto->precio, // Precio de la unidad de medida
+            'precio_id' => $precioDefecto->precio_id,
+            'unidad_medida_id' => $precioDefecto->unidad_medida_id,
+            'unidad_medida_nombre' => $precioDefecto->unidad_nombre,
+            'unidad_medida_simbolo' => $precioDefecto->unidad_simbolo,
+            'cantidad_por_unidad' => $precioDefecto->cantidad, // Unidades reales del producto
+            'precios_disponibles' => $preciosDisponibles->toArray(),
+            'producto_valencia' => $producto->producto_valencia,
+            // Agregar precios de Valencia para el dropdown
+            'precio1' => $producto->precio1 ?? 0,
+            'precio2' => $producto->precio2 ?? 0,
+            'precio3' => $producto->precio3 ?? 0,
+            'precio4' => $producto->precio4 ?? 0,
+            'precio_base' => $producto->precio_base ?? 0,
+            'tipo_precio' => 'precio_has_venta', // Indicar que usa precio_has_venta por defecto
+            'isv' => $valorIsv,
+            'cantidad' => 1, // Cantidad editable
+            'descuento_tercera' => $producto->descuento_tercera ?? 0,
+            'descuento_cuarta' => $producto->descuento_cuarta ?? 0,
+            'descuento_unitario_producto' => $producto->descuento_unitario ?? 0,
+            'descuento_unitario_aplicado' => $descuentoUnitarioAplicado,
+            'descuento_aplicado' => 0,
+            'subtotal_con_descuento' => $subtotalOriginal - $descuentoUnitarioAplicado
+        ];
 
         // Mostrar mensaje si se aplicó descuento automático
         if (($producto->descuento_unitario ?? 0) > 0) {
@@ -2626,34 +2601,37 @@ class Ventas extends Component
             $totalFinal = $subtotalConDescuento + $isvCalculado;
 
             // Verificar si el registro ya existe para evitar duplicados
+            // IMPORTANTE: Incluir 'indice' para permitir múltiples líneas del mismo producto con diferentes unidades
             $existeRegistro = DB::table('factura_has_producto')
                 ->where('factura_id', $facturaId)
                 ->where('producto_id', $producto['id'])
                 ->where('seccion_id', $seccion->seccion_id)
+                ->where('indice', $indice) // Agregar verificación por índice
                 ->exists();
 
             if ($existeRegistro) {
                 Log::warning("Registro duplicado detectado", [
                     'factura_id' => $facturaId,
                     'producto_id' => $producto['id'],
-                    'seccion_id' => $seccion->seccion_id
+                    'seccion_id' => $seccion->seccion_id,
+                    'indice' => $indice
                 ]);
                 continue; // Saltar esta sección si ya existe el registro
             }
 
             // Crear registro en factura_has_producto
-            DB::table('factura_has_producto')->insert([
+            $registroFacturaProducto = [
                 'factura_id' => $facturaId,
                 'producto_id' => $producto['id'],
                 'Servicios_id' => null, // NULL para productos
                 'seccion_id' => $seccion->seccion_id,
-                'unidad_medida_id' => $this->obtenerUnidadMedidaDisponible(),
+                'unidad_medida_id' => $producto['unidad_medida_id'] ?? null, // ID de unidad de medida de precio_has_venta
                 'indice' => $indice,
                 'numero_unidades_resta_inventario' => $cantidadATomar,
                 'unidades_nota_credito_resta_inventario' => 0,
                 'resta_inventario_total' => $cantidadATomar,
                 'precio_unidad' => $producto['precio'],
-                'cantidad' => $cantidadATomar,
+                'cantidad' => $producto['cantidad'], // Cantidad ingresada por el usuario
                 'subtotal' => $subtotalConDescuento,
                 'descuento' => $descuentoAplicado,
                 'isv_aplicado' => $isvAplicado, // Tasa de ISV
@@ -2661,7 +2639,17 @@ class Ventas extends Component
                 'total' => $totalFinal,
                 'idPrecioSeleccionado' => '0',
                 'precio_seleccionado' => 0
+            ];
+
+            Log::info("DEBUG Insertando en factura_has_producto", [
+                'unidad_medida_id' => $producto['unidad_medida_id'] ?? 'NULL',
+                'cantidad_usuario' => $producto['cantidad'],
+                'cantidad_por_unidad' => $producto['cantidad_por_unidad'] ?? 'N/A',
+                'numero_unidades_resta_inventario' => $cantidadATomar,
+                'calculo' => "{$producto['cantidad']} × {$producto['cantidad_por_unidad']} = {$cantidadATomar}"
             ]);
+
+            DB::table('factura_has_producto')->insert($registroFacturaProducto);
 
             // Actualizar stock en recibido_bodega
             DB::table('recibido_bodega')
@@ -3472,11 +3460,13 @@ class Ventas extends Component
             return false;
         }
 
-        // Calcular cuánto ya tenemos en el carrito de este producto
+        // Calcular cuánto ya tenemos en el carrito de este producto (en UNIDADES REALES)
         $cantidadEnCarrito = 0;
         foreach ($this->productosFactura as $item) {
             if ($item['id'] == $productoId) {
-                $cantidadEnCarrito += (int)$item['cantidad'];
+                $cantidadItem = (int)$item['cantidad'];
+                $cantidadPorUnidad = $item['cantidad_por_unidad'] ?? 1;
+                $cantidadEnCarrito += ($cantidadItem * $cantidadPorUnidad);
             }
         }
 
@@ -3488,7 +3478,7 @@ class Ventas extends Component
             'producto_id' => $productoId,
             'tienda_usuario' => $this->tiendaUsuario,
             'stock_total' => $stockTotal,
-            'cantidad_en_carrito' => $cantidadEnCarrito,
+            'cantidad_en_carrito_unidades_reales' => $cantidadEnCarrito,
             'cantidad_solicitada' => $cantidadSolicitada,
             'nueva_cantidad_total' => $nuevaCantidadTotal,
             'validacion' => $nuevaCantidadTotal <= $stockTotal ? 'VALIDO' : 'INVALIDO'
@@ -3526,11 +3516,13 @@ class Ventas extends Component
 
             $stockTotal = $stockTotal ?? 0;
 
-            // Calcular cuánto ya tenemos en el carrito de este producto
+            // Calcular cuánto ya tenemos en el carrito de este producto (en UNIDADES REALES)
             $cantidadEnCarrito = 0;
             foreach ($this->productosFactura as $item) {
                 if ($item['id'] == $productoId) {
-                    $cantidadEnCarrito += $item['cantidad'];
+                    $cantidadItem = $item['cantidad'];
+                    $cantidadPorUnidad = $item['cantidad_por_unidad'] ?? 1;
+                    $cantidadEnCarrito += ($cantidadItem * $cantidadPorUnidad);
                 }
             }
 

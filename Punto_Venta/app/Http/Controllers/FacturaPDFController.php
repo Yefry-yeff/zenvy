@@ -32,6 +32,7 @@ class FacturaPDFController extends Controller
                 ->leftJoin('servicios as s', 'fp.Servicios_id', '=', 's.id')
                 ->leftJoin('isv as i_producto', 'p.isv_id', '=', 'i_producto.id')
                 ->leftJoin('isv as i_servicio', 's.isv_id', '=', 'i_servicio.id')
+                ->leftJoin('unidad_medida as um', 'fp.unidad_medida_id', '=', 'um.id')
                 ->where('fp.factura_id', $facturaId)
                 ->select(
                     DB::raw('COALESCE(p.id, s.id) as producto_id'),
@@ -45,7 +46,9 @@ class FacturaPDFController extends Controller
                     'fp.descuento',
                     'fp.isv_aplicado',
                     'fp.isv',
-                    'fp.total'
+                    'fp.total',
+                    'fp.unidad_medida_id',
+                    'um.nombre as unidad_nombre'
                 )
                 ->get()
                 ->map(function($item) {
@@ -158,6 +161,7 @@ class FacturaPDFController extends Controller
                 ->leftJoin('servicios as s', 'fp.Servicios_id', '=', 's.id')
                 ->leftJoin('isv as i_producto', 'p.isv_id', '=', 'i_producto.id')
                 ->leftJoin('isv as i_servicio', 's.isv_id', '=', 'i_servicio.id')
+                ->leftJoin('unidad_medida as um', 'fp.unidad_medida_id', '=', 'um.id')
                 ->where('fp.factura_id', $facturaId)
                 ->select(
                     DB::raw('COALESCE(p.id, s.id) as producto_id'),
@@ -171,7 +175,9 @@ class FacturaPDFController extends Controller
                     'fp.descuento',
                     'fp.isv_aplicado',
                     'fp.isv',
-                    'fp.total'
+                    'fp.total',
+                    'fp.unidad_medida_id',
+                    'um.nombre as unidad_nombre'
                 )
                 ->get()
                 ->map(function($item) {

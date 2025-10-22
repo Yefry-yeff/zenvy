@@ -318,7 +318,13 @@
                     </div>
                     <div class="col-descripcion">
                         {{ $producto['nombre'] }}<br>
-                        <span style="font-size: 13px;">{{ $producto['cantidad'] }} x L. {{ number_format($producto['precio_unidad'], 2) }}</span>
+                        <span style="font-size: 13px;">
+                            {{ $producto['cantidad'] }}
+                            @if(isset($producto['unidad_nombre']) && $producto['unidad_nombre'])
+                                {{ $producto['unidad_nombre'] }}
+                            @endif
+                            x L. {{ number_format($producto['precio_unidad'], 2) }}
+                        </span>
 
                         @if($descuentoProductoTotal > 0)
                             <br><span style="font-size: 15px;">
