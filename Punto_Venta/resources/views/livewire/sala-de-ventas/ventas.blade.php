@@ -575,7 +575,7 @@
                                         <tr style="font-size: 0.65rem;">
                                             <th>Producto/Servicio</th>
                                             <th>Código</th>
-                                            <th>Tipo</th>
+                                            <th>Unidad de Venta</th>
                                             <th>Precio Unit.</th>
                                             <th>Cantidad</th>
                                             <th>Subtotal</th>
@@ -609,7 +609,15 @@
 
                                             // Determinar si es producto o servicio
                                             $esServicio = isset($item['servicio_id']) && $item['servicio_id'] !== null;
-                                            $stockDisponible = $esServicio ? null : $this->obtenerStockDisponible($item['id']);
+                                            
+                                            // Calcular stock disponible considerando la unidad de medida
+                                            if (!$esServicio) {
+                                                $cantidadPorUnidad = $item['cantidad_por_unidad'] ?? 1;
+                                                $cantidadEnCarrito = $item['cantidad'] ?? 0;
+                                                $stockDisponible = $this->obtenerStockDisponibleConUnidad($item['id'], $cantidadPorUnidad, $cantidadEnCarrito, $loop->index);
+                                            } else {
+                                                $stockDisponible = null;
+                                            }
                                         @endphp
                                         <tr class="{{ $esServicio ? 'table-info' : '' }}" wire:key="item-{{ $loop->index }}-{{ $item['cantidad'] }}">
                                             <td>
@@ -628,7 +636,21 @@
                                                         <i class="fas fa-concierge-bell me-1"></i>
                                                         Servicio
                                                     </span>
+                                                @elseif(isset($item['precios_disponibles']) && !empty($item['precios_disponibles']))
+                                                    <!-- Nuevo sistema: Dropdown de unidades de medida desde precio_has_venta -->
+                                                    <select class="form-select form-select-sm"
+                                                            style="min-width: 150px; font-size: 0.875rem;"
+                                                            wire:change="cambiarPrecioProducto({{ $loop->index }}, $event.target.value)">
+                                                        @foreach($item['precios_disponibles'] as $precioDisponible)
+                                                            <option value="{{ $precioDisponible->precio_id }}"
+                                                                    {{ $item['precio_id'] == $precioDisponible->precio_id ? 'selected' : '' }}>
+                                                                {{ $precioDisponible->unidad_nombre }} ({{ $precioDisponible->unidad_simbolo }}) - 
+                                                                {{ $precioDisponible->cantidad }} {{ $precioDisponible->cantidad > 1 ? 'unidades' : 'unidad' }}
+                                                            </option>
+                                                        @endforeach
+                                                    </select>
                                                 @else
+                                                    <!-- Sistema anterior: mostrar badge de producto -->
                                                     <span class="text-white badge bg-primary">
                                                         <i class="fas fa-box me-1"></i>
                                                         Producto
@@ -638,8 +660,55 @@
                                             <td>
                                                 @if($esServicio)
                                                     L. {{ number_format($item['precio'], 2) }}
+                                                @elseif(isset($item['precios_disponibles']) && !empty($item['precios_disponibles']))
+                                                    <!-- Nuevo sistema: Dropdown combinado (precio_has_venta + precios Valencia) -->
+                                                    <select class="form-select form-select-sm"
+                                                            style="min-width: 120px; font-size: 0.875rem;"
+                                                            wire:change="cambiarPrecioProducto({{ $loop->index }}, $event.target.value)">
+                                                        
+                                                        @php
+                                                            // Encontrar el precio de la unidad seleccionada
+                                                            $precioUnidadSeleccionada = collect($item['precios_disponibles'])
+                                                                ->firstWhere('precio_id', $item['precio_id']);
+                                                            $tipoPrecioActual = $item['tipo_precio'] ?? 'precio_has_venta';
+                                                        @endphp
+                                                        
+                                                        <!-- Precio de la unidad de medida seleccionada -->
+                                                        @if($precioUnidadSeleccionada)
+                                                            <option value="precio_has_venta_{{ $precioUnidadSeleccionada->precio_id }}"
+                                                                    {{ $tipoPrecioActual == 'precio_has_venta' ? 'selected' : '' }}>
+                                                                {{ $precioUnidadSeleccionada->unidad_nombre }} 
+                                                                ({{ $precioUnidadSeleccionada->cantidad }} {{ $precioUnidadSeleccionada->cantidad > 1 ? 'unids' : 'unid' }}) 
+                                                                - L. {{ number_format($precioUnidadSeleccionada->precio, 2) }}
+                                                            </option>
+                                                        @endif
+                                                        
+                                                        <!-- Precios de Valencia (si es producto de Valencia) -->
+                                                        @if(($item['producto_valencia'] ?? 0) == 1)
+                                                            @if(($item['precio1'] ?? 0) > 0)
+                                                                <option value="precio1" {{ $tipoPrecioActual == 'precio1' ? 'selected' : '' }}>
+                                                                    Precio A - L. {{ number_format($item['precio1'], 2) }}
+                                                                </option>
+                                                            @endif
+                                                            @if(($item['precio2'] ?? 0) > 0)
+                                                                <option value="precio2" {{ $tipoPrecioActual == 'precio2' ? 'selected' : '' }}>
+                                                                    Precio B - L. {{ number_format($item['precio2'], 2) }}
+                                                                </option>
+                                                            @endif
+                                                            @if(($item['precio3'] ?? 0) > 0)
+                                                                <option value="precio3" {{ $tipoPrecioActual == 'precio3' ? 'selected' : '' }}>
+                                                                    Precio C - L. {{ number_format($item['precio3'], 2) }}
+                                                                </option>
+                                                            @endif
+                                                            @if(($item['precio4'] ?? 0) > 0)
+                                                                <option value="precio4" {{ $tipoPrecioActual == 'precio4' ? 'selected' : '' }}>
+                                                                    Precio D - L. {{ number_format($item['precio4'], 2) }}
+                                                                </option>
+                                                            @endif
+                                                        @endif
+                                                    </select>
                                                 @else
-                                                    <!-- Dropdown para seleccionar precio -->
+                                                    <!-- Sistema anterior: Dropdown para seleccionar precio (Valencia) -->
                                                     <select class="form-select form-select-sm"
                                                             style="min-width: 120px; font-size: 0.875rem;"
                                                             wire:change="cambiarPrecioProducto({{ $loop->index }}, $event.target.value)">
@@ -703,8 +772,17 @@
                                                         min="1"
                                                         class="w-20 text-center form-control"
                                                         style="min-width: 60px;">
+                                                @elseif(isset($item['precios_disponibles']) && !empty($item['precios_disponibles']))
+                                                    <!-- Nuevo sistema: Cantidad editable -->
+                                                    <input type="number"
+                                                        wire:key="producto-{{ $loop->index }}-{{ $item['cantidad'] }}"
+                                                        wire:change="modificarCantidad({{ $loop->index }}, $event.target.value)"
+                                                        value="{{ $item['cantidad'] }}"
+                                                        min="1"
+                                                        class="w-20 text-center form-control"
+                                                        style="min-width: 60px;">
                                                 @else
-                                                    <!-- Para productos, cantidad limitada por stock -->
+                                                    <!-- Sistema anterior: Para productos, cantidad limitada por stock -->
                                                     <input type="number"
                                                         wire:key="producto-{{ $loop->index }}-{{ $item['cantidad'] }}"
                                                         wire:change="modificarCantidad({{ $loop->index }}, $event.target.value)"

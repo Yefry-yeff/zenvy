@@ -826,30 +826,54 @@ class Ventas extends Component
             return;
         }
 
-        // Validar stock en bodega principal antes de agregar (cantidad fija de 1)
-        if (!$this->validarStockProducto($producto->id, 1)) {
+        // Cargar precios disponibles desde precio_has_venta
+        $preciosDisponibles = DB::table('precio_has_venta')
+            ->join('unidad_medida', 'precio_has_venta.unidad_medida_id', '=', 'unidad_medida.id')
+            ->where('precio_has_venta.producto_id', $producto->id)
+            ->where('precio_has_venta.estado_id', 1)
+            ->select(
+                'precio_has_venta.id as precio_id',
+                'precio_has_venta.unidad_medida_id',
+                'unidad_medida.nombre as unidad_nombre',
+                'unidad_medida.simbolo as unidad_simbolo',
+                'precio_has_venta.cantidad',
+                'precio_has_venta.precio'
+            )
+            ->orderBy('precio_has_venta.cantidad', 'asc')
+            ->get();
+
+        if ($preciosDisponibles->isEmpty()) {
+            $this->dispatch('mostrar-error', ['mensaje' => 'Este producto no tiene precios configurados']);
+            return;
+        }
+
+        // Obtener el primer precio (menor cantidad) como precio por defecto
+        $precioDefecto = $preciosDisponibles->first();
+
+        // Validar stock en bodega principal antes de agregar (usar la cantidad del precio seleccionado)
+        if (!$this->validarStockProducto($producto->id, $precioDefecto->cantidad)) {
             return; // El error ya se muestra en validarStockProducto
         }
 
-        // Verificar si el producto ya está en la factura
+        // Verificar si el producto ya existe en el carrito
         $productoExistente = false;
         foreach ($this->productosFactura as $index => $item) {
-            if ($item['id'] == $producto->id) {
-                // Actualizar la cantidad - Sumar 1 unidad
-                $cantidadTotal = (int)$item['cantidad'] + 1;
-                $this->productosFactura[$index]['cantidad'] = $cantidadTotal;
-
-                // Recalcular el descuento unitario aplicado con la nueva cantidad
-                $descuentoUnitarioProducto = $item['descuento_unitario_producto'] ?? 0;
-                if ($descuentoUnitarioProducto > 0) {
-                    $this->productosFactura[$index]['descuento_unitario_aplicado'] = $descuentoUnitarioProducto * $cantidadTotal;
+            if ($item['id'] == $producto->id && 
+                isset($item['precio_id']) && $item['precio_id'] == $precioDefecto->precio_id) {
+                // Producto con la misma unidad de medida existe, incrementar cantidad
+                $this->productosFactura[$index]['cantidad']++;
+                
+                // Recalcular descuento unitario con nueva cantidad
+                if (($producto->descuento_unitario ?? 0) > 0) {
+                    $this->productosFactura[$index]['descuento_unitario_aplicado'] = 
+                        $producto->descuento_unitario * $precioDefecto->cantidad * $this->productosFactura[$index]['cantidad'];
                 }
-
-                // Recalcular subtotal con descuento para este item
-                $subtotalOriginal = $item['precio'] * $cantidadTotal;
-                $descuentoUnitarioAplicado = $this->productosFactura[$index]['descuento_unitario_aplicado'] ?? 0;
+                
+                // Recalcular subtotal
+                $subtotalOriginal = $precioDefecto->precio * $this->productosFactura[$index]['cantidad'];
+                $descuentoUnitarioAplicado = $this->productosFactura[$index]['descuento_unitario_aplicado'];
                 $this->productosFactura[$index]['subtotal_con_descuento'] = $subtotalOriginal - $descuentoUnitarioAplicado;
-
+                
                 $productoExistente = true;
                 break;
             }
@@ -859,32 +883,36 @@ class Ventas extends Component
             // Obtener el valor de ISV desde la relación
             $valorIsv = $producto->isv ? $producto->isv->cantidad : 0;
 
-            // Determinar precio por defecto según reglas de negocio
-            $precioDefecto = $this->determinarPrecioPorDefecto($producto);
-
-            // Calcular descuento unitario automático si existe (valor monetario directo para cantidad de 1)
-            $subtotalOriginal = $precioDefecto['precio'] * 1;
+            // Calcular descuento unitario automático si existe
+            $subtotalOriginal = $precioDefecto->precio;
             $descuentoUnitarioAplicado = 0;
 
             if (($producto->descuento_unitario ?? 0) > 0) {
-                // El descuento es un valor monetario que se aplica por cantidad (1 en este caso)
-                $descuentoUnitarioAplicado = $producto->descuento_unitario * 1;
+                // El descuento es un valor monetario que se aplica por cantidad
+                $descuentoUnitarioAplicado = $producto->descuento_unitario * $precioDefecto->cantidad;
             }
 
             $this->productosFactura[] = [
                 'id' => $producto->id,
                 'nombre' => $producto->nombre,
                 'codigo' => $producto->codigo_barra,
-                'precio' => $precioDefecto['precio'],
-                'tipo_precio' => $precioDefecto['tipo'],
+                'precio' => $precioDefecto->precio, // Precio de la unidad de medida
+                'precio_id' => $precioDefecto->precio_id,
+                'unidad_medida_id' => $precioDefecto->unidad_medida_id,
+                'unidad_medida_nombre' => $precioDefecto->unidad_nombre,
+                'unidad_medida_simbolo' => $precioDefecto->unidad_simbolo,
+                'cantidad_por_unidad' => $precioDefecto->cantidad, // Unidades reales del producto
+                'precios_disponibles' => $preciosDisponibles->toArray(),
+                'producto_valencia' => $producto->producto_valencia,
+                // Agregar precios de Valencia para el dropdown
                 'precio1' => $producto->precio1 ?? 0,
                 'precio2' => $producto->precio2 ?? 0,
                 'precio3' => $producto->precio3 ?? 0,
                 'precio4' => $producto->precio4 ?? 0,
-                'precio_base' => $producto->precio_base,
-                'producto_valencia' => $producto->producto_valencia,
+                'precio_base' => $producto->precio_base ?? 0,
+                'tipo_precio' => 'precio_has_venta', // Indicar que usa precio_has_venta por defecto
                 'isv' => $valorIsv,
-                'cantidad' => 1,
+                'cantidad' => 1, // Cantidad editable
                 'descuento_tercera' => $producto->descuento_tercera ?? 0,
                 'descuento_cuarta' => $producto->descuento_cuarta ?? 0,
                 'descuento_unitario_producto' => $producto->descuento_unitario ?? 0,
@@ -892,11 +920,11 @@ class Ventas extends Component
                 'descuento_aplicado' => 0,
                 'subtotal_con_descuento' => $subtotalOriginal - $descuentoUnitarioAplicado
             ];
+        }
 
-            // Mostrar mensaje si se aplicó descuento automático
-            if (($producto->descuento_unitario ?? 0) > 0) {
-                session()->flash('success', 'Producto aplicado con descuento');
-            }
+        // Mostrar mensaje si se aplicó descuento automático
+        if (($producto->descuento_unitario ?? 0) > 0) {
+            session()->flash('success', 'Producto aplicado con descuento');
         }
 
         // Limpiar campo de código de barras
@@ -929,9 +957,114 @@ class Ventas extends Component
             return;
         }
 
-        // Obtener el producto completo de la base de datos
-        $producto = Producto::find($this->productosFactura[$index]['id']);
-        if (!$producto) {
+        // Verificar si es cambio de unidad de medida (nuevo sistema) o tipo de precio (sistema anterior)
+        $producto = $this->productosFactura[$index];
+        $cantidadActual = $this->productosFactura[$index]['cantidad']; // Preservar cantidad
+        
+        // Si el producto tiene precios_disponibles (nuevo sistema)
+        if (isset($producto['precios_disponibles']) && !empty($producto['precios_disponibles'])) {
+            // Verificar si es un precio de Valencia (precio1, precio2, precio3, precio4)
+            if (in_array($tipoPrecio, ['precio1', 'precio2', 'precio3', 'precio4'])) {
+                // Cambio a precio de Valencia
+                $productoModel = Producto::find($producto['id']);
+                if (!$productoModel) {
+                    $this->dispatch('mostrar-error', ['mensaje' => 'Producto no encontrado']);
+                    return;
+                }
+
+                $nuevoPrecio = 0;
+                switch ($tipoPrecio) {
+                    case 'precio1':
+                        $nuevoPrecio = $productoModel->precio1 ?? 0;
+                        break;
+                    case 'precio2':
+                        $nuevoPrecio = $productoModel->precio2 ?? 0;
+                        break;
+                    case 'precio3':
+                        $nuevoPrecio = $productoModel->precio3 ?? 0;
+                        break;
+                    case 'precio4':
+                        $nuevoPrecio = $productoModel->precio4 ?? 0;
+                        break;
+                }
+
+                if ($nuevoPrecio <= 0) {
+                    $this->dispatch('mostrar-error', ['mensaje' => 'El precio seleccionado no está disponible']);
+                    return;
+                }
+
+                // IMPORTANTE: Solo actualizar el precio, mantener cantidad_por_unidad de la unidad seleccionada
+                $this->productosFactura[$index]['precio'] = $nuevoPrecio;
+                $this->productosFactura[$index]['tipo_precio'] = $tipoPrecio;
+                // NO modificar cantidad_por_unidad - se mantiene la de precio_has_venta
+
+                // Recalcular descuento unitario con la cantidad_por_unidad actual
+                $cantidadPorUnidad = $producto['cantidad_por_unidad'] ?? 1;
+                $descuentoUnitarioProducto = $producto['descuento_unitario_producto'] ?? 0;
+                if ($descuentoUnitarioProducto > 0) {
+                    $this->productosFactura[$index]['descuento_unitario_aplicado'] = 
+                        $descuentoUnitarioProducto * $cantidadPorUnidad * $cantidadActual;
+                }
+
+                // Recalcular subtotal
+                $subtotalOriginal = $nuevoPrecio * $cantidadActual;
+                $descuentoUnitarioAplicado = $this->productosFactura[$index]['descuento_unitario_aplicado'] ?? 0;
+                $this->productosFactura[$index]['subtotal_con_descuento'] = $subtotalOriginal - $descuentoUnitarioAplicado;
+
+                $this->calcularTotales();
+                session()->flash('success', 'Precio actualizado correctamente');
+                return;
+            }
+            
+            // Si no es precio de Valencia, es precio_has_venta
+            // Extraer el ID del precio_has_venta (formato: "precio_has_venta_123")
+            $precioId = str_replace('precio_has_venta_', '', $tipoPrecio);
+            
+            // Buscar el precio seleccionado en los precios disponibles
+            $precioSeleccionado = collect($producto['precios_disponibles'])->firstWhere('precio_id', $precioId);
+            
+            if (!$precioSeleccionado) {
+                $this->dispatch('mostrar-error', ['mensaje' => 'Precio no encontrado']);
+                return;
+            }
+
+            // Validar que el precio sea válido
+            if ($precioSeleccionado->precio <= 0) {
+                $this->dispatch('mostrar-error', ['mensaje' => 'El precio seleccionado no es válido']);
+                return;
+            }
+
+            // Actualizar el producto con el nuevo precio y unidad de medida
+            $this->productosFactura[$index]['precio'] = $precioSeleccionado->precio;
+            $this->productosFactura[$index]['precio_id'] = $precioSeleccionado->precio_id;
+            $this->productosFactura[$index]['unidad_medida_id'] = $precioSeleccionado->unidad_medida_id;
+            $this->productosFactura[$index]['unidad_medida_nombre'] = $precioSeleccionado->unidad_nombre;
+            $this->productosFactura[$index]['unidad_medida_simbolo'] = $precioSeleccionado->unidad_simbolo;
+            $this->productosFactura[$index]['cantidad_por_unidad'] = $precioSeleccionado->cantidad;
+            $this->productosFactura[$index]['tipo_precio'] = 'precio_has_venta';
+
+            // Recalcular descuento unitario si aplica
+            $descuentoUnitarioProducto = $producto['descuento_unitario_producto'] ?? 0;
+            if ($descuentoUnitarioProducto > 0) {
+                $this->productosFactura[$index]['descuento_unitario_aplicado'] = 
+                    $descuentoUnitarioProducto * $precioSeleccionado->cantidad * $cantidadActual;
+            }
+
+            // Recalcular subtotal con descuento
+            $subtotalOriginal = $precioSeleccionado->precio * $cantidadActual;
+            $descuentoUnitarioAplicado = $this->productosFactura[$index]['descuento_unitario_aplicado'] ?? 0;
+            $this->productosFactura[$index]['subtotal_con_descuento'] = $subtotalOriginal - $descuentoUnitarioAplicado;
+
+            // Recalcular totales de la factura
+            $this->calcularTotales();
+
+            session()->flash('success', 'Unidad de medida actualizada correctamente');
+            return;
+        }
+
+        // Sistema anterior: productos de Valencia con precio1, precio2, etc.
+        $productoModel = Producto::find($producto['id']);
+        if (!$productoModel) {
             $this->dispatch('mostrar-error', ['mensaje' => 'Error al actualizar precio: producto no encontrado']);
             return;
         }
@@ -940,20 +1073,20 @@ class Ventas extends Component
         $nuevoPrecio = 0;
         switch ($tipoPrecio) {
             case 'precio1':
-                $nuevoPrecio = $producto->precio1 ?? 0;
+                $nuevoPrecio = $productoModel->precio1 ?? 0;
                 break;
             case 'precio2':
-                $nuevoPrecio = $producto->precio2 ?? 0;
+                $nuevoPrecio = $productoModel->precio2 ?? 0;
                 break;
             case 'precio3':
-                $nuevoPrecio = $producto->precio3 ?? 0;
+                $nuevoPrecio = $productoModel->precio3 ?? 0;
                 break;
             case 'precio4':
-                $nuevoPrecio = $producto->precio4 ?? 0;
+                $nuevoPrecio = $productoModel->precio4 ?? 0;
                 break;
             case 'precio_base':
             default:
-                $nuevoPrecio = $producto->precio_base ?? 0;
+                $nuevoPrecio = $productoModel->precio_base ?? 0;
                 break;
         }
 
@@ -1000,24 +1133,34 @@ class Ventas extends Component
         // Obtener el item actual
         $item = $this->productosFactura[$index];
 
-        // Solo validar stock si es un producto (no servicio)
+        // Validar stock si es un producto (no servicio)
         $esServicio = isset($item['servicio_id']) && $item['servicio_id'] !== null;
 
         if (!$esServicio) {
-            // Validar stock con la nueva cantidad total
             $productoId = $item['id'];
             $stockTotal = $this->obtenerStockTotal($productoId);
 
-            // Calcular cuánto hay en el carrito SIN incluir este item que estamos modificando
+            // Para el nuevo sistema, multiplicar por cantidad_por_unidad
+            $cantidadRealNecesaria = $nuevaCantidad;
+            if (isset($item['cantidad_por_unidad'])) {
+                $cantidadRealNecesaria = $nuevaCantidad * $item['cantidad_por_unidad'];
+            }
+
+            // Calcular cuánto hay en el carrito SIN incluir este item
             $cantidadEnCarritoSinEsteItem = 0;
             foreach ($this->productosFactura as $i => $itemCarrito) {
                 if ($itemCarrito['id'] == $productoId && $i != $index) {
-                    $cantidadEnCarritoSinEsteItem += (int)$itemCarrito['cantidad'];
+                    $cantidadItem = (int)$itemCarrito['cantidad'];
+                    // Multiplicar por cantidad_por_unidad si existe
+                    if (isset($itemCarrito['cantidad_por_unidad'])) {
+                        $cantidadItem *= $itemCarrito['cantidad_por_unidad'];
+                    }
+                    $cantidadEnCarritoSinEsteItem += $cantidadItem;
                 }
             }
 
-            // La nueva cantidad total sería: cantidad en carrito (sin este item) + nueva cantidad de este item
-            $nuevaCantidadTotal = $cantidadEnCarritoSinEsteItem + $nuevaCantidad;
+            // La nueva cantidad total en unidades reales
+            $nuevaCantidadTotal = $cantidadEnCarritoSinEsteItem + $cantidadRealNecesaria;
 
             if ($nuevaCantidadTotal > $stockTotal) {
                 $this->mostrarModalSinStock = true;
@@ -1031,7 +1174,14 @@ class Ventas extends Component
         // Recalcular el descuento unitario aplicado con la nueva cantidad
         $descuentoUnitarioProducto = $item['descuento_unitario_producto'] ?? 0;
         if ($descuentoUnitarioProducto > 0) {
-            $this->productosFactura[$index]['descuento_unitario_aplicado'] = $descuentoUnitarioProducto * $nuevaCantidad;
+            // Para nuevo sistema: descuento × cantidad_por_unidad × cantidad
+            if (isset($item['cantidad_por_unidad'])) {
+                $this->productosFactura[$index]['descuento_unitario_aplicado'] = 
+                    $descuentoUnitarioProducto * $item['cantidad_por_unidad'] * $nuevaCantidad;
+            } else {
+                $this->productosFactura[$index]['descuento_unitario_aplicado'] = 
+                    $descuentoUnitarioProducto * $nuevaCantidad;
+            }
         }
 
         // Recalcular subtotal con descuento para este item
@@ -2403,10 +2553,23 @@ class Ventas extends Component
 
     private function guardarProductoConDistribucionSecciones($facturaId, $producto, $indice)
     {
+        // CRITICAL: Calcular cantidad real para inventario (cantidad × cantidad_por_unidad)
+        $cantidadParaInventario = $producto['cantidad']; // Cantidad en factura
+        
+        if (isset($producto['cantidad_por_unidad']) && $producto['cantidad_por_unidad'] > 0) {
+            // Multiplicar: cantidad factura × unidades por cada unidad de medida
+            $cantidadParaInventario = $producto['cantidad'] * $producto['cantidad_por_unidad'];
+        }
+
         Log::info("DEBUG guardarProductoConDistribucionSecciones INICIO", [
             'factura_id' => $facturaId,
             'producto_id' => $producto['id'],
-            'cantidad_solicitada' => $producto['cantidad'],
+            'cantidad_en_factura' => $producto['cantidad'],
+            'cantidad_por_unidad' => $producto['cantidad_por_unidad'] ?? 'N/A',
+            'cantidad_para_inventario' => $cantidadParaInventario,
+            'calculo' => isset($producto['cantidad_por_unidad']) 
+                ? "{$producto['cantidad']} × {$producto['cantidad_por_unidad']} = {$cantidadParaInventario}"
+                : "Sin unidad de medida",
             'indice' => $indice
         ]);
 
@@ -2445,7 +2608,7 @@ class Ventas extends Component
             throw new \Exception("No hay stock disponible para el producto");
         }
 
-        $cantidadRestante = $producto['cantidad'];
+        $cantidadRestante = $cantidadParaInventario; // Usar la cantidad calculada
         $registrosCreados = 0;
 
         foreach ($seccionesConStock as $seccion) {
@@ -2527,7 +2690,7 @@ class Ventas extends Component
 
         Log::info("DEBUG guardarProductoConDistribucionSecciones FINALIZADO", [
             'registros_creados' => $registrosCreados,
-            'cantidad_distribuida' => $producto['cantidad']
+            'cantidad_distribuida' => $cantidadParaInventario
         ]);
     }
 
@@ -3374,6 +3537,56 @@ class Ventas extends Component
             // Retornar stock disponible considerando lo que ya está en el carrito
             return max(0, $stockTotal - $cantidadEnCarrito);
         } catch (\Exception $e) {
+            return 0;
+        }
+    }
+
+    /**
+     * Obtener stock disponible considerando la unidad de medida seleccionada
+     * Ejemplo: 100 unidades - (2 paquetes × 13 unidades) = 74 unidades disponibles
+     */
+    public function obtenerStockDisponibleConUnidad($productoId, $cantidadPorUnidad, $cantidadActual, $indiceActual)
+    {
+        if (!$this->tiendaUsuario) {
+            return 0;
+        }
+
+        try {
+            // Obtener stock total disponible en UNIDADES
+            $stockTotal = DB::table('recibido_bodega as rb')
+                ->join('seccion as s', 'rb.seccion_id', '=', 's.id')
+                ->join('segmento as seg', 's.segmento_id', '=', 'seg.id')
+                ->join('bodega as b', 'seg.bodega_id', '=', 'b.id')
+                ->where('b.tienda_id', $this->tiendaUsuario)
+                ->where('b.principal', 1)
+                ->where('b.estado_id', 1)
+                ->where('b.id', '!=', 2)
+                ->where('rb.producto_id', $productoId)
+                ->where('rb.estado_id', 1)
+                ->sum('rb.cantidad_disponible');
+
+            $stockTotal = $stockTotal ?? 0;
+
+            // Calcular cuántas UNIDADES ya están en el carrito (considerando otras líneas)
+            $unidadesEnCarrito = 0;
+            foreach ($this->productosFactura as $index => $item) {
+                // Solo contar otros items, no el actual
+                if ($item['id'] == $productoId && $index != $indiceActual) {
+                    $cantidadItem = $item['cantidad'] ?? 0;
+                    $cantidadPorUnidadItem = $item['cantidad_por_unidad'] ?? 1;
+                    $unidadesEnCarrito += ($cantidadItem * $cantidadPorUnidadItem);
+                }
+            }
+
+            // Calcular unidades del item actual
+            $unidadesItemActual = $cantidadActual * $cantidadPorUnidad;
+
+            // Stock disponible = Stock total - unidades en otras líneas - unidades del item actual
+            $stockDisponible = $stockTotal - $unidadesEnCarrito - $unidadesItemActual;
+
+            return max(0, $stockDisponible);
+        } catch (\Exception $e) {
+            Log::error("Error en obtenerStockDisponibleConUnidad: " . $e->getMessage());
             return 0;
         }
     }
