@@ -3,6 +3,7 @@
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\MenuController;
+use App\Http\Controllers\MorphingLogController;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Http\Request;
 
@@ -33,6 +34,9 @@ Route::get('/register', function () {
 
 
 Route::get('/menus/data', [MenuController::class, 'data'])->name('menus.data');
+
+// Ruta para logging de errores de DOM morphing
+Route::post('/api/log-morphing-error', [MorphingLogController::class, 'logMorphingError'])->name('log.morphing.error');
 
 // Rutas de Sala de Ventas
 Route::middleware('auth')->group(function () {

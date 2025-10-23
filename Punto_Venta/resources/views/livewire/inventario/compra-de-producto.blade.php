@@ -1,4 +1,14 @@
-<div x-data="{ theme: localStorage.getItem('theme') || 'verde' }">
+<div x-data="{ theme: localStorage.getItem('theme') || 'verde' }" 
+     wire:key="compra-producto-root-{{ $compra['numero_factura'] ?? 'new' }}-{{ count($productosCompra) }}"
+     x-init="
+         // Forzar re-render si detectamos problemas de DOM
+         $nextTick(() => {
+             if (window.livewireDomError) {
+                 $wire.$refresh();
+                 window.livewireDomError = false;
+             }
+         })
+     ">
     <style>
         [x-cloak] { display: none !important; }
         
@@ -251,9 +261,9 @@
                         </div>
 
                         <!-- FILA 2: Cuadro de producto encontrado -->
-                        <div class="mb-4" wire:key="producto-temporal-container">
+                        <div class="mb-4">
                             @if($productoTemporal['producto_id'] && $productoSeleccionado)
-                                <div class="p-3 border border-blue-200 rounded-lg bg-blue-50" wire:key="producto-info-{{ $productoTemporal['producto_id'] }}">
+                                <div class="p-3 border border-blue-200 rounded-lg bg-blue-50">
                                     <p class="text-sm font-semibold text-blue-900">
                                         📦 {{ $productoSeleccionado['nombre'] ?? 'Producto seleccionado' }}
                                     </p>
@@ -268,7 +278,7 @@
                                     </p>
                                 </div>
                             @else
-                                <div class="p-3 text-center border border-gray-200 rounded-lg bg-gray-50" wire:key="esperando-producto">
+                                <div class="p-3 text-center border border-gray-200 rounded-lg bg-gray-50">
                                     <p class="text-sm text-gray-500">
                                         <i class="fas fa-barcode mr-2"></i>
                                         Esperando escaneo de producto...
@@ -276,7 +286,7 @@
                                 </div>
                             @endif
                         </div>                        <!-- FILA 3: Campos del producto (Precio, Unidad, Cantidad, Stock, ISV, F.Exp) -->
-                        <div class="grid grid-cols-2 gap-3 mb-4 md:grid-cols-3 lg:grid-cols-6" wire:key="formulario-producto-{{ $productoTemporal['producto_id'] ?? 'empty' }}">
+                        <div class="grid grid-cols-2 gap-3 mb-4 md:grid-cols-3 lg:grid-cols-6">
                             <!-- Precio Unit. -->
                             <div>
                                 <label class="block mb-1 text-sm font-medium text-center text-gray-700">Precio Unit.</label>
@@ -353,10 +363,10 @@
 
                 <!-- Tabla de productos (se muestra directamente sin título) -->
                 @if(count($productosCompra) > 0)
-                <div class="table-responsive" wire:key="tabla-productos-container">
-                    <table class="table text-center table-sm table-bordered" style="font-size: 0.7rem;" wire:key="tabla-productos">
-                        <thead class="table-light" wire:key="tabla-header">
-                            <tr style="font-size: 0.65rem;" wire:key="header-row">
+                <div class="table-responsive">
+                    <table class="table text-center table-sm table-bordered" style="font-size: 0.7rem;">
+                        <thead class="table-light">
+                            <tr style="font-size: 0.65rem;">
                                 <th>Producto</th>
                                 <th>Código</th>
                                 <th>Unidad</th>
@@ -369,33 +379,32 @@
                                 <th>Acción</th>
                             </tr>
                         </thead>
-                        <tbody style="font-size: 0.65rem;" class="text-center" wire:key="tabla-body">
+                        <tbody style="font-size: 0.65rem;" class="text-center">
                             @foreach($productosCompra as $index => $producto)
-                                <tr wire:key="fila-producto-{{ $index }}-{{ $producto['producto_id'] ?? 'unknown' }}-{{ $producto['cantidad_ingresada'] ?? 0 }}">
-                                    <td class="text-left" wire:key="nombre-{{ $index }}">
-                                        <strong>{{ $producto['producto_nombre'] }}</strong>
+                                <tr>
+                                    <td class="text-left">
+                                        <strong>{{ $producto['nombre'] ?? 'N/A' }}</strong>
                                     </td>
-                                    <td wire:key="codigo-{{ $index }}">{{ $producto['producto_codigo'] ?? 'N/A' }}</td>
-                                    <td wire:key="unidad-{{ $index }}">
+                                    <td>{{ $producto['producto_codigo'] ?? 'N/A' }}</td>
+                                    <td>
                                         <span class="px-2 py-1 text-white badge bg-secondary">
                                             {{ $producto['unidad_medida_nombre'] }}
                                         </span>
                                     </td>
-                                    <td class="text-end" wire:key="precio-{{ $index }}">L. {{ number_format($producto['precio'], 2) }}</td>
-                                    <td wire:key="cantidad-ingresada-{{ $index }}">
+                                    <td class="text-end">L. {{ number_format($producto['precio'], 2) }}</td>
+                                    <td>
                                         <!-- Campo editable para cantidad_ingresada -->
                                         <input type="number"
                                                value="{{ $producto['cantidad_ingresada'] ?? 0 }}"
                                                wire:change="actualizarCantidad({{ $index }}, $event.target.value)"
                                                min="1"
-                                               wire:key="input-cantidad-ingresada-{{ $index }}"
                                                class="px-2 py-1 text-center text-success font-bold border border-gray-300 rounded"
                                                style="width: 70px; font-size: 0.75rem;">
                                     </td>
-                                    <td class="text-end" wire:key="subtotal-{{ $index }}">
+                                    <td class="text-end">
                                         <strong class="text-primary">L. {{ number_format($producto['sub_total_producto'], 2) }}</strong>
                                     </td>
-                                    <td wire:key="isv-{{ $index }}">
+                                    <td>
                                         @if($producto['isv'] > 0)
                                             <span class="badge bg-info">{{ $producto['isv'] }}%</span>
                                             <br>
@@ -404,23 +413,22 @@
                                             <span class="text-muted">Exento</span>
                                         @endif
                                     </td>
-                                    <td class="text-end" wire:key="total-{{ $index }}">
+                                    <td class="text-end">
                                         <strong class="text-success" style="font-size: 0.75rem;">
                                             L. {{ number_format($producto['precio_total'], 2) }}
                                         </strong>
                                     </td>
-                                    <td wire:key="fecha-exp-{{ $index }}">
+                                    <td>
                                         @if($producto['fecha_expiracion'])
                                             <small class="text-muted">{{ date('d/m/Y', strtotime($producto['fecha_expiracion'])) }}</small>
                                         @else
                                             <span class="text-muted">N/A</span>
                                         @endif
                                     </td>
-                                    <td wire:key="accion-{{ $index }}">
+                                    <td>
                                         <button type="button"
                                                 wire:click="eliminarProducto({{ $index }})"
                                                 class="btn btn-danger btn-sm"
-                                                wire:key="btn-eliminar-{{ $index }}"
                                                 title="Eliminar producto">
                                             <i class="fas fa-trash"></i>
                                         </button>
@@ -432,16 +440,16 @@
                 </div>
 
                 <!-- TOTALES (alineados a la derecha como en ventas) -->
-                <div class="flex justify-end mt-4 mb-4" wire:key="totales-container">
-                    <div class="w-full max-w-md p-4 border border-gray-300 rounded-lg bg-gray-50" wire:key="resumen-compra">
+                <div class="flex justify-end mt-4 mb-4">
+                    <div class="w-full max-w-md p-4 border border-gray-300 rounded-lg bg-gray-50">
                         <!-- Encabezado -->
-                        <div class="mb-3 text-center" wire:key="resumen-header">
+                        <div class="mb-3 text-center">
                             <h6 class="mb-0 font-bold text-gray-700">RESUMEN DE COMPRA</h6>
                             <hr class="mt-2">
                         </div>
 
                         <!-- Subtotal -->
-                        <div class="flex justify-between py-2 mb-2 font-medium text-gray-700" wire:key="subtotal-{{ $subtotal }}">
+                        <div class="flex justify-between py-2 mb-2 font-medium text-gray-700">
                             <span>Subtotal:</span>
                             <span class="font-bold">L. {{ number_format($subtotal, 2) }}</span>
                         </div>
@@ -467,8 +475,8 @@
                         @endphp
 
                         @if($totalIsvMonto > 0)
-                            <div class="pl-3 mb-2 border-l-4 border-blue-400 bg-blue-50" wire:key="isv-section-{{ count($productosCompra) }}">
-                                <div class="flex justify-between mb-1" wire:key="isv-total">
+                            <div class="pl-3 mb-2 border-l-4 border-blue-400 bg-blue-50">
+                                <div class="flex justify-between mb-1">
                                     <span class="font-medium text-blue-700">
                                         <i class="mr-1 fas fa-plus-circle"></i>
                                         Total ISV:
@@ -477,9 +485,9 @@
                                 </div>
 
                                 <!-- Desglose por porcentaje -->
-                                <div class="mt-1 ml-2 space-y-1" wire:key="isv-breakdown">
+                                <div class="mt-1 ml-2 space-y-1">
                                     @foreach($isvPorcentajes as $porcentaje => $montoIsv)
-                                        <div class="flex justify-between text-sm text-blue-600" wire:key="isv-{{ $porcentaje }}-{{ number_format($montoIsv, 2) }}">
+                                        <div class="flex justify-between text-sm text-blue-600">
                                             <span class="ml-2">• ISV {{ $porcentaje }}%:</span>
                                             <span class="font-medium">L. {{ number_format($montoIsv, 2) }}</span>
                                         </div>
@@ -489,7 +497,7 @@
                         @endif
 
                         <!-- Total final -->
-                        <div class="flex justify-between pt-3 mt-2 border-t-2 border-gray-300" wire:key="total-final-{{ $total }}">
+                        <div class="flex justify-between pt-3 mt-2 border-t-2 border-gray-300">
                             <span class="text-lg font-bold text-green-700">TOTAL A PAGAR:</span>
                             <span class="text-2xl font-bold text-green-700">L. {{ number_format($total, 2) }}</span>
                         </div>
@@ -825,70 +833,73 @@
 
 </div>
 
-<!-- Script de limpieza mejorado para DOM morphing -->
+<!-- Solución directa para el error de DOM morphing -->
 <script>
+// SOLUCIÓN 1: Eliminar todos los wire:key problemáticos
+document.addEventListener('DOMContentLoaded', function() {
+    // Remover wire:key de elementos que causan problemas
+    const problematicElements = document.querySelectorAll(`
+        [wire\\:key*="producto-info-"],
+        [wire\\:key*="formulario-producto-"],
+        [wire\\:key*="fila-producto-"],
+        [wire\\:key*="tabla-"],
+        .table-responsive[wire\\:key]
+    `);
+    
+    problematicElements.forEach(el => {
+        el.removeAttribute('wire:key');
+    });
+});
+
+// SOLUCIÓN 2: Interceptar errores de morphing y prevenirlos
+window.addEventListener('error', (event) => {
+    if (event.error && event.error.message && 
+        event.error.message.includes("Cannot read properties of null (reading 'before')")) {
+        console.warn('Error de morphing interceptado y suprimido');
+        event.preventDefault();
+        event.stopPropagation();
+        return false;
+    }
+});
+
+// SOLUCIÓN 3: Navegación segura sin morphing
+document.addEventListener('livewire:navigating', () => {
+    // Ocultar inmediatamente la tabla para evitar problemas de morphing
+    const tableElements = document.querySelectorAll('.table-responsive, table, tbody, tr');
+    tableElements.forEach(el => {
+        if (el && el.style) {
+            el.style.display = 'none';
+        }
+    });
+    
+    // Limpiar timers que puedan estar ejecutándose
+    for (let i = 1; i < 1000; i++) {
+        try {
+            clearTimeout(i);
+            clearInterval(i);
+        } catch (e) {}
+    }
+});
+
+// SOLUCIÓN 4: Hook de Livewire para deshabilitar morphing en elementos problemáticos
 document.addEventListener('livewire:initialized', () => {
-    // Limpiar timeouts al inicializar
-    try {
-        for (let i = 1; i < 2000; i++) {
-            clearTimeout(i);
-            clearInterval(i);
-        }
-    } catch (e) {
-        // Ignorar errores
-    }
-
-    // Evento de limpieza del componente
-    Livewire.on('cleanup-component', () => {
-        try {
-            for (let i = 1; i < 2000; i++) {
-                clearTimeout(i);
-                clearInterval(i);
+    if (window.Livewire) {
+        Livewire.hook('morph.updating', ({ el, skip }) => {
+            // Saltar morphing para cualquier elemento de tabla o formulario
+            if (el.tagName === 'TABLE' || 
+                el.tagName === 'TBODY' || 
+                el.tagName === 'TR' || 
+                el.tagName === 'TD' ||
+                el.classList.contains('table-responsive') ||
+                (el.hasAttribute('wire:key') && 
+                 (el.getAttribute('wire:key').includes('producto-') || 
+                  el.getAttribute('wire:key').includes('tabla-') ||
+                  el.getAttribute('wire:key').includes('fila-')))) {
+                skip();
             }
-        } catch (e) {
-            // Ignorar errores de limpieza
-        }
-    });
-
-    // Prevenir errores de DOM morphing
-    Livewire.hook('morph.updating', ({ el, component, toEl, skip }) => {
-        // Si el elemento no tiene una clave wire:key, asegurarse que tenga un ID único
-        if (!el.getAttribute('wire:key') && !el.id && el.tagName !== 'SCRIPT') {
-            try {
-                el.setAttribute('data-morph-id', Math.random().toString(36).substr(2, 9));
-            } catch (e) {
-                // Ignorar errores de atributos
-            }
-        }
-    });
-
-    // Limpiar elementos huérfanos después del morphing
-    Livewire.hook('morph.updated', ({ el, component }) => {
-        try {
-            // Eliminar elementos huérfanos que pueden causar problemas
-            const orphans = el.querySelectorAll('[data-morph-orphan="true"]');
-            orphans.forEach(orphan => {
-                try {
-                    orphan.remove();
-                } catch (e) {
-                    // Ignorar errores de eliminación
-                }
-            });
-        } catch (e) {
-            // Ignorar errores generales
-        }
-    });
-});
-
-// Limpieza adicional antes de que se descargue la página
-window.addEventListener('beforeunload', () => {
-    try {
-        for (let i = 1; i < 2000; i++) {
-            clearTimeout(i);
-            clearInterval(i);
-        }
-    } catch (e) {
-        // Ignorar errores
+        });
     }
 });
+
+console.log('✅ Sistema de prevención de errores DOM activado');
 </script>

@@ -49,6 +49,20 @@ class RecibirProductoCompra extends Component
     // Propiedades para modales de mensaje
     public $mostrarModalExito = false;
     public $mensajeModalExito = '';
+
+    // Propiedades para el modal de recepción masiva
+    public $mostrarModalRecepcionMasiva = false;
+    public $productosRecepcionMasiva = [];
+    public $fechaRecepcionMasiva = '';
+    public $bodegaRecepcionMasiva = '';
+    public $segmentoRecepcionMasiva = '';
+    public $seccionRecepcionMasiva = '';
+    public $comentarioRecepcionMasiva = '';
+    public $nombreBodegaRecepcionMasiva = '';
+    public $nombreSegmentoRecepcionMasiva = '';
+    public $nombreSeccionRecepcionMasiva = '';
+    public $segmentosMasiva = [];
+    public $seccionesMasiva = [];
     public $mostrarModalError = false;
     public $mensajeModalError = '';
 
@@ -564,6 +578,310 @@ class RecibirProductoCompra extends Component
                 'mensaje' => $e->getMessage()
             ]);
             $this->mostrarError('Error al distribuir el producto: ' . $e->getMessage());
+        }
+    }
+
+    public function abrirModalRecepcionMasiva()
+    {
+        try {
+            // Preparar productos con cantidad pendiente
+            $this->productosRecepcionMasiva = [];
+            
+            foreach ($this->detallesCompra as $detalle) {
+                if ($detalle['cantidad_sin_asignar'] > 0) {
+                    // Cargar unidades específicas para este producto
+                    $unidadesProducto = UnidadMedida::whereHas('preciosVenta', function($query) use ($detalle) {
+                        $query->where('producto_id', $detalle['producto_id'])
+                              ->where('estado_id', 1);
+                    })->orderBy('nombre', 'asc')->get();
+
+                    // Si no tiene unidades específicas, usar la unidad de la compra
+                    if ($unidadesProducto->isEmpty()) {
+                        $unidadesProducto = UnidadMedida::where('id', $detalle['unidad_medida_id'])->get();
+                    }
+
+                    $this->productosRecepcionMasiva[] = [
+                        'id' => $detalle['id'],
+                        'producto_id' => $detalle['producto_id'],
+                        'nombre_producto' => $detalle['nombre_producto'],
+                        'cantidad_pendiente' => $detalle['cantidad_sin_asignar'],
+                        'cantidad_distribuir' => $detalle['cantidad_sin_asignar'], // Por defecto toda la cantidad
+                        'unidad_medida_compra' => $detalle['unidad_medida'],
+                        'unidad_medida_id' => $detalle['unidad_medida_id'],
+                        'cantidad_stock' => $detalle['cantidad_sin_asignar'], // Por defecto la misma cantidad
+                        'unidades_disponibles' => $unidadesProducto->toArray(),
+                        'fecha_expiracion' => $detalle['fecha_vencimiento'] ?? null,
+                        // Campos de distribución por producto
+                        'bodega_id' => '', // Bodega seleccionada para este producto
+                        'segmento_id' => '', // Segmento seleccionado para este producto
+                        'seccion_id' => '', // Sección seleccionada para este producto
+                        'segmentos_disponibles' => [], // Segmentos cargados dinámicamente
+                        'secciones_disponibles' => [] // Secciones cargadas dinámicamente
+                    ];
+                }
+            }
+
+            // Configurar valores por defecto
+            $this->fechaRecepcionMasiva = now()->format('Y-m-d');
+            
+            // Buscar bodega Paperland por defecto
+            $bodegaPaperland = Bodega::where('nombre', 'like', '%paperland%')
+                                    ->orWhere('nombre', 'like', '%paper land%')
+                                    ->first();
+            
+            if ($bodegaPaperland) {
+                $this->bodegaRecepcionMasiva = $bodegaPaperland->id;
+                $this->nombreBodegaRecepcionMasiva = $bodegaPaperland->nombre;
+                $this->cargarSegmentosMasiva();
+            }
+
+            $this->mostrarModalRecepcionMasiva = true;
+
+        } catch (\Exception $e) {
+            Log::error('Error al abrir modal recepción masiva', [
+                'error' => $e->getMessage(),
+                'compra_id' => $this->compraId
+            ]);
+            $this->mostrarError('Error al preparar la recepción masiva: ' . $e->getMessage());
+        }
+    }
+
+    public function cerrarModalRecepcionMasiva()
+    {
+        $this->mostrarModalRecepcionMasiva = false;
+        $this->productosRecepcionMasiva = [];
+        $this->fechaRecepcionMasiva = '';
+        $this->bodegaRecepcionMasiva = '';
+        $this->segmentoRecepcionMasiva = '';
+        $this->seccionRecepcionMasiva = '';
+        $this->comentarioRecepcionMasiva = '';
+        $this->nombreBodegaRecepcionMasiva = '';
+        $this->nombreSegmentoRecepcionMasiva = '';
+        $this->nombreSeccionRecepcionMasiva = '';
+        $this->segmentosMasiva = [];
+        $this->seccionesMasiva = [];
+    }
+
+    public function cargarSegmentosMasiva()
+    {
+        if ($this->bodegaRecepcionMasiva) {
+            $this->segmentosMasiva = Segmento::where('bodega_id', $this->bodegaRecepcionMasiva)
+                                            ->orderBy('descripcion', 'asc')
+                                            ->get();
+            
+            $bodega = Bodega::find($this->bodegaRecepcionMasiva);
+            $this->nombreBodegaRecepcionMasiva = $bodega ? $bodega->nombre : '';
+            
+            // Limpiar selecciones dependientes
+            $this->segmentoRecepcionMasiva = '';
+            $this->seccionRecepcionMasiva = '';
+            $this->nombreSegmentoRecepcionMasiva = '';
+            $this->nombreSeccionRecepcionMasiva = '';
+            $this->seccionesMasiva = [];
+        }
+    }
+
+    public function cargarSeccionesMasiva()
+    {
+        if ($this->segmentoRecepcionMasiva) {
+            $this->seccionesMasiva = Seccion::where('segmento_id', $this->segmentoRecepcionMasiva)
+                                           ->where('estado_id', 1)
+                                           ->orderBy('nombre', 'asc')
+                                           ->get();
+            
+            $segmento = Segmento::find($this->segmentoRecepcionMasiva);
+            $this->nombreSegmentoRecepcionMasiva = $segmento ? $segmento->nombre : '';
+            
+            // Limpiar selección de sección
+            $this->seccionRecepcionMasiva = '';
+            $this->nombreSeccionRecepcionMasiva = '';
+        }
+    }
+
+    public function updatedBodegaRecepcionMasiva()
+    {
+        $this->cargarSegmentosMasiva();
+    }
+
+    public function updatedSegmentoRecepcionMasiva()
+    {
+        $this->cargarSeccionesMasiva();
+    }
+
+    public function updatedSeccionRecepcionMasiva()
+    {
+        if ($this->seccionRecepcionMasiva) {
+            $seccion = Seccion::find($this->seccionRecepcionMasiva);
+            $this->nombreSeccionRecepcionMasiva = $seccion ? $seccion->nombre : '';
+        }
+    }
+
+    // Métodos para manejar cambios por producto individual
+    public function cambiarBodegaProducto($productoIndex, $bodegaId)
+    {
+        if (isset($this->productosRecepcionMasiva[$productoIndex])) {
+            $this->productosRecepcionMasiva[$productoIndex]['bodega_id'] = $bodegaId;
+            $this->productosRecepcionMasiva[$productoIndex]['segmento_id'] = '';
+            $this->productosRecepcionMasiva[$productoIndex]['seccion_id'] = '';
+            
+            // Cargar segmentos para la bodega seleccionada
+            if ($bodegaId) {
+                $segmentos = Segmento::where('bodega_id', $bodegaId)
+                                   ->orderBy('descripcion', 'asc')
+                                   ->get();
+                $this->productosRecepcionMasiva[$productoIndex]['segmentos_disponibles'] = $segmentos->toArray();
+            } else {
+                $this->productosRecepcionMasiva[$productoIndex]['segmentos_disponibles'] = [];
+            }
+            
+            $this->productosRecepcionMasiva[$productoIndex]['secciones_disponibles'] = [];
+        }
+    }
+
+    public function cambiarSegmentoProducto($productoIndex, $segmentoId)
+    {
+        if (isset($this->productosRecepcionMasiva[$productoIndex])) {
+            $this->productosRecepcionMasiva[$productoIndex]['segmento_id'] = $segmentoId;
+            $this->productosRecepcionMasiva[$productoIndex]['seccion_id'] = '';
+            
+            // Cargar secciones para el segmento seleccionado
+            if ($segmentoId) {
+                $secciones = Seccion::where('segmento_id', $segmentoId)
+                                   ->where('estado_id', 1)
+                                   ->orderBy('descripcion', 'asc')
+                                   ->get();
+                $this->productosRecepcionMasiva[$productoIndex]['secciones_disponibles'] = $secciones->toArray();
+            } else {
+                $this->productosRecepcionMasiva[$productoIndex]['secciones_disponibles'] = [];
+            }
+        }
+    }
+
+    public function cambiarSeccionProducto($productoIndex, $seccionId)
+    {
+        if (isset($this->productosRecepcionMasiva[$productoIndex])) {
+            $this->productosRecepcionMasiva[$productoIndex]['seccion_id'] = $seccionId;
+        }
+    }
+
+    public function confirmarRecepcionMasiva()
+    {
+        // Validaciones
+        if (empty($this->productosRecepcionMasiva)) {
+            $this->mostrarError('No hay productos para recibir.');
+            return;
+        }
+
+        if (!$this->fechaRecepcionMasiva) {
+            $this->mostrarError('La fecha de recepción es obligatoria.');
+            return;
+        }
+
+        // Validar que todos los productos tengan cantidades válidas y distribución completa
+        foreach ($this->productosRecepcionMasiva as $producto) {
+            if (!$producto['cantidad_distribuir'] || $producto['cantidad_distribuir'] <= 0) {
+                $this->mostrarError("La cantidad a distribuir para {$producto['nombre_producto']} debe ser mayor a 0.");
+                return;
+            }
+
+            if ($producto['cantidad_distribuir'] > $producto['cantidad_pendiente']) {
+                $this->mostrarError("La cantidad a distribuir para {$producto['nombre_producto']} no puede exceder la cantidad pendiente.");
+                return;
+            }
+
+            if (!$producto['cantidad_stock'] || $producto['cantidad_stock'] <= 0) {
+                $this->mostrarError("La cantidad en stock para {$producto['nombre_producto']} debe ser mayor a 0.");
+                return;
+            }
+
+            if ($producto['cantidad_stock'] > $producto['cantidad_distribuir']) {
+                $this->mostrarError("La cantidad en stock para {$producto['nombre_producto']} no puede exceder la cantidad a distribuir.");
+                return;
+            }
+
+            if (!$producto['unidad_medida_id']) {
+                $this->mostrarError("Debe seleccionar una unidad de medida para {$producto['nombre_producto']}.");
+                return;
+            }
+
+            // Validar distribución completa para cada producto
+            if (!$producto['bodega_id']) {
+                $this->mostrarError("Debe seleccionar una bodega para {$producto['nombre_producto']}.");
+                return;
+            }
+
+            if (!$producto['segmento_id']) {
+                $this->mostrarError("Debe seleccionar un segmento para {$producto['nombre_producto']}.");
+                return;
+            }
+
+            if (!$producto['seccion_id']) {
+                $this->mostrarError("Debe seleccionar una sección para {$producto['nombre_producto']}.");
+                return;
+            }
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $productosRecibidos = 0;
+            $mensajeDetalle = "✅ Recepción masiva exitosa:\n\n";
+
+            foreach ($this->productosRecepcionMasiva as $producto) {
+                // Obtener detalle de compra
+                $detalleCompra = CompraHasProducto::find($producto['id']);
+                
+                if (!$detalleCompra) {
+                    continue;
+                }
+
+                $cantidadDistribuir = floatval($producto['cantidad_distribuir']);
+                $cantidadParaStock = floatval($producto['cantidad_stock']);
+
+                // Actualizar cantidad asignada en compra_has_producto
+                $nuevaCantidadAsignada = $detalleCompra->cantidad_asignada + $cantidadDistribuir;
+                $detalleCompra->update(['cantidad_asignada' => $nuevaCantidadAsignada]);
+
+                // Crear registro en recibido_bodega usando la sección específica del producto
+                RecibidoBodega::create([
+                    'producto_id' => $producto['producto_id'],
+                    'seccion_id' => $producto['seccion_id'], // Usar la sección específica del producto
+                    'cantidad_compra_lote' => $cantidadDistribuir,
+                    'cantidad_inicial_seccion' => $cantidadParaStock,
+                    'cantidad_disponible' => $cantidadParaStock,
+                    'fecha_recibido' => $this->fechaRecepcionMasiva,
+                    'fecha_expiracion' => $producto['fecha_expiracion'] ?? null,
+                    'comentario' => $this->comentarioRecepcionMasiva,
+                    'unidades_compra' => $cantidadDistribuir,
+                    'unidad_medida_id' => $producto['unidad_medida_id'],
+                    'users_registro_id' => Auth::id(),
+                    'estado_id' => 1
+                ]);
+
+                $productosRecibidos++;
+                $unidad = collect($producto['unidades_disponibles'])->firstWhere('id', $producto['unidad_medida_id']);
+                $nombreUnidad = $unidad ? $unidad['nombre'] : '';
+                
+                $mensajeDetalle .= "📦 {$producto['nombre_producto']}: {$cantidadDistribuir} {$producto['unidad_medida_compra']} → {$cantidadParaStock} {$nombreUnidad}\n";
+            }
+
+            DB::commit();
+
+            $mensajeDetalle .= "\n🏢 Bodega: {$this->nombreBodegaRecepcionMasiva}\n";
+            $mensajeDetalle .= "📍 Ubicación: {$this->nombreSegmentoRecepcionMasiva} > {$this->nombreSeccionRecepcionMasiva}\n";
+            $mensajeDetalle .= "📊 Total productos recibidos: {$productosRecibidos}";
+
+            $this->mostrarExito($mensajeDetalle);
+            $this->cerrarModalRecepcionMasiva();
+            $this->cargarDatosCompra(); // Recargar datos
+
+        } catch (\Exception $e) {
+            DB::rollback();
+            Log::error('Error en recepción masiva', [
+                'error' => $e->getMessage(),
+                'compra_id' => $this->compraId
+            ]);
+            $this->mostrarError('Error al procesar la recepción masiva: ' . $e->getMessage());
         }
     }
 

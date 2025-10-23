@@ -1298,12 +1298,47 @@ class CompraDeProducto extends Component
         if (count($this->productos) > 100) {
             $this->productos = [];
         }
+        
+        // Limpiar referencias problemáticas para DOM morphing
+        if (!$this->productoTemporal['producto_id']) {
+            $this->productoSeleccionado = null;
+        }
+        
+        // Asegurar que los arrays no tengan elementos null o inválidos
+        $this->productos = array_filter($this->productos ?: []);
+        $this->productosCompra = array_filter($this->productosCompra ?: []);
+        
+        // Limpiar datos temporales que pueden causar conflictos de navegación
+        if (empty($this->codigoBarras)) {
+            // Limpiar estados relacionados con el scanner
+            $this->dispatch('limpiar-scanner-state');
+        }
+        
+        // Detectar si hay inconsistencias que requieren refresh forzado
+        if (count($this->productosCompra) > 0) {
+            foreach ($this->productosCompra as $index => $producto) {
+                if (!is_array($producto) || !isset($producto['producto_id'])) {
+                    // Producto corrupto, forzar refresh
+                    $this->dispatch('force-refresh');
+                    break;
+                }
+            }
+        }
     }
 
     public function destroying()
     {
-        // Limpieza al destruir el componente
+        // Limpieza completa al destruir el componente
         $this->dispatch('cleanup-component');
+        $this->reset();
+    }
+
+    public function forceRefresh()
+    {
+        // Método para forzar refresh cuando hay problemas de DOM
+        $this->dispatch('dom-refresh-complete');
+        // Forzar re-render limpiando cache interno
+        $this->resetValidation();
     }
 
     public function render()

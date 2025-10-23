@@ -91,7 +91,16 @@
                         <h3 class="text-lg font-semibold text-gray-700">
                             <i class="fas fa-boxes me-2"></i>Productos para Distribuir
                         </h3>
-                        <small class="text-muted">Total: {{ count($detallesCompra) }} productos</small>
+                        <div class="d-flex align-items-center gap-3">
+                            <small class="text-muted">Total: {{ count($detallesCompra) }} productos</small>
+                            @if(collect($detallesCompra)->sum('cantidad_sin_asignar') > 0)
+                                <button wire:click="abrirModalRecepcionMasiva" 
+                                        class="btn btn-success btn-sm d-flex align-items-center gap-2">
+                                    <i class="fas fa-download"></i>
+                                    Recibir Todos
+                                </button>
+                            @endif
+                        </div>
                     </div>
 
                     <!-- Tabla responsive -->
@@ -588,5 +597,178 @@
             }
         }
     </style>
+
+    <!-- MODAL DE RECEPCIÓN MASIVA -->
+    @if($mostrarModalRecepcionMasiva)
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5); z-index: 1055;">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-download me-2"></i>Recibir Todos los Productos
+                    </h5>
+                    <button type="button" class="btn-close" wire:click="cerrarModalRecepcionMasiva"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Configuración general -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <label for="fechaRecepcionMasiva" class="form-label">Fecha de Recepción <span class="text-danger">*</span></label>
+                            <input type="date" 
+                                   id="fechaRecepcionMasiva"
+                                   class="form-control" 
+                                   wire:model.live="fechaRecepcionMasiva">
+                        </div>
+
+                    </div>
+
+                    <!-- Comentario general -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <label for="comentarioRecepcionMasiva" class="form-label">Comentario General</label>
+                            <textarea id="comentarioRecepcionMasiva" 
+                                      class="form-control" 
+                                      rows="2" 
+                                      wire:model.live="comentarioRecepcionMasiva"
+                                      placeholder="Comentario opcional para todos los productos..."></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Tabla de productos -->
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 15%;">Producto</th>
+                                    <th style="width: 8%;" class="text-center">Cant. Pendiente</th>
+                                    <th style="width: 8%;" class="text-center">Cant. Distribuir</th>
+                                    <th style="width: 10%;">Unidad Medida</th>
+                                    <th style="width: 8%;" class="text-center">Cant. Stock</th>
+                                    <th style="width: 12%;">Bodega</th>
+                                    <th style="width: 12%;">Segmento</th>
+                                    <th style="width: 12%;">Sección</th>
+                                    <th style="width: 8%;" class="text-center">Fecha Exp.</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($productosRecepcionMasiva as $index => $producto)
+                                <tr wire:key="producto-masivo-{{ $producto['id'] }}">
+                                    <td>
+                                        <strong>{{ $producto['nombre_producto'] }}</strong>
+                                        <br><small class="text-muted">ID: {{ $producto['producto_id'] }}</small>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge bg-primary">
+                                            {{ $producto['cantidad_pendiente'] }}
+                                        </span>
+                                        <br><small class="text-muted">{{ $producto['unidad_medida_compra'] }}</small>
+                                    </td>
+                                    <td>
+                                        <input type="number" 
+                                               class="form-control form-control-sm text-center @if($producto['cantidad_distribuir'] > $producto['cantidad_pendiente']) is-invalid @endif"
+                                               wire:model.live="productosRecepcionMasiva.{{ $index }}.cantidad_distribuir"
+                                               min="0.01"
+                                               max="{{ $producto['cantidad_pendiente'] }}"
+                                               step="0.01"
+                                               title="Máximo: {{ $producto['cantidad_pendiente'] }} {{ $producto['unidad_medida_compra'] }}">
+                                        @if($producto['cantidad_distribuir'] > $producto['cantidad_pendiente'])
+                                            <div class="invalid-feedback">
+                                                <small>⚠️ No puede exceder {{ $producto['cantidad_pendiente'] }} {{ $producto['unidad_medida_compra'] }}</small>
+                                            </div>
+                                        @endif
+                                    </td>
+                                    <td>
+                                        <select class="form-select form-select-sm" 
+                                                wire:model.live="productosRecepcionMasiva.{{ $index }}.unidad_medida_id">
+                                            <option value="">Seleccionar</option>
+                                            @foreach($producto['unidades_disponibles'] as $unidad)
+                                                <option value="{{ $unidad['id'] }}">{{ $unidad['nombre'] }} ({{ $unidad['simbolo'] }})</option>
+                                            @endforeach
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <input type="number" 
+                                               class="form-control form-control-sm text-center @if($producto['cantidad_stock'] > $producto['cantidad_distribuir']) is-invalid @endif"
+                                               wire:model.live="productosRecepcionMasiva.{{ $index }}.cantidad_stock"
+                                               min="0.01"
+                                               max="{{ $producto['cantidad_distribuir'] }}"
+                                               step="0.01"
+                                               title="Máximo: {{ $producto['cantidad_distribuir'] }} (cantidad a distribuir)">
+                                        @if($producto['cantidad_stock'] > $producto['cantidad_distribuir'])
+                                            <div class="invalid-feedback">
+                                                <small>⚠️ No puede exceder la cantidad a distribuir</small>
+                                            </div>
+                                        @endif
+                                    </td>
+                                    <!-- Bodega -->
+                                    <td>
+                                        <select class="form-select form-select-sm" 
+                                                wire:change="cambiarBodegaProducto({{ $index }}, $event.target.value)">
+                                            <option value="">Seleccionar bodega</option>
+                                            @foreach($bodegas as $bodega)
+                                                <option value="{{ $bodega->id }}" 
+                                                        @if($producto['bodega_id'] == $bodega->id) selected @endif>
+                                                    {{ $bodega->nombre }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                    </td>
+                                    <!-- Segmento -->
+                                    <td>
+                                        <select class="form-select form-select-sm" 
+                                                wire:change="cambiarSegmentoProducto({{ $index }}, $event.target.value)"
+                                                @if(empty($producto['bodega_id'])) disabled @endif>
+                                            <option value="">Seleccionar segmento</option>
+                                            @if(isset($producto['segmentos_disponibles']))
+                                                @foreach($producto['segmentos_disponibles'] as $segmento)
+                                                    <option value="{{ $segmento['id'] }}" 
+                                                            @if($producto['segmento_id'] == $segmento['id']) selected @endif>
+                                                        {{ $segmento['descripcion'] }}
+                                                    </option>
+                                                @endforeach
+                                            @endif
+                                        </select>
+                                    </td>
+                                    <!-- Sección -->
+                                    <td>
+                                        <select class="form-select form-select-sm" 
+                                                wire:change="cambiarSeccionProducto({{ $index }}, $event.target.value)"
+                                                @if(empty($producto['segmento_id'])) disabled @endif>
+                                            <option value="">Seleccionar sección</option>
+                                            @if(isset($producto['secciones_disponibles']))
+                                                @foreach($producto['secciones_disponibles'] as $seccion)
+                                                    <option value="{{ $seccion['id'] }}" 
+                                                            @if($producto['seccion_id'] == $seccion['id']) selected @endif>
+                                                        {{ $seccion['descripcion'] }}
+                                                    </option>
+                                                @endforeach
+                                            @endif
+                                        </select>
+                                    </td>
+                                    <td class="text-center">
+                                        @if($producto['fecha_expiracion'])
+                                            <small class="text-muted">{{ \Carbon\Carbon::parse($producto['fecha_expiracion'])->format('d/m/Y') }}</small>
+                                        @else
+                                            <small class="text-muted">N/A</small>
+                                        @endif
+                                    </td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" wire:click="cerrarModalRecepcionMasiva">
+                        <i class="fas fa-times me-1"></i>Cancelar
+                    </button>
+                    <button type="button" class="btn btn-success" wire:click="confirmarRecepcionMasiva">
+                        <i class="fas fa-check me-1"></i>Confirmar Recepción Masiva
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
 
 </div>
