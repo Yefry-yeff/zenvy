@@ -116,7 +116,7 @@ class ProductoForm extends Component
         'form.subcategoria_id' => 'required|integer|exists:subcategoria,id',
         'form.marca_id' => 'required|integer|exists:marca,id',
         'form.isv_id' => 'required|integer|exists:isv,id',
-        'form.precio_base' => 'nullable|numeric|min:0.01',
+        'form.precio_base' => 'nullable|numeric|min:0',
         'form.descuento_unitario' => 'nullable|numeric|min:0',
         'form.descuento_tercera' => 'boolean',
         'form.descuento_cuarta' => 'boolean',
@@ -142,7 +142,7 @@ class ProductoForm extends Component
         'form.marca_id.exists' => 'La marca seleccionada no existe',
         'form.isv_id.required' => 'El tipo de ISV es obligatorio',
         'form.isv_id.exists' => 'El tipo de ISV seleccionado no existe',
-        'form.precio_base.min' => 'El precio base debe ser mayor a 0',
+        'form.precio_base.min' => 'El precio base no puede ser negativo',
         'form.descuento_unitario.min' => 'El descuento unitario no puede ser negativo',
         'form.unidad_medida_venta_id.exists' => 'La unidad de medida seleccionada no existe',
         'imagen.image' => 'El archivo debe ser una imagen válida',
@@ -771,10 +771,30 @@ class ProductoForm extends Component
             $datos['descuento_tercera'] = $datos['descuento_tercera'] ? 1 : 0;
             $datos['descuento_cuarta'] = $datos['descuento_cuarta'] ? 1 : 0;
 
+            // Establecer unidad_medida_venta_id con la primera unidad de medida de los precios de venta
+            if (!empty($this->preciosVenta)) {
+                $datos['unidad_medida_venta_id'] = $this->preciosVenta[0]['unidad_medida_id'];
+                Log::info('Estableciendo unidad_medida_venta_id automáticamente', [
+                    'unidad_medida_venta_id' => $datos['unidad_medida_venta_id'],
+                    'tomada_de_precio_index' => 0,
+                    'total_precios' => count($this->preciosVenta)
+                ]);
+            }
+
             // Si es producto de Valencia, solo permitir ciertos campos
             if ($this->isEditing && $this->esProductoValencia) {
                 $producto = ProductoModel::find($this->productoId);
                 if ($producto) {
+                    // Establecer unidad_medida_venta_id con la primera unidad de medida de los precios de venta para Valencia
+                    $unidadMedidaVentaId = $datos['unidad_medida_venta_id'];
+                    if (!empty($this->preciosVenta)) {
+                        $unidadMedidaVentaId = $this->preciosVenta[0]['unidad_medida_id'];
+                        Log::info('Estableciendo unidad_medida_venta_id automáticamente para producto Valencia', [
+                            'unidad_medida_venta_id' => $unidadMedidaVentaId,
+                            'tomada_de_precio_index' => 0
+                        ]);
+                    }
+
                     $datosPermitidos = [
                         'nombre' => $producto->nombre,
                         'descripcion' => $producto->descripcion,
@@ -788,7 +808,7 @@ class ProductoForm extends Component
                         'estado_id' => $producto->estado_id,
                         'subcategoria_id' => $producto->subcategoria_id,
                         'marca_id' => $producto->marca_id,
-                        'unidad_medida_venta_id' => $datos['unidad_medida_venta_id'], // Permitir modificar unidad de medida
+                        'unidad_medida_venta_id' => $unidadMedidaVentaId, // Usar la unidad de medida de los precios
                         'users_id' => $producto->users_id,
                         'precio1' => $datos['precio1'],
                         'precio2' => $datos['precio2'],
