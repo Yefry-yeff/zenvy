@@ -11,6 +11,7 @@ use App\Models\Seccion;
 use App\Models\RecibidoBodega;
 use App\Models\UnidadMedida;
 use App\Models\Producto;
+use App\Models\Bitacora;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -441,12 +442,25 @@ class RecibirProductoCompra extends Component
             if ($this->unidadMedidaProducto != $this->detalleSeleccionado['unidad_medida_venta_id']) {
                 $producto = Producto::find($this->detalleSeleccionado['producto_id']);
                 if ($producto) {
+                    $unidadAnterior = $this->detalleSeleccionado['unidad_medida_venta_id'];
                     $producto->unidad_medida_venta_id = $this->unidadMedidaProducto;
                     $producto->save();
                     
+                    // Registrar en bitácora: Actualización de unidad de medida (individual)
+                    Bitacora::registrar(
+                        Auth::id(),
+                        'Inventario - Recepción Individual',
+                        'Actualizar unidad_medida_venta',
+                        "Unidad de medida de venta del producto '{$this->detalleSeleccionado['nombre_producto']}' actualizada de {$unidadAnterior} a {$this->unidadMedidaProducto}",
+                        $producto->id,
+                        'producto',
+                        ['unidad_medida_venta_id' => $unidadAnterior],
+                        ['unidad_medida_venta_id' => $this->unidadMedidaProducto]
+                    );
+                    
                     Log::info('Unidad de medida de venta actualizada', [
                         'producto_id' => $producto->id,
-                        'unidad_anterior' => $this->detalleSeleccionado['unidad_medida_venta_id'],
+                        'unidad_anterior' => $unidadAnterior,
                         'unidad_nueva' => $this->unidadMedidaProducto
                     ]);
                 }
@@ -471,9 +485,45 @@ class RecibirProductoCompra extends Component
                 'estado_id' => 1 // Estado activo
             ]);
 
+            // Guardar cantidad anterior para bitácora
+            $cantidadSinAsignarAnterior = $detalleCompra->cantidad_sin_asignar;
+
+            // Registrar en bitácora: Creación de recibido_bodega
+            Bitacora::registrar(
+                Auth::id(),
+                'Inventario - Recepción Individual',
+                'Crear recibido_bodega',
+                "Producto '{$this->detalleSeleccionado['nombre_producto']}' distribuido a bodega. Cantidad: {$cantidadDistribuir} {$this->detalleSeleccionado['unidad_medida']}, Stock: {$cantidadParaStock}",
+                $recibidoBodega->id,
+                'recibido_bodega',
+                null, // No hay datos anteriores (es inserción)
+                [
+                    'producto_id' => $this->detalleSeleccionado['producto_id'],
+                    'seccion_id' => $this->seccionDistribucion,
+                    'cantidad_compra_lote' => $cantidadDistribuir,
+                    'cantidad_inicial_seccion' => $cantidadParaStock,
+                    'cantidad_disponible' => $cantidadParaStock,
+                    'fecha_recibido' => $this->fechaDistribucion,
+                    'comentario' => $this->comentarioDistribucion,
+                    'compra_id' => $this->compraId
+                ]
+            );
+
             // Actualizar la cantidad sin asignar en el detalle de compra
             $detalleCompra->cantidad_sin_asignar -= $cantidadDistribuir;
             $detalleCompra->save();
+
+            // Registrar en bitácora: Actualización de compra_has_producto
+            Bitacora::registrar(
+                Auth::id(),
+                'Inventario - Recepción Individual',
+                'Actualizar cantidad_sin_asignar',
+                "Cantidad sin asignar del producto '{$this->detalleSeleccionado['nombre_producto']}' actualizada de {$cantidadSinAsignarAnterior} a {$detalleCompra->cantidad_sin_asignar}",
+                $detalleCompra->id,
+                'compra_has_producto',
+                ['cantidad_sin_asignar' => $cantidadSinAsignarAnterior],
+                ['cantidad_sin_asignar' => $detalleCompra->cantidad_sin_asignar]
+            );
 
             // Verificar si todos los productos de la compra están completamente distribuidos
             $compra = $detalleCompra->compra;
@@ -498,6 +548,18 @@ class RecibirProductoCompra extends Component
                 $estadoAnterior = $compra->estado_id;
                 $compra->estado_id = 3; // Estado "Distribuido"
                 $compra->save();
+
+                // Registrar en bitácora: Cambio de estado a Distribuido
+                Bitacora::registrar(
+                    Auth::id(),
+                    'Inventario - Recepción Individual',
+                    'Cambio estado compra',
+                    "Compra '{$compra->numero_factura}' cambió de estado {$estadoAnterior} a 3 (Distribuido). Todos los productos han sido distribuidos.",
+                    $compra->id,
+                    'compra',
+                    ['estado_id' => $estadoAnterior],
+                    ['estado_id' => 3]
+                );
 
                 Log::info('Compra marcada como distribuida', [
                     'compra_id' => $compra->id,
@@ -526,6 +588,18 @@ class RecibirProductoCompra extends Component
                     $estadoAnterior = $compra->estado_id;
                     $compra->estado_id = 5; // Estado "Pendiente"
                     $compra->save();
+
+                    // Registrar en bitácora: Cambio de estado a Pendiente
+                    Bitacora::registrar(
+                        Auth::id(),
+                        'Inventario - Recepción Individual',
+                        'Cambio estado compra',
+                        "Compra '{$compra->numero_factura}' cambió de estado {$estadoAnterior} a 5 (Pendiente). Quedan {$productosConCantidadPendiente} productos por distribuir.",
+                        $compra->id,
+                        'compra',
+                        ['estado_id' => $estadoAnterior],
+                        ['estado_id' => 5]
+                    );
 
                     Log::info('Compra marcada como pendiente', [
                         'compra_id' => $compra->id,
@@ -846,18 +920,34 @@ class RecibirProductoCompra extends Component
                 // Actualizar la unidad de medida de venta del producto si cambió
                 $productoModel = Producto::find($producto['producto_id']);
                 if ($productoModel && $producto['unidad_medida_id'] != $productoModel->unidad_medida_venta_id) {
+                    $unidadAnterior = $productoModel->unidad_medida_venta_id;
                     $productoModel->unidad_medida_venta_id = $producto['unidad_medida_id'];
                     $productoModel->save();
                     
+                    // Registrar en bitácora: Actualización de unidad de medida
+                    Bitacora::registrar(
+                        Auth::id(),
+                        'Inventario - Recepción Masiva',
+                        'Actualizar unidad_medida_venta',
+                        "Unidad de medida de venta del producto '{$producto['nombre_producto']}' actualizada de {$unidadAnterior} a {$producto['unidad_medida_id']}",
+                        $productoModel->id,
+                        'producto',
+                        ['unidad_medida_venta_id' => $unidadAnterior],
+                        ['unidad_medida_venta_id' => $producto['unidad_medida_id']]
+                    );
+                    
                     Log::info('Unidad de medida de venta actualizada', [
                         'producto_id' => $productoModel->id,
-                        'unidad_anterior' => $productoModel->unidad_medida_venta_id,
+                        'unidad_anterior' => $unidadAnterior,
                         'unidad_nueva' => $producto['unidad_medida_id']
                     ]);
                 }
 
+                // Guardar cantidad anterior para bitácora
+                $cantidadSinAsignarAnterior = $detalleCompra->cantidad_sin_asignar;
+
                 // Crear registro en recibido_bodega usando la sección específica del producto
-                RecibidoBodega::create([
+                $recibidoBodega = RecibidoBodega::create([
                     'producto_id' => $producto['producto_id'],
                     'seccion_id' => $producto['seccion_id'], // Usar la sección específica del producto
                     'cantidad_compra_lote' => $cantidadDistribuir,
@@ -872,9 +962,42 @@ class RecibirProductoCompra extends Component
                     'estado_id' => 1
                 ]);
 
+                // Registrar en bitácora: Creación de recibido_bodega (recepción masiva)
+                Bitacora::registrar(
+                    Auth::id(),
+                    'Inventario - Recepción Masiva',
+                    'Crear recibido_bodega',
+                    "Producto '{$producto['nombre_producto']}' distribuido masivamente. Cantidad: {$cantidadDistribuir} {$producto['unidad_medida_compra']}, Stock: {$cantidadParaStock}",
+                    $recibidoBodega->id,
+                    'recibido_bodega',
+                    null, // No hay datos anteriores (es inserción)
+                    [
+                        'producto_id' => $producto['producto_id'],
+                        'seccion_id' => $producto['seccion_id'],
+                        'cantidad_compra_lote' => $cantidadDistribuir,
+                        'cantidad_inicial_seccion' => $cantidadParaStock,
+                        'cantidad_disponible' => $cantidadParaStock,
+                        'fecha_recibido' => $this->fechaRecepcionMasiva,
+                        'comentario' => $this->comentarioRecepcionMasiva,
+                        'compra_id' => $this->compraId
+                    ]
+                );
+
                 // Actualizar la cantidad sin asignar en el detalle de compra
                 $detalleCompra->cantidad_sin_asignar -= $cantidadDistribuir;
                 $detalleCompra->save();
+
+                // Registrar en bitácora: Actualización de compra_has_producto (recepción masiva)
+                Bitacora::registrar(
+                    Auth::id(),
+                    'Inventario - Recepción Masiva',
+                    'Actualizar cantidad_sin_asignar',
+                    "Cantidad sin asignar del producto '{$producto['nombre_producto']}' actualizada de {$cantidadSinAsignarAnterior} a {$detalleCompra->cantidad_sin_asignar} (recepción masiva)",
+                    $detalleCompra->id,
+                    'compra_has_producto',
+                    ['cantidad_sin_asignar' => $cantidadSinAsignarAnterior],
+                    ['cantidad_sin_asignar' => $detalleCompra->cantidad_sin_asignar]
+                );
 
                 $productosRecibidos++;
                 $unidad = collect($producto['unidades_disponibles'])->firstWhere('id', $producto['unidad_medida_id']);
@@ -901,6 +1024,18 @@ class RecibirProductoCompra extends Component
                 $compra->estado_id = 3; // Estado "Distribuido"
                 $compra->save();
 
+                // Registrar en bitácora: Cambio de estado a Distribuido (recepción masiva)
+                Bitacora::registrar(
+                    Auth::id(),
+                    'Inventario - Recepción Masiva',
+                    'Cambio estado compra',
+                    "Compra '{$compra->numero_factura}' cambió de estado {$estadoAnterior} a 3 (Distribuido) mediante recepción masiva. {$productosRecibidos} productos distribuidos.",
+                    $compra->id,
+                    'compra',
+                    ['estado_id' => $estadoAnterior],
+                    ['estado_id' => 3]
+                );
+
                 Log::info('Compra marcada como distribuida (recepción masiva)', [
                     'compra_id' => $compra->id,
                     'numero_factura' => $compra->numero_factura,
@@ -920,6 +1055,18 @@ class RecibirProductoCompra extends Component
                     $compra->estado_id = 5; // Estado "Pendiente"
                     $compra->save();
 
+                    // Registrar en bitácora: Cambio de estado a Pendiente (recepción masiva)
+                    Bitacora::registrar(
+                        Auth::id(),
+                        'Inventario - Recepción Masiva',
+                        'Cambio estado compra',
+                        "Compra '{$compra->numero_factura}' cambió de estado {$estadoAnterior} a 5 (Pendiente) mediante recepción masiva. {$productosRecibidos} productos distribuidos, quedan {$productosConCantidadPendiente} productos por distribuir.",
+                        $compra->id,
+                        'compra',
+                        ['estado_id' => $estadoAnterior],
+                        ['estado_id' => 5]
+                    );
+
                     Log::info('Compra marcada como pendiente (recepción masiva)', [
                         'compra_id' => $compra->id,
                         'numero_factura' => $compra->numero_factura,
@@ -934,6 +1081,23 @@ class RecibirProductoCompra extends Component
                     $this->dispatch('compra-actualizada', $compra->id);
                 }
             }
+
+            // Registrar en bitácora: Resumen de recepción masiva
+            Bitacora::registrar(
+                Auth::id(),
+                'Inventario - Recepción Masiva',
+                'Recepción masiva completada',
+                "Recepción masiva completada para compra '{$compra->numero_factura}'. {$productosRecibidos} productos distribuidos en total.",
+                $compra->id,
+                'compra',
+                null,
+                [
+                    'productos_distribuidos' => $productosRecibidos,
+                    'fecha_recepcion' => $this->fechaRecepcionMasiva,
+                    'comentario' => $this->comentarioRecepcionMasiva,
+                    'estado_final' => $compra->estado_id
+                ]
+            );
 
             DB::commit();
 
