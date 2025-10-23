@@ -1,5 +1,5 @@
 <div x-data="{ theme: localStorage.getItem('theme') || 'verde' }" 
-     wire:key="compra-producto-root-{{ $compra['numero_factura'] ?? 'new' }}-{{ count($productosCompra) }}"
+     wire:key="compra-producto-root"
      x-init="
          // Forzar re-render si detectamos problemas de DOM
          $nextTick(() => {
@@ -217,8 +217,8 @@
 
             <div class="p-4">
                 <!-- Escanear producto -->
-                <div class="mb-4" wire:key="seccion-productos-main">
-                    <form wire:submit.prevent="agregarProducto" wire:key="form-agregar-producto">
+                <div class="mb-4">
+                    <form wire:submit.prevent="agregarProducto">
                         <!-- FILA 1: Código de barras + Botón Buscar (igual que ventas) -->
                         <div class="mb-4">
                             <div class="space-y-1">
@@ -228,20 +228,9 @@
                                         <input type="text"
                                             id="codigo_barras_compra"
                                             wire:model.defer="codigoBarras"
-                                            wire:key="codigo-barras-input"
                                             class="w-full h-10 border border-gray-300 rounded-l-lg focus:ring-2 focus:ring-blue-200 focus:border-blue-500"
                                             placeholder="Escanee el código de barras o presione Enter"
                                             autocomplete="off"
-                                            x-init="
-                                                $el && document.contains($el) && $nextTick(() => $el.focus());
-                                                $wire.on('producto-agregado', () => $el && document.contains($el) && $nextTick(() => $el.focus()));
-                                                $wire.on('producto-encontrado', () => $el && document.contains($el) && $nextTick(() => $el.focus()));
-                                            "
-                                            @keydown.enter.prevent="
-                                                $event.target.value.trim() && $wire.agregarProductoPorCodigo();
-                                                $event.target.value = '';
-                                                $event.target && document.contains($event.target) && $nextTick(() => $event.target.focus());
-                                            "
                                             autofocus>
                                     </div>
                                     <button type="button"
@@ -504,6 +493,7 @@
                     </div>
                 </div>
                 @endif
+        </div>
 
         <!-- BOTONES DE ACCIÓN (en una sola fila) -->
         <div class="flex flex-wrap gap-3 mb-4 md:justify-end">
