@@ -369,10 +369,10 @@
 
                 <!-- Tabla de productos (se muestra directamente sin título) -->
                 @if(count($productosCompra) > 0)
-                <div class="table-responsive">
-                    <table class="table text-center table-sm table-bordered" style="font-size: 0.7rem;">
-                        <thead class="table-light">
-                            <tr style="font-size: 0.65rem;">
+                <div class="table-responsive" wire:key="tabla-productos-container">
+                    <table class="table text-center table-sm table-bordered" style="font-size: 0.7rem;" wire:key="tabla-productos">
+                        <thead class="table-light" wire:key="tabla-header">
+                            <tr style="font-size: 0.65rem;" wire:key="header-row">
                                 <th>Producto</th>
                                 <th>Código</th>
                                 <th>Unidad</th>
@@ -386,35 +386,36 @@
                                 <th>Acción</th>
                             </tr>
                         </thead>
-                        <tbody style="font-size: 0.65rem;" class="text-center">
+                        <tbody style="font-size: 0.65rem;" class="text-center" wire:key="tabla-body">
                             @foreach($productosCompra as $index => $producto)
-                                <tr wire:key="producto-compra-{{ $index }}-{{ $producto['producto_id'] ?? 'unknown' }}">
-                                    <td class="text-left">
+                                <tr wire:key="fila-producto-{{ $index }}-{{ $producto['producto_id'] ?? 'unknown' }}-{{ $producto['cantidad_recibida'] ?? 0 }}">
+                                    <td class="text-left" wire:key="nombre-{{ $index }}">
                                         <strong>{{ $producto['producto_nombre'] }}</strong>
                                     </td>
-                                    <td>{{ $producto['producto_codigo'] ?? 'N/A' }}</td>
-                                    <td>
+                                    <td wire:key="codigo-{{ $index }}">{{ $producto['producto_codigo'] ?? 'N/A' }}</td>
+                                    <td wire:key="unidad-{{ $index }}">
                                         <span class="px-2 py-1 text-white badge bg-secondary">
                                             {{ $producto['unidad_medida_nombre'] }}
                                         </span>
                                     </td>
-                                    <td class="text-end">L. {{ number_format($producto['precio'], 2) }}</td>
-                                    <td>
+                                    <td class="text-end" wire:key="precio-{{ $index }}">L. {{ number_format($producto['precio'], 2) }}</td>
+                                    <td wire:key="cantidad-recibida-{{ $index }}">
                                         <!-- Cant. Recibida editable -->
                                         <input type="number"
                                                value="{{ $producto['cantidad_recibida'] ?? 0 }}"
                                                wire:change="actualizarCantidadRecibida({{ $index }}, $event.target.value)"
                                                min="1"
+                                               wire:key="input-cantidad-{{ $index }}"
                                                class="px-2 py-1 text-center border border-gray-300 rounded"
                                                style="width: 60px; font-size: 0.75rem;">
                                     </td>
-                                    <td>
+                                    <td wire:key="cantidad-unitaria-{{ $index }}">
                                         <strong class="text-success">{{ $producto['cantidad_ingresada'] }}</strong>
                                     </td>
-                                    <td class="text-end">
+                                    <td class="text-end" wire:key="subtotal-{{ $index }}">
                                         <strong class="text-primary">L. {{ number_format($producto['sub_total_producto'], 2) }}</strong>
                                     </td>
-                                    <td>
+                                    <td wire:key="isv-{{ $index }}">
                                         @if($producto['isv'] > 0)
                                             <span class="badge bg-info">{{ $producto['isv'] }}%</span>
                                             <br>
@@ -423,22 +424,23 @@
                                             <span class="text-muted">Exento</span>
                                         @endif
                                     </td>
-                                    <td class="text-end">
+                                    <td class="text-end" wire:key="total-{{ $index }}">
                                         <strong class="text-success" style="font-size: 0.75rem;">
                                             L. {{ number_format($producto['precio_total'], 2) }}
                                         </strong>
                                     </td>
-                                    <td>
+                                    <td wire:key="fecha-exp-{{ $index }}">
                                         @if($producto['fecha_expiracion'])
                                             <small class="text-muted">{{ date('d/m/Y', strtotime($producto['fecha_expiracion'])) }}</small>
                                         @else
                                             <span class="text-muted">N/A</span>
                                         @endif
                                     </td>
-                                    <td>
+                                    <td wire:key="accion-{{ $index }}">
                                         <button type="button"
                                                 wire:click="eliminarProducto({{ $index }})"
                                                 class="btn btn-danger btn-sm"
+                                                wire:key="btn-eliminar-{{ $index }}"
                                                 title="Eliminar producto">
                                             <i class="fas fa-trash"></i>
                                         </button>
@@ -450,16 +452,16 @@
                 </div>
 
                 <!-- TOTALES (alineados a la derecha como en ventas) -->
-                <div class="flex justify-end mt-4 mb-4">
-                    <div class="w-full max-w-md p-4 border border-gray-300 rounded-lg bg-gray-50">
+                <div class="flex justify-end mt-4 mb-4" wire:key="totales-container">
+                    <div class="w-full max-w-md p-4 border border-gray-300 rounded-lg bg-gray-50" wire:key="resumen-compra">
                         <!-- Encabezado -->
-                        <div class="mb-3 text-center">
+                        <div class="mb-3 text-center" wire:key="resumen-header">
                             <h6 class="mb-0 font-bold text-gray-700">RESUMEN DE COMPRA</h6>
                             <hr class="mt-2">
                         </div>
 
                         <!-- Subtotal -->
-                        <div class="flex justify-between py-2 mb-2 font-medium text-gray-700">
+                        <div class="flex justify-between py-2 mb-2 font-medium text-gray-700" wire:key="subtotal-{{ $subtotal }}">
                             <span>Subtotal:</span>
                             <span class="font-bold">L. {{ number_format($subtotal, 2) }}</span>
                         </div>
@@ -485,8 +487,8 @@
                         @endphp
 
                         @if($totalIsvMonto > 0)
-                            <div class="pl-3 mb-2 border-l-4 border-blue-400 bg-blue-50">
-                                <div class="flex justify-between mb-1">
+                            <div class="pl-3 mb-2 border-l-4 border-blue-400 bg-blue-50" wire:key="isv-section-{{ count($productosCompra) }}">
+                                <div class="flex justify-between mb-1" wire:key="isv-total">
                                     <span class="font-medium text-blue-700">
                                         <i class="mr-1 fas fa-plus-circle"></i>
                                         Total ISV:
@@ -495,9 +497,9 @@
                                 </div>
 
                                 <!-- Desglose por porcentaje -->
-                                <div class="mt-1 ml-2 space-y-1">
+                                <div class="mt-1 ml-2 space-y-1" wire:key="isv-breakdown">
                                     @foreach($isvPorcentajes as $porcentaje => $montoIsv)
-                                        <div class="flex justify-between text-sm text-blue-600">
+                                        <div class="flex justify-between text-sm text-blue-600" wire:key="isv-{{ $porcentaje }}-{{ number_format($montoIsv, 2) }}">
                                             <span class="ml-2">• ISV {{ $porcentaje }}%:</span>
                                             <span class="font-medium">L. {{ number_format($montoIsv, 2) }}</span>
                                         </div>
@@ -507,7 +509,7 @@
                         @endif
 
                         <!-- Total final -->
-                        <div class="flex justify-between pt-3 mt-2 border-t-2 border-gray-300">
+                        <div class="flex justify-between pt-3 mt-2 border-t-2 border-gray-300" wire:key="total-final-{{ $total }}">
                             <span class="text-lg font-bold text-green-700">TOTAL A PAGAR:</span>
                             <span class="text-2xl font-bold text-green-700">L. {{ number_format($total, 2) }}</span>
                         </div>
@@ -843,18 +845,70 @@
 
 </div>
 
-<!-- Script de limpieza simplificado -->
+<!-- Script de limpieza mejorado para DOM morphing -->
 <script>
 document.addEventListener('livewire:initialized', () => {
+    // Limpiar timeouts al inicializar
+    try {
+        for (let i = 1; i < 2000; i++) {
+            clearTimeout(i);
+            clearInterval(i);
+        }
+    } catch (e) {
+        // Ignorar errores
+    }
+
+    // Evento de limpieza del componente
     Livewire.on('cleanup-component', () => {
-        // Limpiar timeouts activos de forma segura
         try {
-            for (let i = 1; i < 1000; i++) {
+            for (let i = 1; i < 2000; i++) {
                 clearTimeout(i);
+                clearInterval(i);
             }
         } catch (e) {
             // Ignorar errores de limpieza
         }
     });
+
+    // Prevenir errores de DOM morphing
+    Livewire.hook('morph.updating', ({ el, component, toEl, skip }) => {
+        // Si el elemento no tiene una clave wire:key, asegurarse que tenga un ID único
+        if (!el.getAttribute('wire:key') && !el.id && el.tagName !== 'SCRIPT') {
+            try {
+                el.setAttribute('data-morph-id', Math.random().toString(36).substr(2, 9));
+            } catch (e) {
+                // Ignorar errores de atributos
+            }
+        }
+    });
+
+    // Limpiar elementos huérfanos después del morphing
+    Livewire.hook('morph.updated', ({ el, component }) => {
+        try {
+            // Eliminar elementos huérfanos que pueden causar problemas
+            const orphans = el.querySelectorAll('[data-morph-orphan="true"]');
+            orphans.forEach(orphan => {
+                try {
+                    orphan.remove();
+                } catch (e) {
+                    // Ignorar errores de eliminación
+                }
+            });
+        } catch (e) {
+            // Ignorar errores generales
+        }
+    });
+});
+
+// Limpieza adicional antes de que se descargue la página
+window.addEventListener('beforeunload', () => {
+    try {
+        for (let i = 1; i < 2000; i++) {
+            clearTimeout(i);
+            clearInterval(i);
+        }
+    } catch (e) {
+        // Ignorar errores
+    }
 });
 </script>
