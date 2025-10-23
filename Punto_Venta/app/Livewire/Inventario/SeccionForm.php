@@ -6,6 +6,8 @@ use Livewire\Component;
 use App\Models\Bodega;
 use App\Models\Segmento;
 use App\Models\Seccion;
+use App\Models\Bitacora;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
 class SeccionForm extends Component
@@ -139,12 +141,44 @@ class SeccionForm extends Component
             $this->validate();
 
             if ($this->isEditing) {
+                // Obtener datos anteriores para auditoría
+                $seccionAnterior = Seccion::find($this->seccionId);
+                $datosAnteriores = $seccionAnterior ? $seccionAnterior->toArray() : null;
+
                 Seccion::actualizarSeccion($this->seccionId, $this->form);
                 Log::info('Sección actualizada exitosamente', ['id' => $this->seccionId]);
+
+                // Registrar en bitácora: Actualización de sección
+                Bitacora::registrar(
+                    Auth::id(),
+                    'Inventario - Sección',
+                    'Actualizar sección',
+                    "Sección actualizada: '{$this->form['descripcion']}' (#{$this->form['numeracion']}) en segmento '{$this->segmento->descripcion}' > bodega '{$this->bodega->nombre}' (ID: {$this->seccionId})",
+                    $this->seccionId,
+                    'seccion',
+                    $datosAnteriores,
+                    $this->form
+                );
+
                 $this->mostrarExito('Sección actualizada exitosamente.');
             } else {
                 $resultado = Seccion::crearSeccion($this->form);
                 Log::info('Sección creada exitosamente', ['resultado' => $resultado]);
+
+                // Registrar en bitácora: Creación de sección
+                if (is_array($resultado) && isset($resultado[0]->id)) {
+                    Bitacora::registrar(
+                        Auth::id(),
+                        'Inventario - Sección',
+                        'Crear sección',
+                        "Nueva sección creada: '{$this->form['descripcion']}' (#{$this->form['numeracion']}) en segmento '{$this->segmento->descripcion}' > bodega '{$this->bodega->nombre}' (ID: {$resultado[0]->id})",
+                        $resultado[0]->id,
+                        'seccion',
+                        null,
+                        $this->form
+                    );
+                }
+
                 $this->mostrarExito('Sección creada exitosamente.');
             }
 

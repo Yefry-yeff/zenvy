@@ -9,6 +9,7 @@ use App\Models\Producto as ProductoModel;
 use App\Models\Bodega;
 use App\Models\Segmento;
 use App\Models\Seccion;
+use App\Models\Bitacora;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
@@ -365,6 +366,10 @@ class StockForm extends Component
                 'estado' => 'recibido',
             ]);
 
+            // Capturar datos anteriores para auditoría
+            $recibidoOrigenAnterior = $this->recibido ? $this->recibido->toArray() : null;
+            $recibidoDestinoAnterior = $recibidoDestino->toArray();
+
             // Actualizar cantidades en el RecibidoBodega origen (restar)
             if ($this->recibido) {
                 $this->recibido->cantidad_disponible = $this->recibido->cantidad_disponible - $this->form['cantidad_distribuir'];
@@ -375,6 +380,42 @@ class StockForm extends Component
             $recibidoDestino->cantidad_inicial_seccion += $this->form['cantidad_distribuir'];
             $recibidoDestino->cantidad_disponible += $this->form['cantidad_distribuir'];
             $recibidoDestino->save();
+
+            // Registrar en bitácora: Envío de stock (sección origen)
+            Bitacora::registrar(
+                Auth::id(),
+                'Inventario - Stock',
+                'Distribuir stock - Envío',
+                "Stock enviado: {$this->form['cantidad_distribuir']} unidades de '{$this->producto->nombre}' desde {$trasladoDesdeDestino} hacia {$trasladoDesdeOrigen}",
+                $distribucionEnviado->id,
+                'distribucion_stock',
+                $recibidoOrigenAnterior,
+                [
+                    'cantidad_distribuida' => $this->form['cantidad_distribuir'],
+                    'precio_unitario' => $this->producto->precio_base ?? 0,
+                    'traslado_a' => $trasladoDesdeOrigen,
+                    'estado' => 'enviado',
+                    'comentario' => $this->form['comentario']
+                ]
+            );
+
+            // Registrar en bitácora: Recepción de stock (sección destino)
+            Bitacora::registrar(
+                Auth::id(),
+                'Inventario - Stock',
+                'Distribuir stock - Recepción',
+                "Stock recibido: {$this->form['cantidad_distribuir']} unidades de '{$this->producto->nombre}' en {$trasladoDesdeOrigen} desde {$trasladoDesdeDestino}",
+                $distribucionRecibido->id,
+                'distribucion_stock',
+                $recibidoDestinoAnterior,
+                [
+                    'cantidad_distribuida' => $this->form['cantidad_distribuir'],
+                    'precio_unitario' => $this->producto->precio_base ?? 0,
+                    'traslado_a' => $trasladoDesdeDestino,
+                    'estado' => 'recibido',
+                    'comentario' => $this->form['comentario']
+                ]
+            );
 
             Log::info('Distribución de stock creada exitosamente', [
                 'distribucion_enviado_id' => $distribucionEnviado->id,

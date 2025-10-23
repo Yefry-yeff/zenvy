@@ -8,6 +8,7 @@ use App\Models\Segmento;
 use App\Models\Seccion;
 use App\Models\Tiendas;
 use App\Models\Direccion;
+use App\Models\Bitacora;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
@@ -205,12 +206,44 @@ class BodegaForm extends Component
             $this->validate();
 
             if ($this->isEditing) {
+                // Obtener datos anteriores para auditoría
+                $bodegaAnterior = Bodega::find($this->bodegaId);
+                $datosAnteriores = $bodegaAnterior ? $bodegaAnterior->toArray() : null;
+
                 Bodega::actualizarBodega($this->bodegaId, $this->form);
                 Log::info('Bodega actualizada exitosamente', ['id' => $this->bodegaId]);
+
+                // Registrar en bitácora: Actualización de bodega
+                Bitacora::registrar(
+                    Auth::id(),
+                    'Inventario - Bodega',
+                    'Actualizar bodega',
+                    "Bodega actualizada: '{$this->form['nombre']}' (ID: {$this->bodegaId})",
+                    $this->bodegaId,
+                    'bodega',
+                    $datosAnteriores,
+                    $this->form
+                );
+
                 $this->mostrarExito('Bodega actualizada exitosamente.');
             } else {
                 $resultado = Bodega::crearBodega($this->form);
                 Log::info('Bodega creada exitosamente', ['resultado' => $resultado]);
+
+                // Registrar en bitácora: Creación de bodega
+                if (is_array($resultado) && isset($resultado[0]->id)) {
+                    Bitacora::registrar(
+                        Auth::id(),
+                        'Inventario - Bodega',
+                        'Crear bodega',
+                        "Nueva bodega creada: '{$this->form['nombre']}' (ID: {$resultado[0]->id})",
+                        $resultado[0]->id,
+                        'bodega',
+                        null,
+                        $this->form
+                    );
+                }
+
                 $this->mostrarExito('Bodega creada exitosamente.');
             }
 

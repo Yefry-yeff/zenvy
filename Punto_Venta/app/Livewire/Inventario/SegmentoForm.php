@@ -5,6 +5,8 @@ namespace App\Livewire\Inventario;
 use Livewire\Component;
 use App\Models\Bodega;
 use App\Models\Segmento;
+use App\Models\Bitacora;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
 class SegmentoForm extends Component
@@ -124,12 +126,44 @@ class SegmentoForm extends Component
             $this->validate();
 
             if ($this->isEditing) {
+                // Obtener datos anteriores para auditoría
+                $segmentoAnterior = Segmento::find($this->segmentoId);
+                $datosAnteriores = $segmentoAnterior ? $segmentoAnterior->toArray() : null;
+
                 Segmento::actualizarSegmento($this->segmentoId, $this->form);
                 Log::info('Segmento actualizado exitosamente', ['id' => $this->segmentoId]);
+
+                // Registrar en bitácora: Actualización de segmento
+                Bitacora::registrar(
+                    Auth::id(),
+                    'Inventario - Segmento',
+                    'Actualizar segmento',
+                    "Segmento actualizado: '{$this->form['descripcion']}' en bodega '{$this->bodega->nombre}' (ID: {$this->segmentoId})",
+                    $this->segmentoId,
+                    'segmento',
+                    $datosAnteriores,
+                    $this->form
+                );
+
                 $this->mostrarExito('Segmento actualizado exitosamente.');
             } else {
                 $resultado = Segmento::crearSegmento($this->form);
                 Log::info('Segmento creado exitosamente', ['resultado' => $resultado]);
+
+                // Registrar en bitácora: Creación de segmento
+                if (is_array($resultado) && isset($resultado[0]->id)) {
+                    Bitacora::registrar(
+                        Auth::id(),
+                        'Inventario - Segmento',
+                        'Crear segmento',
+                        "Nuevo segmento creado: '{$this->form['descripcion']}' en bodega '{$this->bodega->nombre}' (ID: {$resultado[0]->id})",
+                        $resultado[0]->id,
+                        'segmento',
+                        null,
+                        $this->form
+                    );
+                }
+
                 $this->mostrarExito('Segmento creado exitosamente.');
             }
 

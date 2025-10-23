@@ -9,6 +9,7 @@ use App\Models\UnidadMedida;
 use App\Models\Producto;
 use App\Models\Cliente;
 use App\Models\TipoCliente;
+use App\Models\Bitacora;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
@@ -587,9 +588,28 @@ class CompraDeProducto extends Component
                 'user' => $nombreUsuario, // Usuario que creó la compra
             ]);
 
+            // Registrar en bitácora: Creación de compra
+            Bitacora::registrar(
+                Auth::id(),
+                'Inventario - Compra de Producto',
+                'Crear compra',
+                "Nueva compra creada con factura '{$this->compra['numero_factura']}'. Total: L. " . number_format($this->total, 2) . ". Productos: " . count($this->productosCompra),
+                $compra->id,
+                'compra',
+                null,
+                [
+                    'numero_factura' => $this->compra['numero_factura'],
+                    'fecha_emision' => $this->compra['fecha_emision'],
+                    'estado_id' => 1,
+                    'cliente_id' => $this->proveedorSeleccionado,
+                    'total_productos' => count($this->productosCompra),
+                    'monto_total' => $this->total
+                ]
+            );
+
             // Guardar los productos de la compra
             foreach ($this->productosCompra as $producto) {
-                CompraHasProducto::create([
+                $detalleCompra = CompraHasProducto::create([
                     'compra_id' => $compra->id,
                     'producto_id' => $producto['producto_id'],
                     'precio' => $producto['precio'],
@@ -601,6 +621,26 @@ class CompraDeProducto extends Component
                     'precio_total' => $producto['precio_total'],
                     'unidad_medida_id' => $producto['unidad_medida_id'],
                 ]);
+
+                // Registrar en bitácora: Detalle de cada producto
+                Bitacora::registrar(
+                    Auth::id(),
+                    'Inventario - Compra de Producto',
+                    'Crear detalle compra',
+                    "Producto agregado a compra '{$this->compra['numero_factura']}': {$producto['nombre']} - Cantidad: {$producto['cantidad_ingresada']} - Precio: L. " . number_format($producto['precio'], 2),
+                    $detalleCompra->id,
+                    'compra_has_producto',
+                    null,
+                    [
+                        'compra_id' => $compra->id,
+                        'producto_id' => $producto['producto_id'],
+                        'nombre_producto' => $producto['nombre'],
+                        'precio' => $producto['precio'],
+                        'cantidad_ingresada' => $producto['cantidad_ingresada'],
+                        'cantidad_sin_asignar' => $producto['cantidad_sin_asignar'],
+                        'precio_total' => $producto['precio_total']
+                    ]
+                );
             }
 
             DB::commit();

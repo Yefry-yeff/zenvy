@@ -9,6 +9,7 @@ use App\Models\Categoria;
 use App\Models\Subcategoria;
 use App\Models\Marca;
 use App\Models\IdZenvyValencia;
+use App\Models\Bitacora;
 use App\Services\SincronizacionMarcasService;
 use App\Services\SincronizacionProductosService;
 use Illuminate\Support\Facades\Auth;
@@ -627,6 +628,12 @@ class ProductoForm extends Component
                 'precios_a_guardar' => $this->preciosVenta
             ]);
             
+            // Obtener precios anteriores para auditoría
+            $preciosAnteriores = DB::table('precio_has_venta')
+                ->where('producto_id', $productoId)
+                ->where('estado_id', 1)
+                ->get()->toArray();
+            
             // Primero, desactivar todos los precios existentes (soft delete)
             $preciosDesactivados = DB::table('precio_has_venta')
                 ->where('producto_id', $productoId)
@@ -666,6 +673,23 @@ class ProductoForm extends Component
                     Log::info("Nuevo precio insertado", ['id_insertado' => $insertId]);
                 }
             }
+
+            // Registrar en bitácora: Actualización de precios de venta
+            $descripcionPrecios = count($this->preciosVenta) . ' precios de venta actualizados para producto ID: ' . $productoId;
+            foreach ($this->preciosVenta as $precio) {
+                $descripcionPrecios .= " | Cant: {$precio['cantidad']} - Precio: L. " . number_format($precio['precio'], 2);
+            }
+
+            Bitacora::registrar(
+                Auth::id(),
+                'Inventario - Producto',
+                'Actualizar precios de venta',
+                $descripcionPrecios,
+                $productoId,
+                'precio_has_venta',
+                $preciosAnteriores,
+                $this->preciosVenta
+            );
 
             Log::info('Precios de venta guardados exitosamente', [
                 'producto_id' => $productoId,
@@ -781,6 +805,18 @@ class ProductoForm extends Component
                     }
                     ProductoModel::actualizarProducto($this->productoId, $datosPermitidos);
                     Log::info('Producto Valencia actualizado exitosamente', ['id' => $this->productoId]);
+
+                    // Registrar en bitácora: Actualización de producto Valencia
+                    Bitacora::registrar(
+                        Auth::id(),
+                        'Inventario - Producto Valencia',
+                        'Actualizar producto',
+                        "Producto de Valencia actualizado: '{$datos['nombre']}' (ID: {$this->productoId}). Campos permitidos: ISV, precios, unidad de medida.",
+                        $this->productoId,
+                        'producto',
+                        ['tipo' => 'producto_valencia_anterior'],
+                        $datosPermitidos
+                    );
                     
                     // Guardar precios de venta para productos de Valencia
                     Log::info('ANTES de guardar precios Valencia - Array preciosVenta:', [
@@ -814,6 +850,18 @@ class ProductoForm extends Component
             if ($this->isEditing) {
                 ProductoModel::actualizarProducto($this->productoId, $datos);
                 Log::info('Producto actualizado exitosamente', ['id' => $this->productoId]);
+
+                // Registrar en bitácora: Actualización de producto
+                Bitacora::registrar(
+                    Auth::id(),
+                    'Inventario - Producto',
+                    'Actualizar producto',
+                    "Producto actualizado: '{$datos['nombre']}' (ID: {$this->productoId}). Precio base: L. " . number_format($datos['precio_base'], 2),
+                    $this->productoId,
+                    'producto',
+                    ['accion' => 'actualizar_producto'],
+                    $datos
+                );
                 
                 // Guardar precios de venta
                 Log::info('ANTES de guardar precios - Array preciosVenta:', [
@@ -828,6 +876,20 @@ class ProductoForm extends Component
                 // Si el código de barras estaba vacío, actualizarlo con el id generado
                 if ((empty($datos['codigo_barra']) || trim($datos['codigo_barra']) === '') && is_array($resultado) && isset($resultado[0]->id)) {
                     ProductoModel::actualizarProducto($resultado[0]->id, array_merge($datos, ['codigo_barra' => (string)$resultado[0]->id]));
+                }
+
+                // Registrar en bitácora: Creación de producto
+                if (is_array($resultado) && isset($resultado[0]->id)) {
+                    Bitacora::registrar(
+                        Auth::id(),
+                        'Inventario - Producto',
+                        'Crear producto',
+                        "Nuevo producto creado: '{$datos['nombre']}' (ID: {$resultado[0]->id}). Precio base: L. " . number_format($datos['precio_base'], 2),
+                        $resultado[0]->id,
+                        'producto',
+                        null,
+                        $datos
+                    );
                 }
                 
                 // Guardar precios de venta para el nuevo producto
