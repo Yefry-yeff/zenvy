@@ -167,11 +167,36 @@ class RecibirProductoCompra extends Component
     public function cargarUnidadesMedida()
     {
         try {
-            // Cargar todas las unidades de medida como colección de Eloquent (igual que en producto-form)
+            // Cargar todas las unidades de medida como colección de Eloquent (para inicialización general)
             $this->unidadesMedida = UnidadMedida::orderBy('nombre', 'asc')->get();
 
         } catch (\Exception $e) {
-            \Log::error('Error al cargar unidades de medida', [
+            Log::error('Error al cargar unidades de medida', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            $this->unidadesMedida = collect([]);
+        }
+    }
+
+    public function cargarUnidadesMedidaProducto($productoId)
+    {
+        try {
+            // Cargar solo las unidades de medida que tiene asignadas este producto en precio_has_venta
+            $this->unidadesMedida = UnidadMedida::whereHas('preciosVenta', function($query) use ($productoId) {
+                $query->where('producto_id', $productoId)
+                      ->where('estado_id', 1); // Solo activos
+            })->orderBy('nombre', 'asc')->get();
+
+            Log::info('Unidades de medida cargadas para producto', [
+                'producto_id' => $productoId,
+                'unidades_count' => collect($this->unidadesMedida)->count(),
+                'unidades' => collect($this->unidadesMedida)->pluck('nombre', 'id')->toArray()
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error al cargar unidades de medida del producto', [
+                'producto_id' => $productoId,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
@@ -182,7 +207,9 @@ class RecibirProductoCompra extends Component
     public function updatedUnidadMedidaProducto()
     {
         if ($this->unidadMedidaProducto) {
-            $unidad = $this->unidadesMedida->firstWhere('id', $this->unidadMedidaProducto);
+            // Asegurar que unidadesMedida sea una colección
+            $unidades = collect($this->unidadesMedida);
+            $unidad = $unidades->firstWhere('id', $this->unidadMedidaProducto);
             $this->nombreUnidadMedidaProducto = $unidad ? $unidad->nombre : '';
         } else {
             $this->nombreUnidadMedidaProducto = '';
@@ -287,12 +314,15 @@ class RecibirProductoCompra extends Component
             $this->detalleSeleccionado = $detalle;
             $this->cantidadDistribuir = '';
             $this->cantidadAsignarStock = '';
-            $this->unidadMedidaProducto = $detalle['unidad_medida_venta_id'] ?? '';
-            $this->nombreUnidadMedidaProducto = $detalle['unidad_medida_venta'] ?? '';
+            $this->unidadMedidaProducto = '';
+            $this->nombreUnidadMedidaProducto = '';
             $this->bodegaDistribucion = '';
             $this->segmentoDistribucion = '';
             $this->seccionDistribucion = '';
             $this->comentarioDistribucion = '';
+
+            // Cargar las unidades de medida específicas de este producto desde precio_has_venta
+            $this->cargarUnidadesMedidaProducto($detalle['producto_id']);
 
             // Recargar bodegas para asegurar datos actualizados
             $this->cargarBodegas();
@@ -422,7 +452,7 @@ class RecibirProductoCompra extends Component
                 'fecha_expiracion' => $detalleCompra->fecha_expiracion,
                 'comentario' => $this->comentarioDistribucion,
                 'unidades_compra' => $cantidadDistribuir,
-                'unidad_medida_id' => $detalleCompra->unidad_medida_id,
+                'unidad_medida_id' => $this->unidadMedidaProducto, // Usar la unidad seleccionada en el modal
                 'users_registro_id' => Auth::id(),
                 'estado_id' => 1 // Estado activo
             ]);

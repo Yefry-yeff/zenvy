@@ -428,17 +428,19 @@ class CompraDeProducto extends Component
         // Verificar si el producto ya está en la lista - ELIMINADO para permitir duplicados
         // Los productos pueden agregarse múltiples veces sin restricciones
 
-        // Calcular subtotal e ISV para este producto
-        $precio = (float) $this->productoTemporal['precio'];
-        $cantidadRecibida = (int) ($this->productoTemporal['cantidad_recibida'] ?? 0);
-        $cantidadPorUnidad = (int) ($this->productoTemporal['cantidad_por_unidad'] ?? 1);
-        $cantidadIngresada = $cantidadRecibida * $cantidadPorUnidad; // Cálculo automático
-        $isv = (float) $this->productoTemporal['isv'];
+    // Calcular subtotal e ISV para este producto usando cantidad_ingresada (unidades)
+    $precio = (float) $this->productoTemporal['precio'];
+    $cantidadIngresada = (int) ($this->productoTemporal['cantidad_ingresada'] ?? 1);
+    $isv = (float) $this->productoTemporal['isv'];
 
-        // El subtotal se calcula con la cantidad recibida (paquetes/cajas)
-        $subtotalProducto = $precio * $cantidadRecibida;
-        $isvProducto = $subtotalProducto * ($isv / 100);
-        $totalProducto = $subtotalProducto + $isvProducto;
+    // Para compatibilidad, dejar cantidad_recibida y cantidad_por_unidad en 1
+    $cantidadRecibida = 1;
+    $cantidadPorUnidad = 1;
+
+    // El subtotal se calcula con la cantidad ingresada (unidades)
+    $subtotalProducto = $precio * $cantidadIngresada;
+    $isvProducto = $subtotalProducto * ($isv / 100);
+    $totalProducto = $subtotalProducto + $isvProducto;
 
         // Obtener información del producto y unidad de medida
         $unidadMedida = collect($this->unidadesMedida)->firstWhere('id', $this->productoTemporal['unidad_medida_id']);
@@ -453,9 +455,9 @@ class CompraDeProducto extends Component
             'producto_nombre' => $nombreProducto,
             'producto_codigo' => $codigoProducto,
             'precio' => $precio,
-            'cantidad_recibida' => $cantidadRecibida, // Paquetes/cajas recibidos
-            'cantidad_por_unidad' => $cantidadPorUnidad, // Unidades por paquete
-            'cantidad_ingresada' => $cantidadIngresada, // Cantidad unitaria total (calculada)
+            'cantidad_recibida' => $cantidadRecibida, // Paquetes/cajas recibidos (compatibilidad)
+            'cantidad_por_unidad' => $cantidadPorUnidad, // Unidades por paquete (compatibilidad)
+            'cantidad_ingresada' => $cantidadIngresada, // Cantidad unitaria total (unidades)
             'cantidad_sin_asignar' => $cantidadIngresada, // Inicialmente toda sin asignar
             'fecha_expiracion' => $this->productoTemporal['fecha_expiracion'] ?: null,
             'unidad_medida_id' => $this->productoTemporal['unidad_medida_id'],
@@ -484,35 +486,9 @@ class CompraDeProducto extends Component
 
     public function actualizarCantidadRecibida($index, $nuevaCantidadRecibida)
     {
-        $nuevaCantidadRecibida = (int) $nuevaCantidadRecibida;
-
-        if ($nuevaCantidadRecibida <= 0) {
-            $this->mostrarAlertaError('La cantidad recibida debe ser mayor a cero');
-            return;
-        }
-
-        if (isset($this->productosCompra[$index])) {
-            $cantidadPorUnidad = $this->productosCompra[$index]['cantidad_por_unidad'] ?? 1;
-
-            // Actualizar cantidad_recibida y recalcular cantidad_ingresada
-            $this->productosCompra[$index]['cantidad_recibida'] = $nuevaCantidadRecibida;
-            $this->productosCompra[$index]['cantidad_ingresada'] = $nuevaCantidadRecibida * $cantidadPorUnidad;
-            $this->productosCompra[$index]['cantidad_sin_asignar'] = $nuevaCantidadRecibida * $cantidadPorUnidad;
-
-            // Recalcular los totales para este producto (subtotal se calcula con cantidad_recibida)
-            $precio = $this->productosCompra[$index]['precio'];
-            $isv = $this->productosCompra[$index]['isv'];
-
-            $subtotalProducto = $precio * $nuevaCantidadRecibida; // Precio x Cant. Recibida
-            $isvProducto = $subtotalProducto * ($isv / 100);
-            $totalProducto = $subtotalProducto + $isvProducto;
-
-            $this->productosCompra[$index]['sub_total_producto'] = $subtotalProducto;
-            $this->productosCompra[$index]['precio_total'] = $totalProducto;
-
-            // Recalcular totales generales
-            $this->calcularTotales();
-        }
+        // Compatibilidad: delegar en actualizarCantidad para usar cantidad_ingresada (unidades)
+        $nuevaCantidad = (int) $nuevaCantidadRecibida;
+        $this->actualizarCantidad($index, $nuevaCantidad);
     }
 
     public function actualizarCantidad($index, $nuevaCantidad)

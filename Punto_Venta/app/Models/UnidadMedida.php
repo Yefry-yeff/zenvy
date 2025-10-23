@@ -19,4 +19,9 @@ class UnidadMedida extends Model
     {
         return $this->hasMany(Producto::class, 'unidad_medida_venta_id');
     }
+
+    public function preciosVenta()
+    {
+        return $this->hasMany(PrecioHasVenta::class, 'unidad_medida_id');
+    }
 }

@@ -279,7 +279,7 @@
                         <div class="grid grid-cols-2 gap-3 mb-4 md:grid-cols-3 lg:grid-cols-6" wire:key="formulario-producto-{{ $productoTemporal['producto_id'] ?? 'empty' }}">
                             <!-- Precio Unit. -->
                             <div>
-                                <label class="block mb-1 text-sm font-medium text-gray-700">Precio Unit.</label>
+                                <label class="block mb-1 text-sm font-medium text-center text-gray-700">Precio Unit.</label>
                                 <div class="flex">
                                     <span class="inline-flex items-center px-3 text-sm text-gray-900 bg-gray-200 border border-r-0 border-gray-300 rounded-l-lg">L.</span>
                                     <input type="number"
@@ -292,7 +292,7 @@
 
                             <!-- Unidad Comprada -->
                             <div>
-                                <label class="block mb-1 text-sm font-medium text-gray-700">Unidad Comprada</label>
+                                <label class="block mb-1 text-sm font-medium text-center text-gray-700">Unidad Comprada</label>
                                 <select wire:model.live.debounce.300ms="productoTemporal.unidad_medida_id"
                                         class="w-full h-10 px-3 text-sm border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-200">
                                     <option value="">Seleccionar</option>
@@ -302,35 +302,19 @@
                                 </select>
                             </div>
 
-                            <!-- Cantidad Recibida (sin botones +/-) -->
+                            <!-- Cantidad ingresada (unidades totales) -->
                             <div>
-                                <label class="block mb-1 text-sm font-medium text-gray-700">Cant. Recibida</label>
+                                <label class="block mb-1 text-sm font-medium text-center text-gray-700">Cant. Recibida (unidades)</label>
                                 <input type="number"
-                                       wire:model.live.debounce.300ms="productoTemporal.cantidad_recibida"
+                                       wire:model.live.debounce.300ms="productoTemporal.cantidad_ingresada"
                                        min="1"
                                        class="w-full h-10 px-3 text-sm font-semibold text-center border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-200"
                                        placeholder="1">
                             </div>
 
-                            <!-- Cant. Unitaria x (Unidad) -->
-                            <div>
-                                <label class="block mb-1 text-sm font-medium text-gray-700">
-                                    Cant. Unitaria x 
-                                    @php
-                                        $unidadSeleccionada = collect($unidadesMedida)->firstWhere('id', $productoTemporal['unidad_medida_id']);
-                                    @endphp
-                                    ({{ $unidadSeleccionada['nombre'] ?? 'Unidad' }})
-                                </label>
-                                <input type="number"
-                                       wire:model.live.debounce.300ms="productoTemporal.cantidad_por_unidad"
-                                       min="1"
-                                       class="w-full h-10 px-3 text-sm font-bold text-center border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-200"
-                                       placeholder="1">
-                            </div>
-
                             <!-- ISV -->
                             <div>
-                                <label class="block mb-1 text-sm font-medium text-gray-700">ISV (%)</label>
+                                <label class="block mb-1 text-sm font-medium text-center text-gray-700">ISV (%)</label>
                                 <input type="number"
                                        wire:model.live.debounce.300ms="productoTemporal.isv"
                                        step="0.01"
@@ -342,7 +326,7 @@
 
                             <!-- Fecha Expiración -->
                             <div>
-                                <label class="block mb-1 text-sm font-medium text-gray-700">F. Expiración</label>
+                                <label class="block mb-1 text-sm font-medium text-center text-gray-700">F. Expiración</label>
                                 <input type="date"
                                        wire:model.live.debounce.300ms="productoTemporal.fecha_expiracion"
                                        class="w-full h-10 px-3 text-sm border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-200">
@@ -378,7 +362,6 @@
                                 <th>Unidad</th>
                                 <th>Precio Unit.</th>
                                 <th>Cant. Recibida</th>
-                                <th>Cant. Unitaria</th>
                                 <th>Subtotal</th>
                                 <th>ISV</th>
                                 <th>Total</th>
@@ -388,7 +371,7 @@
                         </thead>
                         <tbody style="font-size: 0.65rem;" class="text-center" wire:key="tabla-body">
                             @foreach($productosCompra as $index => $producto)
-                                <tr wire:key="fila-producto-{{ $index }}-{{ $producto['producto_id'] ?? 'unknown' }}-{{ $producto['cantidad_recibida'] ?? 0 }}">
+                                <tr wire:key="fila-producto-{{ $index }}-{{ $producto['producto_id'] ?? 'unknown' }}-{{ $producto['cantidad_ingresada'] ?? 0 }}">
                                     <td class="text-left" wire:key="nombre-{{ $index }}">
                                         <strong>{{ $producto['producto_nombre'] }}</strong>
                                     </td>
@@ -399,18 +382,15 @@
                                         </span>
                                     </td>
                                     <td class="text-end" wire:key="precio-{{ $index }}">L. {{ number_format($producto['precio'], 2) }}</td>
-                                    <td wire:key="cantidad-recibida-{{ $index }}">
-                                        <!-- Cant. Recibida editable -->
+                                    <td wire:key="cantidad-ingresada-{{ $index }}">
+                                        <!-- Campo editable para cantidad_ingresada -->
                                         <input type="number"
-                                               value="{{ $producto['cantidad_recibida'] ?? 0 }}"
-                                               wire:change="actualizarCantidadRecibida({{ $index }}, $event.target.value)"
+                                               value="{{ $producto['cantidad_ingresada'] ?? 0 }}"
+                                               wire:change="actualizarCantidad({{ $index }}, $event.target.value)"
                                                min="1"
-                                               wire:key="input-cantidad-{{ $index }}"
-                                               class="px-2 py-1 text-center border border-gray-300 rounded"
-                                               style="width: 60px; font-size: 0.75rem;">
-                                    </td>
-                                    <td wire:key="cantidad-unitaria-{{ $index }}">
-                                        <strong class="text-success">{{ $producto['cantidad_ingresada'] }}</strong>
+                                               wire:key="input-cantidad-ingresada-{{ $index }}"
+                                               class="px-2 py-1 text-center text-success font-bold border border-gray-300 rounded"
+                                               style="width: 70px; font-size: 0.75rem;">
                                     </td>
                                     <td class="text-end" wire:key="subtotal-{{ $index }}">
                                         <strong class="text-primary">L. {{ number_format($producto['sub_total_producto'], 2) }}</strong>
