@@ -363,12 +363,17 @@
 
     <!-- Modal de Éxito -->
     @if($mostrarModalExito)
-        <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal fade show d-block modal-exito" tabindex="-1" style="background-color: rgba(0,0,0,0.5); z-index: 1070;">
             <div class="modal-dialog modal-md">
                 <div class="modal-content">
                     <div class="text-white modal-header bg-success">
                         <h5 class="modal-title">
-                            <i class="fas fa-check-circle me-2"></i>¡Distribución Exitosa!
+                            <i class="fas fa-check-circle me-2"></i>
+                            @if(str_contains($mensajeModalExito ?? '', 'masiva') || str_contains($mensajeModalExito ?? '', 'Masiva'))
+                                ¡Recepción Masiva Exitosa!
+                            @else
+                                ¡Distribución Exitosa!
+                            @endif
                         </h5>
                     </div>
                     <div class="modal-body">
@@ -559,6 +564,25 @@
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
 
+        /* Alerta flotante de error encima del modal */
+        .position-fixed .alert {
+            animation: slideDownAlert 0.3s ease-out;
+        }
+
+        @keyframes slideDownAlert {
+            from { transform: translateY(-100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        /* Z-index para modales superpuestos */
+        .modal.show {
+            z-index: 1055 !important;
+        }
+
+        .modal.show.modal-exito {
+            z-index: 1070 !important;
+        }
+
         /* Tabla responsive */
         .table-responsive {
             border-radius: 8px;
@@ -601,6 +625,24 @@
     <!-- MODAL DE RECEPCIÓN MASIVA -->
     @if($mostrarModalRecepcionMasiva)
     <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5); z-index: 1055;">
+        <!-- Zona de mensajes de error encima del modal -->
+        @if($mostrarModalError && !empty($mensajeModalError))
+        <div class="position-fixed w-100 d-flex justify-content-center" style="top: 20px; z-index: 1060;">
+            <div class="alert alert-danger shadow-lg border-0 rounded-3 mx-3" style="max-width: 600px;">
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-exclamation-triangle me-3 text-danger" style="font-size: 1.5rem;"></i>
+                    <div class="flex-grow-1">
+                        <h6 class="alert-heading mb-1">
+                            <strong>Error en la Recepción Masiva</strong>
+                        </h6>
+                        <p class="mb-0">{{ $mensajeModalError }}</p>
+                    </div>
+                    <button type="button" class="btn-close" wire:click="cerrarModalError"></button>
+                </div>
+            </div>
+        </div>
+        @endif
+        
         <div class="modal-dialog modal-xl">
             <div class="modal-content">
                 <div class="modal-header">
@@ -663,6 +705,7 @@
                                         </span>
                                         <br><small class="text-muted">{{ $producto['unidad_medida_compra'] }}</small>
                                     </td>
+                                    <!-- Cant. Distribuir -->
                                     <td>
                                         <input type="number" 
                                                class="form-control form-control-sm text-center @if($producto['cantidad_distribuir'] > $producto['cantidad_pendiente']) is-invalid @endif"
@@ -670,7 +713,8 @@
                                                min="0.01"
                                                max="{{ $producto['cantidad_pendiente'] }}"
                                                step="0.01"
-                                               title="Máximo: {{ $producto['cantidad_pendiente'] }} {{ $producto['unidad_medida_compra'] }}">
+                                               title="Máximo: {{ $producto['cantidad_pendiente'] }} {{ $producto['unidad_medida_compra'] }}"
+                                               placeholder="{{ $producto['cantidad_pendiente'] }}">
                                         @if($producto['cantidad_distribuir'] > $producto['cantidad_pendiente'])
                                             <div class="invalid-feedback">
                                                 <small>⚠️ No puede exceder {{ $producto['cantidad_pendiente'] }} {{ $producto['unidad_medida_compra'] }}</small>
@@ -703,11 +747,29 @@
                                     <!-- Bodega -->
                                     <td>
                                         <select class="form-select form-select-sm" 
-                                                wire:change="cambiarBodegaProducto({{ $index }}, $event.target.value)">
+                                                wire:model.live="productosRecepcionMasiva.{{ $index }}.bodega_id"
+                                                wire:change="cambiarBodegaProducto({{ $index }}, $event.target.value)"
+                                                x-init="
+                                                    @php
+                                                        $bodegaPaperland = collect($bodegas)->firstWhere('nombre', 'Paperland');
+                                                        $bodegaPaperlandId = $bodegaPaperland ? $bodegaPaperland->id : 1;
+                                                    @endphp
+                                                    @if(empty($producto['bodega_id']))
+                                                        $nextTick(() => {
+                                                            $el.value = '{{ $bodegaPaperlandId }}';
+                                                            $el.dispatchEvent(new Event('change'));
+                                                            $wire.cambiarBodegaProducto({{ $index }}, '{{ $bodegaPaperlandId }}');
+                                                        });
+                                                    @endif
+                                                ">
                                             <option value="">Seleccionar bodega</option>
                                             @foreach($bodegas as $bodega)
+                                                @php
+                                                    $esPaperland = strtolower($bodega->nombre) === 'paperland';
+                                                    $debeSeleccionar = $producto['bodega_id'] == $bodega->id || ($esPaperland && empty($producto['bodega_id']));
+                                                @endphp
                                                 <option value="{{ $bodega->id }}" 
-                                                        @if($producto['bodega_id'] == $bodega->id) selected @endif>
+                                                        @if($debeSeleccionar) selected @endif>
                                                     {{ $bodega->nombre }}
                                                 </option>
                                             @endforeach
@@ -716,6 +778,7 @@
                                     <!-- Segmento -->
                                     <td>
                                         <select class="form-select form-select-sm" 
+                                                wire:model.live="productosRecepcionMasiva.{{ $index }}.segmento_id"
                                                 wire:change="cambiarSegmentoProducto({{ $index }}, $event.target.value)"
                                                 @if(empty($producto['bodega_id'])) disabled @endif>
                                             <option value="">Seleccionar segmento</option>
@@ -732,6 +795,7 @@
                                     <!-- Sección -->
                                     <td>
                                         <select class="form-select form-select-sm" 
+                                                wire:model.live="productosRecepcionMasiva.{{ $index }}.seccion_id"
                                                 wire:change="cambiarSeccionProducto({{ $index }}, $event.target.value)"
                                                 @if(empty($producto['segmento_id'])) disabled @endif>
                                             <option value="">Seleccionar sección</option>

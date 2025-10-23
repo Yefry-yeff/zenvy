@@ -231,7 +231,16 @@
                                             class="w-full h-10 border border-gray-300 rounded-l-lg focus:ring-2 focus:ring-blue-200 focus:border-blue-500"
                                             placeholder="Escanee el código de barras o presione Enter"
                                             autocomplete="off"
-                                            autofocus>
+                                            autofocus
+                                            @keydown.enter.prevent="
+                                                if ($event.target.value.trim()) {
+                                                    $wire.agregarProductoPorCodigo();
+                                                    $event.target.value = '';
+                                                }
+                                            "
+                                            x-init="$el.focus()"
+                                            @wire:processed="$el.focus()"
+                                            @wire:product-added="$el.focus()">
                                     </div>
                                     <button type="button"
                                         wire:click="abrirModalBusqueda"

@@ -838,9 +838,23 @@ class RecibirProductoCompra extends Component
                 $cantidadDistribuir = floatval($producto['cantidad_distribuir']);
                 $cantidadParaStock = floatval($producto['cantidad_stock']);
 
-                // Actualizar cantidad asignada en compra_has_producto
-                $nuevaCantidadAsignada = $detalleCompra->cantidad_asignada + $cantidadDistribuir;
-                $detalleCompra->update(['cantidad_asignada' => $nuevaCantidadAsignada]);
+                // Verificar que la cantidad aún esté disponible
+                if ($detalleCompra->cantidad_sin_asignar < $cantidadDistribuir) {
+                    throw new \Exception("La cantidad disponible para {$producto['nombre_producto']} ha cambiado. Solo quedan {$detalleCompra->cantidad_sin_asignar} unidades disponibles.");
+                }
+
+                // Actualizar la unidad de medida de venta del producto si cambió
+                $productoModel = Producto::find($producto['producto_id']);
+                if ($productoModel && $producto['unidad_medida_id'] != $productoModel->unidad_medida_venta_id) {
+                    $productoModel->unidad_medida_venta_id = $producto['unidad_medida_id'];
+                    $productoModel->save();
+                    
+                    Log::info('Unidad de medida de venta actualizada', [
+                        'producto_id' => $productoModel->id,
+                        'unidad_anterior' => $productoModel->unidad_medida_venta_id,
+                        'unidad_nueva' => $producto['unidad_medida_id']
+                    ]);
+                }
 
                 // Crear registro en recibido_bodega usando la sección específica del producto
                 RecibidoBodega::create([
@@ -858,6 +872,10 @@ class RecibirProductoCompra extends Component
                     'estado_id' => 1
                 ]);
 
+                // Actualizar la cantidad sin asignar en el detalle de compra
+                $detalleCompra->cantidad_sin_asignar -= $cantidadDistribuir;
+                $detalleCompra->save();
+
                 $productosRecibidos++;
                 $unidad = collect($producto['unidades_disponibles'])->firstWhere('id', $producto['unidad_medida_id']);
                 $nombreUnidad = $unidad ? $unidad['nombre'] : '';
@@ -865,11 +883,66 @@ class RecibirProductoCompra extends Component
                 $mensajeDetalle .= "📦 {$producto['nombre_producto']}: {$cantidadDistribuir} {$producto['unidad_medida_compra']} → {$cantidadParaStock} {$nombreUnidad}\n";
             }
 
+            // Verificar si todos los productos de la compra están completamente distribuidos
+            $compra = Compra::find($this->compraId);
+            $productosConCantidadPendiente = $compra->detallesCompra()
+                ->where('cantidad_sin_asignar', '>', 0)
+                ->count();
+
+            // Verificar si hay productos con distribución parcial
+            $productosConDistribucionParcial = $compra->detallesCompra()
+                ->whereRaw('cantidad_sin_asignar > 0 AND cantidad_sin_asignar < cantidad_ingresada')
+                ->count();
+
+            // Actualizar estado según la distribución
+            if ($productosConCantidadPendiente == 0) {
+                // Caso 1: Todos los productos están completamente distribuidos
+                $estadoAnterior = $compra->estado_id;
+                $compra->estado_id = 3; // Estado "Distribuido"
+                $compra->save();
+
+                Log::info('Compra marcada como distribuida (recepción masiva)', [
+                    'compra_id' => $compra->id,
+                    'numero_factura' => $compra->numero_factura,
+                    'estado_anterior' => $estadoAnterior,
+                    'nuevo_estado_id' => 3
+                ]);
+
+                // Emitir eventos para notificar a otros componentes
+                $this->dispatch('compra-distribuida', $compra->id);
+                $this->dispatch('estado-compra-actualizado', $compra->id, 'distribuido');
+                $this->dispatch('compra-actualizada', $compra->id);
+                
+            } elseif ($productosConCantidadPendiente > 0) {
+                // Caso 2: Hay productos con cantidad pendiente
+                if (in_array($compra->estado_id, [1, 5])) {
+                    $estadoAnterior = $compra->estado_id;
+                    $compra->estado_id = 5; // Estado "Pendiente"
+                    $compra->save();
+
+                    Log::info('Compra marcada como pendiente (recepción masiva)', [
+                        'compra_id' => $compra->id,
+                        'numero_factura' => $compra->numero_factura,
+                        'estado_anterior' => $estadoAnterior,
+                        'productos_con_cantidad_pendiente' => $productosConCantidadPendiente,
+                        'productos_con_distribucion_parcial' => $productosConDistribucionParcial,
+                        'nuevo_estado_id' => 5
+                    ]);
+
+                    // Emitir eventos para notificar a otros componentes
+                    $this->dispatch('estado-compra-actualizado', $compra->id, 'pendiente');
+                    $this->dispatch('compra-actualizada', $compra->id);
+                }
+            }
+
             DB::commit();
 
-            $mensajeDetalle .= "\n🏢 Bodega: {$this->nombreBodegaRecepcionMasiva}\n";
-            $mensajeDetalle .= "📍 Ubicación: {$this->nombreSegmentoRecepcionMasiva} > {$this->nombreSeccionRecepcionMasiva}\n";
-            $mensajeDetalle .= "📊 Total productos recibidos: {$productosRecibidos}";
+            $mensajeDetalle .= "\n📊 Total productos recibidos: {$productosRecibidos}";
+
+            // Si la compra se completó, agregar información adicional
+            if ($productosConCantidadPendiente == 0) {
+                $mensajeDetalle .= "\n\n🎉 ¡La factura {$compra->numero_factura} ha sido completamente distribuida!";
+            }
 
             $this->mostrarExito($mensajeDetalle);
             $this->cerrarModalRecepcionMasiva();
