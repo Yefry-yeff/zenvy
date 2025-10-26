@@ -893,12 +893,9 @@ class Ventas extends Component
 
         // Calcular descuento unitario automático si existe
         $subtotalOriginal = $precioDefecto->precio;
+        
+        // NO aplicar descuento automáticamente - el usuario debe aplicarlo manualmente si lo desea
         $descuentoUnitarioAplicado = 0;
-
-        if (($producto->descuento_unitario ?? 0) > 0) {
-            // El descuento es un valor monetario que se aplica por cantidad
-            $descuentoUnitarioAplicado = $producto->descuento_unitario * $precioDefecto->cantidad;
-        }
 
         $this->productosFactura[] = [
             'id' => $producto->id,
@@ -924,16 +921,11 @@ class Ventas extends Component
             'cantidad' => 1, // Cantidad editable
             'descuento_tercera' => $producto->descuento_tercera ?? 0,
             'descuento_cuarta' => $producto->descuento_cuarta ?? 0,
-            'descuento_unitario_producto' => $producto->descuento_unitario ?? 0,
-            'descuento_unitario_aplicado' => $descuentoUnitarioAplicado,
+            'descuento_unitario_producto' => $producto->descuento_unitario ?? 0, // Guardamos el valor para referencia
+            'descuento_unitario_aplicado' => 0, // SIEMPRE INICIA EN 0 - no se aplica automáticamente
             'descuento_aplicado' => 0,
-            'subtotal_con_descuento' => $subtotalOriginal - $descuentoUnitarioAplicado
+            'subtotal_con_descuento' => $subtotalOriginal // Sin descuento inicial
         ];
-
-        // Mostrar mensaje si se aplicó descuento automático
-        if (($producto->descuento_unitario ?? 0) > 0) {
-            session()->flash('success', 'Producto aplicado con descuento');
-        }
 
         // Limpiar campo de código de barras
         $this->codigoBarras = '';
@@ -1006,13 +998,17 @@ class Ventas extends Component
                 $this->productosFactura[$index]['tipo_precio'] = $tipoPrecio;
                 // NO modificar cantidad_por_unidad - se mantiene la de precio_has_venta
 
-                // Recalcular descuento unitario con la cantidad_por_unidad actual
-                $cantidadPorUnidad = $producto['cantidad_por_unidad'] ?? 1;
-                $descuentoUnitarioProducto = $producto['descuento_unitario_producto'] ?? 0;
-                if ($descuentoUnitarioProducto > 0) {
-                    $this->productosFactura[$index]['descuento_unitario_aplicado'] = 
-                        $descuentoUnitarioProducto * $cantidadPorUnidad * $cantidadActual;
+                // Recalcular descuento unitario SOLO si ya tenía descuento aplicado
+                $descuentoUnitarioAplicadoActual = $this->productosFactura[$index]['descuento_unitario_aplicado'] ?? 0;
+                if ($descuentoUnitarioAplicadoActual > 0) {
+                    $cantidadPorUnidad = $producto['cantidad_por_unidad'] ?? 1;
+                    $descuentoUnitarioProducto = $producto['descuento_unitario_producto'] ?? 0;
+                    if ($descuentoUnitarioProducto > 0) {
+                        $this->productosFactura[$index]['descuento_unitario_aplicado'] = 
+                            $descuentoUnitarioProducto * $cantidadPorUnidad * $cantidadActual;
+                    }
                 }
+                // Si no tenía descuento, mantenerlo en 0
 
                 // Recalcular subtotal
                 $subtotalOriginal = $nuevoPrecio * $cantidadActual;
@@ -1086,12 +1082,16 @@ class Ventas extends Component
                 session()->flash('warning', "Cantidad ajustada a stock disponible: {$stockDisponibleReal} (considerando otras líneas del carrito)");
             }
 
-            // Recalcular descuento unitario si aplica
-            $descuentoUnitarioProducto = $producto['descuento_unitario_producto'] ?? 0;
-            if ($descuentoUnitarioProducto > 0) {
-                $this->productosFactura[$index]['descuento_unitario_aplicado'] = 
-                    $descuentoUnitarioProducto * $precioSeleccionado->cantidad * $cantidadActual;
+            // Recalcular descuento unitario SOLO si ya tenía descuento aplicado
+            $descuentoUnitarioAplicadoActual = $this->productosFactura[$index]['descuento_unitario_aplicado'] ?? 0;
+            if ($descuentoUnitarioAplicadoActual > 0) {
+                $descuentoUnitarioProducto = $producto['descuento_unitario_producto'] ?? 0;
+                if ($descuentoUnitarioProducto > 0) {
+                    $this->productosFactura[$index]['descuento_unitario_aplicado'] = 
+                        $descuentoUnitarioProducto * $precioSeleccionado->cantidad * $cantidadActual;
+                }
             }
+            // Si no tenía descuento, mantenerlo en 0
 
             // Recalcular subtotal con descuento
             $subtotalOriginal = $precioSeleccionado->precio * $cantidadActual;
@@ -1368,11 +1368,16 @@ class Ventas extends Component
             }
         }
 
-        // Recalcular el descuento unitario aplicado con la nueva cantidad
-        $descuentoUnitarioProducto = $item['descuento_unitario_producto'] ?? 0;
-        if ($descuentoUnitarioProducto > 0) {
-            $this->productosFactura[$index]['descuento_unitario_aplicado'] = $descuentoUnitarioProducto * $this->productosFactura[$index]['cantidad'];
+        // Recalcular el descuento unitario aplicado SOLO si ya tenía descuento aplicado
+        $descuentoUnitarioAplicadoActual = $this->productosFactura[$index]['descuento_unitario_aplicado'] ?? 0;
+        if ($descuentoUnitarioAplicadoActual > 0) {
+            // Si ya tenía descuento, recalcularlo proporcionalmente con la nueva cantidad
+            $descuentoUnitarioProducto = $item['descuento_unitario_producto'] ?? 0;
+            if ($descuentoUnitarioProducto > 0) {
+                $this->productosFactura[$index]['descuento_unitario_aplicado'] = $descuentoUnitarioProducto * $this->productosFactura[$index]['cantidad'];
+            }
         }
+        // Si no tenía descuento, no aplicarlo automáticamente
 
         // Recalcular subtotal con descuento para este item
         $cantidad = $this->productosFactura[$index]['cantidad'];
@@ -2065,6 +2070,7 @@ class Ventas extends Component
                         'Tipo_descuento' => 'Producto',
                         'monto_unidad' => $producto['descuento_unitario_producto'] ?? 0,
                         'monto_total' => $descuentoUnitario,
+                        'indice_factura_has_producto' => $indice,
                         'users_id' => Auth::id(),
                         'created_at' => now()
                     ]);
@@ -2091,6 +2097,7 @@ class Ventas extends Component
                         'Tipo_descuento' => 'Individual',
                         'monto_unidad' => 0,
                         'monto_total' => $descuentoIndividual,
+                        'indice_factura_has_producto' => $indice,
                         'users_id' => Auth::id(),
                         'created_at' => now()
                     ]);
@@ -2126,6 +2133,7 @@ class Ventas extends Component
                             'Tipo_descuento' => $tipoDescuentoAdultoMayor,
                             'monto_unidad' => 0, // Los descuentos de adulto mayor no tienen monto_unidad
                             'monto_total' => $descuentoAdultoMayor,
+                            'indice_factura_has_producto' => $indice,
                             'users_id' => Auth::id(),
                             'created_at' => now()
                         ]);
@@ -2135,6 +2143,28 @@ class Ventas extends Component
                 }
 
                 $indice++;
+            }
+
+            // IMPORTANTE: Actualizar el campo descuento en factura_has_producto con la suma de todos los descuentos por índice
+            $descuentosPorIndice = DB::table('descuentos')
+                ->select('factura_id', 'producto_id', 'indice_factura_has_producto', DB::raw('SUM(monto_total) as descuento_total'))
+                ->where('factura_id', $factura->id)
+                ->groupBy('factura_id', 'producto_id', 'indice_factura_has_producto')
+                ->get();
+
+            foreach ($descuentosPorIndice as $descuento) {
+                DB::table('factura_has_producto')
+                    ->where('factura_id', $descuento->factura_id)
+                    ->where('producto_id', $descuento->producto_id)
+                    ->where('indice', $descuento->indice_factura_has_producto)
+                    ->update(['descuento' => $descuento->descuento_total]);
+
+                Log::info("DEBUG Descuento actualizado en factura_has_producto", [
+                    'factura_id' => $descuento->factura_id,
+                    'producto_id' => $descuento->producto_id,
+                    'indice' => $descuento->indice_factura_has_producto,
+                    'descuento_total' => $descuento->descuento_total
+                ]);
             }
 
             // Guardar servicios de la factura (nueva funcionalidad híbrida)
@@ -2741,34 +2771,85 @@ class Ventas extends Component
 
     private function guardarProductoConDistribucionSecciones($facturaId, $producto, $indice)
     {
-        // CRITICAL: Calcular cantidad real para inventario (cantidad × cantidad_por_unidad)
-        $cantidadParaInventario = $producto['cantidad']; // Cantidad en factura
+        // NUEVA LÓGICA: Guardar en factura_has_producto tal como está en la factura (respetando descuentos por línea)
+        // Luego reducir el inventario usando FIFO
         
-        if (isset($producto['cantidad_por_unidad']) && $producto['cantidad_por_unidad'] > 0) {
-            // Multiplicar: cantidad factura × unidades por cada unidad de medida
-            $cantidadParaInventario = $producto['cantidad'] * $producto['cantidad_por_unidad'];
-        }
+        $cantidadParaInventario = $producto['cantidad']; // Cantidad exacta a rebajar del inventario
 
         Log::info("DEBUG guardarProductoConDistribucionSecciones INICIO", [
             'factura_id' => $facturaId,
             'producto_id' => $producto['id'],
             'cantidad_en_factura' => $producto['cantidad'],
-            'cantidad_por_unidad' => $producto['cantidad_por_unidad'] ?? 'N/A',
             'cantidad_para_inventario' => $cantidadParaInventario,
-            'calculo' => isset($producto['cantidad_por_unidad']) 
-                ? "{$producto['cantidad']} × {$producto['cantidad_por_unidad']} = {$cantidadParaInventario}"
-                : "Sin unidad de medida",
-            'indice' => $indice
+            'unidad_medida_id' => $producto['unidad_medida_id'] ?? 'N/A',
+            'unidad_medida_nombre' => $producto['unidad_medida_nombre'] ?? 'N/A',
+            'indice' => $indice,
+            'descuento_aplicado' => $producto['descuento_aplicado'] ?? 0,
+            'subtotal' => $producto['subtotal'] ?? 0
         ]);
 
-        // Obtener producto por código de barras para conseguir el ID correcto
+        // Obtener producto de la base de datos
         $productoDb = DB::table('producto')->where('id', $producto['id'])->first();
         if (!$productoDb) {
             Log::error("Producto no encontrado", ['producto_id' => $producto['id']]);
             return;
         }
 
-        // NUEVO: Obtener registros de stock FIFO por unidad de medida específica
+        // Obtener la primera sección disponible para este producto (para el registro en factura_has_producto)
+        $primeraSeccion = DB::table('tienda as t')
+            ->join('bodega as b', 'b.tienda_id', '=', 't.id')
+            ->join('segmento as s', 's.bodega_id', '=', 'b.id')
+            ->join('seccion as sc', 'sc.segmento_id', '=', 's.id')
+            ->join('recibido_bodega as rb', 'rb.seccion_id', '=', 'sc.id')
+            ->where('t.id', Auth::user()->tienda_id)
+            ->where('rb.producto_id', $producto['id'])
+            ->where('rb.unidad_medida_id', $producto['unidad_medida_id'])
+            ->where('b.principal', 1)
+            ->where('rb.cantidad_disponible', '>', 0)
+            ->where('rb.estado_id', 1)
+            ->select('sc.id as seccion_id')
+            ->first();
+
+        if (!$primeraSeccion) {
+            Log::error("No hay stock disponible", ['producto_id' => $producto['id'], 'unidad_medida_id' => $producto['unidad_medida_id']]);
+            throw new \Exception("No hay stock disponible para el producto con la unidad de medida seleccionada");
+        }
+
+        // PASO 1: Guardar en factura_has_producto TAL COMO ESTÁ EN LA FACTURA
+        $registroFacturaProducto = [
+            'factura_id' => $facturaId,
+            'producto_id' => $producto['id'],
+            'Servicios_id' => null,
+            'seccion_id' => $primeraSeccion->seccion_id,
+            'unidad_medida_id' => $producto['unidad_medida_id'] ?? null,
+            'indice' => $indice,
+            'numero_unidades_resta_inventario' => $producto['cantidad'],
+            'unidades_nota_credito_resta_inventario' => 0,
+            'resta_inventario_total' => $producto['cantidad'],
+            'precio_unidad' => $producto['precio'],
+            'cantidad' => $producto['cantidad'], // Cantidad de la línea de factura
+            'subtotal' => $producto['subtotal'] ?? ($producto['cantidad'] * $producto['precio']),
+            'descuento' => $producto['descuento_aplicado'] ?? 0,
+            'isv_aplicado' => $producto['isv'] ?? 0,
+            'isv' => $producto['isv_calculado'] ?? 0,
+            'total' => $producto['total'] ?? ($producto['subtotal'] + ($producto['isv_calculado'] ?? 0)),
+            'idPrecioSeleccionado' => '0',
+            'precio_seleccionado' => 0
+        ];
+
+        Log::info("DEBUG Insertando en factura_has_producto (Línea de factura original)", [
+            'indice' => $indice,
+            'cantidad' => $producto['cantidad'],
+            'precio_unidad' => $producto['precio'],
+            'subtotal' => $registroFacturaProducto['subtotal'],
+            'descuento' => $registroFacturaProducto['descuento'],
+            'isv' => $registroFacturaProducto['isv'],
+            'total' => $registroFacturaProducto['total']
+        ]);
+
+        DB::table('factura_has_producto')->insert($registroFacturaProducto);
+
+        // PASO 2: Reducir inventario usando FIFO
         $registrosStock = DB::table('tienda as t')
             ->join('bodega as b', 'b.tienda_id', '=', 't.id')
             ->join('segmento as s', 's.bodega_id', '=', 'b.id')
@@ -2776,112 +2857,59 @@ class Ventas extends Component
             ->join('recibido_bodega as rb', 'rb.seccion_id', '=', 'sc.id')
             ->where('t.id', Auth::user()->tienda_id)
             ->where('rb.producto_id', $producto['id'])
-            ->where('rb.unidad_medida_id', $producto['unidad_medida_id']) // Filtrar por unidad de medida
+            ->where('rb.unidad_medida_id', $producto['unidad_medida_id'])
             ->where('b.principal', 1)
             ->where('rb.cantidad_disponible', '>', 0)
             ->where('rb.estado_id', 1)
             ->select(
-                'sc.id as seccion_id',
-                'sc.descripcion as seccion_nombre',
-                'rb.cantidad_disponible',
                 'rb.id as recibido_bodega_id',
-                'rb.fecha_recibido'
+                'rb.cantidad_disponible',
+                'rb.fecha_recibido',
+                'sc.descripcion as seccion_nombre'
             )
             ->orderBy('rb.fecha_recibido', 'ASC') // FIFO: primero el más antiguo
             ->get();
 
-        Log::info("DEBUG Registros FIFO encontrados", [
-            'unidad_medida_id' => $producto['unidad_medida_id'],
-            'registros_stock' => $registrosStock->toArray()
+        Log::info("DEBUG Registros FIFO para reducción de inventario", [
+            'total_registros' => $registrosStock->count(),
+            'cantidad_a_reducir' => $cantidadParaInventario
         ]);
 
-        if ($registrosStock->isEmpty()) {
-            Log::error("No hay stock disponible", ['producto_id' => $producto['id'], 'unidad_medida_id' => $producto['unidad_medida_id']]);
-            throw new \Exception("No hay stock disponible para el producto con la unidad de medida seleccionada");
-        }
-
-        $cantidadRestante = $cantidadParaInventario; // Cantidad a restar (en unidades individuales)
-        $registrosCreados = 0;
+        $cantidadRestante = $cantidadParaInventario;
 
         foreach ($registrosStock as $registro) {
             if ($cantidadRestante <= 0) break;
 
-            // Restar de 1 en 1 del registro más antiguo
             $cantidadATomar = min($cantidadRestante, $registro->cantidad_disponible);
 
-            // Calcular valores con descuento aplicado
-            $subtotalOriginal = $cantidadATomar * $producto['precio'];
-            $descuentoAplicado = $producto['descuento_aplicado'] ?? 0;
-            $subtotalConDescuento = $producto['subtotal_con_descuento'] ?? $subtotalOriginal;
-            $isvAplicado = $producto['isv'] ?? 0; // Tasa de ISV del producto
-            $isvCalculado = $subtotalConDescuento * ($isvAplicado / 100);
-            $totalFinal = $subtotalConDescuento + $isvCalculado;
-
-            // Verificar si el registro ya existe para evitar duplicados
-            $existeRegistro = DB::table('factura_has_producto')
-                ->where('factura_id', $facturaId)
-                ->where('producto_id', $producto['id'])
-                ->where('seccion_id', $registro->seccion_id)
-                ->where('indice', $indice)
-                ->exists();
-
-            if ($existeRegistro) {
-                Log::warning("Registro duplicado detectado", [
-                    'factura_id' => $facturaId,
-                    'producto_id' => $producto['id'],
-                    'seccion_id' => $registro->seccion_id,
-                    'indice' => $indice
-                ]);
-                continue;
-            }
-
-            // Crear registro en factura_has_producto
-            $registroFacturaProducto = [
-                'factura_id' => $facturaId,
-                'producto_id' => $producto['id'],
-                'Servicios_id' => null,
-                'seccion_id' => $registro->seccion_id,
-                'unidad_medida_id' => $producto['unidad_medida_id'] ?? null,
-                'indice' => $indice,
-                'numero_unidades_resta_inventario' => $cantidadATomar,
-                'unidades_nota_credito_resta_inventario' => 0,
-                'resta_inventario_total' => $cantidadATomar,
-                'precio_unidad' => $producto['precio'],
-                'cantidad' => $producto['cantidad'],
-                'subtotal' => $subtotalConDescuento,
-                'descuento' => $descuentoAplicado,
-                'isv_aplicado' => $isvAplicado,
-                'isv' => $isvCalculado,
-                'total' => $totalFinal,
-                'idPrecioSeleccionado' => '0',
-                'precio_seleccionado' => 0
-            ];
-
-            Log::info("DEBUG Insertando en factura_has_producto (FIFO)", [
-                'unidad_medida_id' => $producto['unidad_medida_id'] ?? 'NULL',
-                'fecha_recibido' => $registro->fecha_recibido,
-                'cantidad_disponible_antes' => $registro->cantidad_disponible,
-                'cantidad_a_tomar' => $cantidadATomar,
-                'cantidad_restante' => $cantidadRestante
-            ]);
-
-            DB::table('factura_has_producto')->insert($registroFacturaProducto);
-
-            // Actualizar stock en recibido_bodega (restar de 1 en 1)
+            // Actualizar stock en recibido_bodega (FIFO)
             DB::table('recibido_bodega')
                 ->where('id', $registro->recibido_bodega_id)
                 ->decrement('cantidad_disponible', $cantidadATomar);
 
-            Log::info("DEBUG Stock actualizado (FIFO)", [
+            Log::info("DEBUG Stock reducido (FIFO)", [
                 'recibido_bodega_id' => $registro->recibido_bodega_id,
                 'seccion' => $registro->seccion_nombre,
+                'fecha_recibido' => $registro->fecha_recibido,
                 'cantidad_descontada' => $cantidadATomar,
                 'stock_anterior' => $registro->cantidad_disponible,
                 'stock_nuevo' => $registro->cantidad_disponible - $cantidadATomar
             ]);
 
+            // NUEVO: Inactivar registro si se agotó el stock
+            if (($registro->cantidad_disponible - $cantidadATomar) <= 0) {
+                DB::table('recibido_bodega')
+                    ->where('id', $registro->recibido_bodega_id)
+                    ->update(['estado_id' => 2]); // Inactivo
+
+                Log::info("DEBUG Stock agotado - Registro inactivado", [
+                    'recibido_bodega_id' => $registro->recibido_bodega_id,
+                    'estado_anterior' => 1,
+                    'estado_nuevo' => 2
+                ]);
+            }
+
             $cantidadRestante -= $cantidadATomar;
-            $registrosCreados++;
         }
 
         if ($cantidadRestante > 0) {
@@ -2892,9 +2920,9 @@ class Ventas extends Component
             throw new \Exception("Stock insuficiente. Faltan {$cantidadRestante} unidades");
         }
 
-        Log::info("DEBUG guardarProductoConDistribucionSecciones FINALIZADO (FIFO)", [
-            'registros_creados' => $registrosCreados,
-            'cantidad_distribuida' => $cantidadParaInventario
+        Log::info("DEBUG guardarProductoConDistribucionSecciones FINALIZADO", [
+            'cantidad_reducida' => $cantidadParaInventario,
+            'registros_procesados' => $registrosStock->count()
         ]);
     }
 
@@ -3050,18 +3078,21 @@ class Ventas extends Component
 
         $this->caiFacturaImpresa = $cai ? (array) $cai : null;
 
-        // Cargar productos y servicios de forma unificada
+        // Cargar productos y servicios de forma unificada con descuentos agrupados por índice
+        $descuentosAgrupados = DB::table('descuentos')
+            ->select('factura_id', 'producto_id', 'indice_factura_has_producto', DB::raw('SUM(monto_total) as descuento_total'))
+            ->where('factura_id', $facturaId)
+            ->groupBy('factura_id', 'producto_id', 'indice_factura_has_producto');
+
         $this->productosFacturaImpresa = DB::table('factura_has_producto as fp')
             ->leftJoin('producto as p', 'fp.producto_id', '=', 'p.id')
             ->leftJoin('servicios as s', 'fp.Servicios_id', '=', 's.id')
             ->leftJoin('isv as i_producto', 'p.isv_id', '=', 'i_producto.id')
             ->leftJoin('isv as i_servicio', 's.isv_id', '=', 'i_servicio.id')
-            ->leftJoin('descuentos as d', function($join) use ($facturaId) {
-                $join->where('d.factura_id', '=', $facturaId)
-                     ->where(function($query) {
-                         $query->whereNotNull('d.producto_id')
-                               ->orWhere('d.Tipo_descuento', '=', 'Servicio');
-                     });
+            ->leftJoinSub($descuentosAgrupados, 'd', function($join) {
+                $join->on('d.factura_id', '=', 'fp.factura_id')
+                     ->on('d.producto_id', '=', DB::raw('COALESCE(fp.producto_id, fp.Servicios_id)'))
+                     ->on('d.indice_factura_has_producto', '=', 'fp.indice');
             })
             ->where('fp.factura_id', $facturaId)
             ->select(
@@ -3077,7 +3108,8 @@ class Ventas extends Component
                 'fp.isv_aplicado',
                 'fp.isv',
                 'fp.total',
-                'd.monto_total as descuento_unitario'
+                'fp.indice',
+                DB::raw('COALESCE(d.descuento_total, 0) as descuento_unitario')
             )
             ->get()
             ->map(function($item) {

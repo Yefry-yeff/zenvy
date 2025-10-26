@@ -47,6 +47,7 @@ class FacturaPDFController extends Controller
                     'fp.isv_aplicado',
                     'fp.isv',
                     'fp.total',
+                    'fp.indice', // IMPORTANTE: Agregar el índice
                     'fp.unidad_medida_id',
                     'um.nombre as unidad_nombre'
                 )
@@ -56,13 +57,16 @@ class FacturaPDFController extends Controller
                 })
                 ->toArray();
 
-            // Cargar TODOS los descuentos de la factura agrupados por producto y tipo
+            // Cargar TODOS los descuentos de la factura agrupados por producto, índice y tipo
             $descuentos = DB::table('descuentos')
                 ->where('factura_id', $facturaId)
-                ->select('producto_id', 'Tipo_descuento', DB::raw('SUM(monto_total) as total_descuento'))
-                ->groupBy('producto_id', 'Tipo_descuento')
+                ->select('producto_id', 'indice_factura_has_producto', 'Tipo_descuento', DB::raw('SUM(monto_total) as total_descuento'))
+                ->groupBy('producto_id', 'indice_factura_has_producto', 'Tipo_descuento')
                 ->get()
-                ->groupBy('producto_id')
+                ->groupBy(function($item) {
+                    // Agrupar por producto_id + índice (clave compuesta)
+                    return $item->producto_id . '_' . $item->indice_factura_has_producto;
+                })
                 ->map(function($descuentosProducto) {
                     return $descuentosProducto->mapWithKeys(function($item) {
                         return [$item->Tipo_descuento => $item->total_descuento];
@@ -70,10 +74,13 @@ class FacturaPDFController extends Controller
                 })
                 ->toArray();
 
-            // Agregar los descuentos agrupados a cada producto
+            // Agregar los descuentos agrupados a cada producto según su índice
             foreach ($productos as &$producto) {
                 $productoId = $producto['producto_id'];
-                $producto['descuentos'] = $descuentos[$productoId] ?? [];
+                $indice = $producto['indice'];
+                $claveCompuesta = $productoId . '_' . $indice;
+                
+                $producto['descuentos'] = $descuentos[$claveCompuesta] ?? [];
                 
                 // Calcular el total de descuentos para este producto
                 $producto['total_descuentos'] = array_sum($producto['descuentos']);
@@ -176,6 +183,7 @@ class FacturaPDFController extends Controller
                     'fp.isv_aplicado',
                     'fp.isv',
                     'fp.total',
+                    'fp.indice', // IMPORTANTE: Agregar el índice
                     'fp.unidad_medida_id',
                     'um.nombre as unidad_nombre'
                 )
@@ -185,15 +193,16 @@ class FacturaPDFController extends Controller
                 })
                 ->toArray();
 
-            // Cargar TODOS los descuentos de la factura agrupados por producto y tipo
-            // (Solo productos por ahora, servicios no tienen descuentos hasta que se actualice la tabla)
+            // Cargar TODOS los descuentos de la factura agrupados por producto, índice y tipo
             $descuentos = DB::table('descuentos')
                 ->where('factura_id', $facturaId)
-                ->whereNotNull('producto_id') // Solo descuentos de productos
-                ->select('producto_id', 'Tipo_descuento', DB::raw('SUM(monto_total) as total_descuento'))
-                ->groupBy('producto_id', 'Tipo_descuento')
+                ->select('producto_id', 'indice_factura_has_producto', 'Tipo_descuento', DB::raw('SUM(monto_total) as total_descuento'))
+                ->groupBy('producto_id', 'indice_factura_has_producto', 'Tipo_descuento')
                 ->get()
-                ->groupBy('producto_id')
+                ->groupBy(function($item) {
+                    // Agrupar por producto_id + índice (clave compuesta)
+                    return $item->producto_id . '_' . $item->indice_factura_has_producto;
+                })
                 ->map(function($descuentosProducto) {
                     return $descuentosProducto->mapWithKeys(function($item) {
                         return [$item->Tipo_descuento => $item->total_descuento];
@@ -201,17 +210,16 @@ class FacturaPDFController extends Controller
                 })
                 ->toArray();
 
-            // Agregar los descuentos agrupados a cada producto/servicio
+            // Agregar los descuentos agrupados a cada producto según su índice
             foreach ($productos as &$producto) {
                 $productoId = $producto['producto_id'];
-                // Solo aplicar descuentos a productos, no a servicios (por ahora)
-                if ($producto['tipo'] === 'producto') {
-                    $producto['descuentos'] = $descuentos[$productoId] ?? [];
-                    $producto['total_descuentos'] = array_sum($producto['descuentos']);
-                } else {
-                    $producto['descuentos'] = []; // Servicios sin descuentos por ahora
-                    $producto['total_descuentos'] = 0;
-                }
+                $indice = $producto['indice'];
+                $claveCompuesta = $productoId . '_' . $indice;
+                
+                $producto['descuentos'] = $descuentos[$claveCompuesta] ?? [];
+                
+                // Calcular el total de descuentos para este producto
+                $producto['total_descuentos'] = array_sum($producto['descuentos']);
             }
                 
             // Cargar métodos de pago
