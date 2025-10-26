@@ -610,11 +610,28 @@
                                             // Determinar si es producto o servicio
                                             $esServicio = isset($item['servicio_id']) && $item['servicio_id'] !== null;
                                             
-                                            // Calcular stock disponible considerando la unidad de medida
+                                            // Calcular stock disponible (stock total - cantidad en carrito)
                                             if (!$esServicio) {
-                                                $cantidadPorUnidad = $item['cantidad_por_unidad'] ?? 1;
-                                                $cantidadEnCarrito = $item['cantidad'] ?? 0;
-                                                $stockDisponible = $this->obtenerStockDisponibleConUnidad($item['id'], $cantidadPorUnidad, $cantidadEnCarrito, $loop->index);
+                                                // NUEVO: Usar stock_total_unidad si está disponible (para productos con unidades de medida)
+                                                if (isset($item['stock_total_unidad']) && isset($item['unidad_medida_id'])) {
+                                                    // Calcular la suma de TODAS las cantidades en el carrito para este producto+unidad
+                                                    $cantidadTotalEnCarrito = 0;
+                                                    foreach($productosFactura as $itemCarrito) {
+                                                        if ($itemCarrito['id'] == $item['id'] && 
+                                                            isset($itemCarrito['unidad_medida_id']) && 
+                                                            $itemCarrito['unidad_medida_id'] == $item['unidad_medida_id']) {
+                                                            $cantidadTotalEnCarrito += (int)($itemCarrito['cantidad'] ?? 0);
+                                                        }
+                                                    }
+                                                    
+                                                    // Stock disponible = stock en bodega - total en carrito
+                                                    $stockDisponible = max(0, $item['stock_total_unidad'] - $cantidadTotalEnCarrito);
+                                                } else {
+                                                    // Sistema anterior: calcular con cantidad por unidad
+                                                    $cantidadPorUnidad = $item['cantidad_por_unidad'] ?? 1;
+                                                    $cantidadEnCarrito = $item['cantidad'] ?? 0;
+                                                    $stockDisponible = $this->obtenerStockDisponibleConUnidad($item['id'], $cantidadPorUnidad, $cantidadEnCarrito, $loop->index);
+                                                }
                                             } else {
                                                 $stockDisponible = null;
                                             }
@@ -626,6 +643,9 @@
                                                     <br>
                                                     <small class="text-gray-500">
                                                         Stock disponible: {{ $stockDisponible }}
+                                                        @if(isset($item['unidad_medida_nombre']))
+                                                            {{ $item['unidad_medida_nombre'] }}
+                                                        @endif
                                                     </small>
                                                 @endif
                                             </td>
@@ -767,26 +787,74 @@
                                                     <!-- Para servicios, cantidad editable sin restricción de stock -->
                                                     <input type="number"
                                                         wire:key="servicio-{{ $loop->index }}-{{ $item['cantidad'] }}"
-                                                        wire:change="modificarCantidad({{ $loop->index }}, $event.target.value)"
-                                                        value="{{ $item['cantidad'] }}"
+                                                        wire:model.live.debounce.300ms="productosFactura.{{ $loop->index }}.cantidad"
+                                                        x-data="{ valor: {{ $item['cantidad'] }} }"
+                                                        x-model="valor"
+                                                        @input="if(valor < 1) valor = 1"
                                                         min="1"
                                                         class="w-20 text-center form-control"
                                                         style="min-width: 60px;">
                                                 @elseif(isset($item['precios_disponibles']) && !empty($item['precios_disponibles']))
-                                                    <!-- Nuevo sistema: Cantidad editable -->
+                                                    @php
+                                                        // Calcular cuánto hay en OTRAS líneas del mismo producto+unidad
+                                                        $cantidadEnOtrasLineas = 0;
+                                                        foreach($productosFactura as $idx => $otroItem) {
+                                                            if ($idx != $loop->index && 
+                                                                $otroItem['id'] == $item['id'] && 
+                                                                isset($otroItem['unidad_medida_id']) && 
+                                                                $otroItem['unidad_medida_id'] == $item['unidad_medida_id']) {
+                                                                $cantidadEnOtrasLineas += (int)($otroItem['cantidad'] ?? 0);
+                                                            }
+                                                        }
+                                                        // Stock máximo para esta línea = stock total - lo que hay en otras líneas
+                                                        $stockMaxParaEstaLinea = max(0, ($item['stock_total_unidad'] ?? 0) - $cantidadEnOtrasLineas);
+                                                    @endphp
+                                                    <!-- Nuevo sistema: Cantidad editable limitada por stock_total_unidad -->
                                                     <input type="number"
                                                         wire:key="producto-{{ $loop->index }}-{{ $item['cantidad'] }}"
-                                                        wire:change="modificarCantidad({{ $loop->index }}, $event.target.value)"
-                                                        value="{{ $item['cantidad'] }}"
+                                                        wire:model.live.debounce.300ms="productosFactura.{{ $loop->index }}.cantidad"
+                                                        x-data="{ 
+                                                            valor: {{ $item['cantidad'] }}, 
+                                                            stockMax: {{ $stockMaxParaEstaLinea }},
+                                                            excedido: false 
+                                                        }"
+                                                        x-model="valor"
+                                                        @input="
+                                                            if(valor < 1) { valor = 1; excedido = false; }
+                                                            else if(valor > stockMax) { 
+                                                                excedido = true;
+                                                                setTimeout(() => { valor = stockMax; excedido = false; }, 500);
+                                                            } else {
+                                                                excedido = false;
+                                                            }
+                                                        "
+                                                        :class="excedido ? 'border-red-500 bg-red-50' : ''"
                                                         min="1"
+                                                        max="{{ $stockMaxParaEstaLinea }}"
                                                         class="w-20 text-center form-control"
-                                                        style="min-width: 60px;">
+                                                        style="min-width: 60px;"
+                                                        title="Stock disponible: {{ $stockDisponible }}">
                                                 @else
                                                     <!-- Sistema anterior: Para productos, cantidad limitada por stock -->
                                                     <input type="number"
                                                         wire:key="producto-{{ $loop->index }}-{{ $item['cantidad'] }}"
-                                                        wire:change="modificarCantidad({{ $loop->index }}, $event.target.value)"
-                                                        value="{{ $item['cantidad'] }}"
+                                                        wire:model.live.debounce.300ms="productosFactura.{{ $loop->index }}.cantidad"
+                                                        x-data="{ 
+                                                            valor: {{ $item['cantidad'] }}, 
+                                                            stockMax: {{ $stockDisponible }},
+                                                            excedido: false 
+                                                        }"
+                                                        x-model="valor"
+                                                        @input="
+                                                            if(valor < 1) { valor = 1; excedido = false; }
+                                                            else if(valor > stockMax) { 
+                                                                excedido = true;
+                                                                setTimeout(() => { valor = stockMax; excedido = false; }, 500);
+                                                            } else {
+                                                                excedido = false;
+                                                            }
+                                                        "
+                                                        :class="excedido ? 'border-red-500 bg-red-50' : ''"
                                                         min="1"
                                                         max="{{ $stockDisponible }}"
                                                         class="w-20 text-center form-control"

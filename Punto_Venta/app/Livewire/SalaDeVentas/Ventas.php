@@ -847,13 +847,45 @@ class Ventas extends Component
             return;
         }
 
-        // Obtener el primer precio (menor cantidad) como precio por defecto
-        $precioDefecto = $preciosDisponibles->first();
+        // NUEVO: Buscar la primera unidad de medida que tenga stock disponible
+        // considerando lo que ya está en el carrito
+        $precioConStock = null;
+        $stockTotalUnidad = 0;
 
-        // Validar stock en bodega principal antes de agregar (usar la cantidad del precio seleccionado)
-        if (!$this->validarStockProducto($producto->id, $precioDefecto->cantidad)) {
-            return; // El error ya se muestra en validarStockProducto
+        foreach ($preciosDisponibles as $precio) {
+            // Calcular stock total en bodega
+            $stockEnBodega = $this->calcularStockTotalPorUnidad($producto->id, $precio->unidad_medida_id);
+            
+            // Calcular cuánto ya está en el carrito para esta combinación producto+unidad
+            $cantidadEnCarrito = 0;
+            foreach ($this->productosFactura as $itemCarrito) {
+                // Verificar si es el mismo producto y la misma unidad de medida
+                if ($itemCarrito['id'] == $producto->id && 
+                    isset($itemCarrito['unidad_medida_id']) && 
+                    $itemCarrito['unidad_medida_id'] == $precio->unidad_medida_id) {
+                    $cantidadEnCarrito += (int)($itemCarrito['cantidad'] ?? 0);
+                }
+            }
+            
+            // Stock real disponible = stock en bodega - lo que ya está en el carrito
+            $stockDisponibleReal = $stockEnBodega - $cantidadEnCarrito;
+            
+            if ($stockDisponibleReal > 0) {
+                $precioConStock = $precio;
+                $stockTotalUnidad = $stockEnBodega; // Guardamos el stock total para referencia
+                break; // Encontramos la primera unidad con stock real, salimos del loop
+            }
         }
+
+        // Si ninguna unidad tiene stock real disponible, mostrar alerta
+        if (!$precioConStock) {
+            $this->mostrarModalSinStock = true;
+            $this->dispatch('mostrar-error', ['mensaje' => 'No hay stock disponible para este producto. Todo el stock está en el carrito o agotado.']);
+            return;
+        }
+
+        // Usar la unidad de medida con stock como precio por defecto
+        $precioDefecto = $precioConStock;
 
         // CAMBIO: Siempre agregar una nueva línea, permitir múltiples líneas del mismo producto con diferentes unidades
         // Obtener el valor de ISV desde la relación
@@ -879,6 +911,7 @@ class Ventas extends Component
             'unidad_medida_simbolo' => $precioDefecto->unidad_simbolo,
             'cantidad_por_unidad' => $precioDefecto->cantidad, // Unidades reales del producto
             'precios_disponibles' => $preciosDisponibles->toArray(),
+            'stock_total_unidad' => $stockTotalUnidad, // Stock disponible para esta unidad
             'producto_valencia' => $producto->producto_valencia,
             // Agregar precios de Valencia para el dropdown
             'precio1' => $producto->precio1 ?? 0,
@@ -1018,6 +1051,31 @@ class Ventas extends Component
             $this->productosFactura[$index]['cantidad_por_unidad'] = $precioSeleccionado->cantidad;
             $this->productosFactura[$index]['tipo_precio'] = 'precio_has_venta';
 
+            // NUEVO: Calcular stock total disponible para esta unidad de medida específica
+            $stockEnBodega = $this->calcularStockTotalPorUnidad($producto['id'], $precioSeleccionado->unidad_medida_id);
+            
+            // Calcular cuánto hay en el carrito de este producto+unidad EXCLUYENDO esta línea
+            $cantidadEnCarritoOtrasLineas = 0;
+            foreach ($this->productosFactura as $i => $itemCarrito) {
+                if ($i != $index && 
+                    $itemCarrito['id'] == $producto['id'] && 
+                    isset($itemCarrito['unidad_medida_id']) && 
+                    $itemCarrito['unidad_medida_id'] == $precioSeleccionado->unidad_medida_id) {
+                    $cantidadEnCarritoOtrasLineas += (int)($itemCarrito['cantidad'] ?? 0);
+                }
+            }
+            
+            // Stock real disponible para esta línea
+            $stockDisponibleReal = $stockEnBodega - $cantidadEnCarritoOtrasLineas;
+            $this->productosFactura[$index]['stock_total_unidad'] = $stockEnBodega;
+            
+            // Ajustar cantidad si excede el stock disponible real
+            if ($cantidadActual > $stockDisponibleReal) {
+                $this->productosFactura[$index]['cantidad'] = max(1, $stockDisponibleReal);
+                $cantidadActual = max(1, $stockDisponibleReal);
+                session()->flash('warning', "Cantidad ajustada a stock disponible: {$stockDisponibleReal} (considerando otras líneas del carrito)");
+            }
+
             // Recalcular descuento unitario si aplica
             $descuentoUnitarioProducto = $producto['descuento_unitario_producto'] ?? 0;
             if ($descuentoUnitarioProducto > 0) {
@@ -1112,34 +1170,45 @@ class Ventas extends Component
         $esServicio = isset($item['servicio_id']) && $item['servicio_id'] !== null;
 
         if (!$esServicio) {
-            $productoId = $item['id'];
-            $stockTotal = $this->obtenerStockTotal($productoId);
-
-            // Para el nuevo sistema, multiplicar por cantidad_por_unidad
-            $cantidadRealNecesaria = $nuevaCantidad;
-            if (isset($item['cantidad_por_unidad'])) {
-                $cantidadRealNecesaria = $nuevaCantidad * $item['cantidad_por_unidad'];
-            }
-
-            // Calcular cuánto hay en el carrito SIN incluir este item
-            $cantidadEnCarritoSinEsteItem = 0;
-            foreach ($this->productosFactura as $i => $itemCarrito) {
-                if ($itemCarrito['id'] == $productoId && $i != $index) {
-                    $cantidadItem = (int)$itemCarrito['cantidad'];
-                    // Multiplicar por cantidad_por_unidad si existe
-                    if (isset($itemCarrito['cantidad_por_unidad'])) {
-                        $cantidadItem *= $itemCarrito['cantidad_por_unidad'];
-                    }
-                    $cantidadEnCarritoSinEsteItem += $cantidadItem;
+            // NUEVO: Si tiene stock_total_unidad, validar contra ese valor
+            if (isset($item['stock_total_unidad'])) {
+                if ($nuevaCantidad > $item['stock_total_unidad']) {
+                    $this->dispatch('mostrar-error', [
+                        'mensaje' => "Stock insuficiente. Solo hay {$item['stock_total_unidad']} disponibles de esta unidad."
+                    ]);
+                    return;
                 }
-            }
+            } else {
+                // Sistema anterior: validar con obtenerStockTotal
+                $productoId = $item['id'];
+                $stockTotal = $this->obtenerStockTotal($productoId);
 
-            // La nueva cantidad total en unidades reales
-            $nuevaCantidadTotal = $cantidadEnCarritoSinEsteItem + $cantidadRealNecesaria;
+                // Para el nuevo sistema, multiplicar por cantidad_por_unidad
+                $cantidadRealNecesaria = $nuevaCantidad;
+                if (isset($item['cantidad_por_unidad'])) {
+                    $cantidadRealNecesaria = $nuevaCantidad * $item['cantidad_por_unidad'];
+                }
 
-            if ($nuevaCantidadTotal > $stockTotal) {
-                $this->mostrarModalSinStock = true;
-                return;
+                // Calcular cuánto hay en el carrito SIN incluir este item
+                $cantidadEnCarritoSinEsteItem = 0;
+                foreach ($this->productosFactura as $i => $itemCarrito) {
+                    if ($itemCarrito['id'] == $productoId && $i != $index) {
+                        $cantidadItem = (int)$itemCarrito['cantidad'];
+                        // Multiplicar por cantidad_por_unidad si existe
+                        if (isset($itemCarrito['cantidad_por_unidad'])) {
+                            $cantidadItem *= $itemCarrito['cantidad_por_unidad'];
+                        }
+                        $cantidadEnCarritoSinEsteItem += $cantidadItem;
+                    }
+                }
+
+                // La nueva cantidad total en unidades reales
+                $nuevaCantidadTotal = $cantidadEnCarritoSinEsteItem + $cantidadRealNecesaria;
+
+                if ($nuevaCantidadTotal > $stockTotal) {
+                    $this->mostrarModalSinStock = true;
+                    return;
+                }
             }
         }
 
@@ -1169,6 +1238,140 @@ class Ventas extends Component
 
         // Forzar actualización de la vista
         $this->dispatch('$refresh');
+    }
+
+    /**
+     * Método que se ejecuta automáticamente cuando cambia productosFactura mediante wire:model
+     * Valida el stock y recalcula totales en tiempo real
+     */
+    public function updatedProductosFactura($value, $key)
+    {
+        // Extraer el índice y el campo que cambió
+        // $key tiene formato: "0.cantidad" o "1.cantidad"
+        $parts = explode('.', $key);
+        
+        if (count($parts) !== 2) {
+            return;
+        }
+
+        $index = (int)$parts[0];
+        $campo = $parts[1];
+
+        // Solo procesar cambios en el campo 'cantidad'
+        if ($campo !== 'cantidad') {
+            return;
+        }
+
+        // Verificar que el índice exista
+        if (!isset($this->productosFactura[$index])) {
+            return;
+        }
+
+        $nuevaCantidad = (int)$value;
+        $item = $this->productosFactura[$index];
+
+        // Si la cantidad es 0 o negativa, eliminar el producto
+        if ($nuevaCantidad <= 0) {
+            $this->eliminarProducto($index);
+            return;
+        }
+
+        // Validar stock si es un producto (no servicio)
+        $esServicio = isset($item['servicio_id']) && $item['servicio_id'] !== null;
+
+        if (!$esServicio) {
+            // Si tiene stock_total_unidad, validar contra ese valor
+            if (isset($item['stock_total_unidad']) && isset($item['unidad_medida_id'])) {
+                // NUEVO: Calcular stock en bodega
+                $stockEnBodega = $this->calcularStockTotalPorUnidad($item['id'], $item['unidad_medida_id']);
+                
+                // Calcular cuánto hay en el carrito EXCLUYENDO este item
+                $cantidadEnCarritoOtrasLineas = 0;
+                foreach ($this->productosFactura as $i => $itemCarrito) {
+                    // Si es otra línea del mismo producto y misma unidad
+                    if ($i != $index && 
+                        $itemCarrito['id'] == $item['id'] && 
+                        isset($itemCarrito['unidad_medida_id']) && 
+                        $itemCarrito['unidad_medida_id'] == $item['unidad_medida_id']) {
+                        $cantidadEnCarritoOtrasLineas += (int)($itemCarrito['cantidad'] ?? 0);
+                    }
+                }
+                
+                // Stock real disponible para esta línea
+                $stockDisponibleReal = $stockEnBodega - $cantidadEnCarritoOtrasLineas;
+                
+                if ($nuevaCantidad > $stockDisponibleReal) {
+                    // Limitar al stock disponible real
+                    $this->productosFactura[$index]['cantidad'] = max(1, $stockDisponibleReal);
+                    
+                    $this->dispatch('mostrar-error', [
+                        'mensaje' => "Stock insuficiente. Solo hay {$stockDisponibleReal} disponibles (considerando otras líneas del carrito)."
+                    ]);
+                }
+                
+                // Actualizar el stock_total_unidad mostrado para esta línea
+                $this->productosFactura[$index]['stock_total_unidad'] = $stockEnBodega;
+                
+                // IMPORTANTE: Actualizar stock_total_unidad en TODAS las líneas del mismo producto+unidad
+                // para que todas muestren el mismo stock de bodega
+                foreach ($this->productosFactura as $i => $itemCarrito) {
+                    if ($itemCarrito['id'] == $item['id'] && 
+                        isset($itemCarrito['unidad_medida_id']) && 
+                        $itemCarrito['unidad_medida_id'] == $item['unidad_medida_id']) {
+                        $this->productosFactura[$i]['stock_total_unidad'] = $stockEnBodega;
+                    }
+                }
+            } else {
+                // Sistema anterior: validar con obtenerStockTotal
+                $productoId = $item['id'];
+                $stockTotal = $this->obtenerStockTotal($productoId);
+
+                $cantidadRealNecesaria = $nuevaCantidad;
+                if (isset($item['cantidad_por_unidad'])) {
+                    $cantidadRealNecesaria = $nuevaCantidad * $item['cantidad_por_unidad'];
+                }
+
+                // Calcular cuánto hay en el carrito SIN incluir este item
+                $cantidadEnCarritoSinEsteItem = 0;
+                foreach ($this->productosFactura as $i => $itemCarrito) {
+                    if ($itemCarrito['id'] == $productoId && $i != $index) {
+                        $cantidadItem = (int)$itemCarrito['cantidad'];
+                        if (isset($itemCarrito['cantidad_por_unidad'])) {
+                            $cantidadItem *= $itemCarrito['cantidad_por_unidad'];
+                        }
+                        $cantidadEnCarritoSinEsteItem += $cantidadItem;
+                    }
+                }
+
+                $nuevaCantidadTotal = $cantidadEnCarritoSinEsteItem + $cantidadRealNecesaria;
+
+                if ($nuevaCantidadTotal > $stockTotal) {
+                    // Calcular cantidad máxima permitida
+                    $cantidadMaxima = floor(($stockTotal - $cantidadEnCarritoSinEsteItem) / ($item['cantidad_por_unidad'] ?? 1));
+                    $this->productosFactura[$index]['cantidad'] = max(1, $cantidadMaxima);
+                    
+                    $this->mostrarModalSinStock = true;
+                    $this->dispatch('mostrar-error', [
+                        'mensaje' => "Stock insuficiente. Stock disponible: {$stockTotal}"
+                    ]);
+                }
+            }
+        }
+
+        // Recalcular el descuento unitario aplicado con la nueva cantidad
+        $descuentoUnitarioProducto = $item['descuento_unitario_producto'] ?? 0;
+        if ($descuentoUnitarioProducto > 0) {
+            $this->productosFactura[$index]['descuento_unitario_aplicado'] = $descuentoUnitarioProducto * $this->productosFactura[$index]['cantidad'];
+        }
+
+        // Recalcular subtotal con descuento para este item
+        $cantidad = $this->productosFactura[$index]['cantidad'];
+        $subtotalOriginal = $item['precio'] * $cantidad;
+        $descuentoUnitarioAplicado = $this->productosFactura[$index]['descuento_unitario_aplicado'] ?? 0;
+        $this->productosFactura[$index]['subtotal_con_descuento'] = $subtotalOriginal - $descuentoUnitarioAplicado;
+
+        // Recalcular todos los totales
+        $this->calcularTotales();
     }
 
     public function toggleProductosServicios()
@@ -2555,42 +2758,46 @@ class Ventas extends Component
             return;
         }
 
-        // Obtener secciones con stock disponible ordenadas por cantidad disponible (FIFO: más stock primero)
-        $seccionesConStock = DB::table('tienda as t')
+        // NUEVO: Obtener registros de stock FIFO por unidad de medida específica
+        $registrosStock = DB::table('tienda as t')
             ->join('bodega as b', 'b.tienda_id', '=', 't.id')
             ->join('segmento as s', 's.bodega_id', '=', 'b.id')
             ->join('seccion as sc', 'sc.segmento_id', '=', 's.id')
             ->join('recibido_bodega as rb', 'rb.seccion_id', '=', 'sc.id')
             ->where('t.id', Auth::user()->tienda_id)
             ->where('rb.producto_id', $producto['id'])
+            ->where('rb.unidad_medida_id', $producto['unidad_medida_id']) // Filtrar por unidad de medida
             ->where('b.principal', 1)
             ->where('rb.cantidad_disponible', '>', 0)
+            ->where('rb.estado_id', 1)
             ->select(
                 'sc.id as seccion_id',
                 'sc.descripcion as seccion_nombre',
                 'rb.cantidad_disponible',
-                'rb.id as recibido_bodega_id'
+                'rb.id as recibido_bodega_id',
+                'rb.fecha_recibido'
             )
-            ->orderBy('rb.cantidad_disponible', 'DESC') // Primero las secciones con más stock
+            ->orderBy('rb.fecha_recibido', 'ASC') // FIFO: primero el más antiguo
             ->get();
 
-        Log::info("DEBUG Secciones encontradas", [
-            'secciones_con_stock' => $seccionesConStock->toArray()
+        Log::info("DEBUG Registros FIFO encontrados", [
+            'unidad_medida_id' => $producto['unidad_medida_id'],
+            'registros_stock' => $registrosStock->toArray()
         ]);
 
-        if ($seccionesConStock->isEmpty()) {
-            Log::error("No hay stock disponible", ['producto_id' => $producto['id']]);
-            throw new \Exception("No hay stock disponible para el producto");
+        if ($registrosStock->isEmpty()) {
+            Log::error("No hay stock disponible", ['producto_id' => $producto['id'], 'unidad_medida_id' => $producto['unidad_medida_id']]);
+            throw new \Exception("No hay stock disponible para el producto con la unidad de medida seleccionada");
         }
 
-        $cantidadRestante = $cantidadParaInventario; // Usar la cantidad calculada
+        $cantidadRestante = $cantidadParaInventario; // Cantidad a restar (en unidades individuales)
         $registrosCreados = 0;
 
-        foreach ($seccionesConStock as $seccion) {
+        foreach ($registrosStock as $registro) {
             if ($cantidadRestante <= 0) break;
 
-            // Calcular cuánto tomar de esta sección
-            $cantidadATomar = min($cantidadRestante, $seccion->cantidad_disponible);
+            // Restar de 1 en 1 del registro más antiguo
+            $cantidadATomar = min($cantidadRestante, $registro->cantidad_disponible);
 
             // Calcular valores con descuento aplicado
             $subtotalOriginal = $cantidadATomar * $producto['precio'];
@@ -2601,67 +2808,66 @@ class Ventas extends Component
             $totalFinal = $subtotalConDescuento + $isvCalculado;
 
             // Verificar si el registro ya existe para evitar duplicados
-            // IMPORTANTE: Incluir 'indice' para permitir múltiples líneas del mismo producto con diferentes unidades
             $existeRegistro = DB::table('factura_has_producto')
                 ->where('factura_id', $facturaId)
                 ->where('producto_id', $producto['id'])
-                ->where('seccion_id', $seccion->seccion_id)
-                ->where('indice', $indice) // Agregar verificación por índice
+                ->where('seccion_id', $registro->seccion_id)
+                ->where('indice', $indice)
                 ->exists();
 
             if ($existeRegistro) {
                 Log::warning("Registro duplicado detectado", [
                     'factura_id' => $facturaId,
                     'producto_id' => $producto['id'],
-                    'seccion_id' => $seccion->seccion_id,
+                    'seccion_id' => $registro->seccion_id,
                     'indice' => $indice
                 ]);
-                continue; // Saltar esta sección si ya existe el registro
+                continue;
             }
 
             // Crear registro en factura_has_producto
             $registroFacturaProducto = [
                 'factura_id' => $facturaId,
                 'producto_id' => $producto['id'],
-                'Servicios_id' => null, // NULL para productos
-                'seccion_id' => $seccion->seccion_id,
-                'unidad_medida_id' => $producto['unidad_medida_id'] ?? null, // ID de unidad de medida de precio_has_venta
+                'Servicios_id' => null,
+                'seccion_id' => $registro->seccion_id,
+                'unidad_medida_id' => $producto['unidad_medida_id'] ?? null,
                 'indice' => $indice,
                 'numero_unidades_resta_inventario' => $cantidadATomar,
                 'unidades_nota_credito_resta_inventario' => 0,
                 'resta_inventario_total' => $cantidadATomar,
                 'precio_unidad' => $producto['precio'],
-                'cantidad' => $producto['cantidad'], // Cantidad ingresada por el usuario
+                'cantidad' => $producto['cantidad'],
                 'subtotal' => $subtotalConDescuento,
                 'descuento' => $descuentoAplicado,
-                'isv_aplicado' => $isvAplicado, // Tasa de ISV
-                'isv' => $isvCalculado, // Monto calculado de ISV
+                'isv_aplicado' => $isvAplicado,
+                'isv' => $isvCalculado,
                 'total' => $totalFinal,
                 'idPrecioSeleccionado' => '0',
                 'precio_seleccionado' => 0
             ];
 
-            Log::info("DEBUG Insertando en factura_has_producto", [
+            Log::info("DEBUG Insertando en factura_has_producto (FIFO)", [
                 'unidad_medida_id' => $producto['unidad_medida_id'] ?? 'NULL',
-                'cantidad_usuario' => $producto['cantidad'],
-                'cantidad_por_unidad' => $producto['cantidad_por_unidad'] ?? 'N/A',
-                'numero_unidades_resta_inventario' => $cantidadATomar,
-                'calculo' => "{$producto['cantidad']} × {$producto['cantidad_por_unidad']} = {$cantidadATomar}"
+                'fecha_recibido' => $registro->fecha_recibido,
+                'cantidad_disponible_antes' => $registro->cantidad_disponible,
+                'cantidad_a_tomar' => $cantidadATomar,
+                'cantidad_restante' => $cantidadRestante
             ]);
 
             DB::table('factura_has_producto')->insert($registroFacturaProducto);
 
-            // Actualizar stock en recibido_bodega
+            // Actualizar stock en recibido_bodega (restar de 1 en 1)
             DB::table('recibido_bodega')
-                ->where('id', $seccion->recibido_bodega_id)
+                ->where('id', $registro->recibido_bodega_id)
                 ->decrement('cantidad_disponible', $cantidadATomar);
 
-            Log::info("DEBUG Registro creado en factura_has_producto", [
-                'seccion_id' => $seccion->seccion_id,
-                'seccion_nombre' => $seccion->seccion_nombre,
-                'cantidad_tomada' => $cantidadATomar,
-                'stock_anterior' => $seccion->cantidad_disponible,
-                'stock_restante' => $seccion->cantidad_disponible - $cantidadATomar
+            Log::info("DEBUG Stock actualizado (FIFO)", [
+                'recibido_bodega_id' => $registro->recibido_bodega_id,
+                'seccion' => $registro->seccion_nombre,
+                'cantidad_descontada' => $cantidadATomar,
+                'stock_anterior' => $registro->cantidad_disponible,
+                'stock_nuevo' => $registro->cantidad_disponible - $cantidadATomar
             ]);
 
             $cantidadRestante -= $cantidadATomar;
@@ -2676,7 +2882,7 @@ class Ventas extends Component
             throw new \Exception("Stock insuficiente. Faltan {$cantidadRestante} unidades");
         }
 
-        Log::info("DEBUG guardarProductoConDistribucionSecciones FINALIZADO", [
+        Log::info("DEBUG guardarProductoConDistribucionSecciones FINALIZADO (FIFO)", [
             'registros_creados' => $registrosCreados,
             'cantidad_distribuida' => $cantidadParaInventario
         ]);
@@ -3579,6 +3785,39 @@ class Ventas extends Component
             return max(0, $stockDisponible);
         } catch (\Exception $e) {
             Log::error("Error en obtenerStockDisponibleConUnidad: " . $e->getMessage());
+            return 0;
+        }
+    }
+
+    /**
+     * Calcular el stock total disponible para una unidad de medida específica de un producto
+     * Suma TODOS los registros de recibido_bodega que coincidan con producto_id y unidad_medida_id
+     */
+    public function calcularStockTotalPorUnidad($productoId, $unidadMedidaId)
+    {
+        if (!$this->tiendaUsuario) {
+            return 0;
+        }
+
+        try {
+            // Obtener la suma total de cantidad_disponible para esta unidad de medida específica
+            $stockTotal = DB::table('recibido_bodega as rb')
+                ->join('seccion as s', 'rb.seccion_id', '=', 's.id')
+                ->join('segmento as seg', 's.segmento_id', '=', 'seg.id')
+                ->join('bodega as b', 'seg.bodega_id', '=', 'b.id')
+                ->where('b.tienda_id', $this->tiendaUsuario)
+                ->where('b.principal', 1)
+                ->where('b.estado_id', 1)
+                ->where('b.id', '!=', 2)
+                ->where('rb.producto_id', $productoId)
+                ->where('rb.unidad_medida_id', $unidadMedidaId)
+                ->where('rb.estado_id', 1)
+                ->where('rb.cantidad_disponible', '>', 0)
+                ->sum('rb.cantidad_disponible');
+
+            return $stockTotal ?? 0;
+        } catch (\Exception $e) {
+            Log::error("Error en calcularStockTotalPorUnidad: " . $e->getMessage());
             return 0;
         }
     }
