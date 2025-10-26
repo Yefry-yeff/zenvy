@@ -1067,12 +1067,22 @@ class Ventas extends Component
             
             // Stock real disponible para esta línea
             $stockDisponibleReal = $stockEnBodega - $cantidadEnCarritoOtrasLineas;
+            
+            // CRÍTICO: Si no hay stock disponible para esta unidad, NO permitir el cambio
+            if ($stockDisponibleReal <= 0) {
+                $this->dispatch('mostrar-error', [
+                    'mensaje' => "No se puede cambiar a '{$precioSeleccionado->unidad_nombre}'. No hay stock disponible para esta unidad de medida. Todo el stock está en el carrito o agotado."
+                ]);
+                return; // Salir sin hacer cambios
+            }
+            
+            // Si hay stock, proceder con el cambio
             $this->productosFactura[$index]['stock_total_unidad'] = $stockEnBodega;
             
             // Ajustar cantidad si excede el stock disponible real
             if ($cantidadActual > $stockDisponibleReal) {
-                $this->productosFactura[$index]['cantidad'] = max(1, $stockDisponibleReal);
-                $cantidadActual = max(1, $stockDisponibleReal);
+                $this->productosFactura[$index]['cantidad'] = $stockDisponibleReal;
+                $cantidadActual = $stockDisponibleReal;
                 session()->flash('warning', "Cantidad ajustada a stock disponible: {$stockDisponibleReal} (considerando otras líneas del carrito)");
             }
 

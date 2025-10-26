@@ -657,11 +657,49 @@
                                                         Servicio
                                                     </span>
                                                 @elseif(isset($item['precios_disponibles']) && !empty($item['precios_disponibles']))
-                                                    <!-- Nuevo sistema: Dropdown de unidades de medida desde precio_has_venta -->
+                                                    @php
+                                                        // Filtrar solo las unidades con stock disponible
+                                                        $preciosConStock = [];
+                                                        foreach($item['precios_disponibles'] as $precioDisp) {
+                                                            // Calcular stock en bodega para esta unidad
+                                                            $stockBodega = DB::table('recibido_bodega as rb')
+                                                                ->join('seccion as s', 'rb.seccion_id', '=', 's.id')
+                                                                ->join('segmento as seg', 's.segmento_id', '=', 'seg.id')
+                                                                ->join('bodega as b', 'seg.bodega_id', '=', 'b.id')
+                                                                ->where('b.tienda_id', $this->tiendaUsuario)
+                                                                ->where('b.principal', 1)
+                                                                ->where('b.estado_id', 1)
+                                                                ->where('b.id', '!=', 2)
+                                                                ->where('rb.producto_id', $item['id'])
+                                                                ->where('rb.unidad_medida_id', $precioDisp->unidad_medida_id)
+                                                                ->where('rb.estado_id', 1)
+                                                                ->where('rb.cantidad_disponible', '>', 0)
+                                                                ->sum('rb.cantidad_disponible');
+                                                            
+                                                            // Calcular cuánto hay en el carrito para esta unidad
+                                                            $cantidadEnCarrito = 0;
+                                                            foreach($productosFactura as $itemCarr) {
+                                                                if ($itemCarr['id'] == $item['id'] && 
+                                                                    isset($itemCarr['unidad_medida_id']) && 
+                                                                    $itemCarr['unidad_medida_id'] == $precioDisp->unidad_medida_id) {
+                                                                    $cantidadEnCarrito += (int)($itemCarr['cantidad'] ?? 0);
+                                                                }
+                                                            }
+                                                            
+                                                            $stockDisponibleUnidad = $stockBodega - $cantidadEnCarrito;
+                                                            
+                                                            // Solo agregar si tiene stock O si es la unidad actualmente seleccionada
+                                                            if ($stockDisponibleUnidad > 0 || $precioDisp->precio_id == $item['precio_id']) {
+                                                                $preciosConStock[] = $precioDisp;
+                                                            }
+                                                        }
+                                                    @endphp
+                                                    
+                                                    <!-- Nuevo sistema: Dropdown de unidades de medida desde precio_has_venta (solo con stock) -->
                                                     <select class="form-select form-select-sm"
                                                             style="min-width: 150px; font-size: 0.875rem;"
                                                             wire:change="cambiarPrecioProducto({{ $loop->index }}, $event.target.value)">
-                                                        @foreach($item['precios_disponibles'] as $precioDisponible)
+                                                        @foreach($preciosConStock as $precioDisponible)
                                                             <option value="{{ $precioDisponible->precio_id }}"
                                                                     {{ $item['precio_id'] == $precioDisponible->precio_id ? 'selected' : '' }}>
                                                                 {{ $precioDisponible->unidad_nombre }} ({{ $precioDisponible->unidad_simbolo }}) - 
