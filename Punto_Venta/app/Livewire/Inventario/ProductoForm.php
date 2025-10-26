@@ -506,6 +506,36 @@ class ProductoForm extends Component
     public function eliminarPrecioVenta($index)
     {
         if (isset($this->preciosVenta[$index])) {
+            $unidadMedidaId = $this->preciosVenta[$index]['unidad_medida_id'];
+            
+            // Verificar si existe stock disponible con esta unidad de medida
+            if ($this->productoId) {
+                // Log para debug
+                Log::info('Verificando eliminación de unidad de medida', [
+                    'producto_id' => $this->productoId,
+                    'unidad_medida_id' => $unidadMedidaId,
+                    'precio_index' => $index
+                ]);
+                
+                $registrosStock = DB::table('recibido_bodega')
+                    ->where('producto_id', $this->productoId)
+                    ->where('unidad_medida_id', $unidadMedidaId)
+                    ->where('estado_id', 1)
+                    ->where('cantidad_disponible', '>', 0)
+                    ->get();
+                
+                Log::info('Registros de stock encontrados', [
+                    'count' => $registrosStock->count(),
+                    'registros' => $registrosStock->toArray()
+                ]);
+                
+                if ($registrosStock->count() > 0) {
+                    $totalStock = $registrosStock->sum('cantidad_disponible');
+                    session()->flash('error', "No se puede eliminar esta unidad de medida porque existe stock disponible ({$totalStock} unidades en {$registrosStock->count()} registro(s)).");
+                    return;
+                }
+            }
+            
             unset($this->preciosVenta[$index]);
             $this->preciosVenta = array_values($this->preciosVenta); // Reindexar
             session()->flash('success', 'Precio eliminado correctamente');
@@ -594,6 +624,37 @@ class ProductoForm extends Component
     {
         // Solo eliminar del array, no guardar en BD hasta que se presione "Actualizar Producto"
         if (isset($this->preciosVenta[$index])) {
+            $unidadMedidaId = $this->preciosVenta[$index]['unidad_medida_id'];
+            
+            // Verificar si existe stock disponible con esta unidad de medida
+            if ($this->productoId) {
+                // Log para debug
+                Log::info('Verificando inactivación de unidad de medida', [
+                    'producto_id' => $this->productoId,
+                    'unidad_medida_id' => $unidadMedidaId,
+                    'precio_index' => $index
+                ]);
+                
+                $registrosStock = DB::table('recibido_bodega')
+                    ->where('producto_id', $this->productoId)
+                    ->where('unidad_medida_id', $unidadMedidaId)
+                    ->where('estado_id', 1)
+                    ->where('cantidad_disponible', '>', 0)
+                    ->get();
+                
+                Log::info('Registros de stock encontrados', [
+                    'count' => $registrosStock->count(),
+                    'registros' => $registrosStock->toArray()
+                ]);
+                
+                if ($registrosStock->count() > 0) {
+                    $totalStock = $registrosStock->sum('cantidad_disponible');
+                    session()->flash('error', "No se puede eliminar esta unidad de medida porque existe stock disponible ({$totalStock} unidades en {$registrosStock->count()} registro(s)).");
+                    $this->cerrarModalEliminarPrecio();
+                    return;
+                }
+            }
+            
             unset($this->preciosVenta[$index]);
             $this->preciosVenta = array_values($this->preciosVenta);
         }
