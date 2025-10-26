@@ -366,7 +366,7 @@
 
         <div class="separator"></div>
 
-        <!-- DETALLE DE TOTALES -->
+       <!-- DETALLE DE TOTALES -->
         <div class="totals-section">
             <div class="table-layout">
                 @php
@@ -379,27 +379,18 @@
                     $totalDescuentos = collect($productos)->sum(function($producto) {
                         return $producto['total_descuentos'] ?? 0;
                     });
-                @endphp
-                <div class="table-row">
-                    <div class="table-cell-left">SUB-TOTAL</div>
-                    <div class="table-cell-right">L. {{ number_format($subtotalSinDescuentos, 2) }}</div>
-                </div>
-                @if($totalDescuentos > 0)
-                <div class="table-row">
-                    <div class="table-cell-left">DESCUENTOS Y REBAJAS</div>
-                    <div class="table-cell-right">-L. {{ number_format($totalDescuentos, 2) }}</div>
-                </div>
-                @endif
-                <div class="table-row">
-                    <div class="table-cell-left">IMPORTE EXONERADO</div>
-                    <div class="table-cell-right">L. {{ number_format(collect($productos)->filter(function($producto) {
+
+                    // SUB-TOTAL = Total Importe - Descuentos
+                    $subtotalFinal = $subtotalSinDescuentos - $totalDescuentos;
+
+                    // Calcular importe exento (productos sin ISV, después de descuentos)
+                    $importeExento = collect($productos)->filter(function($producto) {
                         return ($producto['tasa_isv'] ?? 0) == 0;
                     })->sum(function($producto) {
                         return $producto['subtotal'] ?? 0;
-                    }), 2) }}</div>
-                </div>
-                @php
-                    // Calcular importes por tasa de ISV
+                    });
+
+                    // Calcular importes gravados por tasa de ISV (después de descuentos)
                     $importe15 = collect($productos)->filter(function($producto) {
                         return ($producto['tasa_isv'] ?? 0) == 15;
                     })->sum(function($producto) {
@@ -411,7 +402,25 @@
                     })->sum(function($producto) {
                         return $producto['subtotal'] ?? 0;
                     });
+                @endphp
 
+               <!-- <div class="table-row">
+                    <div class="table-cell-left">IMPORTE GRAVADO</div>
+                    <div class="table-cell-right">L. {{ number_format($factura->sub_total, 2) }}</div>
+                </div>-->
+
+                @if($totalDescuentos > 0)
+                <div class="table-row">
+                    <div class="table-cell-left">DESCUENTOS Y REBAJAS</div>
+                    <div class="table-cell-right">-L. {{ number_format($totalDescuentos, 2) }}</div>
+                </div>
+                @endif
+                <div class="table-row">
+                    <div class="table-cell-left">IMPORTE EXENTO</div>
+                    <div class="table-cell-right">L. {{ number_format($importeExento, 2) }}</div>
+                </div>
+
+                @php
                     // Calcular impuestos por tasa (usar campo 'isv' que siempre tiene el monto calculado)
                     $impuesto15 = collect($productos)->filter(function($producto) {
                         return ($producto['tasa_isv'] ?? 0) == 15;
@@ -425,6 +434,12 @@
                         return $producto['isv'] ?? 0;
                     });
                 @endphp
+
+                 <div class="table-row">
+                    <div class="table-cell-left">IMPORTE GRAVADO</div>
+                    <div class="table-cell-right">L. {{ number_format($importe15, 2) }}</div>
+                </div>
+                <!--
                 <div class="table-row">
                     <div class="table-cell-left">IMPORTE 15%</div>
                     <div class="table-cell-right">L. {{ number_format($importe15, 2) }}</div>
@@ -432,23 +447,25 @@
                 <div class="table-row">
                     <div class="table-cell-left">IMPORTE 18%</div>
                     <div class="table-cell-right">L. {{ number_format($importe18, 2) }}</div>
-                </div>
+                </div>-->
+
                 <div class="table-row">
-                    <div class="table-cell-left">TOTAL IMPORTE</div>
-                    <div class="table-cell-right">L. {{ number_format($factura->sub_total, 2) }}</div>
+                    <div class="table-cell-left">SUB-TOTAL</div>
+                    <div class="table-cell-right">L. {{ number_format($subtotalFinal, 2) }}</div>
                 </div>
                 <div class="table-row">
                     <div class="table-cell-left">IMPUESTO DEL 15%</div>
                     <div class="table-cell-right">L. {{ number_format($impuesto15, 2) }}</div>
                 </div>
-                <div class="table-row">
+                <!--<div class="table-row">
                     <div class="table-cell-left">IMPUESTO DEL 18%</div>
                     <div class="table-cell-right">L. {{ number_format($impuesto18, 2) }}</div>
                 </div>
                 <div class="table-row">
                     <div class="table-cell-left">TOTAL IMPUESTOS</div>
                     <div class="table-cell-right">L. {{ number_format($factura->isv, 2) }}</div>
-                </div>
+                </div>-->
+
             </div>
 
             <div class="total-final">
