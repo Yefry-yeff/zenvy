@@ -1,4 +1,36 @@
 <div>
+    <style>
+        /* Alerta flotante personalizada (igual que compra-de-producto) */
+        .alert-campo-obligatorio {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            background: #f8d7da;
+            color: #721c24;
+            padding: 12px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+            border-left: 4px solid #dc3545;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+    </style>
+
+    <!-- Alerta de validación -->
+    @if($mostrarAlerta)
+        <div class="alert-campo-obligatorio">
+            <strong>⚠️ Campo Obligatorio</strong>
+            <button wire:click="cerrarAlerta" style="float: right; background: none; border: none; font-size: 18px; cursor: pointer;">×</button>
+            <br><small>{{ $mensajeAlerta }}</small>
+        </div>
+    @endif
+
     <!-- MENSAJES DE SESIÓN -->
     @if (session()->has('message'))
         <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -248,7 +280,7 @@
                                         <span class="font-bold {{ $item->cantidad_disponible > 10 ? 'text-green-600' : ($item->cantidad_disponible > 0 ? 'text-yellow-600' : 'text-red-600') }}">
                                             {{ number_format($item->cantidad_disponible, 0) }}
                                         </span>
-                                        <div class="text-xs text-gray-500">{{ $item->unidad_medida_venta ?? $item->unidad_medida ?? 'Unidad' }}</div>
+                                        <div class="text-xs text-gray-500">{{ $item->unidad_medida ?? 'Unidad' }}</div>
                                     </td>
 
                                     <!-- Fecha Recibido -->
@@ -331,7 +363,15 @@
                                                         <svg class="w-4 h-4 mr-3 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
                                                         </svg>
-                                                        Editar Stock
+                                                        Traslados o regalías
+                                                    </button>
+                                                    <button wire:click="abrirModalCambiarUnidad({{ $item->id }})"
+                                                            @click="open = false"
+                                                            class="flex items-center w-full px-4 py-2 text-sm text-left text-gray-700 hover:bg-gray-100 hover:text-gray-900">
+                                                        <svg class="w-4 h-4 mr-3 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
+                                                        </svg>
+                                                        Cambiar unidad
                                                     </button>
                                                 </div>
                                             </div>
@@ -431,5 +471,141 @@
             </div>
         </div>
     </div>
+
+    {{-- Modal para Cambiar Unidad --}}
+    @if($mostrarModalCambiarUnidad)
+        <div class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+            <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+                <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" wire:click="cerrarModalCambiarUnidad"></div>
+                
+                <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+                
+                <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                    <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                        <div class="sm:flex sm:items-start">
+                            <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-purple-100 sm:mx-0 sm:h-10 sm:w-10">
+                                <svg class="h-6 w-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
+                                </svg>
+                            </div>
+                            <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                                <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">
+                                    Cambiar Unidad de Medida
+                                </h3>
+                                <div class="mt-4">
+                                    @if($stockSeleccionado)
+                                        <div class="grid grid-cols-1 gap-4">
+                                            {{-- Información actual del stock --}}
+                                            <div class="bg-gray-50 p-3 rounded-lg">
+                                                <h4 class="font-medium text-gray-900 mb-2">Stock Actual</h4>
+                                                <p class="text-sm text-gray-600">
+                                                    <strong>Producto:</strong> {{ $stockSeleccionado->producto->nombre ?? 'N/A' }}
+                                                </p>
+                                                <p class="text-sm text-gray-600">
+                                                    <strong>Cantidad disponible total:</strong> {{ $cantidadTotalDisponible ?? 0 }}
+                                                </p>
+                                                <p class="text-sm text-gray-600">
+                                                    <strong>Unidad actual:</strong> 
+                                                    @if($stockSeleccionado->unidad_medida)
+                                                        {{ $stockSeleccionado->unidad_medida }}
+                                                    @elseif($stockSeleccionado->unidadMedida)
+                                                        {{ $stockSeleccionado->unidadMedida->nombre }}
+                                                    @else
+                                                        N/A
+                                                    @endif
+                                                </p>
+                                                <p class="text-sm text-gray-600">
+                                                    <strong>Ubicación:</strong> 
+                                                    @if($stockSeleccionado->seccion && $stockSeleccionado->seccion->segmento && $stockSeleccionado->seccion->segmento->bodega)
+                                                        {{ $stockSeleccionado->seccion->segmento->bodega->nombre ?? 'N/A' }} / 
+                                                        {{ $stockSeleccionado->seccion->segmento->descripcion ?? 'N/A' }} / 
+                                                        {{ $stockSeleccionado->seccion->descripcion ?? 'N/A' }}
+                                                    @else
+                                                        N/A
+                                                    @endif
+                                                </p>
+                                            </div>
+
+                                            {{-- Formulario para cambio de unidad --}}
+                                            <div class="space-y-4">
+                                                {{-- 1. Cantidad a rebajar --}}
+                                                <div>
+                                                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                                                        Cantidad a rebajar
+                                                        <span class="text-red-500">*</span>
+                                                    </label>
+                                                    <input type="number" 
+                                                           wire:model.live="cantidadVerificacion"
+                                                           step="0.01"
+                                                           min="0.01"
+                                                           max="{{ $cantidadTotalDisponible }}"
+                                                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                                           placeholder="Ingrese la cantidad a rebajar (máx: {{ $cantidadTotalDisponible }})">
+                                                    @error('cantidadVerificacion') 
+                                                        <span class="text-red-500 text-xs">{{ $message }}</span> 
+                                                    @enderror
+                                                    @if($cantidadVerificacion > $cantidadTotalDisponible)
+                                                        <div class="mt-1 text-xs text-red-600">
+                                                            ⚠️ La cantidad no puede exceder {{ $cantidadTotalDisponible }}
+                                                        </div>
+                                                    @endif
+                                                </div>
+
+                                                {{-- 2. Unidad de medida a convertir --}}
+                                                <div>
+                                                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                                                        Unidad de medida a convertir
+                                                        <span class="text-red-500">*</span>
+                                                    </label>
+                                                    <select wire:model="nuevaUnidadMedida" 
+                                                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500">
+                                                        <option value="">Seleccione una unidad</option>
+                                                        @foreach($unidadesDisponibles as $unidad)
+                                                            <option value="{{ $unidad['nombre'] }}">{{ $unidad['nombre'] }}</option>
+                                                        @endforeach
+                                                    </select>
+                                                    @error('nuevaUnidadMedida') 
+                                                        <span class="text-red-500 text-xs">{{ $message }}</span> 
+                                                    @enderror
+                                                </div>
+
+                                                {{-- 3. Cantidad a convertir (verificación) --}}
+                                                <div>
+                                                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                                                        Cantidad a convertir
+                                                        <span class="text-red-500">*</span>
+                                                    </label>
+                                                    <input type="number" 
+                                                           wire:model.live="cantidadAConvertir"
+                                                           step="0.01"
+                                                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                                           placeholder="Ingrese la cantidad a convertir">
+                                                    @error('cantidadAConvertir') 
+                                                        <span class="text-red-500 text-xs">{{ $message }}</span> 
+                                                    @enderror
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                        <button type="button"
+                                wire:click="procesarCambioUnidad"
+                                class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-purple-600 text-base font-medium text-white hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 sm:ml-3 sm:w-auto sm:text-sm">
+                            Procesar Cambio
+                        </button>
+                        <button type="button"
+                                wire:click="cerrarModalCambiarUnidad"
+                                class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                            Cancelar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
 
 </div> {{-- FIN ELEMENTO RAÍZ --}}

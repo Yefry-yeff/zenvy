@@ -5,6 +5,7 @@ namespace App\Livewire\Inventario;
 use Livewire\Component;
 use Livewire\WithPagination;
 use App\Models\RecibidoBodega;
+use App\Models\CambioUnidad;
 use App\Models\Bodega;
 use App\Models\Marca;
 use Illuminate\Support\Facades\Auth;
@@ -32,6 +33,19 @@ class ListaDeProductos extends Component
     // Datos
     public $bodegas = [];
     public $marcas = [];
+
+    // Modal de cambio de unidad
+    public $mostrarModalCambiarUnidad = false;
+    public $stockSeleccionado = null;
+    public $cantidadAConvertir = '';
+    public $cantidadVerificacion = '';
+    public $nuevaUnidadMedida = '';
+    public $unidadesDisponibles = [];
+    public $cantidadTotalDisponible = 0;
+    
+    // Alerta de validación
+    public $mostrarAlerta = false;
+    public $mensajeAlerta = '';
 
     // REMOVIDO: protected $queryString - Ya no persiste parámetros en URL
     // Los filtros se manejarán solo con sesión
@@ -424,6 +438,280 @@ class ListaDeProductos extends Component
     {
         // Emitir evento para cambiar al componente de edición de stock
         $this->dispatch('cambiarVista', ruta: 'Inventario.StockForm', parametros: ['recibidoId' => $recibidoBodegaId]);
+    }
+
+    // Métodos para el modal de cambio de unidad
+    public function abrirModalCambiarUnidad($recibidoBodegaId)
+    {
+        $this->stockSeleccionado = RecibidoBodega::with([
+            'producto.preciosVenta.unidadMedida', 
+            'seccion.segmento.bodega',
+            'seccion.segmento',
+            'seccion'
+        ])->find($recibidoBodegaId);
+        
+        // Obtener la unidad de medida del stock seleccionado
+        $unidadMedidaActual = $this->stockSeleccionado->unidad_medida 
+            ?? ($this->stockSeleccionado->unidadMedida ? $this->stockSeleccionado->unidadMedida->nombre : null);
+        
+        // Calcular el total disponible de todos los registros con la misma unidad de medida
+        $registrosStock = RecibidoBodega::where('producto_id', $this->stockSeleccionado->producto_id)
+            ->where('seccion_id', $this->stockSeleccionado->seccion_id)
+            ->where('estado_id', 1)
+            ->where('cantidad_disponible', '>', 0)
+            ->get();
+        
+        // Filtrar por unidad de medida y sumar
+        $this->cantidadTotalDisponible = $registrosStock->filter(function($registro) use ($unidadMedidaActual) {
+            $unidadRegistro = $registro->unidad_medida 
+                ?? ($registro->unidadMedida ? $registro->unidadMedida->nombre : null);
+            return $unidadRegistro === $unidadMedidaActual;
+        })->sum('cantidad_disponible');
+        
+        // Obtener las unidades de medida disponibles del producto desde precio_has_venta
+        if ($this->stockSeleccionado && $this->stockSeleccionado->producto) {
+            $this->unidadesDisponibles = $this->stockSeleccionado->producto->preciosVenta()
+                ->with('unidadMedida')
+                ->where('estado_id', 1)
+                ->get()
+                ->map(function($precio) {
+                    return [
+                        'id' => $precio->unidadMedida->id,
+                        'nombre' => $precio->unidadMedida->nombre
+                    ];
+                })
+                ->unique('id')
+                ->values()
+                ->toArray();
+        }
+        
+        $this->mostrarModalCambiarUnidad = true;
+        $this->cantidadAConvertir = '';
+        $this->cantidadVerificacion = '';
+        $this->nuevaUnidadMedida = '';
+        $this->resetValidation();
+    }
+
+    public function cerrarModalCambiarUnidad()
+    {
+        $this->mostrarModalCambiarUnidad = false;
+        $this->stockSeleccionado = null;
+        $this->cantidadAConvertir = '';
+        $this->cantidadVerificacion = '';
+        $this->nuevaUnidadMedida = '';
+        $this->unidadesDisponibles = [];
+        $this->cantidadTotalDisponible = 0;
+        $this->mostrarAlerta = false;
+        $this->mensajeAlerta = '';
+        $this->resetValidation();
+    }
+
+    public function cerrarAlerta()
+    {
+        $this->mostrarAlerta = false;
+        $this->mensajeAlerta = '';
+    }
+
+    public function procesarCambioUnidad()
+    {
+        // Validación previa con alertas
+        if (empty($this->cantidadVerificacion) || $this->cantidadVerificacion <= 0) {
+            $this->mostrarAlerta = true;
+            $this->mensajeAlerta = 'La cantidad a rebajar es obligatoria y debe ser mayor a 0.';
+            return;
+        }
+
+        if ($this->cantidadVerificacion > $this->cantidadTotalDisponible) {
+            $this->mostrarAlerta = true;
+            $this->mensajeAlerta = 'La cantidad a rebajar no puede exceder el stock total disponible (' . $this->cantidadTotalDisponible . ').';
+            return;
+        }
+
+        if (empty($this->nuevaUnidadMedida)) {
+            $this->mostrarAlerta = true;
+            $this->mensajeAlerta = 'Debe seleccionar una unidad de medida a convertir.';
+            return;
+        }
+
+        if (empty($this->cantidadAConvertir) || $this->cantidadAConvertir <= 0) {
+            $this->mostrarAlerta = true;
+            $this->mensajeAlerta = 'La cantidad a convertir es obligatoria y debe ser mayor a 0.';
+            return;
+        }
+
+        // Validaciones formales
+        $this->validate([
+            'cantidadVerificacion' => [
+                'required',
+                'numeric',
+                'min:0.01',
+                'max:' . $this->cantidadTotalDisponible
+            ],
+            'nuevaUnidadMedida' => 'required|string',
+            'cantidadAConvertir' => [
+                'required',
+                'numeric',
+                'min:0.01'
+            ]
+        ], [
+            'cantidadVerificacion.required' => 'La cantidad a rebajar es requerida.',
+            'cantidadVerificacion.numeric' => 'La cantidad debe ser un número válido.',
+            'cantidadVerificacion.min' => 'La cantidad debe ser mayor a 0.',
+            'cantidadVerificacion.max' => 'La cantidad no puede exceder el stock total disponible (' . $this->cantidadTotalDisponible . ').',
+            'nuevaUnidadMedida.required' => 'Debe seleccionar una unidad de medida.',
+            'cantidadAConvertir.required' => 'La cantidad a convertir es requerida.',
+            'cantidadAConvertir.numeric' => 'La cantidad a convertir debe ser un número válido.',
+            'cantidadAConvertir.min' => 'La cantidad a convertir debe ser mayor a 0.'
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            // Obtener la unidad de medida actual
+            $unidadMedidaActual = $this->stockSeleccionado->unidad_medida 
+                ?? ($this->stockSeleccionado->unidadMedida ? $this->stockSeleccionado->unidadMedida->nombre : null);
+
+            // Verificar que no se esté convirtiendo a la misma unidad
+            if ($this->nuevaUnidadMedida === $unidadMedidaActual) {
+                $this->mostrarAlerta = true;
+                $this->mensajeAlerta = 'No puede convertir a la misma unidad de medida actual.';
+                DB::rollback();
+                return;
+            }
+
+            // Obtener todos los registros del mismo producto y unidad de medida, ordenados del más antiguo al más nuevo
+            $registrosStock = RecibidoBodega::where('producto_id', $this->stockSeleccionado->producto_id)
+                ->where('seccion_id', $this->stockSeleccionado->seccion_id)
+                ->where('estado_id', 1) // Solo activos
+                ->where('cantidad_disponible', '>', 0) // Solo con stock disponible
+                ->orderBy('fecha_recibido', 'asc') // Del más antiguo al más nuevo (FIFO)
+                ->get();
+
+            // Filtrar por unidad de medida (puede ser string o relación)
+            $registrosStock = $registrosStock->filter(function($registro) use ($unidadMedidaActual) {
+                $unidadRegistro = $registro->unidad_medida 
+                    ?? ($registro->unidadMedida ? $registro->unidadMedida->nombre : null);
+                return $unidadRegistro === $unidadMedidaActual;
+            });
+
+            // Verificar que hay suficiente stock total
+            $stockTotalDisponible = $registrosStock->sum('cantidad_disponible');
+            if ($this->cantidadVerificacion > $stockTotalDisponible) {
+                $this->mostrarAlerta = true;
+                $this->mensajeAlerta = 'La cantidad a rebajar (' . $this->cantidadVerificacion . ') excede el stock total disponible (' . $stockTotalDisponible . ').';
+                DB::rollback();
+                return;
+            }
+
+            // Restar cantidad de los registros (FIFO)
+            $cantidadRestante = $this->cantidadVerificacion;
+            $registrosAfectados = [];
+
+            foreach ($registrosStock as $registro) {
+                if ($cantidadRestante <= 0) break;
+
+                $cantidadARestar = min($cantidadRestante, $registro->cantidad_disponible);
+                $nuevoStock = $registro->cantidad_disponible - $cantidadARestar;
+
+                // Actualizar el registro
+                $registro->update([
+                    'cantidad_disponible' => max(0, $nuevoStock),
+                    'estado_id' => $nuevoStock > 0 ? 1 : 2 // Inactivo si llega a 0
+                ]);
+
+                // Guardar información del registro afectado
+                $registrosAfectados[] = [
+                    'id' => $registro->id,
+                    'cantidad_rebajada' => $cantidadARestar
+                ];
+
+                $cantidadRestante -= $cantidadARestar;
+            }
+
+            // Crear nuevo registro con la nueva unidad
+            $unidadMedidaOriginal = $unidadMedidaActual;
+            
+            $nuevoRecibidoBodega = RecibidoBodega::create([
+                'producto_id' => $this->stockSeleccionado->producto_id,
+                'seccion_id' => $this->stockSeleccionado->seccion_id,
+                'cantidad_compra_lote' => $this->cantidadAConvertir,
+                'cantidad_inicial_seccion' => $this->cantidadAConvertir,
+                'cantidad_disponible' => $this->cantidadAConvertir,
+                'unidad_medida_id' => $this->obtenerUnidadMedidaId($this->nuevaUnidadMedida),
+                'fecha_recibido' => now(),
+                'comentario' => 'Conversión de unidad de ' . $this->cantidadVerificacion . ' ' . $unidadMedidaOriginal . ' a ' . $this->cantidadAConvertir . ' ' . $this->nuevaUnidadMedida,
+                'users_registro_id' => Auth::id(),
+                'estado_id' => 1,
+                'unidades_compra' => $this->cantidadAConvertir
+            ]);
+
+            // Registrar cada cambio en la tabla Cambio_unidades
+            foreach ($registrosAfectados as $registroInfo) {
+                CambioUnidad::create([
+                    'cantidad_rebajada' => $registroInfo['cantidad_rebajada'],
+                    'cantidad_convertir' => $this->cantidadAConvertir,
+                    'recibido_bodega_id_original' => $registroInfo['id'],
+                    'recibido_bodega_id_cambio' => $nuevoRecibidoBodega->id,
+                    'users_id' => Auth::id()
+                ]);
+            }
+
+            // Registrar en bitácora
+            $this->registrarEnBitacora([
+                'tabla_afectada' => 'recibido_bodega',
+                'operacion' => 'conversion_unidad',
+                'registro_id' => $nuevoRecibidoBodega->id,
+                'datos_anteriores' => [
+                    'registros_afectados' => count($registrosAfectados),
+                    'cantidad_total_rebajada' => $this->cantidadVerificacion,
+                    'unidad_medida' => $unidadMedidaOriginal
+                ],
+                'datos_nuevos' => [
+                    'cantidad_convertida' => $this->cantidadAConvertir,
+                    'nueva_unidad' => $this->nuevaUnidadMedida,
+                    'nuevo_registro_id' => $nuevoRecibidoBodega->id
+                ]
+            ]);
+
+            DB::commit();
+
+            $this->cerrarModalCambiarUnidad();
+            session()->flash('success', 'Conversión de unidad realizada exitosamente. Se afectaron ' . count($registrosAfectados) . ' registro(s).');
+
+        } catch (\Exception $e) {
+            DB::rollback();
+            Log::error('Error en conversión de unidad: ' . $e->getMessage());
+            session()->flash('error', 'Error al procesar la conversión de unidad: ' . $e->getMessage());
+        }
+    }
+
+    private function registrarEnBitacora($datos)
+    {
+        try {
+            DB::table('bitacora')->insert([
+                'tabla_afectada' => $datos['tabla_afectada'],
+                'operacion' => $datos['operacion'],
+                'registro_id' => $datos['registro_id'],
+                'datos_anteriores' => json_encode($datos['datos_anteriores']),
+                'datos_nuevos' => json_encode($datos['datos_nuevos']),
+                'usuario_id' => Auth::id(),
+                'fecha_hora' => now(),
+                'created_at' => now(),
+                'updated_at' => now()
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error registrando en bitácora: ' . $e->getMessage());
+        }
+    }
+
+    private function obtenerUnidadMedidaId($nombreUnidad)
+    {
+        // Buscar el ID de la unidad de medida por nombre
+        $unidadMedida = DB::table('unidad_medida')
+            ->where('nombre', $nombreUnidad)
+            ->first();
+        
+        return $unidadMedida ? $unidadMedida->id : null;
     }
 
     public function render()
