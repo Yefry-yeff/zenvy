@@ -273,6 +273,9 @@
                                     <p class="text-xs text-blue-600 mt-1">
                                         <i class="fas fa-info-circle mr-1"></i>
                                         Precio base: L. {{ number_format($productoSeleccionado['precio_base'] ?? 0, 2) }}
+                                        @if(isset($productoSeleccionado['ultimo_costo_compra']) && $productoSeleccionado['ultimo_costo_compra'] > 0)
+                                            | Último costo: L. {{ number_format($productoSeleccionado['ultimo_costo_compra'], 2) }}
+                                        @endif
                                     </p>
                                 </div>
                             @else
@@ -287,7 +290,10 @@
                         <div class="grid grid-cols-2 gap-3 mb-4 md:grid-cols-3 lg:grid-cols-6">
                             <!-- Precio Unit. -->
                             <div>
-                                <label class="block mb-1 text-sm font-medium text-center text-gray-700">Precio Unit.</label>
+                                <label class="block mb-1 text-sm font-medium text-center text-gray-700">
+                                    Precio Unit.
+                                    <span class="text-xs text-blue-600 block">(actualiza automáticamente)</span>
+                                </label>
                                 <div class="flex">
                                     <span class="inline-flex items-center px-3 text-sm text-gray-900 bg-gray-200 border border-r-0 border-gray-300 rounded-l-lg">L.</span>
                                     <input type="number"
@@ -389,7 +395,9 @@
                                             {{ $producto['unidad_medida_nombre'] }}
                                         </span>
                                     </td>
-                                    <td class="text-end">L. {{ number_format($producto['precio'], 2) }}</td>
+                                    <td class="text-end">
+                                        <span class="text-primary font-weight-bold">L. {{ number_format($producto['precio'], 2) }}</span>
+                                    </td>
                                     <td>
                                         <!-- Campo editable para cantidad_ingresada -->
                                         <input type="number"
@@ -608,7 +616,7 @@
                                 <th class="px-4 py-3 text-left">Producto</th>
                                 <th class="px-4 py-3 text-left">Marca</th>
                                 <th class="px-4 py-3 text-left">Categoría</th>
-                                <th class="px-4 py-3 text-right">Precio Base</th>
+                                <th class="px-4 py-3 text-right">Precios</th>
                                 <th class="px-4 py-3 text-center">Acción</th>
                             </tr>
                         </thead>
@@ -622,7 +630,16 @@
                                     <td class="px-4 py-3 font-semibold">{{ $resultado['nombre'] }}</td>
                                     <td class="px-4 py-3 text-gray-600">{{ $resultado['marca'] ?? 'N/A' }}</td>
                                     <td class="px-4 py-3 text-gray-600">{{ $resultado['categoria'] ?? 'N/A' }}</td>
-                                    <td class="px-4 py-3 font-semibold text-right">L. {{ number_format($resultado['precio_base'] ?? 0, 2) }}</td>
+                                    <td class="px-4 py-3 font-semibold text-right">
+                                        <div class="text-sm">
+                                            <div class="text-gray-600">Base: L. {{ number_format($resultado['precio_base'] ?? 0, 2) }}</div>
+                                            @if(isset($resultado['ultimo_costo_compra']) && $resultado['ultimo_costo_compra'] > 0)
+                                                <div class="text-blue-600 font-bold">Último: L. {{ number_format($resultado['ultimo_costo_compra'], 2) }}</div>
+                                            @else
+                                                <div class="text-gray-400 text-xs">Sin último costo</div>
+                                            @endif
+                                        </div>
+                                    </td>
                                     <td class="px-4 py-3 text-center">
                                         <button type="button"
                                                 wire:click="seleccionarProductoDesdeModal({{ $resultado['id'] }})"

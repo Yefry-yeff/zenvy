@@ -622,6 +622,9 @@ class CompraDeProducto extends Component
                     'unidad_medida_id' => $producto['unidad_medida_id'],
                 ]);
 
+                // Nota: El ultimo_costo_compra ya se actualizo en tiempo real al modificar el precio
+                // No es necesario actualizar nuevamente aqui
+
                 // Registrar en bitácora: Detalle de cada producto
                 Bitacora::registrar(
                     Auth::id(),
@@ -938,7 +941,7 @@ class CompraDeProducto extends Component
     public function buscarProductosModal()
     {
         // Limitar a 30 resultados para mejorar rendimiento
-        $query = Producto::select('producto.id', 'producto.nombre', 'producto.descripcion', 'producto.codigo_barra', 'producto.precio_base', 'producto.marca_id', 'producto.subcategoria_id')
+        $query = Producto::select('producto.id', 'producto.nombre', 'producto.descripcion', 'producto.codigo_barra', 'producto.precio_base', 'producto.ultimo_costo_compra', 'producto.marca_id', 'producto.subcategoria_id')
             ->where('producto.estado_id', 1);
 
         // Filtro de búsqueda por texto (solo si hay 3+ caracteres)
@@ -979,6 +982,7 @@ class CompraDeProducto extends Component
                 'descripcion' => $producto->descripcion,
                 'codigo_barra' => $producto->codigo_barra,
                 'precio_base' => $producto->precio_base,
+                'ultimo_costo_compra' => $producto->ultimo_costo_compra,
                 'marca' => $producto->marca->nombre ?? null,
                 'categoria' => $producto->subcategoria->categoria->nombre ?? null,
                 'subcategoria' => $producto->subcategoria->nombre ?? null,
@@ -994,30 +998,29 @@ class CompraDeProducto extends Component
             // Llenar el campo de búsqueda con el código de barras o nombre
             $this->busquedaProducto = $producto->codigo_barra ?? $producto->nombre;
 
-            // Guardar la información completa del producto seleccionado
-            $this->productoSeleccionado = [
-                'id' => $producto->id,
-                'nombre' => $producto->nombre,
-                'codigo_barra' => $producto->codigo_barra,
-                'precio_base' => $producto->precio_base ?? 0,
-                'descripcion' => $producto->descripcion ?? '',
-                'marca' => $producto->marca->nombre ?? 'N/A',
-                'subcategoria' => $producto->subcategoria->nombre ?? 'N/A',
-            ];
+        // Guardar la información completa del producto seleccionado
+        $this->productoSeleccionado = [
+            'id' => $producto->id,
+            'nombre' => $producto->nombre,
+            'codigo_barra' => $producto->codigo_barra,
+            'precio_base' => $producto->precio_base ?? 0,
+            'ultimo_costo_compra' => $producto->ultimo_costo_compra ?? 0,
+            'descripcion' => $producto->descripcion ?? '',
+            'marca' => $producto->marca->nombre ?? 'N/A',
+            'subcategoria' => $producto->subcategoria->nombre ?? 'N/A',
+        ];
 
-            // Establecer el producto temporal
-            $this->productoTemporal = [
-                'producto_id' => $producto->id,
-                'precio' => $producto->ultimo_costo_compra ?? $producto->precio_base ?? 0,
-                'cantidad_recibida' => 1,
-                'cantidad_por_unidad' => 1,
-                'cantidad_ingresada' => 1,
-                'fecha_expiracion' => '',
-                'unidad_medida_id' => $producto->unidad_medida_venta_id ?? null,
-                'isv' => 0,
-            ];
-
-            // Cerrar modal
+        // Establecer el producto temporal con ultimo_costo_compra como precio por defecto
+        $this->productoTemporal = [
+            'producto_id' => $producto->id,
+            'precio' => $producto->ultimo_costo_compra ?? $producto->precio_base ?? 0,
+            'cantidad_recibida' => 1,
+            'cantidad_por_unidad' => 1,
+            'cantidad_ingresada' => 1,
+            'fecha_expiracion' => '',
+            'unidad_medida_id' => $producto->unidad_medida_venta_id ?? null,
+            'isv' => 0,
+        ];            // Cerrar modal
             $this->cerrarModalBusqueda();
         }
     }
@@ -1255,6 +1258,52 @@ class CompraDeProducto extends Component
         }
     }
 
+    /**
+     * Actualiza el ultimo_costo_compra en tiempo real cuando se modifica el precio en el formulario
+     */
+    public function updatedProductoTemporalPrecio($value)
+    {
+        // Solo actualizar si hay un producto seleccionado y un precio válido
+        if (!empty($this->productoTemporal['producto_id']) && is_numeric($value) && $value > 0) {
+            try {
+                // Actualizar el ultimo_costo_compra en la base de datos inmediatamente
+                $producto = Producto::find($this->productoTemporal['producto_id']);
+                if ($producto) {
+                    $costoAnterior = $producto->ultimo_costo_compra;
+                    $producto->ultimo_costo_compra = $value;
+                    $producto->save();
+
+                    // Actualizar también la información del producto seleccionado
+                    if ($this->productoSeleccionado) {
+                        $this->productoSeleccionado['ultimo_costo_compra'] = $value;
+                    }
+
+                    // Registrar en bitácora: Actualización inmediata de último costo
+                    Bitacora::registrar(
+                        Auth::id(),
+                        'Inventario - Producto',
+                        'Actualizar último costo (tiempo real)',
+                        "Último costo actualizado en tiempo real para '{$producto->nombre}'. Costo anterior: L. " . number_format($costoAnterior, 2) . " → Nuevo costo: L. " . number_format($value, 2),
+                        $this->productoTemporal['producto_id'],
+                        'producto',
+                        ['ultimo_costo_compra' => $costoAnterior],
+                        ['ultimo_costo_compra' => $value]
+                    );
+
+                    Log::info("Último costo actualizado en tiempo real", [
+                        'producto_id' => $this->productoTemporal['producto_id'],
+                        'producto_nombre' => $producto->nombre,
+                        'costo_anterior' => $costoAnterior,
+                        'costo_nuevo' => $value
+                    ]);
+                }
+            } catch (\Exception $e) {
+                Log::error('Error al actualizar último costo en tiempo real: ' . $e->getMessage());
+                // No mostrar error al usuario para no interrumpir el flujo
+            }
+        }
+    }
+
     public function agregarProductoPorCodigo()
     {
         if (empty($this->codigoBarras)) {
@@ -1289,15 +1338,16 @@ class CompraDeProducto extends Component
             'nombre' => $producto->nombre,
             'codigo_barra' => $producto->codigo_barra,
             'precio_base' => $producto->precio_base ?? 0,
+            'ultimo_costo_compra' => $producto->ultimo_costo_compra ?? 0,
             'descripcion' => $producto->descripcion ?? '',
             'marca' => $producto->marca->nombre ?? 'N/A',
             'subcategoria' => $producto->subcategoria->nombre ?? 'N/A',
         ];
 
-        // Actualizar el producto en el formulario temporal
+        // Actualizar el producto en el formulario temporal con ultimo_costo_compra como precio por defecto
         $this->productoTemporal = [
             'producto_id' => $producto->id,
-            'precio' => $producto->precio_base ?? 0,
+            'precio' => $producto->ultimo_costo_compra ?? $producto->precio_base ?? 0,
             'cantidad_recibida' => 1,
             'cantidad_por_unidad' => 1,
             'cantidad_ingresada' => 1,
