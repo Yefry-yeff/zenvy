@@ -426,6 +426,43 @@ class CompraDeProducto extends Component
             return;
         }
 
+        // Actualizar ultimo_costo_compra en la tabla producto cuando se agrega el producto
+        try {
+            $producto = Producto::find($this->productoTemporal['producto_id']);
+            if ($producto && $this->productoTemporal['precio'] > 0) {
+                $costoAnterior = $producto->ultimo_costo_compra;
+                $producto->ultimo_costo_compra = $this->productoTemporal['precio'];
+                $producto->save();
+
+                // Actualizar también la información del producto seleccionado
+                if ($this->productoSeleccionado) {
+                    $this->productoSeleccionado['ultimo_costo_compra'] = $this->productoTemporal['precio'];
+                }
+
+                // Registrar en bitácora: Actualización de último costo al agregar producto
+                Bitacora::registrar(
+                    Auth::id(),
+                    'Inventario - Producto',
+                    'Actualizar último costo (agregar producto)',
+                    "Último costo actualizado al agregar producto '{$producto->nombre}' a compra. Costo anterior: L. " . number_format($costoAnterior, 2) . " → Nuevo costo: L. " . number_format($this->productoTemporal['precio'], 2),
+                    $this->productoTemporal['producto_id'],
+                    'producto',
+                    ['ultimo_costo_compra' => $costoAnterior],
+                    ['ultimo_costo_compra' => $this->productoTemporal['precio']]
+                );
+
+                Log::info("Último costo actualizado al agregar producto", [
+                    'producto_id' => $this->productoTemporal['producto_id'],
+                    'producto_nombre' => $producto->nombre,
+                    'costo_anterior' => $costoAnterior,
+                    'costo_nuevo' => $this->productoTemporal['precio']
+                ]);
+            }
+        } catch (\Exception $e) {
+            Log::error('Error al actualizar último costo al agregar producto: ' . $e->getMessage());
+            // Continuar con el proceso aunque falle la actualización del costo
+        }
+
         // Verificar si el producto ya está en la lista - ELIMINADO para permitir duplicados
         // Los productos pueden agregarse múltiples veces sin restricciones
 
@@ -622,7 +659,7 @@ class CompraDeProducto extends Component
                     'unidad_medida_id' => $producto['unidad_medida_id'],
                 ]);
 
-                // Nota: El ultimo_costo_compra ya se actualizo en tiempo real al modificar el precio
+                // Nota: El ultimo_costo_compra ya se actualizo al agregar cada producto
                 // No es necesario actualizar nuevamente aqui
 
                 // Registrar en bitácora: Detalle de cada producto
@@ -1255,52 +1292,6 @@ class CompraDeProducto extends Component
         if (empty($this->camposConError)) {
             $this->mostrarAlerta = false;
             $this->mensajeAlerta = '';
-        }
-    }
-
-    /**
-     * Actualiza el ultimo_costo_compra en tiempo real cuando se modifica el precio en el formulario
-     */
-    public function updatedProductoTemporalPrecio($value)
-    {
-        // Solo actualizar si hay un producto seleccionado y un precio válido
-        if (!empty($this->productoTemporal['producto_id']) && is_numeric($value) && $value > 0) {
-            try {
-                // Actualizar el ultimo_costo_compra en la base de datos inmediatamente
-                $producto = Producto::find($this->productoTemporal['producto_id']);
-                if ($producto) {
-                    $costoAnterior = $producto->ultimo_costo_compra;
-                    $producto->ultimo_costo_compra = $value;
-                    $producto->save();
-
-                    // Actualizar también la información del producto seleccionado
-                    if ($this->productoSeleccionado) {
-                        $this->productoSeleccionado['ultimo_costo_compra'] = $value;
-                    }
-
-                    // Registrar en bitácora: Actualización inmediata de último costo
-                    Bitacora::registrar(
-                        Auth::id(),
-                        'Inventario - Producto',
-                        'Actualizar último costo (tiempo real)',
-                        "Último costo actualizado en tiempo real para '{$producto->nombre}'. Costo anterior: L. " . number_format($costoAnterior, 2) . " → Nuevo costo: L. " . number_format($value, 2),
-                        $this->productoTemporal['producto_id'],
-                        'producto',
-                        ['ultimo_costo_compra' => $costoAnterior],
-                        ['ultimo_costo_compra' => $value]
-                    );
-
-                    Log::info("Último costo actualizado en tiempo real", [
-                        'producto_id' => $this->productoTemporal['producto_id'],
-                        'producto_nombre' => $producto->nombre,
-                        'costo_anterior' => $costoAnterior,
-                        'costo_nuevo' => $value
-                    ]);
-                }
-            } catch (\Exception $e) {
-                Log::error('Error al actualizar último costo en tiempo real: ' . $e->getMessage());
-                // No mostrar error al usuario para no interrumpir el flujo
-            }
         }
     }
 

@@ -292,7 +292,6 @@
                             <div>
                                 <label class="block mb-1 text-sm font-medium text-center text-gray-700">
                                     Precio Unit.
-                                    <span class="text-xs text-blue-600 block">(actualiza automáticamente)</span>
                                 </label>
                                 <div class="flex">
                                     <span class="inline-flex items-center px-3 text-sm text-gray-900 bg-gray-200 border border-r-0 border-gray-300 rounded-l-lg">L.</span>
