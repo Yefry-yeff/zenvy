@@ -645,37 +645,26 @@ class DashboardDinamico extends Component
      */
     public function actualizarDatos()
     {
-        logger()->info('actualizarDatos() llamado');
         // Recargar todas las estadísticas
         $this->cargarTodosDatos();
         
         // Emitir evento para que Alpine.js recargue los gráficos
         $this->dispatch('datosActualizados');
-        logger()->info('Evento datosActualizados emitido');
     }
 
     public function actualizarDashboard()
     {
-        logger()->info('actualizarDashboard() llamado');
         // Recargar todas las estadísticas
         $this->cargarTodosDatos();
         
         // Emitir evento para que Alpine.js recargue los gráficos
         $this->dispatch('datosActualizados');
-        logger()->info('Evento datosActualizados emitido');
     }
 
     public function render()
     {
-        logger()->info('DashboardDinamico render() ejecutándose');
-        
         // Recargar datos cada vez que se renderiza (cuando regresas a la vista)
         $this->cargarTodosDatos();
-        
-        logger()->info('Datos cargados', [
-            'ventas_semana' => $this->ventasSemana,
-            'metodos_pago' => $this->metodosPagoLabels
-        ]);
         
         // Emitir evento para que Alpine.js reinicialice los gráficos
         $this->dispatch('dashboardRenderizado');

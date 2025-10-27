@@ -540,7 +540,6 @@
         window.chartsInitializing = false;
 
         function destroyCharts() {
-            console.log('Destruyendo gráficos...');
             window.chartsInitializing = false; // Liberar flag por si acaso
             
             if (window.chartVentas) {
@@ -565,7 +564,6 @@
         window.initCharts = function() {
             // Prevenir múltiples inicializaciones simultáneas
             if (window.chartsInitializing) {
-                console.log('Ya se están inicializando los gráficos, omitiendo llamada duplicada');
                 return;
             }
             
@@ -582,15 +580,6 @@
                 clientesData: {!! json_encode($topClientesData ?: [0]) !!}
             };
 
-            console.log('Intentando inicializar gráficos...', {
-                initialized: window.chartsInitialized,
-                canvasVentas: !!document.getElementById('chartVentasSemana'),
-                canvasProductos: !!document.getElementById('chartProductosVendidos'),
-                canvasPagos: !!document.getElementById('chartMetodosPago'),
-                canvasClientes: !!document.getElementById('chartTopClientes'),
-                datos: datosGraficos
-            });
-
             // Si ya están inicializados, destruir primero
             if (window.chartsInitialized) {
                 destroyCharts();
@@ -600,7 +589,6 @@
             setTimeout(() => {
                 // Verificar nuevamente que los canvas estén disponibles
                 if (!document.getElementById('chartVentasSemana')) {
-                    console.log('Canvas no disponible, cancelando inicialización');
                     window.chartsInitializing = false;
                     return;
                 }
@@ -811,7 +799,6 @@
             // Marcar como inicializados y liberar flag
             window.chartsInitialized = true;
             window.chartsInitializing = false;
-            console.log('Gráficos inicializados correctamente');
             }, 50); // Pequeño delay para asegurar que el DOM esté listo
         }
 
