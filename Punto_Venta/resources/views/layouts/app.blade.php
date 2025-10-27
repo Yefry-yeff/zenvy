@@ -20,7 +20,7 @@
     <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
 
     {{-- Estilos compilados con Vite --}}
-    <link rel="stylesheet" href="{{ asset('build/assets/app-CDygf5N4.css') }}">
+    <link rel="stylesheet" href="{{ asset('build/assets/app-BVzjZMhu.css') }}">
 
     {{-- Bootstrap 5 CSS (sin integrity para evitar error) --}}
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -107,6 +107,42 @@
 
     {{-- Livewire scripts --}}
     @livewireScripts
+
+    {{-- Dashboard Events para gráficos (inline para asegurar que se ejecute) --}}
+    <script>
+        document.addEventListener('livewire:init', () => {
+            console.log('Dashboard events inicializados con Livewire');
+            
+            // Escuchar eventos de Livewire
+            Livewire.on('dashboardRenderizado', () => {
+                console.log('Evento dashboardRenderizado recibido');
+                if (typeof window.chartsInitialized !== 'undefined' && window.chartsInitialized) {
+                    if (typeof destroyCharts === 'function') {
+                        destroyCharts();
+                    }
+                }
+                setTimeout(() => {
+                    if (typeof initCharts === 'function') {
+                        initCharts();
+                    }
+                }, 150);
+            });
+            
+            Livewire.on('datosActualizados', () => {
+                console.log('Evento datosActualizados recibido');
+                if (typeof window.chartsInitialized !== 'undefined' && window.chartsInitialized) {
+                    if (typeof destroyCharts === 'function') {
+                        destroyCharts();
+                    }
+                }
+                setTimeout(() => {
+                    if (typeof initCharts === 'function') {
+                        initCharts();
+                    }
+                }, 150);
+            });
+        });
+    </script>
 
     {{-- App JS compilado con Vite --}}
     <script type="module" src="{{ asset('build/assets/app-BLl8G-P3.js') }}"></script>

@@ -21,8 +21,9 @@
         {{-- Dashboard --}}
         <div class="flex justify-center">
             <button
-                x-on:click="Livewire.dispatch('cambiarVista', ['dashboard'])"
+                x-on:click="window.Livewire.dispatch('cambiarVista', ['dashboard'])"
                 class="flex items-center gap-2 px-2 py-1 text-sm font-medium text-white transition hover:text-white/80"
+                title="Dashboard"
             >
                 <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"

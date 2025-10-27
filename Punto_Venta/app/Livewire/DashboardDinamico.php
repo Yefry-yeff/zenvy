@@ -29,9 +29,29 @@ class DashboardDinamico extends Component
     public $topClientesData = [];
     public $chartKey; // Key única para forzar re-render de gráficos
 
+    protected $listeners = ['actualizarDashboard'];
+
     public function mount()
     {
         $this->chartKey = uniqid('chart_');
+        $this->cargarTodosDatos();
+    }
+
+    /**
+     * Método llamado por wire:init
+     */
+    public function inicializarDashboard()
+    {
+        // Este método se ejecuta después de que el DOM esté listo
+        // Emitir evento para inicializar gráficos
+        $this->dispatch('dashboardRenderizado');
+    }
+
+    /**
+     * Cargar todos los datos del dashboard
+     */
+    protected function cargarTodosDatos()
+    {
         $this->cargarDatosUsuario();
         $this->cargarEstadisticas();
         $this->cargarDatosPorRol();
@@ -620,8 +640,46 @@ class DashboardDinamico extends Component
         }
     }
 
+    /**
+     * Actualizar todos los datos del dashboard
+     */
+    public function actualizarDatos()
+    {
+        logger()->info('actualizarDatos() llamado');
+        // Recargar todas las estadísticas
+        $this->cargarTodosDatos();
+        
+        // Emitir evento para que Alpine.js recargue los gráficos
+        $this->dispatch('datosActualizados');
+        logger()->info('Evento datosActualizados emitido');
+    }
+
+    public function actualizarDashboard()
+    {
+        logger()->info('actualizarDashboard() llamado');
+        // Recargar todas las estadísticas
+        $this->cargarTodosDatos();
+        
+        // Emitir evento para que Alpine.js recargue los gráficos
+        $this->dispatch('datosActualizados');
+        logger()->info('Evento datosActualizados emitido');
+    }
+
     public function render()
     {
+        logger()->info('DashboardDinamico render() ejecutándose');
+        
+        // Recargar datos cada vez que se renderiza (cuando regresas a la vista)
+        $this->cargarTodosDatos();
+        
+        logger()->info('Datos cargados', [
+            'ventas_semana' => $this->ventasSemana,
+            'metodos_pago' => $this->metodosPagoLabels
+        ]);
+        
+        // Emitir evento para que Alpine.js reinicialice los gráficos
+        $this->dispatch('dashboardRenderizado');
+        
         return view('livewire.dashboard-dinamico');
     }
 }

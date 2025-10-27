@@ -1,28 +1,39 @@
 <div class="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50" 
-     x-data="{ chartsReady: false }" 
-     x-init="
-        $nextTick(() => {
-            setTimeout(() => {
-                if (typeof initCharts === 'function') {
-                    initCharts();
-                    chartsReady = true;
-                }
-            }, 200);
-        })
-     ">
+     wire:init="inicializarDashboard"
+     x-data="{ chartsReady: false, refreshing: false }">
     <!-- Header de bienvenida -->
     <div class="bg-white border-b border-gray-200 shadow-sm">
         <div class="px-6 py-4">
             <div class="flex items-center justify-between">
-                <div>
-                    <h1 class="text-2xl font-bold text-gray-900">
-                        👋 ¡Bienvenido, {{ $datosUsuario['nombre'] }}!
-                    </h1>
-                    <p class="mt-1 text-sm text-gray-600">
-                        Rol: <span class="font-medium text-indigo-600">{{ $datosUsuario['rol'] }}</span> |
-                        Tienda: <span class="font-medium">{{ $datosUsuario['tienda'] }}</span> |
-                        Último acceso: {{ $datosUsuario['ultimo_acceso'] }}
-                    </p>
+                <div class="flex-1">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h1 class="text-2xl font-bold text-gray-900">
+                                👋 ¡Bienvenido, {{ $datosUsuario['nombre'] }}!
+                            </h1>
+                            <p class="mt-1 text-sm text-gray-600">
+                                Rol: <span class="font-medium text-indigo-600">{{ $datosUsuario['rol'] }}</span> |
+                                Tienda: <span class="font-medium">{{ $datosUsuario['tienda'] }}</span> |
+                                Último acceso: {{ $datosUsuario['ultimo_acceso'] }}
+                            </p>
+                        </div>
+                        
+                        <!-- Botón de actualización -->
+                        <button 
+                            wire:click="actualizarDatos" 
+                            x-bind:disabled="refreshing"
+                            x-bind:class="{ 'opacity-50 cursor-not-allowed': refreshing }"
+                            class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white transition-all duration-200 bg-indigo-600 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                            <svg x-show="!refreshing" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                            </svg>
+                            <svg x-show="refreshing" class="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <span x-text="refreshing ? 'Actualizando...' : 'Actualizar'"></span>
+                        </button>
+                    </div>
 
                     <!-- Estado de la Jornada -->
                     @if($estadoJornada && is_array($estadoJornada))
@@ -524,11 +535,14 @@
     <!-- Script para Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
     <script>
-        // Variable para rastrear si los gráficos están inicializados
+        // Variables para rastrear estado de los gráficos
         window.chartsInitialized = false;
+        window.chartsInitializing = false;
 
         function destroyCharts() {
             console.log('Destruyendo gráficos...');
+            window.chartsInitializing = false; // Liberar flag por si acaso
+            
             if (window.chartVentas) {
                 try { window.chartVentas.destroy(); } catch(e) {}
                 window.chartVentas = null;
@@ -549,12 +563,32 @@
         }
 
         window.initCharts = function() {
+            // Prevenir múltiples inicializaciones simultáneas
+            if (window.chartsInitializing) {
+                console.log('Ya se están inicializando los gráficos, omitiendo llamada duplicada');
+                return;
+            }
+            
+            window.chartsInitializing = true;
+            
+            const datosGraficos = {
+                ventasSemana: {!! json_encode($ventasSemana ?: [0, 0, 0, 0, 0, 0, 0]) !!},
+                diasLabels: {!! json_encode($diasSemanaLabels ?: ['Día 1', 'Día 2', 'Día 3', 'Día 4', 'Día 5', 'Día 6', 'Día 7']) !!},
+                productosLabels: {!! json_encode($topProductosLabels ?: ['Sin datos']) !!},
+                productosData: {!! json_encode($topProductosData ?: [0]) !!},
+                pagosLabels: {!! json_encode($metodosPagoLabels ?: ['Sin datos']) !!},
+                pagosData: {!! json_encode($metodosPagoData ?: [0]) !!},
+                clientesLabels: {!! json_encode($topClientesLabels ?: ['Sin datos']) !!},
+                clientesData: {!! json_encode($topClientesData ?: [0]) !!}
+            };
+
             console.log('Intentando inicializar gráficos...', {
                 initialized: window.chartsInitialized,
                 canvasVentas: !!document.getElementById('chartVentasSemana'),
                 canvasProductos: !!document.getElementById('chartProductosVendidos'),
                 canvasPagos: !!document.getElementById('chartMetodosPago'),
-                canvasClientes: !!document.getElementById('chartTopClientes')
+                canvasClientes: !!document.getElementById('chartTopClientes'),
+                datos: datosGraficos
             });
 
             // Si ya están inicializados, destruir primero
@@ -562,9 +596,15 @@
                 destroyCharts();
             }
 
-            // Esperar un momento para que el DOM esté completamente listo
+            // Esperar un momento para que el DOM esté completamente listo y la destrucción termine
             setTimeout(() => {
-                // Solo crear gráficos si no existen ya
+                // Verificar nuevamente que los canvas estén disponibles
+                if (!document.getElementById('chartVentasSemana')) {
+                    console.log('Canvas no disponible, cancelando inicialización');
+                    window.chartsInitializing = false;
+                    return;
+                }
+                
                 const commonOptions = {
                     responsive: true,
                     maintainAspectRatio: false,
@@ -583,10 +623,10 @@
                     window.chartVentas = new Chart(ctxVentas, {
                     type: 'bar',
                     data: {
-                        labels: {!! json_encode($diasSemanaLabels ?: ['Día 1', 'Día 2', 'Día 3', 'Día 4', 'Día 5', 'Día 6', 'Día 7']) !!},
+                        labels: datosGraficos.diasLabels,
                         datasets: [{
                             label: 'Ventas (L.)',
-                            data: {!! json_encode($ventasSemana ?: [0, 0, 0, 0, 0, 0, 0]) !!},
+                            data: datosGraficos.ventasSemana,
                             backgroundColor: 'rgba(34, 197, 94, 0.7)',
                             borderColor: 'rgba(34, 197, 94, 1)',
                             borderWidth: 2,
@@ -629,10 +669,10 @@
                     window.chartProductos = new Chart(ctxProductos, {
                     type: 'bar',
                     data: {
-                        labels: {!! json_encode($topProductosLabels ?: ['Sin datos']) !!},
+                        labels: datosGraficos.productosLabels,
                         datasets: [{
                             label: 'Cantidad Vendida',
-                            data: {!! json_encode($topProductosData ?: [0]) !!},
+                            data: datosGraficos.productosData,
                             backgroundColor: 'rgba(59, 130, 246, 0.7)',
                             borderColor: 'rgba(59, 130, 246, 1)',
                             borderWidth: 2,
@@ -668,8 +708,8 @@
             const ctxPagos = document.getElementById('chartMetodosPago');
             if (ctxPagos && ctxPagos.getContext) {
                 try {
-                    const metodosPagoLabels = {!! json_encode($metodosPagoLabels ?: ['Sin datos']) !!};
-                    const metodosPagoData = {!! json_encode($metodosPagoData ?: [0]) !!};
+                    const metodosPagoLabels = datosGraficos.pagosLabels;
+                    const metodosPagoData = datosGraficos.pagosData;
                     
                     // Colores dinámicos según la cantidad de métodos
                     const colores = [
@@ -728,10 +768,10 @@
                     window.chartClientes = new Chart(ctxClientes, {
                     type: 'bar',
                     data: {
-                        labels: {!! json_encode($topClientesLabels ?: ['Sin datos']) !!},
+                        labels: datosGraficos.clientesLabels,
                         datasets: [{
                             label: 'Total Gastado (L.)',
-                            data: {!! json_encode($topClientesData ?: [0]) !!},
+                            data: datosGraficos.clientesData,
                             backgroundColor: 'rgba(168, 85, 247, 0.7)',
                             borderColor: 'rgba(168, 85, 247, 1)',
                             borderWidth: 2,
@@ -768,8 +808,9 @@
                 }
             }
             
-            // Marcar como inicializados
+            // Marcar como inicializados y liberar flag
             window.chartsInitialized = true;
+            window.chartsInitializing = false;
             console.log('Gráficos inicializados correctamente');
             }, 50); // Pequeño delay para asegurar que el DOM esté listo
         }
