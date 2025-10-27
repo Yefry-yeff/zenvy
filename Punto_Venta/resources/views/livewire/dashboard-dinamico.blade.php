@@ -217,8 +217,121 @@
         </div>
     </div>
 
-    <!-- Menu de navegación rápida -->
-    <div class="px-6 pb-4">
+    <!-- Estadísticas principales -->
+    <div class="p-6 space-y-6">
+        <!-- Estadísticas generales en cards -->
+        <div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+            <!-- Facturas Hoy -->
+            <div class="p-6 transition-all duration-300 bg-white border border-gray-100 shadow-lg rounded-xl hover:shadow-xl">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">Facturas Hoy</p>
+                        <p class="text-3xl font-bold text-blue-600">{{ $estadisticas['facturas_hoy'] }}</p>
+                        <p class="mt-1 text-xs text-blue-600">🧾 Documentos</p>
+                    </div>
+                    <div class="flex items-center justify-center w-12 h-12 bg-blue-100 rounded-full">
+                        <span class="text-2xl">🧾</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ventas Hoy -->
+            <div class="p-6 transition-all duration-300 bg-white border border-gray-100 shadow-lg rounded-xl hover:shadow-xl">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">Ventas Hoy</p>
+                        <p class="text-3xl font-bold text-green-600">L. {{ number_format($estadisticas['ventas_hoy'], 2) }}</p>
+                        <p class="mt-1 text-xs text-green-600">💰 Ingresos</p>
+                    </div>
+                    <div class="flex items-center justify-center w-12 h-12 bg-green-100 rounded-full">
+                        <span class="text-2xl">💰</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ventas del Mes -->
+            <div class="p-6 transition-all duration-300 bg-white border border-gray-100 shadow-lg rounded-xl hover:shadow-xl">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">Ventas del Mes</p>
+                        <p class="text-3xl font-bold text-purple-600">L. {{ number_format($estadisticas['ventas_mes'], 2) }}</p>
+                        <p class="mt-1 text-xs text-purple-600">📊 Total mensual</p>
+                    </div>
+                    <div class="flex items-center justify-center w-12 h-12 bg-purple-100 rounded-full">
+                        <span class="text-2xl">📊</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Productos Activos -->
+            <div class="p-6 transition-all duration-300 bg-white border border-gray-100 shadow-lg rounded-xl hover:shadow-xl">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">Productos Activos</p>
+                        <p class="text-3xl font-bold text-orange-600">{{ $estadisticas['productos_activos'] }}</p>
+                        <p class="mt-1 text-xs text-orange-600">📦 En inventario</p>
+                    </div>
+                    <div class="flex items-center justify-center w-12 h-12 bg-orange-100 rounded-full">
+                        <span class="text-2xl">📦</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gráficos de métricas -->
+        <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <!-- Gráfico de Ventas de la Semana -->
+            @if($this->tienePermiso(['SalaDeVentas.Ventas']))
+            <div class="p-6 bg-white border border-gray-100 shadow-lg rounded-xl">
+                <h3 class="flex items-center mb-4 text-lg font-semibold text-gray-800">
+                    📈 Ventas de la Última Semana
+                </h3>
+                <div style="height: 300px;">
+                    <canvas id="chartVentasSemana"></canvas>
+                </div>
+            </div>
+            @endif
+
+            <!-- Gráfico de Productos Más Vendidos -->
+            @if($this->tienePermiso(['Inventario.Producto', 'SalaDeVentas.Ventas']))
+            <div class="p-6 bg-white border border-gray-100 shadow-lg rounded-xl">
+                <h3 class="flex items-center mb-4 text-lg font-semibold text-gray-800">
+                    🏆 Top 5 Productos Más Vendidos
+                </h3>
+                <div style="height: 300px;">
+                    <canvas id="chartProductosVendidos"></canvas>
+                </div>
+            </div>
+            @endif
+        </div>
+
+        <!-- Gráfico de Métodos de Pago -->
+        @if($this->tienePermiso(['SalaDeVentas.Ventas', 'Caja.RecibidoDeEfectivo']))
+        <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <div class="p-6 bg-white border border-gray-100 shadow-lg rounded-xl">
+                <h3 class="flex items-center mb-4 text-lg font-semibold text-gray-800">
+                    💳 Ventas por Método de Pago (Hoy)
+                </h3>
+                <div style="height: 300px;">
+                    <canvas id="chartMetodosPago"></canvas>
+                </div>
+            </div>
+
+            <!-- Gráfico de Stock por Bodega -->
+            @if($this->tienePermiso(['Inventario.Bodegas', 'Inventario.Producto']))
+            <div class="p-6 bg-white border border-gray-100 shadow-lg rounded-xl">
+                <h3 class="flex items-center mb-4 text-lg font-semibold text-gray-800">
+                    🏭 Productos por Bodega
+                </h3>
+                <div style="height: 300px;">
+                    <canvas id="chartStockBodega"></canvas>
+                </div>
+            </div>
+            @endif
+        </div>
+        @endif
+
+        <!-- Acceso Rápido - Movido más abajo -->
         <div class="p-6 bg-white border border-gray-100 shadow-lg rounded-xl">
             <h2 class="mb-4 text-lg font-semibold text-gray-800">🚀 Acceso Rápido</h2>
             <div class="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-6">
@@ -480,4 +593,194 @@
             @endif
         </div>
     </div>
+
+    <!-- Script para Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Configuración común para todos los gráficos
+            const commonOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'bottom'
+                    }
+                }
+            };
+
+            // Gráfico de Ventas de la Semana
+            const ctxVentas = document.getElementById('chartVentasSemana');
+            if (ctxVentas) {
+                new Chart(ctxVentas, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'],
+                        datasets: [{
+                            label: 'Ventas (L.)',
+                            data: {!! json_encode($ventasSemana ?: [0, 0, 0, 0, 0, 0, 0]) !!},
+                            backgroundColor: 'rgba(34, 197, 94, 0.7)',
+                            borderColor: 'rgba(34, 197, 94, 1)',
+                            borderWidth: 2,
+                            borderRadius: 5
+                        }]
+                    },
+                    options: {
+                        ...commonOptions,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: function(value) {
+                                        return 'L. ' + value.toLocaleString();
+                                    }
+                                }
+                            }
+                        },
+                        plugins: {
+                            ...commonOptions.plugins,
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return 'Ventas: L. ' + context.parsed.y.toLocaleString('es-HN', {minimumFractionDigits: 2});
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Gráfico de Productos Más Vendidos
+            const ctxProductos = document.getElementById('chartProductosVendidos');
+            if (ctxProductos) {
+                new Chart(ctxProductos, {
+                    type: 'bar',
+                    data: {
+                        labels: {!! json_encode($topProductosLabels ?: ['Sin datos']) !!},
+                        datasets: [{
+                            label: 'Cantidad Vendida',
+                            data: {!! json_encode($topProductosData ?: [0]) !!},
+                            backgroundColor: 'rgba(59, 130, 246, 0.7)',
+                            borderColor: 'rgba(59, 130, 246, 1)',
+                            borderWidth: 2,
+                            borderRadius: 5
+                        }]
+                    },
+                    options: {
+                        ...commonOptions,
+                        indexAxis: 'y',
+                        scales: {
+                            x: {
+                                beginAtZero: true
+                            }
+                        },
+                        plugins: {
+                            ...commonOptions.plugins,
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return 'Vendido: ' + context.parsed.x + ' unidades';
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Gráfico de Métodos de Pago
+            const ctxPagos = document.getElementById('chartMetodosPago');
+            if (ctxPagos) {
+                new Chart(ctxPagos, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Efectivo', 'Tarjeta', 'Transferencia', 'Cheque'],
+                        datasets: [{
+                            label: 'Monto (L.)',
+                            data: {!! json_encode($metodosPagoData ?: [0, 0, 0, 0]) !!},
+                            backgroundColor: [
+                                'rgba(34, 197, 94, 0.7)',
+                                'rgba(59, 130, 246, 0.7)',
+                                'rgba(249, 115, 22, 0.7)',
+                                'rgba(168, 85, 247, 0.7)'
+                            ],
+                            borderColor: [
+                                'rgba(34, 197, 94, 1)',
+                                'rgba(59, 130, 246, 1)',
+                                'rgba(249, 115, 22, 1)',
+                                'rgba(168, 85, 247, 1)'
+                            ],
+                            borderWidth: 2,
+                            borderRadius: 5
+                        }]
+                    },
+                    options: {
+                        ...commonOptions,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: function(value) {
+                                        return 'L. ' + value.toLocaleString();
+                                    }
+                                }
+                            }
+                        },
+                        plugins: {
+                            ...commonOptions.plugins,
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return 'Total: L. ' + context.parsed.y.toLocaleString('es-HN', {minimumFractionDigits: 2});
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Gráfico de Stock por Bodega
+            const ctxStock = document.getElementById('chartStockBodega');
+            if (ctxStock) {
+                new Chart(ctxStock, {
+                    type: 'bar',
+                    data: {
+                        labels: {!! json_encode($bodegasLabels ?: ['Sin datos']) !!},
+                        datasets: [{
+                            label: 'Productos',
+                            data: {!! json_encode($bodegasData ?: [0]) !!},
+                            backgroundColor: 'rgba(249, 115, 22, 0.7)',
+                            borderColor: 'rgba(249, 115, 22, 1)',
+                            borderWidth: 2,
+                            borderRadius: 5
+                        }]
+                    },
+                    options: {
+                        ...commonOptions,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    stepSize: 1
+                                }
+                            }
+                        },
+                        plugins: {
+                            ...commonOptions.plugins,
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return 'Productos: ' + context.parsed.y;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        });
+    </script>
 </div>

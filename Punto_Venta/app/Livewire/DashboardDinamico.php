@@ -17,6 +17,14 @@ class DashboardDinamico extends Component
     public $actividad = [];
     public $estadoCaja = null;
     public $estadoJornada = null;
+    
+    // Datos para gráficos
+    public $ventasSemana = [];
+    public $topProductosLabels = [];
+    public $topProductosData = [];
+    public $metodosPagoData = [];
+    public $bodegasLabels = [];
+    public $bodegasData = [];
 
     public function mount()
     {
@@ -25,6 +33,7 @@ class DashboardDinamico extends Component
         $this->cargarDatosPorRol();
         $this->cargarEstadoJornada();
         $this->cargarEstadoCaja();
+        $this->cargarDatosGraficos();
     }
 
     public function cargarDatosUsuario()
@@ -492,6 +501,101 @@ class DashboardDinamico extends Component
 
         // Si no hay jornada abierta, usar fecha actual
         return Carbon::now()->format('Y-m-d');
+    }
+
+    /**
+     * Cargar datos para los gráficos del dashboard
+     */
+    public function cargarDatosGraficos()
+    {
+        $usuario = Auth::user();
+
+        // 1. Ventas de la última semana (últimos 7 días)
+        if ($this->usuarioTienePermisos(['SalaDeVentas.Ventas'])) {
+            $ventasPorDia = DB::table('factura')
+                ->select(DB::raw('DATE(created_at) as fecha'), DB::raw('SUM(total) as total'))
+                ->where('created_at', '>=', Carbon::now()->subDays(6)->startOfDay())
+                ->groupBy(DB::raw('DATE(created_at)'))
+                ->orderBy('fecha', 'asc')
+                ->get()
+                ->keyBy('fecha');
+
+            // Llenar con 0 los días sin ventas
+            $this->ventasSemana = [];
+            for ($i = 6; $i >= 0; $i--) {
+                $fecha = Carbon::now()->subDays($i)->format('Y-m-d');
+                $this->ventasSemana[] = $ventasPorDia->has($fecha) 
+                    ? round($ventasPorDia[$fecha]->total, 2) 
+                    : 0;
+            }
+        }
+
+        // 2. Top 5 productos más vendidos (del mes actual)
+        if ($this->usuarioTienePermisos(['Inventario.Producto', 'SalaDeVentas.Ventas'])) {
+            $topProductos = DB::table('factura_has_producto as fhp')
+                ->join('factura as f', 'fhp.factura_id', '=', 'f.id')
+                ->join('producto as p', 'fhp.producto_id', '=', 'p.id')
+                ->select('p.nombre', DB::raw('SUM(fhp.cantidad) as total_vendido'))
+                ->whereMonth('f.created_at', now()->month)
+                ->whereYear('f.created_at', now()->year)
+                ->groupBy('p.id', 'p.nombre')
+                ->orderByDesc('total_vendido')
+                ->limit(5)
+                ->get();
+
+            $this->topProductosLabels = $topProductos->pluck('nombre')->toArray();
+            $this->topProductosData = $topProductos->pluck('total_vendido')->toArray();
+
+            // Si no hay datos, poner valores por defecto
+            if (empty($this->topProductosLabels)) {
+                $this->topProductosLabels = ['Sin datos'];
+                $this->topProductosData = [0];
+            }
+        }
+
+        // 3. Ventas por método de pago (hoy)
+        if ($this->usuarioTienePermisos(['SalaDeVentas.Ventas', 'Caja.RecibidoDeEfectivo'])) {
+            $metodosPago = DB::table('factura_has_pago as fhp')
+                ->join('tipo_pago as tp', 'fhp.tipo_pago_id', '=', 'tp.id')
+                ->join('factura as f', 'fhp.factura_id', '=', 'f.id')
+                ->select('tp.nombre', DB::raw('SUM(fhp.pago_recibido) as total'))
+                ->whereDate('f.created_at', today())
+                ->groupBy('tp.id', 'tp.nombre')
+                ->get()
+                ->keyBy('nombre');
+
+            // Ordenar por los 4 métodos principales
+            $this->metodosPagoData = [
+                round($metodosPago->get('Efectivo')->total ?? 0, 2),
+                round($metodosPago->get('Tarjeta')->total ?? 0, 2),
+                round($metodosPago->get('Transferencia')->total ?? 0, 2),
+                round($metodosPago->get('Cheque')->total ?? 0, 2),
+            ];
+        }
+
+        // 4. Productos por bodega
+        if ($this->usuarioTienePermisos(['Inventario.Bodegas', 'Inventario.Producto'])) {
+            $productosPorBodega = DB::table('recibido_bodega as rb')
+                ->join('seccion as s', 'rb.seccion_id', '=', 's.id')
+                ->join('segmento as seg', 's.segmento_id', '=', 'seg.id')
+                ->join('bodega as b', 'seg.bodega_id', '=', 'b.id')
+                ->select('b.nombre', DB::raw('COUNT(DISTINCT rb.producto_id) as total_productos'))
+                ->where('b.estado_id', 1)
+                ->where('b.id', '!=', 2) // Excluir bodega de productos sin venta
+                ->groupBy('b.id', 'b.nombre')
+                ->orderByDesc('total_productos')
+                ->limit(6)
+                ->get();
+
+            $this->bodegasLabels = $productosPorBodega->pluck('nombre')->toArray();
+            $this->bodegasData = $productosPorBodega->pluck('total_productos')->toArray();
+
+            // Si no hay datos, poner valores por defecto
+            if (empty($this->bodegasLabels)) {
+                $this->bodegasLabels = ['Sin datos'];
+                $this->bodegasData = [0];
+            }
+        }
     }
 
     public function render()
