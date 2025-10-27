@@ -1,4 +1,15 @@
-<div class="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+<div class="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50" 
+     x-data="{ chartsReady: false }" 
+     x-init="
+        $nextTick(() => {
+            setTimeout(() => {
+                if (typeof initCharts === 'function') {
+                    initCharts();
+                    chartsReady = true;
+                }
+            }, 200);
+        })
+     ">
     <!-- Header de bienvenida -->
     <div class="bg-white border-b border-gray-200 shadow-sm">
         <div class="px-6 py-4">
@@ -513,7 +524,44 @@
     <!-- Script para Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
     <script>
-        function initCharts() {
+        // Variable para rastrear si los gráficos están inicializados
+        window.chartsInitialized = false;
+
+        function destroyCharts() {
+            console.log('Destruyendo gráficos...');
+            if (window.chartVentas) {
+                try { window.chartVentas.destroy(); } catch(e) {}
+                window.chartVentas = null;
+            }
+            if (window.chartProductos) {
+                try { window.chartProductos.destroy(); } catch(e) {}
+                window.chartProductos = null;
+            }
+            if (window.chartPagos) {
+                try { window.chartPagos.destroy(); } catch(e) {}
+                window.chartPagos = null;
+            }
+            if (window.chartClientes) {
+                try { window.chartClientes.destroy(); } catch(e) {}
+                window.chartClientes = null;
+            }
+            window.chartsInitialized = false;
+        }
+
+        window.initCharts = function() {
+            console.log('Intentando inicializar gráficos...', {
+                initialized: window.chartsInitialized,
+                canvasVentas: !!document.getElementById('chartVentasSemana'),
+                canvasProductos: !!document.getElementById('chartProductosVendidos'),
+                canvasPagos: !!document.getElementById('chartMetodosPago'),
+                canvasClientes: !!document.getElementById('chartTopClientes')
+            });
+
+            // Si ya están inicializados, destruir primero
+            if (window.chartsInitialized) {
+                destroyCharts();
+            }
+
             // Esperar un momento para que el DOM esté completamente listo
             setTimeout(() => {
                 // Solo crear gráficos si no existen ya
@@ -530,7 +578,7 @@
 
             // Gráfico de Ventas de la Semana
             const ctxVentas = document.getElementById('chartVentasSemana');
-            if (ctxVentas && ctxVentas.getContext && !window.chartVentas) {
+            if (ctxVentas && ctxVentas.getContext) {
                 try {
                     window.chartVentas = new Chart(ctxVentas, {
                     type: 'bar',
@@ -576,7 +624,7 @@
 
             // Gráfico de Productos Más Vendidos
             const ctxProductos = document.getElementById('chartProductosVendidos');
-            if (ctxProductos && ctxProductos.getContext && !window.chartProductos) {
+            if (ctxProductos && ctxProductos.getContext) {
                 try {
                     window.chartProductos = new Chart(ctxProductos, {
                     type: 'bar',
@@ -618,7 +666,7 @@
 
             // Gráfico de Métodos de Pago
             const ctxPagos = document.getElementById('chartMetodosPago');
-            if (ctxPagos && ctxPagos.getContext && !window.chartPagos) {
+            if (ctxPagos && ctxPagos.getContext) {
                 try {
                     const metodosPagoLabels = {!! json_encode($metodosPagoLabels ?: ['Sin datos']) !!};
                     const metodosPagoData = {!! json_encode($metodosPagoData ?: [0]) !!};
@@ -675,7 +723,7 @@
 
             // Gráfico de Top Clientes
             const ctxClientes = document.getElementById('chartTopClientes');
-            if (ctxClientes && ctxClientes.getContext && !window.chartClientes) {
+            if (ctxClientes && ctxClientes.getContext) {
                 try {
                     window.chartClientes = new Chart(ctxClientes, {
                     type: 'bar',
@@ -719,19 +767,19 @@
                     console.error('Error creando gráfico de clientes:', e);
                 }
             }
+            
+            // Marcar como inicializados
+            window.chartsInitialized = true;
+            console.log('Gráficos inicializados correctamente');
             }, 50); // Pequeño delay para asegurar que el DOM esté listo
         }
 
-        // Ejecutar al cargar el DOM
+        // Solo ejecutar en la primera carga
         if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initCharts);
+            document.addEventListener('DOMContentLoaded', window.initCharts);
         } else {
             // DOM ya está listo
-            initCharts();
+            window.initCharts();
         }
-        
-        // Ejecutar cuando Livewire actualice el componente
-        document.addEventListener('livewire:navigated', initCharts);
-        document.addEventListener('livewire:load', initCharts);
     </script>
 </div>
