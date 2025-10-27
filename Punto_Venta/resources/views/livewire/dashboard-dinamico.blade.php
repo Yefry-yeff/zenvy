@@ -279,114 +279,114 @@
         </div>
 
         <!-- Acceso Rápido - Más compacto y en una fila -->
-        <div class="p-4 bg-white border border-gray-100 shadow-lg rounded-xl">
-            <h3 class="mb-3 text-sm font-semibold text-gray-700">🚀 Acceso Rápido</h3>
-            <div class="grid grid-cols-6 gap-2 md:grid-cols-8 lg:grid-cols-12">
+        <div class="p-5 bg-white border border-gray-100 shadow-lg rounded-xl">
+            <h3 class="mb-4 text-base font-semibold text-gray-800">🚀 Acceso Rápido</h3>
+            <div class="flex flex-wrap gap-3">
                 @if($this->tienePermiso('SalaDeVentas.Ventas'))
                 <button
                     x-on:click="window.Livewire.dispatch('cambiarVista', ['SalaDeVentas.Ventas'])"
-                    class="flex flex-col items-center justify-center p-2 text-white transition-all duration-200 transform bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg hover:from-blue-600 hover:to-blue-700 hover:scale-105">
-                    <span class="text-lg">🧾</span>
-                    <span class="mt-1 text-xs font-medium">Facturar</span>
+                    class="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white transition-all duration-200 transform bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg hover:from-blue-600 hover:to-blue-700 hover:scale-105 shadow-sm hover:shadow-md">
+                    <span class="text-base">🧾</span>
+                    <span>Facturar</span>
                 </button>
                 @endif
 
                 @if($this->tienePermiso('Inventario.Producto'))
                 <button
                     x-on:click="window.Livewire.dispatch('cambiarVista', ['Inventario.Producto'])"
-                    class="flex flex-col items-center justify-center p-2 text-white transition-all duration-200 transform bg-gradient-to-br from-green-500 to-green-600 rounded-lg hover:from-green-600 hover:to-green-700 hover:scale-105">
-                    <span class="text-lg">📦</span>
-                    <span class="mt-1 text-xs font-medium">Productos</span>
+                    class="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white transition-all duration-200 transform bg-gradient-to-r from-green-500 to-green-600 rounded-lg hover:from-green-600 hover:to-green-700 hover:scale-105 shadow-sm hover:shadow-md">
+                    <span class="text-base">📦</span>
+                    <span>Productos</span>
                 </button>
                 @endif
 
                 @if($this->tienePermiso('Inventario.CompraDeProductos'))
                 <button
                     x-on:click="window.Livewire.dispatch('cambiarVista', ['Inventario.CompraDeProductos'])"
-                    class="flex flex-col items-center justify-center p-2 text-white transition-all duration-200 transform bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg hover:from-purple-600 hover:to-purple-700 hover:scale-105">
-                    <span class="text-lg">🛍️</span>
-                    <span class="mt-1 text-xs font-medium">Compras</span>
+                    class="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white transition-all duration-200 transform bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg hover:from-purple-600 hover:to-purple-700 hover:scale-105 shadow-sm hover:shadow-md">
+                    <span class="text-base">🛍️</span>
+                    <span>Compras</span>
                 </button>
                 @endif
 
                 @if($this->tienePermiso('Inventario.Bodegas'))
                 <button
                     x-on:click="window.Livewire.dispatch('cambiarVista', ['Inventario.Bodegas'])"
-                    class="flex flex-col items-center justify-center p-2 text-white transition-all duration-200 transform bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg hover:from-orange-600 hover:to-orange-700 hover:scale-105">
-                    <span class="text-lg">🏭</span>
-                    <span class="mt-1 text-xs font-medium">Bodegas</span>
+                    class="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white transition-all duration-200 transform bg-gradient-to-r from-orange-500 to-orange-600 rounded-lg hover:from-orange-600 hover:to-orange-700 hover:scale-105 shadow-sm hover:shadow-md">
+                    <span class="text-base">🏭</span>
+                    <span>Bodegas</span>
                 </button>
                 @endif
 
                 @if($this->tienePermiso('Configuracion.Usuarios'))
                 <button
                     x-on:click="window.Livewire.dispatch('cambiarVista', ['Configuracion.Usuarios'])"
-                    class="flex flex-col items-center justify-center p-2 text-white transition-all duration-200 transform bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-lg hover:from-indigo-600 hover:to-indigo-700 hover:scale-105">
-                    <span class="text-lg">👥</span>
-                    <span class="mt-1 text-xs font-medium">Usuarios</span>
+                    class="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white transition-all duration-200 transform bg-gradient-to-r from-indigo-500 to-indigo-600 rounded-lg hover:from-indigo-600 hover:to-indigo-700 hover:scale-105 shadow-sm hover:shadow-md">
+                    <span class="text-base">👥</span>
+                    <span>Usuarios</span>
                 </button>
                 @endif
 
                 @if($this->tienePermiso('Configuracion.Roles'))
                 <button
                     x-on:click="window.Livewire.dispatch('cambiarVista', ['Configuracion.Roles'])"
-                    class="flex flex-col items-center justify-center p-2 text-white transition-all duration-200 transform bg-gradient-to-br from-pink-500 to-pink-600 rounded-lg hover:from-pink-600 hover:to-pink-700 hover:scale-105">
-                    <span class="text-lg">🔐</span>
-                    <span class="mt-1 text-xs font-medium">Roles</span>
+                    class="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white transition-all duration-200 transform bg-gradient-to-r from-pink-500 to-pink-600 rounded-lg hover:from-pink-600 hover:to-pink-700 hover:scale-105 shadow-sm hover:shadow-md">
+                    <span class="text-base">🔐</span>
+                    <span>Roles</span>
                 </button>
                 @endif
 
                 @if($this->tienePermiso('Caja.RecibidoDeEfectivo'))
                 <button
                     x-on:click="window.Livewire.dispatch('cambiarVista', ['Caja.RecibidoDeEfectivo'])"
-                    class="flex flex-col items-center justify-center p-2 text-white transition-all duration-200 transform bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-lg hover:from-emerald-600 hover:to-emerald-700 hover:scale-105">
-                    <span class="text-lg">💰</span>
-                    <span class="mt-1 text-xs font-medium">Recibir</span>
+                    class="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white transition-all duration-200 transform bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-lg hover:from-emerald-600 hover:to-emerald-700 hover:scale-105 shadow-sm hover:shadow-md">
+                    <span class="text-base">💰</span>
+                    <span>Recibir</span>
                 </button>
                 @endif
 
                 @if($this->tienePermiso('Caja.EntregaDeEfectivo'))
                 <button
                     x-on:click="window.Livewire.dispatch('cambiarVista', ['Caja.EntregaDeEfectivo'])"
-                    class="flex flex-col items-center justify-center p-2 text-white transition-all duration-200 transform bg-gradient-to-br from-red-500 to-red-600 rounded-lg hover:from-red-600 hover:to-red-700 hover:scale-105">
-                    <span class="text-lg">💸</span>
-                    <span class="mt-1 text-xs font-medium">Entregar</span>
+                    class="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white transition-all duration-200 transform bg-gradient-to-r from-red-500 to-red-600 rounded-lg hover:from-red-600 hover:to-red-700 hover:scale-105 shadow-sm hover:shadow-md">
+                    <span class="text-base">💸</span>
+                    <span>Entregar</span>
                 </button>
                 @endif
 
                 @if($this->tienePermiso('Caja.SaldoInicial'))
                 <button
                     x-on:click="window.Livewire.dispatch('cambiarVista', ['Caja.SaldoInicial'])"
-                    class="flex flex-col items-center justify-center p-2 text-white transition-all duration-200 transform bg-gradient-to-br from-cyan-500 to-cyan-600 rounded-lg hover:from-cyan-600 hover:to-cyan-700 hover:scale-105">
-                    <span class="text-lg">🏦</span>
-                    <span class="mt-1 text-xs font-medium">Saldo</span>
+                    class="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white transition-all duration-200 transform bg-gradient-to-r from-cyan-500 to-cyan-600 rounded-lg hover:from-cyan-600 hover:to-cyan-700 hover:scale-105 shadow-sm hover:shadow-md">
+                    <span class="text-base">🏦</span>
+                    <span>Saldo</span>
                 </button>
                 @endif
 
                 @if($this->tienePermiso('Caja.CierreDeCaja'))
                 <button
                     x-on:click="window.Livewire.dispatch('cambiarVista', ['Caja.CierreDeCaja'])"
-                    class="flex flex-col items-center justify-center p-2 text-white transition-all duration-200 transform bg-gradient-to-br from-slate-500 to-slate-600 rounded-lg hover:from-slate-600 hover:to-slate-700 hover:scale-105">
-                    <span class="text-lg">🔒</span>
-                    <span class="mt-1 text-xs font-medium">Cerrar</span>
+                    class="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white transition-all duration-200 transform bg-gradient-to-r from-slate-500 to-slate-600 rounded-lg hover:from-slate-600 hover:to-slate-700 hover:scale-105 shadow-sm hover:shadow-md">
+                    <span class="text-base">🔒</span>
+                    <span>Cerrar</span>
                 </button>
                 @endif
 
                 @if($this->tienePermiso('Clientes.Clientes'))
                 <button
                     x-on:click="window.Livewire.dispatch('cambiarVista', ['Clientes.Clientes'])"
-                    class="flex flex-col items-center justify-center p-2 text-white transition-all duration-200 transform bg-gradient-to-br from-teal-500 to-teal-600 rounded-lg hover:from-teal-600 hover:to-teal-700 hover:scale-105">
-                    <span class="text-lg">👤</span>
-                    <span class="mt-1 text-xs font-medium">Clientes</span>
+                    class="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white transition-all duration-200 transform bg-gradient-to-r from-teal-500 to-teal-600 rounded-lg hover:from-teal-600 hover:to-teal-700 hover:scale-105 shadow-sm hover:shadow-md">
+                    <span class="text-base">👤</span>
+                    <span>Clientes</span>
                 </button>
                 @endif
 
                 @if($this->tienePermiso('Proveedores.Proveedores'))
                 <button
                     x-on:click="window.Livewire.dispatch('cambiarVista', ['Proveedores.Proveedores'])"
-                    class="flex flex-col items-center justify-center p-2 text-white transition-all duration-200 transform bg-gradient-to-br from-amber-500 to-amber-600 rounded-lg hover:from-amber-600 hover:to-amber-700 hover:scale-105">
-                    <span class="text-lg">🚚</span>
-                    <span class="mt-1 text-xs font-medium">Proveedores</span>
+                    class="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white transition-all duration-200 transform bg-gradient-to-r from-amber-500 to-amber-600 rounded-lg hover:from-amber-600 hover:to-amber-700 hover:scale-105 shadow-sm hover:shadow-md">
+                    <span class="text-base">🚚</span>
+                    <span>Proveedores</span>
                 </button>
                 @endif
             </div>
@@ -400,7 +400,7 @@
                 <h3 class="flex items-center mb-4 text-lg font-semibold text-gray-800">
                     📈 Ventas de la Última Semana
                 </h3>
-                <div style="height: 300px;">
+                <div style="height: 300px;" wire:ignore>
                     <canvas id="chartVentasSemana"></canvas>
                 </div>
             </div>
@@ -412,7 +412,7 @@
                 <h3 class="flex items-center mb-4 text-lg font-semibold text-gray-800">
                     🏆 Top 5 Productos Más Vendidos
                 </h3>
-                <div style="height: 300px;">
+                <div style="height: 300px;" wire:ignore>
                     <canvas id="chartProductosVendidos"></canvas>
                 </div>
             </div>
@@ -426,7 +426,7 @@
                 <h3 class="flex items-center mb-4 text-lg font-semibold text-gray-800">
                     💳 Ventas por Método de Pago (Hoy)
                 </h3>
-                <div style="height: 300px;">
+                <div style="height: 300px;" wire:ignore>
                     <canvas id="chartMetodosPago"></canvas>
                 </div>
             </div>
@@ -437,7 +437,7 @@
                 <h3 class="flex items-center mb-4 text-lg font-semibold text-gray-800">
                     👥 Top 5 Clientes que Más Compran
                 </h3>
-                <div style="height: 300px;">
+                <div style="height: 300px;" wire:ignore>
                     <canvas id="chartTopClientes"></canvas>
                 </div>
             </div>
@@ -445,206 +445,8 @@
         </div>
         @endif
 
-        <!-- Acceso Rápido - Movido más abajo -->
-        <div class="p-6 bg-white border border-gray-100 shadow-lg rounded-xl">
-            <h2 class="mb-4 text-lg font-semibold text-gray-800">🚀 Acceso Rápido</h2>
-            <div class="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-6">
-                @if($this->tienePermiso('SalaDeVentas.Ventas'))
-                <button
-                    x-on:click="window.Livewire.dispatch('cambiarVista', ['SalaDeVentas.Ventas'])"
-                    class="flex flex-col items-center justify-center p-4 text-white transition-all duration-200 transform bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl hover:from-blue-600 hover:to-blue-700 hover:scale-105">
-                    <span class="mb-2 text-2xl">🧾</span>
-                    <span class="text-sm font-medium">Facturar</span>
-                </button>
-                @endif
-
-                @if($this->tienePermiso('Inventario.Producto'))
-                <button
-                    x-on:click="window.Livewire.dispatch('cambiarVista', ['Inventario.Producto'])"
-                    class="flex flex-col items-center justify-center p-4 text-white transition-all duration-200 transform bg-gradient-to-br from-green-500 to-green-600 rounded-xl hover:from-green-600 hover:to-green-700 hover:scale-105">
-                    <span class="mb-2 text-2xl">📦</span>
-                    <span class="text-sm font-medium">Productos</span>
-                </button>
-                @endif
-
-                @if($this->tienePermiso('Inventario.CompraDeProductos'))
-                <button
-                    x-on:click="window.Livewire.dispatch('cambiarVista', ['Inventario.CompraDeProductos'])"
-                    class="flex flex-col items-center justify-center p-4 text-white transition-all duration-200 transform bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl hover:from-purple-600 hover:to-purple-700 hover:scale-105">
-                    <span class="mb-2 text-2xl">🛍️</span>
-                    <span class="text-sm font-medium">Compras</span>
-                </button>
-                @endif
-
-                @if($this->tienePermiso('Inventario.Bodegas'))
-                <button
-                    x-on:click="window.Livewire.dispatch('cambiarVista', ['Inventario.Bodegas'])"
-                    class="flex flex-col items-center justify-center p-4 text-white transition-all duration-200 transform bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl hover:from-orange-600 hover:to-orange-700 hover:scale-105">
-                    <span class="mb-2 text-2xl">🏭</span>
-                    <span class="text-sm font-medium">Bodegas</span>
-                </button>
-                @endif
-
-                @if($this->tienePermiso('Configuracion.Usuarios'))
-                <button
-                    x-on:click="window.Livewire.dispatch('cambiarVista', ['Configuracion.Usuarios'])"
-                    class="flex flex-col items-center justify-center p-4 text-white transition-all duration-200 transform bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl hover:from-indigo-600 hover:to-indigo-700 hover:scale-105">
-                    <span class="mb-2 text-2xl">👥</span>
-                    <span class="text-sm font-medium">Usuarios</span>
-                </button>
-                @endif
-
-                @if($this->tienePermiso('Configuracion.Roles'))
-                <button
-                    x-on:click="window.Livewire.dispatch('cambiarVista', ['Configuracion.Roles'])"
-                    class="flex flex-col items-center justify-center p-4 text-white transition-all duration-200 transform bg-gradient-to-br from-pink-500 to-pink-600 rounded-xl hover:from-pink-600 hover:to-pink-700 hover:scale-105">
-                    <span class="mb-2 text-2xl">🔐</span>
-                    <span class="text-sm font-medium">Roles</span>
-                </button>
-                @endif
-
-                @if($this->tienePermiso(['SalaDeVentas.Ventas', 'Caja.RecibidoDeEfectivo', 'Caja.EntregaDeEfectivo', 'Caja.SaldoInicial', 'Caja.CierreDeCaja']))
-                @if($this->tienePermiso('Caja.RecibidoDeEfectivo'))
-                <button
-                    x-on:click="window.Livewire.dispatch('cambiarVista', ['Caja.RecibidoDeEfectivo'])"
-                    class="flex flex-col items-center justify-center p-4 text-white transition-all duration-200 transform bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl hover:from-emerald-600 hover:to-emerald-700 hover:scale-105">
-                    <span class="mb-2 text-2xl">💰</span>
-                    <span class="text-sm font-medium">Recibir Efectivo</span>
-                </button>
-                @endif
-
-                @if($this->tienePermiso('Caja.EntregaDeEfectivo'))
-                <button
-                    x-on:click="window.Livewire.dispatch('cambiarVista', ['Caja.EntregaDeEfectivo'])"
-                    class="flex flex-col items-center justify-center p-4 text-white transition-all duration-200 transform bg-gradient-to-br from-red-500 to-red-600 rounded-xl hover:from-red-600 hover:to-red-700 hover:scale-105">
-                    <span class="mb-2 text-2xl">💸</span>
-                    <span class="text-sm font-medium">Entregar Efectivo</span>
-                </button>
-                @endif
-
-                @if($this->tienePermiso('Caja.CierreDeCaja'))
-                <button
-                    x-on:click="window.Livewire.dispatch('cambiarVista', ['Caja.CierreDeCaja'])"
-                    class="flex flex-col items-center justify-center p-4 text-white transition-all duration-200 transform bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl hover:from-purple-600 hover:to-purple-700 hover:scale-105">
-                    <span class="mb-2 text-2xl">📋</span>
-                    <span class="text-sm font-medium">Cierre de Caja</span>
-                </button>
-                @endif
-
-                @if($this->tienePermiso('SalaDeVentas.Ventas'))
-                <button
-                    x-on:click="window.Livewire.dispatch('cambiarVista', ['SalaDeVentas.Ventas'])"
-                    class="flex flex-col items-center justify-center p-4 text-white transition-all duration-200 transform bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-xl hover:from-yellow-600 hover:to-yellow-700 hover:scale-105">
-                    <span class="mb-2 text-2xl">💵</span>
-                    <span class="text-sm font-medium">Facturación</span>
-                </button>
-                @endif
-                @endif
-
-                @if($this->tienePermiso('Gestion.Cai'))
-                <button
-                    x-on:click="window.Livewire.dispatch('cambiarVista', ['Gestion.Cai'])"
-                    class="flex flex-col items-center justify-center p-4 text-white transition-all duration-200 transform bg-gradient-to-br from-teal-500 to-teal-600 rounded-xl hover:from-teal-600 hover:to-teal-700 hover:scale-105">
-                    <span class="mb-2 text-2xl">📄</span>
-                    <span class="text-sm font-medium">CAI</span>
-                </button>
-                @endif
-            </div>
-        </div>
-    </div>
-
-    <!-- Estadísticas principales -->
-    <div class="p-6 space-y-6">
-        <!-- Estadísticas generales -->
-        <div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
-            <!-- Facturas Hoy -->
-            <div class="p-6 transition-all duration-300 bg-white border border-gray-100 shadow-lg rounded-xl hover:shadow-xl">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm font-medium text-gray-600">Facturas Hoy</p>
-                        <p class="text-3xl font-bold text-blue-600">{{ $estadisticas['facturas_hoy'] }}</p>
-                        <p class="mt-1 text-xs text-blue-600">🧾 Documentos</p>
-                    </div>
-                    <div class="flex items-center justify-center w-12 h-12 bg-blue-100 rounded-full">
-                        <span class="text-2xl">🧾</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Ventas Hoy -->
-            <div class="p-6 transition-all duration-300 bg-white border border-gray-100 shadow-lg rounded-xl hover:shadow-xl">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm font-medium text-gray-600">Ventas Hoy</p>
-                        <p class="text-3xl font-bold text-green-600">L. {{ number_format($estadisticas['ventas_hoy'], 2) }}</p>
-                        <p class="mt-1 text-xs text-green-600">💰 Ingresos</p>
-                    </div>
-                    <div class="flex items-center justify-center w-12 h-12 bg-green-100 rounded-full">
-                        <span class="text-2xl">💰</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Ventas del Mes -->
-            <div class="p-6 transition-all duration-300 bg-white border border-gray-100 shadow-lg rounded-xl hover:shadow-xl">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm font-medium text-gray-600">Ventas del Mes</p>
-                        <p class="text-3xl font-bold text-purple-600">L. {{ number_format($estadisticas['ventas_mes'], 2) }}</p>
-                        <p class="mt-1 text-xs text-purple-600">📊 Total mensual</p>
-                    </div>
-                    <div class="flex items-center justify-center w-12 h-12 bg-purple-100 rounded-full">
-                        <span class="text-2xl">📊</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Productos Activos -->
-            <div class="p-6 transition-all duration-300 bg-white border border-gray-100 shadow-lg rounded-xl hover:shadow-xl">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm font-medium text-gray-600">Productos Activos</p>
-                        <p class="text-3xl font-bold text-orange-600">{{ $estadisticas['productos_activos'] }}</p>
-                        <p class="mt-1 text-xs text-orange-600">📦 En inventario</p>
-                    </div>
-                    <div class="flex items-center justify-center w-12 h-12 bg-orange-100 rounded-full">
-                        <span class="text-2xl">📦</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Estadísticas específicas por rol -->
-        @if($this->tienePermiso(['Configuracion.Usuarios', 'Configuracion.Roles']))
-        <div class="grid grid-cols-1 gap-6 md:grid-cols-3">
-            <div class="p-6 text-white shadow-lg bg-gradient-to-br from-pink-500 to-pink-600 rounded-xl">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-pink-100">Usuarios Activos</p>
-                        <p class="text-3xl font-bold">{{ $estadisticas['usuarios_activos'] }}</p>
-                    </div>
-                    <span class="text-3xl">👥</span>
-                </div>
-            </div>
-        </div>
-        @endif
-
-        @if($this->tienePermiso(['Inventario.Producto', 'Inventario.CompraDeProductos', 'Inventario.Bodegas']))
-        <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
-            <div class="p-6 text-white shadow-lg bg-gradient-to-br from-red-500 to-red-600 rounded-xl">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-red-100">Stock Bajo</p>
-                        <p class="text-3xl font-bold">{{ $estadisticas['stock_bajo'] ?? 0 }}</p>
-                        <p class="mt-1 text-xs text-red-100">⚠️ Requiere atención</p>
-                    </div>
-                    <span class="text-3xl">⚠️</span>
-                </div>
-            </div>
-        </div>
-        @endif
-
-        <!-- Sección de contenido dinámico -->
+    <!-- Ventas Recientes y Stock Bajo -->
+    <div class="p-6">
         <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
             <!-- Ventas Recientes -->
             @if($this->tienePermiso(['SalaDeVentas.Ventas', 'Inventario.Producto']))
@@ -711,23 +513,26 @@
     <!-- Script para Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Configuración común para todos los gráficos
-            const commonOptions = {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: true,
-                        position: 'bottom'
+        function initCharts() {
+            // Esperar un momento para que el DOM esté completamente listo
+            setTimeout(() => {
+                // Solo crear gráficos si no existen ya
+                const commonOptions = {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'bottom'
+                        }
                     }
-                }
-            };
+                };
 
             // Gráfico de Ventas de la Semana
             const ctxVentas = document.getElementById('chartVentasSemana');
-            if (ctxVentas) {
-                new Chart(ctxVentas, {
+            if (ctxVentas && ctxVentas.getContext && !window.chartVentas) {
+                try {
+                    window.chartVentas = new Chart(ctxVentas, {
                     type: 'bar',
                     data: {
                         labels: {!! json_encode($diasSemanaLabels ?: ['Día 1', 'Día 2', 'Día 3', 'Día 4', 'Día 5', 'Día 6', 'Día 7']) !!},
@@ -764,12 +569,16 @@
                         }
                     }
                 });
+                } catch(e) {
+                    console.error('Error creando gráfico de ventas:', e);
+                }
             }
 
             // Gráfico de Productos Más Vendidos
             const ctxProductos = document.getElementById('chartProductosVendidos');
-            if (ctxProductos) {
-                new Chart(ctxProductos, {
+            if (ctxProductos && ctxProductos.getContext && !window.chartProductos) {
+                try {
+                    window.chartProductos = new Chart(ctxProductos, {
                     type: 'bar',
                     data: {
                         labels: {!! json_encode($topProductosLabels ?: ['Sin datos']) !!},
@@ -802,30 +611,35 @@
                         }
                     }
                 });
+                } catch(e) {
+                    console.error('Error creando gráfico de productos:', e);
+                }
             }
 
             // Gráfico de Métodos de Pago
             const ctxPagos = document.getElementById('chartMetodosPago');
-            if (ctxPagos) {
-                new Chart(ctxPagos, {
+            if (ctxPagos && ctxPagos.getContext && !window.chartPagos) {
+                try {
+                    const metodosPagoLabels = {!! json_encode($metodosPagoLabels ?: ['Sin datos']) !!};
+                    const metodosPagoData = {!! json_encode($metodosPagoData ?: [0]) !!};
+                    
+                    // Colores dinámicos según la cantidad de métodos
+                    const colores = [
+                        { bg: 'rgba(34, 197, 94, 0.7)', border: 'rgba(34, 197, 94, 1)' },
+                        { bg: 'rgba(59, 130, 246, 0.7)', border: 'rgba(59, 130, 246, 1)' },
+                        { bg: 'rgba(249, 115, 22, 0.7)', border: 'rgba(249, 115, 22, 1)' },
+                        { bg: 'rgba(168, 85, 247, 0.7)', border: 'rgba(168, 85, 247, 1)' }
+                    ];
+                
+                window.chartPagos = new Chart(ctxPagos, {
                     type: 'bar',
                     data: {
-                        labels: ['Efectivo', 'Tarjeta', 'Transferencia', 'Cheque'],
+                        labels: metodosPagoLabels,
                         datasets: [{
                             label: 'Monto (L.)',
-                            data: {!! json_encode($metodosPagoData ?: [0, 0, 0, 0]) !!},
-                            backgroundColor: [
-                                'rgba(34, 197, 94, 0.7)',
-                                'rgba(59, 130, 246, 0.7)',
-                                'rgba(249, 115, 22, 0.7)',
-                                'rgba(168, 85, 247, 0.7)'
-                            ],
-                            borderColor: [
-                                'rgba(34, 197, 94, 1)',
-                                'rgba(59, 130, 246, 1)',
-                                'rgba(249, 115, 22, 1)',
-                                'rgba(168, 85, 247, 1)'
-                            ],
+                            data: metodosPagoData,
+                            backgroundColor: colores.slice(0, metodosPagoLabels.length).map(c => c.bg),
+                            borderColor: colores.slice(0, metodosPagoLabels.length).map(c => c.border),
                             borderWidth: 2,
                             borderRadius: 5
                         }]
@@ -854,12 +668,16 @@
                         }
                     }
                 });
+                } catch(e) {
+                    console.error('Error creando gráfico de pagos:', e);
+                }
             }
 
             // Gráfico de Top Clientes
             const ctxClientes = document.getElementById('chartTopClientes');
-            if (ctxClientes) {
-                new Chart(ctxClientes, {
+            if (ctxClientes && ctxClientes.getContext && !window.chartClientes) {
+                try {
+                    window.chartClientes = new Chart(ctxClientes, {
                     type: 'bar',
                     data: {
                         labels: {!! json_encode($topClientesLabels ?: ['Sin datos']) !!},
@@ -897,7 +715,23 @@
                         }
                     }
                 });
+                } catch(e) {
+                    console.error('Error creando gráfico de clientes:', e);
+                }
             }
-        });
+            }, 50); // Pequeño delay para asegurar que el DOM esté listo
+        }
+
+        // Ejecutar al cargar el DOM
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initCharts);
+        } else {
+            // DOM ya está listo
+            initCharts();
+        }
+        
+        // Ejecutar cuando Livewire actualice el componente
+        document.addEventListener('livewire:navigated', initCharts);
+        document.addEventListener('livewire:load', initCharts);
     </script>
 </div>

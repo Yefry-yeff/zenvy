@@ -23,12 +23,15 @@ class DashboardDinamico extends Component
     public $diasSemanaLabels = [];
     public $topProductosLabels = [];
     public $topProductosData = [];
+    public $metodosPagoLabels = [];
     public $metodosPagoData = [];
     public $topClientesLabels = [];
     public $topClientesData = [];
+    public $chartKey; // Key única para forzar re-render de gráficos
 
     public function mount()
     {
+        $this->chartKey = uniqid('chart_');
         $this->cargarDatosUsuario();
         $this->cargarEstadisticas();
         $this->cargarDatosPorRol();
@@ -509,6 +512,9 @@ class DashboardDinamico extends Component
      */
     public function cargarDatosGraficos()
     {
+        // Generar nueva key para forzar re-render de los gráficos
+        $this->chartKey = uniqid('chart_');
+        
         $usuario = Auth::user();
 
         // 1. Ventas de la última semana (últimos 7 días) con nombres de días dinámicos
@@ -561,7 +567,7 @@ class DashboardDinamico extends Component
             }
         }
 
-        // 3. Ventas por método de pago (hoy)
+        // 3. Ventas por método de pago (hoy) - Dinámico para cualquier tipo de pago
         if ($this->usuarioTienePermisos(['SalaDeVentas.Ventas', 'Caja.RecibidoDeEfectivo'])) {
             $metodosPago = DB::table('factura_has_pago as fhp')
                 ->join('tipo_pago as tp', 'fhp.tipo_pago_id', '=', 'tp.id')
@@ -569,16 +575,20 @@ class DashboardDinamico extends Component
                 ->select('tp.nombre', DB::raw('SUM(fhp.pago_recibido) as total'))
                 ->whereDate('f.created_at', today())
                 ->groupBy('tp.id', 'tp.nombre')
-                ->get()
-                ->keyBy('nombre');
+                ->orderByDesc('total')
+                ->limit(4)
+                ->get();
 
-            // Ordenar por los 4 métodos principales
-            $this->metodosPagoData = [
-                $metodosPago->has('Efectivo') ? round($metodosPago->get('Efectivo')->total, 2) : 0,
-                $metodosPago->has('Tarjeta') ? round($metodosPago->get('Tarjeta')->total, 2) : 0,
-                $metodosPago->has('Transferencia') ? round($metodosPago->get('Transferencia')->total, 2) : 0,
-                $metodosPago->has('Cheque') ? round($metodosPago->get('Cheque')->total, 2) : 0,
-            ];
+            if ($metodosPago->isNotEmpty()) {
+                $this->metodosPagoLabels = $metodosPago->pluck('nombre')->toArray();
+                $this->metodosPagoData = $metodosPago->pluck('total')->map(function($value) {
+                    return round($value, 2);
+                })->toArray();
+            } else {
+                // Si no hay datos de hoy, mostrar valores vacíos
+                $this->metodosPagoLabels = ['Sin datos'];
+                $this->metodosPagoData = [0];
+            }
         }
 
         // 4. Top 5 clientes que más compran (basado en nombre_cliente de factura)
