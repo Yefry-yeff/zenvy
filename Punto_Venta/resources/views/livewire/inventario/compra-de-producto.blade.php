@@ -1,5 +1,6 @@
 <div x-data="{ theme: localStorage.getItem('theme') || 'verde' }" 
      wire:key="compra-producto-root"
+     wire:init="loadInitialData"
      x-init="
          // Forzar re-render si detectamos problemas de DOM
          $nextTick(() => {

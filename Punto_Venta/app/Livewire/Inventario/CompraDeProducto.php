@@ -13,10 +13,14 @@ use App\Models\Bitacora;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 use App\Livewire\DynamicContent;
 
 class CompraDeProducto extends Component
 {
+    // Control para carga diferida (mejora de rendimiento)
+    public $readyToLoad = false;
+
     // Datos de la compra principal
     public $compra = [
         'numero_factura' => '',
@@ -116,7 +120,8 @@ class CompraDeProducto extends Component
 
     public function mount()
     {
-        $this->cargarDatosIniciales();
+        // No cargar datos pesados en mount para evitar latencia al abrir la vista.
+        // Se hará carga diferida desde la vista con wire:init llamando a loadInitialData().
         $this->compra['fecha_emision'] = now()->format('Y-m-d');
         $this->compra['fecha_recepcion'] = now()->format('Y-m-d');
 
@@ -124,6 +129,17 @@ class CompraDeProducto extends Component
         if (session()->has('tramite_a_cargar')) {
             $this->cargarTramiteDesdeSession();
         }
+    }
+
+    /**
+     * Carga inicial invocada vía wire:init desde la vista.
+     * Evita bloquear la apertura de la vista y carga datos pesados en segundo plano.
+     */
+    public function loadInitialData()
+    {
+        // Marcar que estamos listos y cargar datos
+        $this->readyToLoad = true;
+        $this->cargarDatosIniciales();
     }
 
     public function cargarTramiteDesdeSession()
@@ -165,22 +181,25 @@ class CompraDeProducto extends Component
         Log::info('Tipos de cliente disponibles: ', $tiposCliente->toArray());
 
         // Cargar solo proveedores (clientes con tipo_cliente = "Proveedor")
-        $this->proveedores = Cliente::whereHas('tipoCliente', function($query) {
-            $query->where('nombre', 'LIKE', '%Proveedor%');
-        })
-        ->with(['tipoCliente', 'direccion'])
-        ->where('estado_id', 1) // Solo clientes activos
-        ->orderBy('nombre')
-        ->get()
-        ->map(function($cliente) {
-            return [
-                'id' => $cliente->id,
-                'nombre' => $cliente->nombre,
-                'rtn' => $cliente->rtn,
-                'tipo_cliente' => $cliente->tipoCliente->nombre ?? 'N/A'
-            ];
-        })
-        ->toArray();
+        // Cachear proveedores por 60 minutos para acelerar cargas repetidas
+        $this->proveedores = Cache::remember('proveedores_activos', 60 * 60, function() {
+            return Cliente::whereHas('tipoCliente', function($query) {
+                    $query->where('nombre', 'LIKE', '%Proveedor%');
+                })
+                ->with(['tipoCliente'])
+                ->where('estado_id', 1) // Solo clientes activos
+                ->orderBy('nombre')
+                ->get()
+                ->map(function($cliente) {
+                    return [
+                        'id' => $cliente->id,
+                        'nombre' => $cliente->nombre,
+                        'rtn' => $cliente->rtn,
+                        'tipo_cliente' => $cliente->tipoCliente->nombre ?? 'N/A'
+                    ];
+                })
+                ->toArray();
+        });
 
         // Debug: Log para verificar proveedores encontrados
         Log::info('Proveedores encontrados: ', $this->proveedores);
@@ -213,33 +232,23 @@ class CompraDeProducto extends Component
             Log::info('Proveedores encontrados con búsqueda amplia: ', $this->proveedores);
         }
 
-        // Cargar productos activos
-        $this->productos = Producto::where('estado_id', 1)
-            ->with(['marca', 'subcategoria'])
-            ->orderBy('nombre')
-            ->get()
-            ->map(function($producto) {
-                return [
-                    'id' => $producto->id,
-                    'nombre' => $producto->nombre,
-                    'codigo_barra' => $producto->codigo_barra,
-                    'marca' => $producto->marca->nombre ?? 'N/A',
-                    'subcategoria' => $producto->subcategoria->nombre ?? 'N/A'
-                ];
-            })
-            ->toArray();
+        // No cargar la lista completa de productos en la apertura (puede ser muy grande).
+        // Los productos se consultan desde el modal de búsqueda (buscarProductosModal).
+        $this->productos = [];
 
-        // Cargar unidades de medida
-        $this->unidadesMedida = UnidadMedida::orderBy('nombre')
-            ->get()
-            ->map(function($unidad) {
-                return [
-                    'id' => $unidad->id,
-                    'nombre' => $unidad->nombre,
-                    'simbolo' => $unidad->simbolo
-                ];
-            })
-            ->toArray();
+        // Cachear unidades de medida (rara vez cambian)
+        $this->unidadesMedida = Cache::remember('unidades_medida', 60 * 60, function() {
+            return UnidadMedida::orderBy('nombre')
+                ->get()
+                ->map(function($unidad) {
+                    return [
+                        'id' => $unidad->id,
+                        'nombre' => $unidad->nombre,
+                        'simbolo' => $unidad->simbolo
+                    ];
+                })
+                ->toArray();
+        });
     }
 
     public function updatedBusquedaProducto()

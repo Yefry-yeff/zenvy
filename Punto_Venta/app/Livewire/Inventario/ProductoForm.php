@@ -808,13 +808,20 @@ class ProductoForm extends Component
                 'cantidad' => count($this->preciosVenta)
             ]);
             
+            // CRÍTICO: Guardar backup de preciosVenta porque validate() puede resetear propiedades
+            $preciosVentaBackup = $this->preciosVenta;
+            
             // Validar los datos del formulario con reglas dinámicas
             $this->validate($this->getRules());
             
+            // CRÍTICO: Restaurar preciosVenta después de validate()
+            $this->preciosVenta = $preciosVentaBackup;
+            
             // Log DESPUÉS de validate()
-            Log::info('preciosVenta DESPUÉS de $this->validate()', [
+            Log::info('preciosVenta DESPUÉS de $this->validate() (restaurado desde backup)', [
                 'precios' => $this->preciosVenta,
-                'cantidad' => count($this->preciosVenta)
+                'cantidad' => count($this->preciosVenta),
+                'backup_tenia' => count($preciosVentaBackup)
             ]);
 
             $datos = $this->form;
@@ -954,33 +961,60 @@ class ProductoForm extends Component
                 $this->mostrarExito('Producto actualizado exitosamente.');
             } else {
                 $resultado = ProductoModel::crearProducto($datos);
+                
+                Log::info('Resultado de crearProducto', [
+                    'resultado' => $resultado,
+                    'es_array' => is_array($resultado),
+                    'tiene_elemento_0' => isset($resultado[0]),
+                    'tiene_id' => is_array($resultado) && isset($resultado[0]) ? isset($resultado[0]->id) : false
+                ]);
+                
+                // Obtener el ID del producto creado
+                $productoIdCreado = null;
+                if (is_array($resultado) && isset($resultado[0]->id)) {
+                    $productoIdCreado = $resultado[0]->id;
+                } else {
+                    // Fallback: buscar el último producto creado por este usuario
+                    $ultimoProducto = DB::table('producto')
+                        ->where('users_id', Auth::id())
+                        ->orderBy('id', 'desc')
+                        ->first();
+                    
+                    if ($ultimoProducto) {
+                        $productoIdCreado = $ultimoProducto->id;
+                        Log::warning('No se obtuvo ID del SP, usando último producto creado', [
+                            'producto_id' => $productoIdCreado
+                        ]);
+                    }
+                }
+                
+                if (!$productoIdCreado) {
+                    throw new \Exception('No se pudo obtener el ID del producto creado');
+                }
+                
                 // Si el código de barras estaba vacío, actualizarlo con el id generado
-                if ((empty($datos['codigo_barra']) || trim($datos['codigo_barra']) === '') && is_array($resultado) && isset($resultado[0]->id)) {
-                    ProductoModel::actualizarProducto($resultado[0]->id, array_merge($datos, ['codigo_barra' => (string)$resultado[0]->id]));
+                if (empty($datos['codigo_barra']) || trim($datos['codigo_barra']) === '') {
+                    ProductoModel::actualizarProducto($productoIdCreado, array_merge($datos, ['codigo_barra' => (string)$productoIdCreado]));
                 }
 
                 // Registrar en bitácora: Creación de producto
-                if (is_array($resultado) && isset($resultado[0]->id)) {
-                    Bitacora::registrar(
-                        Auth::id(),
-                        'Inventario - Producto',
-                        'Crear producto',
-                        "Nuevo producto creado: '{$datos['nombre']}' (ID: {$resultado[0]->id}). Precio base: L. " . number_format($datos['precio_base'], 2),
-                        $resultado[0]->id,
-                        'producto',
-                        null,
-                        $datos
-                    );
-                }
+                Bitacora::registrar(
+                    Auth::id(),
+                    'Inventario - Producto',
+                    'Crear producto',
+                    "Nuevo producto creado: '{$datos['nombre']}' (ID: {$productoIdCreado}). Precio base: L. " . number_format($datos['precio_base'], 2),
+                    $productoIdCreado,
+                    'producto',
+                    null,
+                    $datos
+                );
                 
                 // Guardar precios de venta para el nuevo producto
-                if (is_array($resultado) && isset($resultado[0]->id)) {
-                    Log::info('ANTES de guardar precios - Array preciosVenta:', [
-                        'precios' => $this->preciosVenta,
-                        'cantidad' => count($this->preciosVenta)
-                    ]);
-                    $this->guardarPreciosVenta($resultado[0]->id);
-                }
+                Log::info('ANTES de guardar precios - Array preciosVenta:', [
+                    'precios' => $this->preciosVenta,
+                    'cantidad' => count($this->preciosVenta)
+                ]);
+                $this->guardarPreciosVenta($productoIdCreado);
                 
                 Log::info('Producto creado exitosamente', ['resultado' => $resultado]);
                 $this->mostrarExito('Producto creado exitosamente.');
