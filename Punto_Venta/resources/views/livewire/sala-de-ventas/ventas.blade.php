@@ -1220,7 +1220,7 @@
 
                 <!-- Filtros en una fila -->
                 <div class="mb-4">
-                    <div class="grid grid-cols-1 gap-3 md:grid-cols-3">
+                    <div class="grid grid-cols-1 gap-3 md:grid-cols-4">
                         <!-- Marca -->
                         <div>
                             <label class="block mb-1 text-sm font-medium text-gray-700">Marca</label>
@@ -1254,6 +1254,17 @@
                                 @foreach($subcategorias as $subcategoria)
                                     <option value="{{ $subcategoria->id }}">{{ $subcategoria->nombre }}</option>
                                 @endforeach
+                            </select>
+                        </div>
+
+                        <!-- Filtro de Stock -->
+                        <div>
+                            <label class="block mb-1 text-sm font-medium text-gray-700">Disponibilidad</label>
+                            <select wire:model.live="filtroStock"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-200">
+                                <option value="todos">Todos los productos</option>
+                                <option value="con_stock">Con stock disponible</option>
+                                <option value="sin_stock">Sin stock</option>
                             </select>
                         </div>
                     </div>

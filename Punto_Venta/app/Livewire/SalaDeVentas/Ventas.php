@@ -65,6 +65,7 @@ class Ventas extends Component
     public $marcas = [];
     public $categorias = [];
     public $subcategorias = [];
+    public $filtroStock = 'todos'; // 'todos', 'con_stock', 'sin_stock'
 
     // Productos en la factura
     public $productosFactura = [];
@@ -4481,6 +4482,32 @@ class Ventas extends Component
             }
         }
 
+        // Aplicar filtro de stock si está seleccionado
+        if ($this->filtroStock === 'con_stock') {
+            $resultadosExpandidos = $resultadosExpandidos->filter(function($item) {
+                return $item->stock_disponible_unidad > 0;
+            });
+        } elseif ($this->filtroStock === 'sin_stock') {
+            $resultadosExpandidos = $resultadosExpandidos->filter(function($item) {
+                return $item->stock_disponible_unidad <= 0;
+            });
+        }
+
+        // SIEMPRE ordenar: primero productos con stock, luego sin stock
+        // Dentro de cada grupo, ordenar alfabéticamente
+        $resultadosExpandidos = $resultadosExpandidos->sortBy([
+            function($a, $b) {
+                // Primero comparar por stock (descendente: con stock primero)
+                if ($a->stock_disponible_unidad > 0 && $b->stock_disponible_unidad <= 0) {
+                    return -1;
+                } elseif ($a->stock_disponible_unidad <= 0 && $b->stock_disponible_unidad > 0) {
+                    return 1;
+                }
+                // Si ambos tienen mismo estado de stock, ordenar alfabéticamente
+                return strcmp($a->nombre, $b->nombre);
+            }
+        ])->values(); // values() para reindexar la colección
+
         $this->resultadosBusqueda = $resultadosExpandidos->take(100); // Limitar resultados finales
     }
 
@@ -4513,6 +4540,12 @@ class Ventas extends Component
     public function updatedSubcategoriaSeleccionada()
     {
         // Auto-buscar cuando cambie la subcategoría
+        $this->buscarProductos();
+    }
+
+    public function updatedFiltroStock()
+    {
+        // Auto-buscar cuando cambie el filtro de stock
         $this->buscarProductos();
     }
 
