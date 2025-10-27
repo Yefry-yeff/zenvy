@@ -33,11 +33,11 @@ class TimezoneServiceProvider extends ServiceProvider
         // Asegurar que Carbon use la zona horaria correcta
         config(['app.timezone' => $timezone]);
         
-        // Log para verificar en desarrollo
-        if (config('app.debug')) {
-            logger()->info('Timezone configurado: ' . $timezone);
-            logger()->info('PHP Timezone: ' . date_default_timezone_get());
-            logger()->info('Carbon Timezone: ' . Carbon::now()->timezoneName);
-        }
+        // Log para verificar en desarrollo (comentado para evitar spam en logs)
+        // if (config('app.debug')) {
+        //     logger()->info('Timezone configurado: ' . $timezone);
+        //     logger()->info('PHP Timezone: ' . date_default_timezone_get());
+        //     logger()->info('Carbon Timezone: ' . Carbon::now()->timezoneName);
+        // }
     }
 }
