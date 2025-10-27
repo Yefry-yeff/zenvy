@@ -1270,8 +1270,8 @@
                             $puedeVender = ($item->puede_vender ?? false) && $stockDisponible > 0;
                         @endphp
                         <div class="relative overflow-hidden transition-all duration-200 bg-white border-2 rounded-lg shadow-sm hover:shadow-lg {{ $puedeVender ? 'cursor-pointer hover:border-blue-400' : 'cursor-not-allowed opacity-60 border-red-300' }}"
-                             @if($puedeVender && $item->precio_id)
-                                wire:click="agregarProductoDesdeModal({{ $item->precio_id }})"
+                             @if($puedeVender)
+                                wire:click="agregarProductoDesdeModal({{ $item->id }})"
                                 title="Click para agregar a la factura"
                              @else
                                 title="{{ $sinStock ? 'Sin stock disponible' : 'Unidad no disponible para venta' }}"
@@ -1360,8 +1360,8 @@
                                             L. {{ number_format($item->precio, 2) }}
                                         </div>
                                     </div>
-                                    @if($puedeVender && $item->precio_id)
-                                        <button wire:click.stop="agregarProductoDesdeModal({{ $item->precio_id }})"
+                                    @if($puedeVender)
+                                        <button wire:click.stop="agregarProductoDesdeModal({{ $item->id }})"
                                             :class="{
                                                 'bg-emerald-600 hover:bg-emerald-700': theme === 'verde',
                                                 'bg-blue-600 hover:bg-blue-700': theme === 'azul',
