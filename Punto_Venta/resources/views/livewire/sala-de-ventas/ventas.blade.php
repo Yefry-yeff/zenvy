@@ -1261,58 +1261,88 @@
 
                 <!-- Resultados en tarjetas (Grid) -->
                 <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    @forelse($resultadosBusqueda as $producto)
+                    @forelse($resultadosBusqueda as $item)
                         @php
-                            $stockDisponible = $this->obtenerStockDisponible($producto->id);
-                            $stockBajo = $stockDisponible <= ($producto->existencia_minima ?? 5);
+                            $stockDisponible = $this->obtenerStockDisponible($item->id);
+                            $stockBajo = $stockDisponible <= 5;
                         @endphp
                         <div class="relative overflow-hidden transition-all duration-200 bg-white border border-gray-200 rounded-lg shadow-sm cursor-pointer hover:shadow-lg hover:border-blue-400"
-                             wire:click="agregarProductoPorClic({{ $producto->id }})"
+                             wire:click="agregarProductoDesdeModal({{ $item->precio_id }})"
                              title="Click para agregar a la factura">
                             
-                            <!-- Badge de stock en la esquina superior derecha -->
-                            <div class="absolute top-2 right-2 px-2 py-1 text-xs font-bold text-white rounded {{ $stockBajo ? 'bg-orange-500' : 'bg-green-500' }}">
-                                <i class="mr-1 fas fa-box"></i>
-                                Stock: {{ $stockDisponible }}
-                            </div>
+                            <!-- Imagen del producto (si existe) -->
+                            @if($item->tiene_imagen && $item->imagen_base64)
+                                <div class="relative w-full bg-gray-100 h-36">
+                                    <img src="data:image/jpeg;base64,{{ $item->imagen_base64 }}" 
+                                         alt="{{ $item->nombre }}"
+                                         class="object-cover w-full h-full"
+                                         loading="lazy">
+                                    <!-- Badge de stock sobre la imagen -->
+                                    <div class="absolute top-2 right-2 px-2 py-1 text-xs font-bold text-white rounded {{ $stockBajo ? 'bg-orange-500' : 'bg-green-500' }}">
+                                        <i class="mr-1 fas fa-box"></i>
+                                        Stock: {{ $stockDisponible }}
+                                    </div>
+                                </div>
+                            @else
+                                <!-- Placeholder si no hay imagen -->
+                                <div class="relative flex items-center justify-center w-full h-36 bg-gradient-to-br from-gray-100 to-gray-200">
+                                    <i class="text-5xl text-gray-400 fas fa-box-open"></i>
+                                    <!-- Badge de stock sobre el placeholder -->
+                                    <div class="absolute top-2 right-2 px-2 py-1 text-xs font-bold text-white rounded {{ $stockBajo ? 'bg-orange-500' : 'bg-green-500' }}">
+                                        <i class="mr-1 fas fa-box"></i>
+                                        Stock: {{ $stockDisponible }}
+                                    </div>
+                                </div>
+                            @endif
 
                             <!-- Contenido de la tarjeta -->
                             <div class="p-4">
                                 <!-- Nombre del producto -->
                                 <h4 class="mb-2 text-base font-bold text-gray-800 line-clamp-2" style="min-height: 3rem;">
-                                    {{ $producto->nombre }}
+                                    {{ $item->nombre }}
                                 </h4>
+
+                                <!-- Unidad de medida (prominente) -->
+                                <div class="mb-3">
+                                    <div class="inline-flex items-center px-3 py-1.5 text-sm font-semibold text-blue-800 bg-blue-100 rounded-full">
+                                        <i class="mr-1.5 fas fa-weight"></i>
+                                        {{ $item->unidad_nombre }}
+                                        @if($item->cantidad_por_unidad > 1)
+                                            <span class="ml-1 text-xs">({{ $item->cantidad_por_unidad }} unids.)</span>
+                                        @endif
+                                    </div>
+                                </div>
 
                                 <!-- Código -->
                                 <div class="mb-2">
                                     <p class="text-xs font-mono text-gray-600">
-                                        @if($producto->codigo_barra)
-                                            <i class="mr-1 fas fa-barcode"></i>{{ $producto->codigo_barra }}
+                                        @if($item->codigo_barra)
+                                            <i class="mr-1 fas fa-barcode"></i>{{ $item->codigo_barra }}
                                         @else
-                                            <i class="mr-1 fas fa-hashtag"></i>{{ $producto->codigo }}
+                                            <i class="mr-1 fas fa-hashtag"></i>Sin código
                                         @endif
                                     </p>
                                 </div>
 
                                 <!-- Categoría y Marca -->
                                 <div class="flex flex-wrap gap-2 mb-3">
-                                    @if(optional($producto->subcategoria)->nombre)
-                                        <span class="px-2 py-1 text-xs font-medium text-blue-700 bg-blue-100 rounded">
+                                    @if($item->subcategoria_nombre)
+                                        <span class="px-2 py-1 text-xs font-medium text-blue-700 bg-blue-50 rounded">
                                             <i class="mr-1 fas fa-tag"></i>
-                                            {{ $producto->subcategoria->nombre }}
+                                            {{ $item->subcategoria_nombre }}
                                         </span>
                                     @endif
-                                    @if($producto->marca)
-                                        <span class="px-2 py-1 text-xs font-medium text-gray-700 bg-gray-100 rounded">
+                                    @if($item->marca_nombre)
+                                        <span class="px-2 py-1 text-xs font-medium text-gray-700 bg-gray-50 rounded">
                                             <i class="mr-1 fas fa-industry"></i>
-                                            {{ $producto->marca->nombre }}
+                                            {{ $item->marca_nombre }}
                                         </span>
                                     @endif
                                 </div>
 
                                 <!-- Descripción -->
-                                @if($producto->descripcion)
-                                    <p class="mb-3 text-xs text-gray-500 line-clamp-2">{{ $producto->descripcion }}</p>
+                                @if($item->descripcion)
+                                    <p class="mb-3 text-xs text-gray-500 line-clamp-2">{{ $item->descripcion }}</p>
                                 @endif
 
                                 <!-- Precio y botón de agregar -->
@@ -1320,10 +1350,10 @@
                                     <div>
                                         <div class="text-xs text-gray-500">Precio</div>
                                         <div class="text-xl font-bold text-green-600">
-                                            L. {{ number_format($producto->precio_base, 2) }}
+                                            L. {{ number_format($item->precio, 2) }}
                                         </div>
                                     </div>
-                                    <button wire:click.stop="agregarProductoPorClic({{ $producto->id }})"
+                                    <button wire:click.stop="agregarProductoDesdeModal({{ $item->precio_id }})"
                                         :class="{
                                             'bg-emerald-600 hover:bg-emerald-700': theme === 'verde',
                                             'bg-blue-600 hover:bg-blue-700': theme === 'azul',

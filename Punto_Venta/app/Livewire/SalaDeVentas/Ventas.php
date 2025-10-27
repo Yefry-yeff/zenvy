@@ -4018,6 +4018,159 @@ class Ventas extends Component
         }
     }
 
+    /**
+     * Agregar producto desde modal de búsqueda usando el ID de precio_has_venta
+     * Esto permite agregar directamente con la unidad de medida y precio específicos
+     */
+    public function agregarProductoDesdeModal($precioVentaId)
+    {
+        try {
+            // Obtener información completa del precio de venta con relaciones
+            $precioVenta = DB::table('precio_has_venta as phv')
+                ->join('producto as p', 'phv.producto_id', '=', 'p.id')
+                ->join('unidad_medida as um', 'phv.unidad_medida_id', '=', 'um.id')
+                ->leftJoin('isv', 'p.isv_id', '=', 'isv.id')
+                ->select(
+                    'phv.id as precio_id',
+                    'p.id as producto_id',
+                    'p.nombre',
+                    'p.codigo_barra',
+                    'p.precio_base',
+                    'p.precio1',
+                    'p.precio2',
+                    'p.precio3',
+                    'p.precio4',
+                    'p.producto_valencia',
+                    'p.descuento_tercera',
+                    'p.descuento_cuarta',
+                    'p.descuento_unitario',
+                    'phv.precio',
+                    'phv.cantidad as cantidad_por_unidad',
+                    'um.id as unidad_medida_id',
+                    'um.nombre as unidad_nombre',
+                    'isv.cantidad as isv_cantidad'
+                )
+                ->where('phv.id', $precioVentaId)
+                ->where('phv.estado_id', 1)
+                ->where('p.estado_id', 1)
+                ->first();
+
+            if (!$precioVenta) {
+                $this->dispatch('mostrar-error', ['mensaje' => 'Precio de venta no encontrado']);
+                return;
+            }
+
+            // Verificar stock disponible para este producto
+            $stockDisponible = $this->obtenerStockDisponible($precioVenta->producto_id);
+            
+            if ($stockDisponible <= 0) {
+                $this->dispatch('mostrar-error', ['mensaje' => 'Producto sin stock disponible']);
+                return;
+            }
+
+            // Verificar si el producto con la misma unidad ya está en la factura
+            $productoExistente = false;
+            foreach ($this->productosFactura as $index => $item) {
+                if (!isset($item['servicio_id']) && 
+                    $item['id'] == $precioVenta->producto_id && 
+                    ($item['unidad_medida_id'] ?? null) == $precioVenta->unidad_medida_id) {
+                    
+                    // Calcular nueva cantidad en unidades base
+                    $cantidadActual = (int)$this->productosFactura[$index]['cantidad'];
+                    $cantidadPorUnidad = $this->productosFactura[$index]['cantidad_por_unidad'] ?? 1;
+                    $unidadesEnCarrito = ($cantidadActual * $cantidadPorUnidad);
+                    $nuevasUnidades = $unidadesEnCarrito + $precioVenta->cantidad_por_unidad;
+
+                    // Verificar que no exceda el stock
+                    if ($nuevasUnidades > $stockDisponible) {
+                        $this->dispatch('mostrar-error', ['mensaje' => 'No se puede agregar más cantidad. Stock limitado a: ' . $stockDisponible]);
+                        return;
+                    }
+
+                    // Incrementar cantidad (agregar una unidad de la medida seleccionada)
+                    $this->productosFactura[$index]['cantidad'] = $cantidadActual + 1;
+
+                    // Recalcular descuento unitario aplicado
+                    $descuentoUnitarioProducto = $item['descuento_unitario_producto'] ?? 0;
+                    if ($descuentoUnitarioProducto > 0) {
+                        $this->productosFactura[$index]['descuento_unitario_aplicado'] = $descuentoUnitarioProducto * ($cantidadActual + 1);
+                    }
+
+                    // Recalcular subtotal
+                    $subtotalOriginal = $precioVenta->precio * ($cantidadActual + 1);
+                    $descuentoUnitarioAplicado = $this->productosFactura[$index]['descuento_unitario_aplicado'] ?? 0;
+                    $this->productosFactura[$index]['subtotal_con_descuento'] = $subtotalOriginal - $descuentoUnitarioAplicado;
+
+                    $productoExistente = true;
+                    break;
+                }
+            }
+
+            if (!$productoExistente) {
+                // Agregar nuevo producto a la factura
+                $valorIsv = $precioVenta->isv_cantidad ?? 0;
+                
+                // Calcular descuento unitario automático si existe
+                $subtotalOriginal = $precioVenta->precio;
+                $descuentoUnitarioAplicado = 0;
+
+                if (($precioVenta->descuento_unitario ?? 0) > 0) {
+                    $descuentoUnitarioAplicado = $precioVenta->descuento_unitario;
+                }
+
+                $this->productosFactura[] = [
+                    'id' => $precioVenta->producto_id,
+                    'precio_venta_id' => $precioVenta->precio_id,
+                    'servicio_id' => null,
+                    'nombre' => $precioVenta->nombre,
+                    'codigo' => $precioVenta->codigo_barra,
+                    'precio' => $precioVenta->precio,
+                    'tipo_precio' => 'precio_unidad', // Indicar que viene de precio_has_venta
+                    'precio1' => $precioVenta->precio1 ?? 0,
+                    'precio2' => $precioVenta->precio2 ?? 0,
+                    'precio3' => $precioVenta->precio3 ?? 0,
+                    'precio4' => $precioVenta->precio4 ?? 0,
+                    'precio_base' => $precioVenta->precio_base,
+                    'producto_valencia' => $precioVenta->producto_valencia,
+                    'isv' => $valorIsv,
+                    'cantidad' => 1,
+                    'cantidad_por_unidad' => $precioVenta->cantidad_por_unidad,
+                    'unidad_medida_id' => $precioVenta->unidad_medida_id,
+                    'unidad_nombre' => $precioVenta->unidad_nombre,
+                    'descuento_tercera' => $precioVenta->descuento_tercera ?? 0,
+                    'descuento_cuarta' => $precioVenta->descuento_cuarta ?? 0,
+                    'descuento_unitario_producto' => $precioVenta->descuento_unitario ?? 0,
+                    'descuento_unitario_aplicado' => $descuentoUnitarioAplicado,
+                    'descuento_aplicado' => 0,
+                    'subtotal_con_descuento' => $subtotalOriginal - $descuentoUnitarioAplicado,
+                    'tipo' => 'producto'
+                ];
+
+                // Mostrar mensaje si se aplicó descuento automático
+                if ($descuentoUnitarioAplicado > 0) {
+                    $this->dispatch('mostrar-info', ['mensaje' => 'Descuento unitario aplicado automáticamente']);
+                }
+            }
+
+            $this->calcularTotales();
+
+            // Cerrar modal y limpiar búsqueda
+            $this->mostrarModalBusqueda = false;
+            $this->busquedaProductosServicios = '';
+            $this->resultadosBusqueda = collect();
+
+            // Forzar actualización de la vista
+            $this->dispatch('$refresh');
+
+            // Enfocar campo de código de barras
+            $this->dispatch('enfocar-codigo-barras');
+
+        } catch (\Exception $e) {
+            Log::error('Error al agregar producto desde modal: ' . $e->getMessage());
+            $this->dispatch('mostrar-error', ['mensaje' => 'Error al agregar el producto']);
+        }
+    }
+
     public function limpiarEstadoVenta()
     {
         $this->resetearFactura();
@@ -4202,6 +4355,7 @@ class Ventas extends Component
 
     public function buscarProductos()
     {
+        // Primero, obtener los productos que coinciden con los filtros
         $query = Producto::with(['subcategoria.categoria', 'marca'])
             ->where('estado_id', 1); // Solo productos activos
 
@@ -4230,15 +4384,106 @@ class Ventas extends Component
             });
         }
 
-        // Obtener productos y filtrar solo los que tienen stock disponible
+        // Obtener productos con stock disponible
         $productos = $query->orderBy('nombre')
-                          ->limit(100) // Limitar a 100 resultados para mejor rendimiento
-                          ->get();
+                          ->limit(50) // Limitar productos base
+                          ->get()
+                          ->filter(function($producto) {
+                              return $this->obtenerStockDisponible($producto->id) > 0;
+                          });
 
-        // Filtrar solo productos con stock disponible
-        $this->resultadosBusqueda = $productos->filter(function($producto) {
-            return $this->obtenerStockDisponible($producto->id) > 0;
-        })->values();
+        // Expandir cada producto con sus unidades de precio_has_venta
+        $resultadosExpandidos = collect();
+        
+        foreach ($productos as $producto) {
+            // Obtener todas las unidades de precio para este producto
+            $preciosVenta = DB::table('precio_has_venta as phv')
+                ->join('unidad_medida as um', 'phv.unidad_medida_id', '=', 'um.id')
+                ->where('phv.producto_id', $producto->id)
+                ->where('phv.estado_id', 1)
+                ->select(
+                    'phv.id as precio_id',
+                    'phv.precio',
+                    'phv.cantidad as cantidad_por_unidad',
+                    'um.id as unidad_medida_id',
+                    'um.nombre as unidad_nombre'
+                )
+                ->get();
+
+            // Si el producto tiene precios de venta definidos, crear una entrada por cada uno
+            if ($preciosVenta->count() > 0) {
+                foreach ($preciosVenta as $precioVenta) {
+                    // Convertir imagen a base64 si existe, o null
+                    $imagenBase64 = null;
+                    if ($producto->imagen) {
+                        try {
+                            $imagenBase64 = base64_encode($producto->imagen);
+                        } catch (\Exception $e) {
+                            $imagenBase64 = null;
+                        }
+                    }
+
+                    $resultadosExpandidos->push((object)[
+                        'precio_id' => $precioVenta->precio_id ?? 0,
+                        'id' => $producto->id,
+                        'nombre' => $producto->nombre ?? '',
+                        'descripcion' => $producto->descripcion ?? '',
+                        'codigo_barra' => $producto->codigo_barra ?? '',
+                        'imagen_base64' => $imagenBase64,
+                        'tiene_imagen' => $imagenBase64 !== null,
+                        'precio_base' => $producto->precio_base ?? 0,
+                        'precio' => $precioVenta->precio ?? 0,
+                        'cantidad_por_unidad' => $precioVenta->cantidad_por_unidad ?? 1,
+                        'unidad_medida_id' => $precioVenta->unidad_medida_id ?? 0,
+                        'unidad_nombre' => $precioVenta->unidad_nombre ?? 'Unidad',
+                        'subcategoria_nombre' => optional($producto->subcategoria)->nombre ?? '',
+                        'categoria_nombre' => optional(optional($producto->subcategoria)->categoria)->nombre ?? '',
+                        'marca_nombre' => optional($producto->marca)->nombre ?? '',
+                        'descuento_unitario' => $producto->descuento_unitario ?? 0,
+                        'descuento_tercera' => $producto->descuento_tercera ?? 0,
+                        'descuento_cuarta' => $producto->descuento_cuarta ?? 0,
+                        'isv_id' => $producto->isv_id ?? 1,
+                        'producto_valencia' => $producto->producto_valencia ?? 0,
+                    ]);
+                }
+            } else {
+                // Si no tiene precio_has_venta, mostrar con precio base
+                // Convertir imagen a base64 si existe
+                $imagenBase64 = null;
+                if ($producto->imagen) {
+                    try {
+                        $imagenBase64 = base64_encode($producto->imagen);
+                    } catch (\Exception $e) {
+                        $imagenBase64 = null;
+                    }
+                }
+
+                $resultadosExpandidos->push((object)[
+                    'precio_id' => null,
+                    'id' => $producto->id,
+                    'nombre' => $producto->nombre ?? '',
+                    'descripcion' => $producto->descripcion ?? '',
+                    'codigo_barra' => $producto->codigo_barra ?? '',
+                    'imagen_base64' => $imagenBase64,
+                    'tiene_imagen' => $imagenBase64 !== null,
+                    'precio_base' => $producto->precio_base ?? 0,
+                    'precio' => $producto->precio_base ?? 0,
+                    'cantidad_por_unidad' => 1,
+                    'unidad_medida_id' => null,
+                    'unidad_nombre' => 'Unidad',
+                    'subcategoria_nombre' => optional($producto->subcategoria)->nombre ?? '',
+                    'categoria_nombre' => optional(optional($producto->subcategoria)->categoria)->nombre ?? '',
+                    'marca_nombre' => optional($producto->marca)->nombre ?? '',
+                    'descuento_unitario' => $producto->descuento_unitario ?? 0,
+                    'descuento_tercera' => $producto->descuento_tercera ?? 0,
+                    'descuento_cuarta' => $producto->descuento_cuarta ?? 0,
+                    'isv_id' => $producto->isv_id ?? 1,
+                    'producto_valencia' => $producto->producto_valencia ?? 0,
+                ]);
+            }
+        }
+
+        $this->resultadosBusqueda = $resultadosExpandidos->take(100); // Limitar resultados finales
     }
 
     public function updatedCategoriaSeleccionada($value)
