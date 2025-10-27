@@ -4060,11 +4060,31 @@ class Ventas extends Component
                 return;
             }
 
-            // Verificar stock disponible para este producto
-            $stockDisponible = $this->obtenerStockDisponible($precioVenta->producto_id);
-            
+            // VALIDACIÓN 1: Verificar que la unidad de medida de precio_has_venta tenga stock en bodega
+            // Esto previene que se agregue una unidad que no está recepcionada
+            $stockUnidadTotal = $this->calcularStockTotalPorUnidad($precioVenta->producto_id, $precioVenta->unidad_medida_id);
+
+            // Si no hay stock en bodega para esta unidad específica, mostrar alerta
+            if ($stockUnidadTotal <= 0) {
+                session()->flash('error', '⚠️ Producto no cuenta con esa unidad de venta. El producto no ha sido recepcionado con la unidad "' . $precioVenta->unidad_nombre . '". Por favor, verifique las unidades disponibles en stock.');
+                $this->dispatch('mostrar-error', ['mensaje' => 'Producto no cuenta con esa unidad de venta']);
+                return;
+            }
+
+            // VALIDACIÓN 2: Verificar stock disponible PARA LA UNIDAD seleccionada
+            // Calcular cuánto hay en el carrito para esta unidad (en unidades reales)
+            $cantidadEnCarritoUnidad = 0;
+            foreach ($this->productosFactura as $itemCarrito) {
+                if (isset($itemCarrito['id']) && $itemCarrito['id'] == $precioVenta->producto_id &&
+                    isset($itemCarrito['unidad_medida_id']) && $itemCarrito['unidad_medida_id'] == $precioVenta->unidad_medida_id) {
+                    $cantidadEnCarritoUnidad += (int)($itemCarrito['cantidad'] ?? 0);
+                }
+            }
+
+            $stockDisponible = max(0, $stockUnidadTotal - $cantidadEnCarritoUnidad);
+
             if ($stockDisponible <= 0) {
-                $this->dispatch('mostrar-error', ['mensaje' => 'Producto sin stock disponible']);
+                $this->dispatch('mostrar-error', ['mensaje' => 'Stock agotado para la unidad seleccionada (todo el stock ya está en el carrito)']);
                 return;
             }
 
@@ -4384,13 +4404,10 @@ class Ventas extends Component
             });
         }
 
-        // Obtener productos con stock disponible
+        // Obtener TODOS los productos (con o sin stock) - igual que lista-de-productos.blade.php
         $productos = $query->orderBy('nombre')
-                          ->limit(50) // Limitar productos base
-                          ->get()
-                          ->filter(function($producto) {
-                              return $this->obtenerStockDisponible($producto->id) > 0;
-                          });
+                          ->limit(100) // Aumentar límite para mostrar más productos
+                          ->get();
 
         // Expandir cada producto con sus unidades de precio_has_venta
         $resultadosExpandidos = collect();
@@ -4423,6 +4440,23 @@ class Ventas extends Component
                         }
                     }
 
+                    // Calcular stock específico para esta unidad de medida
+                    $stockUnidadTotal = $this->calcularStockTotalPorUnidad($producto->id, $precioVenta->unidad_medida_id);
+
+                    // Calcular cuánto hay en el carrito para esta misma unidad (en unidades reales de venta)
+                    $cantidadEnCarritoUnidad = 0;
+                    foreach ($this->productosFactura as $itemCarrito) {
+                        if (isset($itemCarrito['id']) && $itemCarrito['id'] == $producto->id &&
+                            isset($itemCarrito['unidad_medida_id']) && $itemCarrito['unidad_medida_id'] == $precioVenta->unidad_medida_id) {
+                            $cantidadEnCarritoUnidad += (int)($itemCarrito['cantidad'] ?? 0);
+                        }
+                    }
+
+                    $stockDisponibleUnidad = max(0, $stockUnidadTotal - $cantidadEnCarritoUnidad);
+
+                    // CAMBIO: Mostrar TODAS las unidades, incluso sin stock (puede_vender dependerá del stock)
+                    $puedeVender = $stockDisponibleUnidad > 0;
+
                     $resultadosExpandidos->push((object)[
                         'precio_id' => $precioVenta->precio_id ?? 0,
                         'id' => $producto->id,
@@ -4436,6 +4470,9 @@ class Ventas extends Component
                         'cantidad_por_unidad' => $precioVenta->cantidad_por_unidad ?? 1,
                         'unidad_medida_id' => $precioVenta->unidad_medida_id ?? 0,
                         'unidad_nombre' => $precioVenta->unidad_nombre ?? 'Unidad',
+                        'stock_total_unidad' => $stockUnidadTotal,
+                        'stock_disponible_unidad' => $stockDisponibleUnidad,
+                        'puede_vender' => $puedeVender, // true solo si tiene stock > 0
                         'subcategoria_nombre' => optional($producto->subcategoria)->nombre ?? '',
                         'categoria_nombre' => optional(optional($producto->subcategoria)->categoria)->nombre ?? '',
                         'marca_nombre' => optional($producto->marca)->nombre ?? '',
@@ -4458,6 +4495,7 @@ class Ventas extends Component
                     }
                 }
 
+                // Si no tiene unidades en precio_has_venta, marcar como no vendible por unidad (unidad no asignada)
                 $resultadosExpandidos->push((object)[
                     'precio_id' => null,
                     'id' => $producto->id,
@@ -4471,6 +4509,9 @@ class Ventas extends Component
                     'cantidad_por_unidad' => 1,
                     'unidad_medida_id' => null,
                     'unidad_nombre' => 'Unidad',
+                    'puede_vender' => false, // No tiene unidad en precio_has_venta
+                    'stock_total_unidad' => $this->obtenerStockTotal($producto->id),
+                    'stock_disponible_unidad' => 0,
                     'subcategoria_nombre' => optional($producto->subcategoria)->nombre ?? '',
                     'categoria_nombre' => optional(optional($producto->subcategoria)->categoria)->nombre ?? '',
                     'marca_nombre' => optional($producto->marca)->nombre ?? '',

@@ -1263,22 +1263,29 @@
                 <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
                     @forelse($resultadosBusqueda as $item)
                         @php
-                            $stockDisponible = $this->obtenerStockDisponible($item->id);
-                            $stockBajo = $stockDisponible <= 5;
+                            // Usar stock por unidad específica
+                            $stockDisponible = $item->stock_disponible_unidad ?? 0;
+                            $stockBajo = $stockDisponible > 0 && $stockDisponible <= 5;
+                            $sinStock = $stockDisponible <= 0;
+                            $puedeVender = ($item->puede_vender ?? false) && $stockDisponible > 0;
                         @endphp
-                        <div class="relative overflow-hidden transition-all duration-200 bg-white border border-gray-200 rounded-lg shadow-sm cursor-pointer hover:shadow-lg hover:border-blue-400"
-                             wire:click="agregarProductoDesdeModal({{ $item->precio_id }})"
-                             title="Click para agregar a la factura">
+                        <div class="relative overflow-hidden transition-all duration-200 bg-white border-2 rounded-lg shadow-sm hover:shadow-lg {{ $puedeVender ? 'cursor-pointer hover:border-blue-400' : 'cursor-not-allowed opacity-60 border-red-300' }}"
+                             @if($puedeVender && $item->precio_id)
+                                wire:click="agregarProductoDesdeModal({{ $item->precio_id }})"
+                                title="Click para agregar a la factura"
+                             @else
+                                title="{{ $sinStock ? 'Sin stock disponible' : 'Unidad no disponible para venta' }}"
+                             @endif>
                             
                             <!-- Imagen del producto (si existe) -->
                             @if($item->tiene_imagen && $item->imagen_base64)
                                 <div class="relative w-full bg-gray-100 h-36">
                                     <img src="data:image/jpeg;base64,{{ $item->imagen_base64 }}" 
                                          alt="{{ $item->nombre }}"
-                                         class="object-cover w-full h-full"
+                                         class="object-cover w-full h-full {{ $sinStock ? 'grayscale' : '' }}"
                                          loading="lazy">
                                     <!-- Badge de stock sobre la imagen -->
-                                    <div class="absolute top-2 right-2 px-2 py-1 text-xs font-bold text-white rounded {{ $stockBajo ? 'bg-orange-500' : 'bg-green-500' }}">
+                                    <div class="absolute top-2 right-2 px-2 py-1 text-xs font-bold text-white rounded {{ $sinStock ? 'bg-red-500' : ($stockBajo ? 'bg-orange-500' : 'bg-green-500') }}">
                                         <i class="mr-1 fas fa-box"></i>
                                         Stock: {{ $stockDisponible }}
                                     </div>
@@ -1286,9 +1293,9 @@
                             @else
                                 <!-- Placeholder si no hay imagen -->
                                 <div class="relative flex items-center justify-center w-full h-36 bg-gradient-to-br from-gray-100 to-gray-200">
-                                    <i class="text-5xl text-gray-400 fas fa-box-open"></i>
+                                    <i class="text-5xl {{ $sinStock ? 'text-gray-300' : 'text-gray-400' }} fas fa-box-open"></i>
                                     <!-- Badge de stock sobre el placeholder -->
-                                    <div class="absolute top-2 right-2 px-2 py-1 text-xs font-bold text-white rounded {{ $stockBajo ? 'bg-orange-500' : 'bg-green-500' }}">
+                                    <div class="absolute top-2 right-2 px-2 py-1 text-xs font-bold text-white rounded {{ $sinStock ? 'bg-red-500' : ($stockBajo ? 'bg-orange-500' : 'bg-green-500') }}">
                                         <i class="mr-1 fas fa-box"></i>
                                         Stock: {{ $stockDisponible }}
                                     </div>
@@ -1304,7 +1311,7 @@
 
                                 <!-- Unidad de medida (prominente) -->
                                 <div class="mb-3">
-                                    <div class="inline-flex items-center px-3 py-1.5 text-sm font-semibold text-blue-800 bg-blue-100 rounded-full">
+                                    <div class="inline-flex items-center px-3 py-1.5 text-sm font-semibold rounded-full {{ $sinStock ? 'text-red-800 bg-red-100' : 'text-blue-800 bg-blue-100' }}">
                                         <i class="mr-1.5 fas fa-weight"></i>
                                         {{ $item->unidad_nombre }}
                                         @if($item->cantidad_por_unidad > 1)
@@ -1349,27 +1356,35 @@
                                 <div class="flex items-center justify-between pt-3 mt-3 border-t border-gray-200">
                                     <div>
                                         <div class="text-xs text-gray-500">Precio</div>
-                                        <div class="text-xl font-bold text-green-600">
+                                        <div class="text-xl font-bold {{ $sinStock ? 'text-gray-400' : 'text-green-600' }}">
                                             L. {{ number_format($item->precio, 2) }}
                                         </div>
                                     </div>
-                                    <button wire:click.stop="agregarProductoDesdeModal({{ $item->precio_id }})"
-                                        :class="{
-                                            'bg-emerald-600 hover:bg-emerald-700': theme === 'verde',
-                                            'bg-blue-600 hover:bg-blue-700': theme === 'azul',
-                                            'bg-gray-800 hover:bg-gray-900': theme === 'oscuro',
-                                            'bg-slate-600 hover:bg-slate-700': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
-                                        }"
-                                        class="flex items-center justify-center w-10 h-10 text-white transition-colors rounded-full">
-                                        <i class="fas fa-plus"></i>
-                                    </button>
+                                    @if($puedeVender && $item->precio_id)
+                                        <button wire:click.stop="agregarProductoDesdeModal({{ $item->precio_id }})"
+                                            :class="{
+                                                'bg-emerald-600 hover:bg-emerald-700': theme === 'verde',
+                                                'bg-blue-600 hover:bg-blue-700': theme === 'azul',
+                                                'bg-gray-800 hover:bg-gray-900': theme === 'oscuro',
+                                                'bg-slate-600 hover:bg-slate-700': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
+                                            }"
+                                            class="flex items-center justify-center w-10 h-10 text-white transition-colors rounded-full">
+                                            <i class="fas fa-plus"></i>
+                                        </button>
+                                    @else
+                                        <button disabled
+                                            class="flex items-center justify-center w-10 h-10 text-white bg-gray-400 opacity-60 cursor-not-allowed rounded-full"
+                                            title="{{ $sinStock ? 'Sin stock' : 'Unidad no disponible' }}">
+                                            <i class="fas {{ $sinStock ? 'fa-times' : 'fa-ban' }}"></i>
+                                        </button>
+                                    @endif
                                 </div>
                             </div>
                         </div>
                     @empty
                         <div class="col-span-3 py-8 text-center">
                             <i class="mb-3 text-gray-400 fas fa-search fa-3x"></i>
-                            <p class="text-gray-500">No se encontraron productos con stock disponible</p>
+                            <p class="text-gray-500">No se encontraron productos</p>
                             <p class="text-sm text-gray-400">Intenta con otros filtros o términos de búsqueda</p>
                         </div>
                     @endforelse
@@ -1380,7 +1395,7 @@
                     <div class="mt-4 text-center">
                         <small class="text-muted">
                             <i class="fas fa-info-circle me-1"></i>
-                            Mostrando {{ count($resultadosBusqueda) }} producto(s) con stock disponible. Haz clic para agregar a la factura.
+                            Mostrando {{ count($resultadosBusqueda) }} producto(s). Haz clic para agregar a la factura.
                         </small>
                     </div>
                 @endif
