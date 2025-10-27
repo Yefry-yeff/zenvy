@@ -1456,13 +1456,16 @@ class Ventas extends Component
             $this->productosFactura[$index]['descuento_individual_aplicado'] = $descuentoIndividual;
             $this->productosFactura[$index]['subtotal_con_descuento'] = $subtotalConDescuento;
 
-            // Actualizar el total del producto en el array
-            $this->productosFactura[$index]['total'] = $subtotalConDescuento;
-
             // Calcular ISV sobre el subtotal con descuento
             $tasaIsv = $producto['isv'];
             $isvProducto = round($subtotalConDescuento * ($tasaIsv / 100), 2);
             $this->totalIsv = round($this->totalIsv + $isvProducto, 2);
+
+            // IMPORTANTE: Guardar el monto del ISV calculado en el producto
+            $this->productosFactura[$index]['isv_calculado'] = $isvProducto;
+
+            // Actualizar el total del producto en el array (subtotal + ISV)
+            $this->productosFactura[$index]['total'] = $subtotalConDescuento + $isvProducto;
 
             // Agrupar ISV por tasa
             if (!isset($isvPorTasa[$tasaIsv])) {
@@ -2829,11 +2832,11 @@ class Ventas extends Component
             'resta_inventario_total' => $producto['cantidad'],
             'precio_unidad' => $producto['precio'],
             'cantidad' => $producto['cantidad'], // Cantidad de la línea de factura
-            'subtotal' => $producto['subtotal'] ?? ($producto['cantidad'] * $producto['precio']),
+            'subtotal' => $producto['subtotal_con_descuento'] ?? ($producto['cantidad'] * $producto['precio']),
             'descuento' => $producto['descuento_aplicado'] ?? 0,
-            'isv_aplicado' => $producto['isv'] ?? 0,
-            'isv' => $producto['isv_calculado'] ?? 0,
-            'total' => $producto['total'] ?? ($producto['subtotal'] + ($producto['isv_calculado'] ?? 0)),
+            'isv_aplicado' => $producto['isv'] ?? 0, // Tasa de ISV (15, 18, etc.)
+            'isv' => $producto['isv_calculado'] ?? 0, // Monto del ISV calculado
+            'total' => $producto['total'] ?? (($producto['subtotal_con_descuento'] ?? 0) + ($producto['isv_calculado'] ?? 0)),
             'idPrecioSeleccionado' => '0',
             'precio_seleccionado' => 0
         ];

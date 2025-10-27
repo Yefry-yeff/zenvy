@@ -383,24 +383,24 @@
                     // SUB-TOTAL = Total Importe - Descuentos
                     $subtotalFinal = $subtotalSinDescuentos - $totalDescuentos;
 
-                    // Calcular importe exento (productos sin ISV, después de descuentos)
-                    $importeExento = collect($productos)->filter(function($producto) {
+                    // Calcular importe exento SIN descuentos (productos sin ISV)
+                    $importeExentoSinDescuento = collect($productos)->filter(function($producto) {
                         return ($producto['tasa_isv'] ?? 0) == 0;
                     })->sum(function($producto) {
-                        return $producto['subtotal'] ?? 0;
+                        return ($producto['cantidad'] ?? 0) * ($producto['precio_unidad'] ?? 0);
                     });
 
-                    // Calcular importes gravados por tasa de ISV (después de descuentos)
-                    $importe15 = collect($productos)->filter(function($producto) {
+                    // Calcular importes gravados SIN descuentos (cantidad × precio_unidad)
+                    $importe15SinDescuento = collect($productos)->filter(function($producto) {
                         return ($producto['tasa_isv'] ?? 0) == 15;
                     })->sum(function($producto) {
-                        return $producto['subtotal'] ?? 0;
+                        return ($producto['cantidad'] ?? 0) * ($producto['precio_unidad'] ?? 0);
                     });
 
-                    $importe18 = collect($productos)->filter(function($producto) {
+                    $importe18SinDescuento = collect($productos)->filter(function($producto) {
                         return ($producto['tasa_isv'] ?? 0) == 18;
                     })->sum(function($producto) {
-                        return $producto['subtotal'] ?? 0;
+                        return ($producto['cantidad'] ?? 0) * ($producto['precio_unidad'] ?? 0);
                     });
                 @endphp
 
@@ -417,7 +417,7 @@
                 @endif
                 <div class="table-row">
                     <div class="table-cell-left">IMPORTE EXENTO</div>
-                    <div class="table-cell-right">L. {{ number_format($importeExento, 2) }}</div>
+                    <div class="table-cell-right">L. {{ number_format($importeExentoSinDescuento, 2) }}</div>
                 </div>
 
                 @php
@@ -437,17 +437,8 @@
 
                  <div class="table-row">
                     <div class="table-cell-left">IMPORTE GRAVADO</div>
-                    <div class="table-cell-right">L. {{ number_format($importe15, 2) }}</div>
+                    <div class="table-cell-right">L. {{ number_format($importe15SinDescuento, 2) }}</div>
                 </div>
-                <!--
-                <div class="table-row">
-                    <div class="table-cell-left">IMPORTE 15%</div>
-                    <div class="table-cell-right">L. {{ number_format($importe15, 2) }}</div>
-                </div>
-                <div class="table-row">
-                    <div class="table-cell-left">IMPORTE 18%</div>
-                    <div class="table-cell-right">L. {{ number_format($importe18, 2) }}</div>
-                </div>-->
 
                 <div class="table-row">
                     <div class="table-cell-left">SUB-TOTAL</div>
