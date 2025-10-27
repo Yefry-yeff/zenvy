@@ -20,11 +20,12 @@ class DashboardDinamico extends Component
     
     // Datos para gráficos
     public $ventasSemana = [];
+    public $diasSemanaLabels = [];
     public $topProductosLabels = [];
     public $topProductosData = [];
     public $metodosPagoData = [];
-    public $bodegasLabels = [];
-    public $bodegasData = [];
+    public $topClientesLabels = [];
+    public $topClientesData = [];
 
     public function mount()
     {
@@ -510,7 +511,7 @@ class DashboardDinamico extends Component
     {
         $usuario = Auth::user();
 
-        // 1. Ventas de la última semana (últimos 7 días)
+        // 1. Ventas de la última semana (últimos 7 días) con nombres de días dinámicos
         if ($this->usuarioTienePermisos(['SalaDeVentas.Ventas'])) {
             $ventasPorDia = DB::table('factura')
                 ->select(DB::raw('DATE(created_at) as fecha'), DB::raw('SUM(total) as total'))
@@ -520,12 +521,19 @@ class DashboardDinamico extends Component
                 ->get()
                 ->keyBy('fecha');
 
-            // Llenar con 0 los días sin ventas
+            // Llenar con 0 los días sin ventas y generar labels dinámicos
             $this->ventasSemana = [];
+            $this->diasSemanaLabels = [];
             for ($i = 6; $i >= 0; $i--) {
-                $fecha = Carbon::now()->subDays($i)->format('Y-m-d');
-                $this->ventasSemana[] = $ventasPorDia->has($fecha) 
-                    ? round($ventasPorDia[$fecha]->total, 2) 
+                $fecha = Carbon::now()->subDays($i);
+                $fechaStr = $fecha->format('Y-m-d');
+                
+                // Nombre del día en español
+                $nombreDia = $fecha->locale('es')->isoFormat('dddd');
+                $this->diasSemanaLabels[] = ucfirst($nombreDia);
+                
+                $this->ventasSemana[] = $ventasPorDia->has($fechaStr) 
+                    ? round($ventasPorDia[$fechaStr]->total, 2) 
                     : 0;
             }
         }
@@ -566,34 +574,38 @@ class DashboardDinamico extends Component
 
             // Ordenar por los 4 métodos principales
             $this->metodosPagoData = [
-                round($metodosPago->get('Efectivo')->total ?? 0, 2),
-                round($metodosPago->get('Tarjeta')->total ?? 0, 2),
-                round($metodosPago->get('Transferencia')->total ?? 0, 2),
-                round($metodosPago->get('Cheque')->total ?? 0, 2),
+                $metodosPago->has('Efectivo') ? round($metodosPago->get('Efectivo')->total, 2) : 0,
+                $metodosPago->has('Tarjeta') ? round($metodosPago->get('Tarjeta')->total, 2) : 0,
+                $metodosPago->has('Transferencia') ? round($metodosPago->get('Transferencia')->total, 2) : 0,
+                $metodosPago->has('Cheque') ? round($metodosPago->get('Cheque')->total, 2) : 0,
             ];
         }
 
-        // 4. Productos por bodega
-        if ($this->usuarioTienePermisos(['Inventario.Bodegas', 'Inventario.Producto'])) {
-            $productosPorBodega = DB::table('recibido_bodega as rb')
-                ->join('seccion as s', 'rb.seccion_id', '=', 's.id')
-                ->join('segmento as seg', 's.segmento_id', '=', 'seg.id')
-                ->join('bodega as b', 'seg.bodega_id', '=', 'b.id')
-                ->select('b.nombre', DB::raw('COUNT(DISTINCT rb.producto_id) as total_productos'))
-                ->where('b.estado_id', 1)
-                ->where('b.id', '!=', 2) // Excluir bodega de productos sin venta
-                ->groupBy('b.id', 'b.nombre')
-                ->orderByDesc('total_productos')
-                ->limit(6)
+        // 4. Top 5 clientes que más compran (basado en nombre_cliente de factura)
+        if ($this->usuarioTienePermisos(['SalaDeVentas.Ventas', 'Clientes.Clientes'])) {
+            $topClientes = DB::table('factura as f')
+                ->select(
+                    DB::raw('COALESCE(NULLIF(f.nombre_cliente, ""), "CONSUMIDOR FINAL") as cliente_nombre'),
+                    DB::raw('COUNT(f.id) as total_compras'),
+                    DB::raw('SUM(f.total) as total_gastado')
+                )
+                ->whereMonth('f.created_at', now()->month)
+                ->whereYear('f.created_at', now()->year)
+                ->whereNotNull('f.nombre_cliente')
+                ->groupBy('cliente_nombre')
+                ->orderByDesc('total_gastado')
+                ->limit(5)
                 ->get();
 
-            $this->bodegasLabels = $productosPorBodega->pluck('nombre')->toArray();
-            $this->bodegasData = $productosPorBodega->pluck('total_productos')->toArray();
+            $this->topClientesLabels = $topClientes->pluck('cliente_nombre')->toArray();
+            $this->topClientesData = $topClientes->pluck('total_gastado')->map(function($value) {
+                return round($value, 2);
+            })->toArray();
 
             // Si no hay datos, poner valores por defecto
-            if (empty($this->bodegasLabels)) {
-                $this->bodegasLabels = ['Sin datos'];
-                $this->bodegasData = [0];
+            if (empty($this->topClientesLabels)) {
+                $this->topClientesLabels = ['Sin datos'];
+                $this->topClientesData = [0];
             }
         }
     }
