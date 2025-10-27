@@ -272,6 +272,7 @@ class ListaDeProductos extends Component
                 $query->where('m.id', $this->filtroMarca);
             }
 
+            // Filtro de estado stock
             if (!empty($this->filtroEstado)) {
                 switch ($this->filtroEstado) {
                     case 'disponible':
@@ -281,9 +282,13 @@ class ListaDeProductos extends Component
                         $query->whereBetween('rb.cantidad_disponible', [1, 10]);
                         break;
                     case 'agotado':
+                        // Mostrar productos con stock 0 o menor SOLO cuando se seleccione explícitamente
                         $query->where('rb.cantidad_disponible', '<=', 0);
                         break;
                 }
+            } else {
+                // Por defecto, NO mostrar productos con stock 0 (solo si usuario selecciona "Agotado")
+                $query->where('rb.cantidad_disponible', '>', 0);
             }
 
             // Aplicar ordenamiento

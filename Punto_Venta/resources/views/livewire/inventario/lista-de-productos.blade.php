@@ -71,7 +71,7 @@
             </div>
         </div>
 
-        <!-- FILTROS Y BÚSQUEDA -->
+        <!-- FILTROS Y BÚSQUEDA (Debajo del título) -->
         <div class="px-4 py-3 border-b bg-gray-50">
             <div class="grid grid-cols-1 gap-4 md:grid-cols-4">
                 <!-- Búsqueda de Producto -->
@@ -98,10 +98,10 @@
                 <div>
                     <label class="block mb-1 text-sm font-medium text-gray-700">Estado Stock</label>
                     <select wire:model.live="filtroEstado" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500">
-                        <option value="">Todos</option>
-                        <option value="disponible">Disponible</option>
-                        <option value="poco_stock">Poco Stock</option>
-                        <option value="agotado">Agotado</option>
+                        <option value="">Con Stock (Por defecto)</option>
+                        <option value="disponible">Disponible (&gt; 10)</option>
+                        <option value="poco_stock">Poco Stock (1-10)</option>
+                        <option value="agotado">Stock Agotado (0)</option>
                     </select>
                 </div>
 
