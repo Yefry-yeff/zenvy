@@ -868,11 +868,6 @@ class RecibirProductoCompra extends Component
                 return;
             }
 
-            if ($producto['cantidad_stock'] > $producto['cantidad_distribuir']) {
-                $this->mostrarError("La cantidad en stock para {$producto['nombre_producto']} no puede exceder la cantidad a distribuir.");
-                return;
-            }
-
             if (!$producto['unidad_medida_id']) {
                 $this->mostrarError("Debe seleccionar una unidad de medida para {$producto['nombre_producto']}.");
                 return;

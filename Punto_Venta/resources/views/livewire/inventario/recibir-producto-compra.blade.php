@@ -710,9 +710,9 @@
                                         <input type="number" 
                                                class="form-control form-control-sm text-center @if($producto['cantidad_distribuir'] > $producto['cantidad_pendiente']) is-invalid @endif"
                                                wire:model.live="productosRecepcionMasiva.{{ $index }}.cantidad_distribuir"
-                                               min="0.01"
+                                               min="1"
                                                max="{{ $producto['cantidad_pendiente'] }}"
-                                               step="0.01"
+                                               step="1"
                                                title="Máximo: {{ $producto['cantidad_pendiente'] }} {{ $producto['unidad_medida_compra'] }}"
                                                placeholder="{{ $producto['cantidad_pendiente'] }}">
                                         @if($producto['cantidad_distribuir'] > $producto['cantidad_pendiente'])
@@ -722,27 +722,26 @@
                                         @endif
                                     </td>
                                     <td>
-                                        <select class="form-select form-select-sm" 
-                                                wire:model.live="productosRecepcionMasiva.{{ $index }}.unidad_medida_id">
+                                        <select class="form-select form-select-sm @if(empty($producto['unidad_medida_id'])) is-invalid @endif" 
+                                                wire:model.live="productosRecepcionMasiva.{{ $index }}.unidad_medida_id"
+                                                required>
                                             <option value="">Seleccionar</option>
                                             @foreach($producto['unidades_disponibles'] as $unidad)
                                                 <option value="{{ $unidad['id'] }}">{{ $unidad['nombre'] }} ({{ $unidad['simbolo'] }})</option>
                                             @endforeach
                                         </select>
+                                        @if(empty($producto['unidad_medida_id']))
+                                            <div class="invalid-feedback">
+                                                <small>⚠️ Unidad de medida requerida</small>
+                                            </div>
+                                        @endif
                                     </td>
                                     <td>
                                         <input type="number" 
-                                               class="form-control form-control-sm text-center @if($producto['cantidad_stock'] > $producto['cantidad_distribuir']) is-invalid @endif"
+                                               class="form-control form-control-sm text-center"
                                                wire:model.live="productosRecepcionMasiva.{{ $index }}.cantidad_stock"
-                                               min="0.01"
-                                               max="{{ $producto['cantidad_distribuir'] }}"
-                                               step="0.01"
-                                               title="Máximo: {{ $producto['cantidad_distribuir'] }} (cantidad a distribuir)">
-                                        @if($producto['cantidad_stock'] > $producto['cantidad_distribuir'])
-                                            <div class="invalid-feedback">
-                                                <small>⚠️ No puede exceder la cantidad a distribuir</small>
-                                            </div>
-                                        @endif
+                                               min="1"
+                                               step="1">
                                     </td>
                                     <!-- Bodega -->
                                     <td>
