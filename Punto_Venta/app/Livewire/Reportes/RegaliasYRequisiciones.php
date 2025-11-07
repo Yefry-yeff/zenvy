@@ -43,7 +43,7 @@ class RegaliasYRequisiciones extends Component
     public function mount()
     {
         $this->cargarDatosFiltros();
-        
+
         // Debug: Verificar que hay productos en bodega 2
         $totalProductosBodega2 = DB::table('recibido_bodega as rb')
             ->join('seccion as sec', 'rb.seccion_id', '=', 'sec.id')
@@ -51,7 +51,7 @@ class RegaliasYRequisiciones extends Component
             ->join('bodega as b', 'seg.bodega_id', '=', 'b.id')
             ->where('b.id', 2)
             ->count();
-            
+
         Log::info('Total productos en bodega 2', [
             'total' => $totalProductosBodega2,
             'user_id' => Auth::id()
@@ -164,7 +164,7 @@ class RegaliasYRequisiciones extends Component
                     DB::raw("COALESCE(u.name, 'Sistema') as usuario_registro"),
                     'cli.nombre as proveedor',
                     'c.numero_factura',
-                    DB::raw("CASE 
+                    DB::raw("CASE
                         WHEN c.id IS NOT NULL THEN CONCAT('Compra - ', c.numero_factura)
                         WHEN rb.comentario LIKE '%traslado%' OR rb.comentario LIKE '%Traslado%' THEN 'Traslado'
                         ELSE 'Ajuste Manual'

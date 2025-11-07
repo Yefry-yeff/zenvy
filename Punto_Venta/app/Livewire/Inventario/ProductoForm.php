@@ -92,7 +92,7 @@ class ProductoForm extends Component
         'cantidad' => 1,
         'precio' => 0
     ];
-    
+
     // Propiedades para modal de edición de precio
     public $mostrarModalEditarPrecio = false;
     public $precioEditando = [
@@ -102,7 +102,7 @@ class ProductoForm extends Component
         'cantidad' => 1,
         'precio' => 0
     ];
-    
+
     // Propiedades para modal de eliminación de precio
     public $modalEliminarPrecioAbierto = false;
     public $precioAEliminar = null;
@@ -319,7 +319,7 @@ class ProductoForm extends Component
     {
         if ($this->productoId) {
             Log::info('Cargando precios de venta', ['producto_id' => $this->productoId]);
-            
+
             $preciosDB = DB::table('precio_has_venta')
                 ->where('producto_id', $this->productoId)
                 ->where('estado_id', 1)
@@ -339,18 +339,18 @@ class ProductoForm extends Component
                     'precio' => $precio->precio
                 ];
             })->toArray();
-            
+
             Log::info('Array preciosVenta después de mapear', [
                 'precios' => $this->preciosVenta
             ]);
 
             // Si no hay precios y existe precio_base y unidad_medida_venta_id, agregarlo automáticamente
-            if (empty($this->preciosVenta) && 
+            if (empty($this->preciosVenta) &&
                 isset($this->form['precio_base']) && $this->form['precio_base'] > 0 &&
                 isset($this->form['unidad_medida_venta_id']) && $this->form['unidad_medida_venta_id']) {
-                
+
                 Log::info('Auto-migrando precio_base a preciosVenta');
-                
+
                 $this->preciosVenta[] = [
                     'id' => null,
                     'unidad_medida_id' => $this->form['unidad_medida_venta_id'],
@@ -473,7 +473,7 @@ class ProductoForm extends Component
 
         // Verificar que no exista la misma combinación de unidad y cantidad
         $existe = collect($this->preciosVenta)->first(function($precio) {
-            return $precio['unidad_medida_id'] == $this->nuevoPrecioVenta['unidad_medida_id'] 
+            return $precio['unidad_medida_id'] == $this->nuevoPrecioVenta['unidad_medida_id']
                 && $precio['cantidad'] == $this->nuevoPrecioVenta['cantidad'];
         });
 
@@ -507,7 +507,7 @@ class ProductoForm extends Component
     {
         if (isset($this->preciosVenta[$index])) {
             $unidadMedidaId = $this->preciosVenta[$index]['unidad_medida_id'];
-            
+
             // Verificar si existe stock disponible con esta unidad de medida
             if ($this->productoId) {
                 // Log para debug
@@ -516,32 +516,32 @@ class ProductoForm extends Component
                     'unidad_medida_id' => $unidadMedidaId,
                     'precio_index' => $index
                 ]);
-                
+
                 $registrosStock = DB::table('recibido_bodega')
                     ->where('producto_id', $this->productoId)
                     ->where('unidad_medida_id', $unidadMedidaId)
                     ->where('estado_id', 1)
                     ->where('cantidad_disponible', '>', 0)
                     ->get();
-                
+
                 Log::info('Registros de stock encontrados', [
                     'count' => $registrosStock->count(),
                     'registros' => $registrosStock->toArray()
                 ]);
-                
+
                 if ($registrosStock->count() > 0) {
                     $totalStock = $registrosStock->sum('cantidad_disponible');
                     session()->flash('error', "No se puede eliminar esta unidad de medida porque existe stock disponible ({$totalStock} unidades en {$registrosStock->count()} registro(s)).");
                     return;
                 }
             }
-            
+
             unset($this->preciosVenta[$index]);
             $this->preciosVenta = array_values($this->preciosVenta); // Reindexar
             session()->flash('success', 'Precio eliminado correctamente');
         }
     }
-    
+
     public function abrirModalEditarPrecio($index)
     {
         if (isset($this->preciosVenta[$index])) {
@@ -555,7 +555,7 @@ class ProductoForm extends Component
             $this->mostrarModalEditarPrecio = true;
         }
     }
-    
+
     public function cerrarModalEditarPrecio()
     {
         $this->mostrarModalEditarPrecio = false;
@@ -567,7 +567,7 @@ class ProductoForm extends Component
             'precio' => 0
         ];
     }
-    
+
     public function guardarEdicionPrecio()
     {
         // Validar que existe un índice válido
@@ -575,34 +575,34 @@ class ProductoForm extends Component
             session()->flash('error', 'No se pudo identificar el precio a editar');
             return;
         }
-        
+
         // Validar campos
         if (empty($this->precioEditando['unidad_medida_id'])) {
             session()->flash('error', 'Debe seleccionar una unidad de medida');
             return;
         }
-        
+
         if ($this->precioEditando['cantidad'] <= 0) {
             session()->flash('error', 'La cantidad debe ser mayor a 0');
             return;
         }
-        
+
         if ($this->precioEditando['precio'] <= 0) {
             session()->flash('error', 'El precio debe ser mayor a 0');
             return;
         }
-        
+
         // Verificar que no exista otro precio con la misma unidad y cantidad (excepto el actual)
         foreach ($this->preciosVenta as $index => $precio) {
             if ($index != $this->precioEditando['index']) {
-                if ($precio['unidad_medida_id'] == $this->precioEditando['unidad_medida_id'] && 
+                if ($precio['unidad_medida_id'] == $this->precioEditando['unidad_medida_id'] &&
                     $precio['cantidad'] == $this->precioEditando['cantidad']) {
                     session()->flash('error', 'Ya existe un precio para esta unidad de medida con esta cantidad');
                     return;
                 }
             }
         }
-        
+
         // Actualizar el precio en el array
         $indexToUpdate = $this->precioEditando['index'];
         $this->preciosVenta[$indexToUpdate] = [
@@ -611,21 +611,21 @@ class ProductoForm extends Component
             'cantidad' => $this->precioEditando['cantidad'],
             'precio' => $this->precioEditando['precio']
         ];
-        
+
         // Ordenar por cantidad
         usort($this->preciosVenta, function($a, $b) {
             return $a['cantidad'] <=> $b['cantidad'];
         });
-        
+
         $this->cerrarModalEditarPrecio();
     }
-    
+
     public function inactivarPrecioVenta($index)
     {
         // Solo eliminar del array, no guardar en BD hasta que se presione "Actualizar Producto"
         if (isset($this->preciosVenta[$index])) {
             $unidadMedidaId = $this->preciosVenta[$index]['unidad_medida_id'];
-            
+
             // Verificar si existe stock disponible con esta unidad de medida
             if ($this->productoId) {
                 // Log para debug
@@ -634,19 +634,19 @@ class ProductoForm extends Component
                     'unidad_medida_id' => $unidadMedidaId,
                     'precio_index' => $index
                 ]);
-                
+
                 $registrosStock = DB::table('recibido_bodega')
                     ->where('producto_id', $this->productoId)
                     ->where('unidad_medida_id', $unidadMedidaId)
                     ->where('estado_id', 1)
                     ->where('cantidad_disponible', '>', 0)
                     ->get();
-                
+
                 Log::info('Registros de stock encontrados', [
                     'count' => $registrosStock->count(),
                     'registros' => $registrosStock->toArray()
                 ]);
-                
+
                 if ($registrosStock->count() > 0) {
                     $totalStock = $registrosStock->sum('cantidad_disponible');
                     session()->flash('error', "No se puede eliminar esta unidad de medida porque existe stock disponible ({$totalStock} unidades en {$registrosStock->count()} registro(s)).");
@@ -654,26 +654,26 @@ class ProductoForm extends Component
                     return;
                 }
             }
-            
+
             unset($this->preciosVenta[$index]);
             $this->preciosVenta = array_values($this->preciosVenta);
         }
-        
+
         $this->cerrarModalEliminarPrecio();
     }
-    
+
     public function abrirModalEliminarPrecio($index)
     {
         $this->precioAEliminar = $index;
         $this->modalEliminarPrecioAbierto = true;
     }
-    
+
     public function cerrarModalEliminarPrecio()
     {
         $this->modalEliminarPrecioAbierto = false;
         $this->precioAEliminar = null;
     }
-    
+
     public function confirmarEliminarPrecio()
     {
         if ($this->precioAEliminar !== null) {
@@ -688,24 +688,24 @@ class ProductoForm extends Component
                 'producto_id' => $productoId,
                 'precios_a_guardar' => $this->preciosVenta
             ]);
-            
+
             // Obtener precios anteriores para auditoría
             $preciosAnteriores = DB::table('precio_has_venta')
                 ->where('producto_id', $productoId)
                 ->where('estado_id', 1)
                 ->get()->toArray();
-            
+
             // Primero, desactivar todos los precios existentes (soft delete)
             $preciosDesactivados = DB::table('precio_has_venta')
                 ->where('producto_id', $productoId)
                 ->update(['estado_id' => 2]); // 2 = Inactivo
-            
+
             Log::info('Precios desactivados', ['cantidad' => $preciosDesactivados]);
 
             // Luego, insertar o reactivar los precios actuales
             foreach ($this->preciosVenta as $index => $precio) {
                 Log::info("Procesando precio $index", ['precio' => $precio]);
-                
+
                 if (isset($precio['id']) && $precio['id']) {
                     // Actualizar precio existente
                     $actualizado = DB::table('precio_has_venta')
@@ -787,14 +787,14 @@ class ProductoForm extends Component
 
         // Limpiar alertas antes de validar
         $this->cerrarAlerta();
-        
+
         // Log ANTES de validar precios
         Log::info('Estado de preciosVenta ANTES de validaciones', [
             'precios' => $this->preciosVenta,
             'cantidad' => count($this->preciosVenta),
             'es_array' => is_array($this->preciosVenta)
         ]);
-        
+
         // Validar que haya al menos un precio de venta configurado
         if (empty($this->preciosVenta)) {
             $this->mostrarErrorCampo('preciosVenta', 'Debe configurar al menos un precio de venta');
@@ -807,16 +807,16 @@ class ProductoForm extends Component
                 'precios' => $this->preciosVenta,
                 'cantidad' => count($this->preciosVenta)
             ]);
-            
+
             // CRÍTICO: Guardar backup de preciosVenta porque validate() puede resetear propiedades
             $preciosVentaBackup = $this->preciosVenta;
-            
+
             // Validar los datos del formulario con reglas dinámicas
             $this->validate($this->getRules());
-            
+
             // CRÍTICO: Restaurar preciosVenta después de validate()
             $this->preciosVenta = $preciosVentaBackup;
-            
+
             // Log DESPUÉS de validate()
             Log::info('preciosVenta DESPUÉS de $this->validate() (restaurado desde backup)', [
                 'precios' => $this->preciosVenta,
@@ -905,14 +905,14 @@ class ProductoForm extends Component
                         ['tipo' => 'producto_valencia_anterior'],
                         $datosPermitidos
                     );
-                    
+
                     // Guardar precios de venta para productos de Valencia
                     Log::info('ANTES de guardar precios Valencia - Array preciosVenta:', [
                         'precios' => $this->preciosVenta,
                         'cantidad' => count($this->preciosVenta)
                     ]);
                     $this->guardarPreciosVenta($this->productoId);
-                    
+
                     $this->mostrarExito('Producto de Valencia actualizado exitosamente.');
                     $this->dispatch('redirigirEnTresSeg');
                     return;
@@ -950,25 +950,25 @@ class ProductoForm extends Component
                     ['accion' => 'actualizar_producto'],
                     $datos
                 );
-                
+
                 // Guardar precios de venta
                 Log::info('ANTES de guardar precios - Array preciosVenta:', [
                     'precios' => $this->preciosVenta,
                     'cantidad' => count($this->preciosVenta)
                 ]);
                 $this->guardarPreciosVenta($this->productoId);
-                
+
                 $this->mostrarExito('Producto actualizado exitosamente.');
             } else {
                 $resultado = ProductoModel::crearProducto($datos);
-                
+
                 Log::info('Resultado de crearProducto', [
                     'resultado' => $resultado,
                     'es_array' => is_array($resultado),
                     'tiene_elemento_0' => isset($resultado[0]),
                     'tiene_id' => is_array($resultado) && isset($resultado[0]) ? isset($resultado[0]->id) : false
                 ]);
-                
+
                 // Obtener el ID del producto creado
                 $productoIdCreado = null;
                 if (is_array($resultado) && isset($resultado[0]->id)) {
@@ -979,7 +979,7 @@ class ProductoForm extends Component
                         ->where('users_id', Auth::id())
                         ->orderBy('id', 'desc')
                         ->first();
-                    
+
                     if ($ultimoProducto) {
                         $productoIdCreado = $ultimoProducto->id;
                         Log::warning('No se obtuvo ID del SP, usando último producto creado', [
@@ -987,11 +987,11 @@ class ProductoForm extends Component
                         ]);
                     }
                 }
-                
+
                 if (!$productoIdCreado) {
                     throw new \Exception('No se pudo obtener el ID del producto creado');
                 }
-                
+
                 // Si el código de barras estaba vacío, actualizarlo con el id generado
                 if (empty($datos['codigo_barra']) || trim($datos['codigo_barra']) === '') {
                     ProductoModel::actualizarProducto($productoIdCreado, array_merge($datos, ['codigo_barra' => (string)$productoIdCreado]));
@@ -1008,14 +1008,14 @@ class ProductoForm extends Component
                     null,
                     $datos
                 );
-                
+
                 // Guardar precios de venta para el nuevo producto
                 Log::info('ANTES de guardar precios - Array preciosVenta:', [
                     'precios' => $this->preciosVenta,
                     'cantidad' => count($this->preciosVenta)
                 ]);
                 $this->guardarPreciosVenta($productoIdCreado);
-                
+
                 Log::info('Producto creado exitosamente', ['resultado' => $resultado]);
                 $this->mostrarExito('Producto creado exitosamente.');
             }

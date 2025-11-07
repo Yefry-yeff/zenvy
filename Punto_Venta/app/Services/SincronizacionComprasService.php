@@ -29,7 +29,7 @@ class SincronizacionComprasService
 
             // Obtener compras desde Valencia usando el script proporcionado
             $comprasValencia = $this->obtenerComprasDesdeValencia();
-            
+
             if (empty($comprasValencia)) {
                 Log::info('No se encontraron nuevas compras para sincronizar');
                 return [
@@ -58,7 +58,7 @@ class SincronizacionComprasService
                 try {
                     // Verificar si la compra ya existe
                     $compraExistente = Compra::where('numero_factura', $numeroFactura)->first();
-                    
+
                     if ($compraExistente) {
                         // Si la compra existe y el campo user está vacío, actualizarlo con 'Valencia'
                         if (empty($compraExistente->user)) {
@@ -74,16 +74,16 @@ class SincronizacionComprasService
                     // Crear nueva compra
                     $primerProducto = $productosCompra->first();
                     $compra = $this->crearCompra($primerProducto);
-                    
+
                     if ($compra) {
                         $estadisticas['compras_nuevas']++;
-                        
+
                         // Registrar la compra en el mapeo de sincronización según el tipo
-                        $tipoOrigen = $primerProducto->tipo_origen === 'TRASLADO' ? 
+                        $tipoOrigen = $primerProducto->tipo_origen === 'TRASLADO' ?
                             IdZenvyValencia::TIPO_TRASLADO : IdZenvyValencia::TIPO_COMPRA;
-                        
+
                         $this->registrarCompraSincronizada($compra->id, $numeroFactura, $tipoOrigen);
-                        
+
                         // Agregar productos a la compra
                         foreach ($productosCompra as $productoData) {
                             $resultado = $this->agregarProductoACompra($compra->id, $productoData);
@@ -94,9 +94,9 @@ class SincronizacionComprasService
                             }
                         }
                     }
-                    
+
                     $estadisticas['total_procesadas']++;
-                    
+
                 } catch (\Exception $e) {
                     Log::error("Error al procesar compra {$numeroFactura}: " . $e->getMessage());
                     $estadisticas['errores']++;
@@ -104,7 +104,7 @@ class SincronizacionComprasService
             }
 
             Log::info('Sincronización de compras completada', $estadisticas);
-            
+
             return [
                 'success' => true,
                 'estadisticas' => $estadisticas,
@@ -132,7 +132,7 @@ class SincronizacionComprasService
     private function obtenerComprasDesdeValencia()
     {
         $sql = "
-            SELECT  
+            SELECT
                 -- llenado de Tabla Compra
                 COALESCE(C.translado_id, A.compra_id) AS numero_factura,
                 NULL AS fec_vecimiento,
@@ -152,7 +152,7 @@ class SincronizacionComprasService
                 -- subtotal, isv y total calculados en base al precio real
                 (COALESCE(chp.precio_unidad, B.precio_unidad) * A.cantidad_inicial_seccion) AS sub_total_producto,
                 ((COALESCE(chp.precio_unidad, B.precio_unidad) * A.cantidad_inicial_seccion) * (P.isv / 100.0)) AS isv,
-                ((COALESCE(chp.precio_unidad, B.precio_unidad) * A.cantidad_inicial_seccion) + 
+                ((COALESCE(chp.precio_unidad, B.precio_unidad) * A.cantidad_inicial_seccion) +
                  ((COALESCE(chp.precio_unidad, B.precio_unidad) * A.cantidad_inicial_seccion) * (P.isv / 100.0))) AS precio_total,
 
                 'El id_compra insertado en zenvy' AS compra_id,
@@ -175,7 +175,7 @@ class SincronizacionComprasService
                     WHERE chp2.producto_id = chp1.producto_id
                 )
             ) chp ON chp.producto_id = A.producto_id
-            WHERE A.seccion_id = 433 
+            WHERE A.seccion_id = 433
               AND A.created_at > '2025-09-10'
         ";
 
@@ -217,7 +217,7 @@ class SincronizacionComprasService
         try {
             // Buscar el ID del producto en Zenvy usando el mapeo
             $idProductoZenvy = $this->obtenerIdProductoZenvy($datosProducto->producto_id_valencia);
-            
+
             if (!$idProductoZenvy) {
                 Log::warning("Producto Valencia ID {$datosProducto->producto_id_valencia} no encontrado en Zenvy, omitiendo...");
                 return false;
@@ -225,7 +225,7 @@ class SincronizacionComprasService
 
             // Buscar el ID de la unidad de medida en Zenvy usando el mapeo
             $idUnidadMedidaZenvy = $this->obtenerIdUnidadMedidaZenvy($datosProducto->unidad_medida_id);
-            
+
             if (!$idUnidadMedidaZenvy) {
                 Log::warning("Unidad medida Valencia ID {$datosProducto->unidad_medida_id} no encontrada en Zenvy, usando unidad por defecto (1)");
                 $idUnidadMedidaZenvy = 1; // Usar unidad por defecto
@@ -295,8 +295,8 @@ class SincronizacionComprasService
         try {
             // Registrar en id_zenvy_valencia para tracking de sincronización
             IdZenvyValencia::crearMapeo(
-                $idCompraZenvy, 
-                $numeroFacturaValencia, 
+                $idCompraZenvy,
+                $numeroFacturaValencia,
                 $tipoCompra // 8 para COMPRA, 9 para TRASLADO
             );
 

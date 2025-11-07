@@ -329,9 +329,9 @@
                                     <!-- Acciones -->
                                     <td class="px-4 py-3 text-center border-b" x-data="{ open: false }">
                                         <div class="relative inline-block text-left">
-                                            <button @click="open = !open" 
+                                            <button @click="open = !open"
                                                     @click.away="open = false"
-                                                    type="button" 
+                                                    type="button"
                                                     class="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path>
@@ -339,7 +339,7 @@
                                             </button>
 
                                             <!-- Dropdown Menu -->
-                                            <div x-show="open" 
+                                            <div x-show="open"
                                                  x-transition:enter="transition ease-out duration-100"
                                                  x-transition:enter-start="transform opacity-0 scale-95"
                                                  x-transition:enter-end="transform opacity-100 scale-100"
@@ -477,9 +477,9 @@
         <div class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
             <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
                 <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" wire:click="cerrarModalCambiarUnidad"></div>
-                
+
                 <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-                
+
                 <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
                     <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                         <div class="sm:flex sm:items-start">
@@ -505,7 +505,7 @@
                                                     <strong>Cantidad disponible total:</strong> {{ $cantidadTotalDisponible ?? 0 }}
                                                 </p>
                                                 <p class="text-sm text-gray-600">
-                                                    <strong>Unidad actual:</strong> 
+                                                    <strong>Unidad actual:</strong>
                                                     @if($stockSeleccionado->unidad_medida)
                                                         {{ $stockSeleccionado->unidad_medida }}
                                                     @elseif($stockSeleccionado->unidadMedida)
@@ -515,10 +515,10 @@
                                                     @endif
                                                 </p>
                                                 <p class="text-sm text-gray-600">
-                                                    <strong>Ubicación:</strong> 
+                                                    <strong>Ubicación:</strong>
                                                     @if($stockSeleccionado->seccion && $stockSeleccionado->seccion->segmento && $stockSeleccionado->seccion->segmento->bodega)
-                                                        {{ $stockSeleccionado->seccion->segmento->bodega->nombre ?? 'N/A' }} / 
-                                                        {{ $stockSeleccionado->seccion->segmento->descripcion ?? 'N/A' }} / 
+                                                        {{ $stockSeleccionado->seccion->segmento->bodega->nombre ?? 'N/A' }} /
+                                                        {{ $stockSeleccionado->seccion->segmento->descripcion ?? 'N/A' }} /
                                                         {{ $stockSeleccionado->seccion->descripcion ?? 'N/A' }}
                                                     @else
                                                         N/A
@@ -534,15 +534,15 @@
                                                         Cantidad a rebajar
                                                         <span class="text-red-500">*</span>
                                                     </label>
-                                                    <input type="number" 
+                                                    <input type="number"
                                                            wire:model.live="cantidadVerificacion"
                                                            step="0.01"
                                                            min="0.01"
                                                            max="{{ $cantidadTotalDisponible }}"
                                                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
                                                            placeholder="Ingrese la cantidad a rebajar (máx: {{ $cantidadTotalDisponible }})">
-                                                    @error('cantidadVerificacion') 
-                                                        <span class="text-red-500 text-xs">{{ $message }}</span> 
+                                                    @error('cantidadVerificacion')
+                                                        <span class="text-red-500 text-xs">{{ $message }}</span>
                                                     @enderror
                                                     @if($cantidadVerificacion > $cantidadTotalDisponible)
                                                         <div class="mt-1 text-xs text-red-600">
@@ -557,15 +557,15 @@
                                                         Unidad de medida a convertir
                                                         <span class="text-red-500">*</span>
                                                     </label>
-                                                    <select wire:model="nuevaUnidadMedida" 
+                                                    <select wire:model="nuevaUnidadMedida"
                                                             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500">
                                                         <option value="">Seleccione una unidad</option>
                                                         @foreach($unidadesDisponibles as $unidad)
                                                             <option value="{{ $unidad['nombre'] }}">{{ $unidad['nombre'] }}</option>
                                                         @endforeach
                                                     </select>
-                                                    @error('nuevaUnidadMedida') 
-                                                        <span class="text-red-500 text-xs">{{ $message }}</span> 
+                                                    @error('nuevaUnidadMedida')
+                                                        <span class="text-red-500 text-xs">{{ $message }}</span>
                                                     @enderror
                                                 </div>
 
@@ -575,13 +575,13 @@
                                                         Cantidad a convertir
                                                         <span class="text-red-500">*</span>
                                                     </label>
-                                                    <input type="number" 
+                                                    <input type="number"
                                                            wire:model.live="cantidadAConvertir"
                                                            step="0.01"
                                                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
                                                            placeholder="Ingrese la cantidad a convertir">
-                                                    @error('cantidadAConvertir') 
-                                                        <span class="text-red-500 text-xs">{{ $message }}</span> 
+                                                    @error('cantidadAConvertir')
+                                                        <span class="text-red-500 text-xs">{{ $message }}</span>
                                                     @enderror
                                                 </div>
                                             </div>

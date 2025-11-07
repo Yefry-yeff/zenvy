@@ -94,7 +94,7 @@ class RecibirProductoCompra extends Component
                 // Priorizar siempre la unidad de medida de venta del producto
                 $unidadMedidaVenta = null;
                 $unidadMedidaVentaId = null;
-                
+
                 if ($detalle->producto && $detalle->producto->unidadMedidaVenta) {
                     $unidadMedidaVenta = $detalle->producto->unidadMedidaVenta->nombre;
                     $unidadMedidaVentaId = $detalle->producto->unidad_medida_venta_id;
@@ -103,7 +103,7 @@ class RecibirProductoCompra extends Component
                     $unidadMedidaVentaId = $detalle->producto->unidad_medida_venta_id;
                     $unidadMedidaVenta = $detalle->producto->unidadMedidaVenta->nombre ?? 'N/A';
                 }
-                
+
                 return [
                     'id' => $detalle->id,
                     'codigo_producto' => $detalle->producto->id ?? 'N/A',
@@ -445,7 +445,7 @@ class RecibirProductoCompra extends Component
                     $unidadAnterior = $this->detalleSeleccionado['unidad_medida_venta_id'];
                     $producto->unidad_medida_venta_id = $this->unidadMedidaProducto;
                     $producto->save();
-                    
+
                     // Registrar en bitácora: Actualización de unidad de medida (individual)
                     Bitacora::registrar(
                         Auth::id(),
@@ -457,7 +457,7 @@ class RecibirProductoCompra extends Component
                         ['unidad_medida_venta_id' => $unidadAnterior],
                         ['unidad_medida_venta_id' => $this->unidadMedidaProducto]
                     );
-                    
+
                     Log::info('Unidad de medida de venta actualizada', [
                         'producto_id' => $producto->id,
                         'unidad_anterior' => $unidadAnterior,
@@ -542,7 +542,7 @@ class RecibirProductoCompra extends Component
             // - Pendiente (5): Al menos un producto distribuido pero quedan productos sin completar
             // - Distribuido (3): Todos los productos completamente distribuidos
             // - Anulado: No se modifica desde aquí
-            
+
             if ($productosConCantidadPendiente == 0) {
                 // Caso 1: Todos los productos están completamente distribuidos
                 $estadoAnterior = $compra->estado_id;
@@ -572,7 +572,7 @@ class RecibirProductoCompra extends Component
                 $this->dispatch('compra-distribuida', $compra->id);
                 $this->dispatch('estado-compra-actualizado', $compra->id, 'distribuido');
                 $this->dispatch('compra-actualizada', $compra->id);
-                
+
             } elseif ($productosConCantidadPendiente > 0) {
                 // Caso 2: Hay productos con cantidad pendiente
                 Log::info('Verificando cambio de estado a pendiente', [
@@ -581,7 +581,7 @@ class RecibirProductoCompra extends Component
                     'productos_con_cantidad_pendiente' => $productosConCantidadPendiente,
                     'puede_cambiar' => in_array($compra->estado_id, [1, 5]) ? 'SI' : 'NO'
                 ]);
-                
+
                 // Cambiar a Pendiente solo si está en Activo (1) o ya está en Pendiente (5)
                 // No cambiar si está en Distribuido (3) o Anulado
                 if (in_array($compra->estado_id, [1, 5])) {
@@ -660,7 +660,7 @@ class RecibirProductoCompra extends Component
         try {
             // Preparar productos con cantidad pendiente
             $this->productosRecepcionMasiva = [];
-            
+
             foreach ($this->detallesCompra as $detalle) {
                 if ($detalle['cantidad_sin_asignar'] > 0) {
                     // Cargar unidades específicas para este producto
@@ -697,12 +697,12 @@ class RecibirProductoCompra extends Component
 
             // Configurar valores por defecto
             $this->fechaRecepcionMasiva = now()->format('Y-m-d');
-            
+
             // Buscar bodega Paperland por defecto
             $bodegaPaperland = Bodega::where('nombre', 'like', '%paperland%')
                                     ->orWhere('nombre', 'like', '%paper land%')
                                     ->first();
-            
+
             if ($bodegaPaperland) {
                 $this->bodegaRecepcionMasiva = $bodegaPaperland->id;
                 $this->nombreBodegaRecepcionMasiva = $bodegaPaperland->nombre;
@@ -742,10 +742,10 @@ class RecibirProductoCompra extends Component
             $this->segmentosMasiva = Segmento::where('bodega_id', $this->bodegaRecepcionMasiva)
                                             ->orderBy('descripcion', 'asc')
                                             ->get();
-            
+
             $bodega = Bodega::find($this->bodegaRecepcionMasiva);
             $this->nombreBodegaRecepcionMasiva = $bodega ? $bodega->nombre : '';
-            
+
             // Limpiar selecciones dependientes
             $this->segmentoRecepcionMasiva = '';
             $this->seccionRecepcionMasiva = '';
@@ -762,10 +762,10 @@ class RecibirProductoCompra extends Component
                                            ->where('estado_id', 1)
                                            ->orderBy('nombre', 'asc')
                                            ->get();
-            
+
             $segmento = Segmento::find($this->segmentoRecepcionMasiva);
             $this->nombreSegmentoRecepcionMasiva = $segmento ? $segmento->nombre : '';
-            
+
             // Limpiar selección de sección
             $this->seccionRecepcionMasiva = '';
             $this->nombreSeccionRecepcionMasiva = '';
@@ -797,7 +797,7 @@ class RecibirProductoCompra extends Component
             $this->productosRecepcionMasiva[$productoIndex]['bodega_id'] = $bodegaId;
             $this->productosRecepcionMasiva[$productoIndex]['segmento_id'] = '';
             $this->productosRecepcionMasiva[$productoIndex]['seccion_id'] = '';
-            
+
             // Cargar segmentos para la bodega seleccionada
             if ($bodegaId) {
                 $segmentos = Segmento::where('bodega_id', $bodegaId)
@@ -807,7 +807,7 @@ class RecibirProductoCompra extends Component
             } else {
                 $this->productosRecepcionMasiva[$productoIndex]['segmentos_disponibles'] = [];
             }
-            
+
             $this->productosRecepcionMasiva[$productoIndex]['secciones_disponibles'] = [];
         }
     }
@@ -817,7 +817,7 @@ class RecibirProductoCompra extends Component
         if (isset($this->productosRecepcionMasiva[$productoIndex])) {
             $this->productosRecepcionMasiva[$productoIndex]['segmento_id'] = $segmentoId;
             $this->productosRecepcionMasiva[$productoIndex]['seccion_id'] = '';
-            
+
             // Cargar secciones para el segmento seleccionado
             if ($segmentoId) {
                 $secciones = Seccion::where('segmento_id', $segmentoId)
@@ -899,7 +899,7 @@ class RecibirProductoCompra extends Component
             foreach ($this->productosRecepcionMasiva as $producto) {
                 // Obtener detalle de compra
                 $detalleCompra = CompraHasProducto::find($producto['id']);
-                
+
                 if (!$detalleCompra) {
                     continue;
                 }
@@ -918,7 +918,7 @@ class RecibirProductoCompra extends Component
                     $unidadAnterior = $productoModel->unidad_medida_venta_id;
                     $productoModel->unidad_medida_venta_id = $producto['unidad_medida_id'];
                     $productoModel->save();
-                    
+
                     // Registrar en bitácora: Actualización de unidad de medida
                     Bitacora::registrar(
                         Auth::id(),
@@ -930,7 +930,7 @@ class RecibirProductoCompra extends Component
                         ['unidad_medida_venta_id' => $unidadAnterior],
                         ['unidad_medida_venta_id' => $producto['unidad_medida_id']]
                     );
-                    
+
                     Log::info('Unidad de medida de venta actualizada', [
                         'producto_id' => $productoModel->id,
                         'unidad_anterior' => $unidadAnterior,
@@ -997,7 +997,7 @@ class RecibirProductoCompra extends Component
                 $productosRecibidos++;
                 $unidad = collect($producto['unidades_disponibles'])->firstWhere('id', $producto['unidad_medida_id']);
                 $nombreUnidad = $unidad ? $unidad['nombre'] : '';
-                
+
                 $mensajeDetalle .= "📦 {$producto['nombre_producto']}: {$cantidadDistribuir} {$producto['unidad_medida_compra']} → {$cantidadParaStock} {$nombreUnidad}\n";
             }
 
@@ -1042,7 +1042,7 @@ class RecibirProductoCompra extends Component
                 $this->dispatch('compra-distribuida', $compra->id);
                 $this->dispatch('estado-compra-actualizado', $compra->id, 'distribuido');
                 $this->dispatch('compra-actualizada', $compra->id);
-                
+
             } elseif ($productosConCantidadPendiente > 0) {
                 // Caso 2: Hay productos con cantidad pendiente
                 if (in_array($compra->estado_id, [1, 5])) {

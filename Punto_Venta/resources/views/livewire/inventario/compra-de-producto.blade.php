@@ -1,4 +1,4 @@
-<div x-data="{ theme: localStorage.getItem('theme') || 'verde' }" 
+<div x-data="{ theme: localStorage.getItem('theme') || 'verde' }"
      wire:key="compra-producto-root"
      wire:init="loadInitialData"
      x-init="
@@ -12,7 +12,7 @@
      ">
     <style>
         [x-cloak] { display: none !important; }
-        
+
         /* Animación suave */
         @keyframes fadeInUp {
             from {
@@ -24,7 +24,7 @@
                 transform: translateY(0);
             }
         }
-        
+
         .animate-fade-in-up {
             animation: fadeInUp 0.3s ease-out forwards;
         }
@@ -109,7 +109,7 @@
                 </div>
             @endif    <!-- Contenedor principal -->
     <div class="mx-auto space-y-6 max-w-7xl">
-        
+
         <!-- HEADER -->
         <div class="overflow-hidden bg-white border border-gray-300 rounded-lg shadow-lg">
             <div class="flex items-center justify-between px-5 py-3 font-semibold text-white rounded-t"
@@ -136,7 +136,7 @@
                         <label class="block mb-1 text-sm font-medium text-gray-700">
                             Número de Factura <span class="text-red-600">*</span>
                         </label>
-                        <input type="text" 
+                        <input type="text"
                                wire:model.live="compra.numero_factura"
                                class="form-control {{ $this->getClaseCampo('compra.numero_factura') }}"
                                placeholder="000-000-00-00000000">
@@ -170,7 +170,7 @@
                         <label class="block mb-1 text-sm font-medium text-gray-700">
                             Fecha de Emisión <span class="text-red-600">*</span>
                         </label>
-                        <input type="date" 
+                        <input type="date"
                                wire:model.defer="compra.fecha_emision"
                                class="form-control {{ $this->getClaseCampo('compra.fecha_emision') }}">
                         @error('compra.fecha_emision')
@@ -185,7 +185,7 @@
                         <label class="block mb-1 text-sm font-medium text-gray-700">
                             Fecha de Recepción <span class="text-red-600">*</span>
                         </label>
-                        <input type="date" 
+                        <input type="date"
                                wire:model.defer="compra.fecha_recepcion"
                                class="form-control {{ $this->getClaseCampo('compra.fecha_recepcion') }}">
                     </div>
@@ -194,7 +194,7 @@
                         <label class="block mb-1 text-sm font-medium text-gray-700">
                             Fecha de Vencimiento
                         </label>
-                        <input type="date" 
+                        <input type="date"
                                wire:model.defer="compra.fecha_vencimiento"
                                class="form-control">
                     </div>
@@ -267,8 +267,8 @@
                                         📦 {{ $productoSeleccionado['nombre'] ?? 'Producto seleccionado' }}
                                     </p>
                                     <p class="text-xs text-blue-700">
-                                        Código: {{ $productoSeleccionado['codigo_barra'] ?? 'N/A' }} | 
-                                        Marca: {{ $productoSeleccionado['marca'] ?? 'N/A' }} | 
+                                        Código: {{ $productoSeleccionado['codigo_barra'] ?? 'N/A' }} |
+                                        Marca: {{ $productoSeleccionado['marca'] ?? 'N/A' }} |
                                         Categoría: {{ $productoSeleccionado['subcategoria'] ?? 'N/A' }}
                                     </p>
                                     <p class="text-xs text-blue-600 mt-1">
@@ -459,7 +459,7 @@
                             <span>Subtotal:</span>
                             <span class="font-bold">L. {{ number_format($subtotal, 2) }}</span>
                         </div>
-                        
+
                         <!-- Desglose del ISV -->
                         @php
                             $isvPorcentajes = [];
@@ -622,8 +622,8 @@
                         </thead>
                         <tbody class="divide-y divide-gray-200">
                             @forelse($resultadosBusquedaModal as $resultado)
-                                <tr wire:key="resultado-busqueda-{{ $resultado['id'] }}" 
-                                    class="transition-colors cursor-pointer hover:bg-gray-50" 
+                                <tr wire:key="resultado-busqueda-{{ $resultado['id'] }}"
+                                    class="transition-colors cursor-pointer hover:bg-gray-50"
                                     @dblclick="$wire.seleccionarProductoDesdeModal({{ $resultado['id'] }})"
                                     title="Doble clic para seleccionar">
                                     <td class="px-4 py-3 font-mono text-xs">{{ $resultado['codigo_barra'] ?? 'N/A' }}</td>
@@ -681,19 +681,19 @@
 
     <!-- MODAL DE CONFIRMACIÓN PARA PROCESAR COMPRA -->
     @if($mostrarModalConfirmacion)
-        <div class="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm" 
+        <div class="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm"
              style="background: rgba(0, 0, 0, 0.4);"
              x-data="{ show: @entangle('mostrarModalConfirmacion') }"
              x-show="show"
              x-transition:enter="transition ease-out duration-300"
              x-transition:enter-start="opacity-0"
              x-transition:enter-end="opacity-100">
-            
+
             <div class="relative w-full max-w-lg p-8 mx-4 bg-white rounded-2xl shadow-2xl border border-gray-100"
                  x-transition:enter="transition ease-out duration-300 transform"
                  x-transition:enter-start="opacity-0 scale-90 translate-y-8"
                  x-transition:enter-end="opacity-100 scale-100 translate-y-0">
-                
+
                 <!-- Encabezado del modal con gradiente -->
                 <div class="text-center mb-6">
                     <div class="relative inline-flex items-center justify-center w-20 h-20 mx-auto mb-4">
@@ -702,13 +702,13 @@
                             <i class="text-3xl text-amber-600 fas fa-exclamation-triangle"></i>
                         </div>
                     </div>
-                    
+
                     <h3 class="text-2xl font-bold text-gray-800 mb-2">
                         ¿Procesar Compra?
                     </h3>
                     <div class="w-16 h-1 bg-gradient-to-r from-amber-500 to-orange-600 mx-auto rounded-full"></div>
                 </div>
-                
+
                 <!-- Información de la compra con diseño mejorado -->
                 <div class="bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl p-6 mb-6 border border-amber-100">
                     <div class="text-center space-y-3">
@@ -717,7 +717,7 @@
                             <span class="text-sm font-medium text-gray-600">Factura N°</span>
                         </div>
                         <div class="text-2xl font-bold text-gray-800">{{ $compra['numero_factura'] }}</div>
-                        
+
                         <div class="border-t border-amber-200 pt-3">
                             <div class="flex items-center justify-center space-x-2 mb-1">
                                 <i class="text-orange-600 fas fa-cash-register"></i>
@@ -729,7 +729,7 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <!-- Botones con diseño profesional -->
                 <div class="flex space-x-4">
                     <button type="button"
@@ -751,19 +751,19 @@
 
     <!-- MODAL DE COMPRA EXITOSA -->
     @if($mostrarModalCompraExitosa)
-        <div class="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm" 
+        <div class="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm"
              style="background: rgba(0, 0, 0, 0.4);"
              x-data="{ show: @entangle('mostrarModalCompraExitosa') }"
              x-show="show"
              x-transition:enter="transition ease-out duration-500"
              x-transition:enter-start="opacity-0"
              x-transition:enter-end="opacity-100">
-            
+
             <div class="relative w-full max-w-lg p-8 mx-4 bg-white rounded-2xl shadow-2xl border border-gray-100"
                  x-transition:enter="transition ease-out duration-500 transform"
                  x-transition:enter-start="opacity-0 scale-75 translate-y-16"
                  x-transition:enter-end="opacity-100 scale-100 translate-y-0">
-                
+
                 <!-- Celebración visual -->
                 <div class="absolute -top-4 -right-4 w-8 h-8 bg-gradient-to-r from-yellow-400 to-amber-500 rounded-full animate-bounce delay-100 shadow-lg">
                     <i class="text-white text-xs fas fa-star absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"></i>
@@ -772,7 +772,7 @@
                     <i class="text-white text-xs fas fa-check absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"></i>
                 </div>
                 <div class="absolute top-8 -right-2 w-4 h-4 bg-gradient-to-r from-blue-400 to-cyan-500 rounded-full animate-bounce delay-500 shadow-lg"></div>
-                
+
                 <!-- Encabezado del modal con animación de éxito -->
                 <div class="text-center mb-6">
                     <div class="relative inline-flex items-center justify-center w-24 h-24 mx-auto mb-4">
@@ -781,13 +781,13 @@
                             <i class="text-4xl text-green-500 fas fa-check-circle animate-bounce"></i>
                         </div>
                     </div>
-                    
+
                     <h3 class="text-2xl font-bold text-gray-800 mb-2">
                         ¡Compra Procesada Exitosamente!
                     </h3>
                     <div class="w-20 h-1 bg-gradient-to-r from-green-400 to-emerald-500 mx-auto rounded-full"></div>
                 </div>
-                
+
                 <!-- Información de confirmación con diseño mejorado -->
                 <div class="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-6 mb-6 border border-green-100">
                     <div class="text-center space-y-4">
@@ -799,7 +799,7 @@
                             </div>
                             <div class="text-xl font-bold text-gray-800">{{ $numeroFacturaProcesada }}</div>
                         </div>
-                        
+
                         <!-- Total procesado -->
                         <div class="bg-white rounded-lg p-4 shadow-sm border border-green-200">
                             <div class="flex items-center justify-center space-x-2 mb-2">
@@ -812,7 +812,7 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <!-- Botones de acción con diseño profesional -->
                 <div class="space-y-3">
                     <button type="button"
@@ -824,7 +824,7 @@
                             <i class="text-xs fas fa-chevron-right"></i>
                         </div>
                     </button>
-                    
+
                     <button type="button"
                             wire:click="nuevaCompra"
                             class="w-full px-6 py-4 text-sm font-semibold text-gray-700 bg-white border-2 border-gray-300 rounded-xl hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 transform hover:scale-105 active:scale-95">
@@ -835,7 +835,7 @@
                         </div>
                     </button>
                 </div>
-                
+
                 <!-- Mensaje adicional -->
                 <div class="mt-4 text-center">
                     <p class="text-xs text-gray-500">
@@ -861,7 +861,7 @@ document.addEventListener('DOMContentLoaded', function() {
         [wire\\:key*="tabla-"],
         .table-responsive[wire\\:key]
     `);
-    
+
     problematicElements.forEach(el => {
         el.removeAttribute('wire:key');
     });
@@ -869,7 +869,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // SOLUCIÓN 2: Interceptar errores de morphing y prevenirlos
 window.addEventListener('error', (event) => {
-    if (event.error && event.error.message && 
+    if (event.error && event.error.message &&
         event.error.message.includes("Cannot read properties of null (reading 'before')")) {
         console.warn('Error de morphing interceptado y suprimido');
         event.preventDefault();
@@ -887,7 +887,7 @@ document.addEventListener('livewire:navigating', () => {
             el.style.display = 'none';
         }
     });
-    
+
     // Limpiar timers que puedan estar ejecutándose
     for (let i = 1; i < 1000; i++) {
         try {
@@ -902,13 +902,13 @@ document.addEventListener('livewire:initialized', () => {
     if (window.Livewire) {
         Livewire.hook('morph.updating', ({ el, skip }) => {
             // Saltar morphing para cualquier elemento de tabla o formulario
-            if (el.tagName === 'TABLE' || 
-                el.tagName === 'TBODY' || 
-                el.tagName === 'TR' || 
+            if (el.tagName === 'TABLE' ||
+                el.tagName === 'TBODY' ||
+                el.tagName === 'TR' ||
                 el.tagName === 'TD' ||
                 el.classList.contains('table-responsive') ||
-                (el.hasAttribute('wire:key') && 
-                 (el.getAttribute('wire:key').includes('producto-') || 
+                (el.hasAttribute('wire:key') &&
+                 (el.getAttribute('wire:key').includes('producto-') ||
                   el.getAttribute('wire:key').includes('tabla-') ||
                   el.getAttribute('wire:key').includes('fila-')))) {
                 skip();

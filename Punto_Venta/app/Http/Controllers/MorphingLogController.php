@@ -13,7 +13,7 @@ class MorphingLogController extends Controller
             $logData = $request->input('log_data');
             $userAgent = $request->input('user_agent');
             $timestamp = $request->input('timestamp');
-            
+
             // Formatear el log para Laravel
             $logMessage = sprintf(
                 "[DOM-MORPHING-%s] %s: %s | URL: %s | User-Agent: %s",
@@ -23,16 +23,16 @@ class MorphingLogController extends Controller
                 $logData['url'],
                 $userAgent
             );
-            
+
             // Agregar información adicional si es un error
             if (!empty($logData['error'])) {
                 $logMessage .= " | Error: " . $logData['error'];
             }
-            
+
             if (!empty($logData['stack'])) {
                 $logMessage .= " | Stack: " . substr($logData['stack'], 0, 500); // Limitar stack trace
             }
-            
+
             // Log según el tipo
             switch ($logData['type']) {
                 case 'ERROR':
@@ -47,9 +47,9 @@ class MorphingLogController extends Controller
                 default:
                     Log::debug($logMessage);
             }
-            
+
             return response()->json(['status' => 'logged'], 200);
-            
+
         } catch (\Exception $e) {
             Log::error('Error al procesar log de morphing: ' . $e->getMessage());
             return response()->json(['status' => 'error'], 500);

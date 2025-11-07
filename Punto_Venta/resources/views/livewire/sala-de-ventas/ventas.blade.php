@@ -1,7 +1,7 @@
 <div x-data="{ theme: localStorage.getItem('theme') || 'verde' }">
     <style>
         [x-cloak] { display: none !important; }
-        
+
         /* Estilos para el modal de búsqueda de productos */
         .line-clamp-2 {
             display: -webkit-box;
@@ -9,12 +9,12 @@
             -webkit-box-orient: vertical;
             overflow: hidden;
         }
-        
+
         /* Scroll suave */
         .smooth-scroll {
             scroll-behavior: smooth;
         }
-        
+
         /* Animación de entrada para cards */
         @keyframes fadeInUp {
             from {
@@ -26,16 +26,16 @@
                 transform: translateY(0);
             }
         }
-        
+
         .animate-fade-in-up {
             animation: fadeInUp 0.3s ease-out forwards;
         }
-        
+
         /* Hover suave para cards de productos */
         .product-card {
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        
+
         .product-card:hover {
             transform: translateY(-4px);
         }
@@ -609,7 +609,7 @@
 
                                             // Determinar si es producto o servicio
                                             $esServicio = isset($item['servicio_id']) && $item['servicio_id'] !== null;
-                                            
+
                                             // Calcular stock disponible (stock total - cantidad en carrito)
                                             if (!$esServicio) {
                                                 // NUEVO: Usar stock_total_unidad si está disponible (para productos con unidades de medida)
@@ -617,13 +617,13 @@
                                                     // Calcular la suma de TODAS las cantidades en el carrito para este producto+unidad
                                                     $cantidadTotalEnCarrito = 0;
                                                     foreach($productosFactura as $itemCarrito) {
-                                                        if ($itemCarrito['id'] == $item['id'] && 
-                                                            isset($itemCarrito['unidad_medida_id']) && 
+                                                        if ($itemCarrito['id'] == $item['id'] &&
+                                                            isset($itemCarrito['unidad_medida_id']) &&
                                                             $itemCarrito['unidad_medida_id'] == $item['unidad_medida_id']) {
                                                             $cantidadTotalEnCarrito += (int)($itemCarrito['cantidad'] ?? 0);
                                                         }
                                                     }
-                                                    
+
                                                     // Stock disponible = stock en bodega - total en carrito
                                                     $stockDisponible = max(0, $item['stock_total_unidad'] - $cantidadTotalEnCarrito);
                                                 } else {
@@ -675,26 +675,26 @@
                                                                 ->where('rb.estado_id', 1)
                                                                 ->where('rb.cantidad_disponible', '>', 0)
                                                                 ->sum('rb.cantidad_disponible');
-                                                            
+
                                                             // Calcular cuánto hay en el carrito para esta unidad
                                                             $cantidadEnCarrito = 0;
                                                             foreach($productosFactura as $itemCarr) {
-                                                                if ($itemCarr['id'] == $item['id'] && 
-                                                                    isset($itemCarr['unidad_medida_id']) && 
+                                                                if ($itemCarr['id'] == $item['id'] &&
+                                                                    isset($itemCarr['unidad_medida_id']) &&
                                                                     $itemCarr['unidad_medida_id'] == $precioDisp->unidad_medida_id) {
                                                                     $cantidadEnCarrito += (int)($itemCarr['cantidad'] ?? 0);
                                                                 }
                                                             }
-                                                            
+
                                                             $stockDisponibleUnidad = $stockBodega - $cantidadEnCarrito;
-                                                            
+
                                                             // Solo agregar si tiene stock O si es la unidad actualmente seleccionada
                                                             if ($stockDisponibleUnidad > 0 || $precioDisp->precio_id == $item['precio_id']) {
                                                                 $preciosConStock[] = $precioDisp;
                                                             }
                                                         }
                                                     @endphp
-                                                    
+
                                                     <!-- Nuevo sistema: Dropdown de unidades de medida desde precio_has_venta (solo con stock) -->
                                                     <select class="form-select form-select-sm"
                                                             style="min-width: 150px; font-size: 0.875rem;"
@@ -702,7 +702,7 @@
                                                         @foreach($preciosConStock as $precioDisponible)
                                                             <option value="{{ $precioDisponible->precio_id }}"
                                                                     {{ $item['precio_id'] == $precioDisponible->precio_id ? 'selected' : '' }}>
-                                                                {{ $precioDisponible->unidad_nombre }} ({{ $precioDisponible->unidad_simbolo }}) - 
+                                                                {{ $precioDisponible->unidad_nombre }} ({{ $precioDisponible->unidad_simbolo }}) -
                                                                 {{ $precioDisponible->cantidad }} {{ $precioDisponible->cantidad > 1 ? 'unidades' : 'unidad' }}
                                                             </option>
                                                         @endforeach
@@ -723,24 +723,24 @@
                                                     <select class="form-select form-select-sm"
                                                             style="min-width: 120px; font-size: 0.875rem;"
                                                             wire:change="cambiarPrecioProducto({{ $loop->index }}, $event.target.value)">
-                                                        
+
                                                         @php
                                                             // Encontrar el precio de la unidad seleccionada
                                                             $precioUnidadSeleccionada = collect($item['precios_disponibles'])
                                                                 ->firstWhere('precio_id', $item['precio_id']);
                                                             $tipoPrecioActual = $item['tipo_precio'] ?? 'precio_has_venta';
                                                         @endphp
-                                                        
+
                                                         <!-- Precio de la unidad de medida seleccionada -->
                                                         @if($precioUnidadSeleccionada)
                                                             <option value="precio_has_venta_{{ $precioUnidadSeleccionada->precio_id }}"
                                                                     {{ $tipoPrecioActual == 'precio_has_venta' ? 'selected' : '' }}>
-                                                                {{ $precioUnidadSeleccionada->unidad_nombre }} 
-                                                                ({{ $precioUnidadSeleccionada->cantidad }} {{ $precioUnidadSeleccionada->cantidad > 1 ? 'unids' : 'unid' }}) 
+                                                                {{ $precioUnidadSeleccionada->unidad_nombre }}
+                                                                ({{ $precioUnidadSeleccionada->cantidad }} {{ $precioUnidadSeleccionada->cantidad > 1 ? 'unids' : 'unid' }})
                                                                 - L. {{ number_format($precioUnidadSeleccionada->precio, 2) }}
                                                             </option>
                                                         @endif
-                                                        
+
                                                         <!-- Precios de Valencia (si es producto de Valencia) -->
                                                         @if(($item['producto_valencia'] ?? 0) == 1)
                                                             @if(($item['precio1'] ?? 0) > 0)
@@ -837,9 +837,9 @@
                                                         // Calcular cuánto hay en OTRAS líneas del mismo producto+unidad
                                                         $cantidadEnOtrasLineas = 0;
                                                         foreach($productosFactura as $idx => $otroItem) {
-                                                            if ($idx != $loop->index && 
-                                                                $otroItem['id'] == $item['id'] && 
-                                                                isset($otroItem['unidad_medida_id']) && 
+                                                            if ($idx != $loop->index &&
+                                                                $otroItem['id'] == $item['id'] &&
+                                                                isset($otroItem['unidad_medida_id']) &&
                                                                 $otroItem['unidad_medida_id'] == $item['unidad_medida_id']) {
                                                                 $cantidadEnOtrasLineas += (int)($otroItem['cantidad'] ?? 0);
                                                             }
@@ -851,15 +851,15 @@
                                                     <input type="number"
                                                         wire:key="producto-{{ $loop->index }}-{{ $item['cantidad'] }}"
                                                         wire:model.live.debounce.300ms="productosFactura.{{ $loop->index }}.cantidad"
-                                                        x-data="{ 
-                                                            valor: {{ $item['cantidad'] }}, 
+                                                        x-data="{
+                                                            valor: {{ $item['cantidad'] }},
                                                             stockMax: {{ $stockMaxParaEstaLinea }},
-                                                            excedido: false 
+                                                            excedido: false
                                                         }"
                                                         x-model="valor"
                                                         @input="
                                                             if(valor < 1) { valor = 1; excedido = false; }
-                                                            else if(valor > stockMax) { 
+                                                            else if(valor > stockMax) {
                                                                 excedido = true;
                                                                 setTimeout(() => { valor = stockMax; excedido = false; }, 500);
                                                             } else {
@@ -877,15 +877,15 @@
                                                     <input type="number"
                                                         wire:key="producto-{{ $loop->index }}-{{ $item['cantidad'] }}"
                                                         wire:model.live.debounce.300ms="productosFactura.{{ $loop->index }}.cantidad"
-                                                        x-data="{ 
-                                                            valor: {{ $item['cantidad'] }}, 
+                                                        x-data="{
+                                                            valor: {{ $item['cantidad'] }},
                                                             stockMax: {{ $stockDisponible }},
-                                                            excedido: false 
+                                                            excedido: false
                                                         }"
                                                         x-model="valor"
                                                         @input="
                                                             if(valor < 1) { valor = 1; excedido = false; }
-                                                            else if(valor > stockMax) { 
+                                                            else if(valor > stockMax) {
                                                                 excedido = true;
                                                                 setTimeout(() => { valor = stockMax; excedido = false; }, 500);
                                                             } else {
@@ -1152,7 +1152,7 @@
                                     <i class="fas fa-save me-2"></i>
                                     Guardar Temporal
                                 </button>
-                                
+
                                 <button type="button"
                                     wire:click="mostrarModalPago"
                                     class="px-5 py-3 btn btn-primary btn-lg"
@@ -1208,7 +1208,7 @@
                             wire:model.live.debounce.150ms="busquedaProductosServicios"
                             class="w-full py-3 pl-10 pr-4 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-200"
                             placeholder="Buscar producto por nombre, código de barras o descripción...">
-                        <div wire:loading wire:target="busquedaProductosServicios" 
+                        <div wire:loading wire:target="busquedaProductosServicios"
                              class="absolute inset-y-0 right-0 flex items-center pr-3">
                             <svg class="w-5 h-5 text-blue-500 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -1287,11 +1287,11 @@
                              @else
                                 title="{{ $sinStock ? 'Sin stock disponible' : 'Unidad no disponible para venta' }}"
                              @endif>
-                            
+
                             <!-- Imagen del producto (si existe) -->
                             @if($item->tiene_imagen && $item->imagen_base64)
                                 <div class="relative w-full bg-gray-100 h-36">
-                                    <img src="data:image/jpeg;base64,{{ $item->imagen_base64 }}" 
+                                    <img src="data:image/jpeg;base64,{{ $item->imagen_base64 }}"
                                          alt="{{ $item->nombre }}"
                                          class="object-cover w-full h-full {{ $sinStock ? 'grayscale' : '' }}"
                                          loading="lazy">
@@ -1934,14 +1934,14 @@
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <label class="form-label text-sm fw-medium">Buscar por Cliente</label>
-                                <input type="text" 
+                                <input type="text"
                                        x-model="filtroCliente"
                                        class="form-control"
                                        placeholder="Ingrese nombre del cliente...">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label text-sm fw-medium">Buscar por Fecha</label>
-                                <input type="date" 
+                                <input type="date"
                                        x-model="filtroFecha"
                                        class="form-control">
                             </div>
@@ -1971,7 +1971,7 @@
                                         $fechaGuardado = \Carbon\Carbon::parse($tramite['fecha_guardado'])->format('Y-m-d');
                                     @endphp
                                     <tr class="transition-colors hover:bg-gray-50"
-                                        x-show="(!filtroCliente || '{{ $nombreCliente }}'.toLowerCase().includes(filtroCliente.toLowerCase())) && 
+                                        x-show="(!filtroCliente || '{{ $nombreCliente }}'.toLowerCase().includes(filtroCliente.toLowerCase())) &&
                                                 (!filtroFecha || '{{ $fechaGuardado }}' === filtroFecha)">
                                         <td class="px-4 py-3 border-b">
                                             @if($tramite['modo_cliente_manual'] ?? false)

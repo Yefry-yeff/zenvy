@@ -55,7 +55,7 @@ class RecibidoBodega extends Model
         return $this->belongsTo(Bodega::class, 'bodega_id');
     }
 
-    // Relación directa con segmento (si existe segmento_id) 
+    // Relación directa con segmento (si existe segmento_id)
     public function segmento()
     {
         return $this->belongsTo(Segmento::class, 'segmento_id');

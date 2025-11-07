@@ -856,21 +856,21 @@ class Ventas extends Component
         foreach ($preciosDisponibles as $precio) {
             // Calcular stock total en bodega
             $stockEnBodega = $this->calcularStockTotalPorUnidad($producto->id, $precio->unidad_medida_id);
-            
+
             // Calcular cuánto ya está en el carrito para esta combinación producto+unidad
             $cantidadEnCarrito = 0;
             foreach ($this->productosFactura as $itemCarrito) {
                 // Verificar si es el mismo producto y la misma unidad de medida
-                if ($itemCarrito['id'] == $producto->id && 
-                    isset($itemCarrito['unidad_medida_id']) && 
+                if ($itemCarrito['id'] == $producto->id &&
+                    isset($itemCarrito['unidad_medida_id']) &&
                     $itemCarrito['unidad_medida_id'] == $precio->unidad_medida_id) {
                     $cantidadEnCarrito += (int)($itemCarrito['cantidad'] ?? 0);
                 }
             }
-            
+
             // Stock real disponible = stock en bodega - lo que ya está en el carrito
             $stockDisponibleReal = $stockEnBodega - $cantidadEnCarrito;
-            
+
             if ($stockDisponibleReal > 0) {
                 $precioConStock = $precio;
                 $stockTotalUnidad = $stockEnBodega; // Guardamos el stock total para referencia
@@ -894,7 +894,7 @@ class Ventas extends Component
 
         // Calcular descuento unitario automático si existe
         $subtotalOriginal = $precioDefecto->precio;
-        
+
         // NO aplicar descuento automáticamente - el usuario debe aplicarlo manualmente si lo desea
         $descuentoUnitarioAplicado = 0;
 
@@ -961,7 +961,7 @@ class Ventas extends Component
         // Verificar si es cambio de unidad de medida (nuevo sistema) o tipo de precio (sistema anterior)
         $producto = $this->productosFactura[$index];
         $cantidadActual = $this->productosFactura[$index]['cantidad']; // Preservar cantidad
-        
+
         // Si el producto tiene precios_disponibles (nuevo sistema)
         if (isset($producto['precios_disponibles']) && !empty($producto['precios_disponibles'])) {
             // Verificar si es un precio de Valencia (precio1, precio2, precio3, precio4)
@@ -1005,7 +1005,7 @@ class Ventas extends Component
                     $cantidadPorUnidad = $producto['cantidad_por_unidad'] ?? 1;
                     $descuentoUnitarioProducto = $producto['descuento_unitario_producto'] ?? 0;
                     if ($descuentoUnitarioProducto > 0) {
-                        $this->productosFactura[$index]['descuento_unitario_aplicado'] = 
+                        $this->productosFactura[$index]['descuento_unitario_aplicado'] =
                             $descuentoUnitarioProducto * $cantidadPorUnidad * $cantidadActual;
                     }
                 }
@@ -1020,14 +1020,14 @@ class Ventas extends Component
                 session()->flash('success', 'Precio actualizado correctamente');
                 return;
             }
-            
+
             // Si no es precio de Valencia, es precio_has_venta
             // Extraer el ID del precio_has_venta (formato: "precio_has_venta_123")
             $precioId = str_replace('precio_has_venta_', '', $tipoPrecio);
-            
+
             // Buscar el precio seleccionado en los precios disponibles
             $precioSeleccionado = collect($producto['precios_disponibles'])->firstWhere('precio_id', $precioId);
-            
+
             if (!$precioSeleccionado) {
                 $this->dispatch('mostrar-error', ['mensaje' => 'Precio no encontrado']);
                 return;
@@ -1050,21 +1050,21 @@ class Ventas extends Component
 
             // NUEVO: Calcular stock total disponible para esta unidad de medida específica
             $stockEnBodega = $this->calcularStockTotalPorUnidad($producto['id'], $precioSeleccionado->unidad_medida_id);
-            
+
             // Calcular cuánto hay en el carrito de este producto+unidad EXCLUYENDO esta línea
             $cantidadEnCarritoOtrasLineas = 0;
             foreach ($this->productosFactura as $i => $itemCarrito) {
-                if ($i != $index && 
-                    $itemCarrito['id'] == $producto['id'] && 
-                    isset($itemCarrito['unidad_medida_id']) && 
+                if ($i != $index &&
+                    $itemCarrito['id'] == $producto['id'] &&
+                    isset($itemCarrito['unidad_medida_id']) &&
                     $itemCarrito['unidad_medida_id'] == $precioSeleccionado->unidad_medida_id) {
                     $cantidadEnCarritoOtrasLineas += (int)($itemCarrito['cantidad'] ?? 0);
                 }
             }
-            
+
             // Stock real disponible para esta línea
             $stockDisponibleReal = $stockEnBodega - $cantidadEnCarritoOtrasLineas;
-            
+
             // CRÍTICO: Si no hay stock disponible para esta unidad, NO permitir el cambio
             if ($stockDisponibleReal <= 0) {
                 $this->dispatch('mostrar-error', [
@@ -1072,10 +1072,10 @@ class Ventas extends Component
                 ]);
                 return; // Salir sin hacer cambios
             }
-            
+
             // Si hay stock, proceder con el cambio
             $this->productosFactura[$index]['stock_total_unidad'] = $stockEnBodega;
-            
+
             // Ajustar cantidad si excede el stock disponible real
             if ($cantidadActual > $stockDisponibleReal) {
                 $this->productosFactura[$index]['cantidad'] = $stockDisponibleReal;
@@ -1088,7 +1088,7 @@ class Ventas extends Component
             if ($descuentoUnitarioAplicadoActual > 0) {
                 $descuentoUnitarioProducto = $producto['descuento_unitario_producto'] ?? 0;
                 if ($descuentoUnitarioProducto > 0) {
-                    $this->productosFactura[$index]['descuento_unitario_aplicado'] = 
+                    $this->productosFactura[$index]['descuento_unitario_aplicado'] =
                         $descuentoUnitarioProducto * $precioSeleccionado->cantidad * $cantidadActual;
                 }
             }
@@ -1231,10 +1231,10 @@ class Ventas extends Component
         if ($descuentoUnitarioProducto > 0) {
             // Para nuevo sistema: descuento × cantidad_por_unidad × cantidad
             if (isset($item['cantidad_por_unidad'])) {
-                $this->productosFactura[$index]['descuento_unitario_aplicado'] = 
+                $this->productosFactura[$index]['descuento_unitario_aplicado'] =
                     $descuentoUnitarioProducto * $item['cantidad_por_unidad'] * $nuevaCantidad;
             } else {
-                $this->productosFactura[$index]['descuento_unitario_aplicado'] = 
+                $this->productosFactura[$index]['descuento_unitario_aplicado'] =
                     $descuentoUnitarioProducto * $nuevaCantidad;
             }
         }
@@ -1260,7 +1260,7 @@ class Ventas extends Component
         // Extraer el índice y el campo que cambió
         // $key tiene formato: "0.cantidad" o "1.cantidad"
         $parts = explode('.', $key);
-        
+
         if (count($parts) !== 2) {
             return;
         }
@@ -1295,39 +1295,39 @@ class Ventas extends Component
             if (isset($item['stock_total_unidad']) && isset($item['unidad_medida_id'])) {
                 // NUEVO: Calcular stock en bodega
                 $stockEnBodega = $this->calcularStockTotalPorUnidad($item['id'], $item['unidad_medida_id']);
-                
+
                 // Calcular cuánto hay en el carrito EXCLUYENDO este item
                 $cantidadEnCarritoOtrasLineas = 0;
                 foreach ($this->productosFactura as $i => $itemCarrito) {
                     // Si es otra línea del mismo producto y misma unidad
-                    if ($i != $index && 
-                        $itemCarrito['id'] == $item['id'] && 
-                        isset($itemCarrito['unidad_medida_id']) && 
+                    if ($i != $index &&
+                        $itemCarrito['id'] == $item['id'] &&
+                        isset($itemCarrito['unidad_medida_id']) &&
                         $itemCarrito['unidad_medida_id'] == $item['unidad_medida_id']) {
                         $cantidadEnCarritoOtrasLineas += (int)($itemCarrito['cantidad'] ?? 0);
                     }
                 }
-                
+
                 // Stock real disponible para esta línea
                 $stockDisponibleReal = $stockEnBodega - $cantidadEnCarritoOtrasLineas;
-                
+
                 if ($nuevaCantidad > $stockDisponibleReal) {
                     // Limitar al stock disponible real
                     $this->productosFactura[$index]['cantidad'] = max(1, $stockDisponibleReal);
-                    
+
                     $this->dispatch('mostrar-error', [
                         'mensaje' => "Stock insuficiente. Solo hay {$stockDisponibleReal} disponibles (considerando otras líneas del carrito)."
                     ]);
                 }
-                
+
                 // Actualizar el stock_total_unidad mostrado para esta línea
                 $this->productosFactura[$index]['stock_total_unidad'] = $stockEnBodega;
-                
+
                 // IMPORTANTE: Actualizar stock_total_unidad en TODAS las líneas del mismo producto+unidad
                 // para que todas muestren el mismo stock de bodega
                 foreach ($this->productosFactura as $i => $itemCarrito) {
-                    if ($itemCarrito['id'] == $item['id'] && 
-                        isset($itemCarrito['unidad_medida_id']) && 
+                    if ($itemCarrito['id'] == $item['id'] &&
+                        isset($itemCarrito['unidad_medida_id']) &&
                         $itemCarrito['unidad_medida_id'] == $item['unidad_medida_id']) {
                         $this->productosFactura[$i]['stock_total_unidad'] = $stockEnBodega;
                     }
@@ -1360,7 +1360,7 @@ class Ventas extends Component
                     // Calcular cantidad máxima permitida
                     $cantidadMaxima = floor(($stockTotal - $cantidadEnCarritoSinEsteItem) / ($item['cantidad_por_unidad'] ?? 1));
                     $this->productosFactura[$index]['cantidad'] = max(1, $cantidadMaxima);
-                    
+
                     $this->mostrarModalSinStock = true;
                     $this->dispatch('mostrar-error', [
                         'mensaje' => "Stock insuficiente. Stock disponible: {$stockTotal}"
@@ -2777,7 +2777,7 @@ class Ventas extends Component
     {
         // NUEVA LÓGICA: Guardar en factura_has_producto tal como está en la factura (respetando descuentos por línea)
         // Luego reducir el inventario usando FIFO
-        
+
         $cantidadParaInventario = $producto['cantidad']; // Cantidad exacta a rebajar del inventario
 
         Log::info("DEBUG guardarProductoConDistribucionSecciones INICIO", [
@@ -4066,20 +4066,20 @@ class Ventas extends Component
             foreach ($preciosDisponibles as $precio) {
                 // Calcular stock total en bodega para esta unidad
                 $stockEnBodega = $this->calcularStockTotalPorUnidad($producto->id, $precio->unidad_medida_id);
-                
+
                 // Calcular cuánto ya está en el carrito para esta combinación producto+unidad
                 $cantidadEnCarrito = 0;
                 foreach ($this->productosFactura as $itemCarrito) {
-                    if ($itemCarrito['id'] == $producto->id && 
-                        isset($itemCarrito['unidad_medida_id']) && 
+                    if ($itemCarrito['id'] == $producto->id &&
+                        isset($itemCarrito['unidad_medida_id']) &&
                         $itemCarrito['unidad_medida_id'] == $precio->unidad_medida_id) {
                         $cantidadEnCarrito += (int)($itemCarrito['cantidad'] ?? 0);
                     }
                 }
-                
+
                 // Stock real disponible = stock en bodega - lo que ya está en el carrito
                 $stockDisponibleReal = $stockEnBodega - $cantidadEnCarrito;
-                
+
                 if ($stockDisponibleReal > 0) {
                     $precioConStock = $precio;
                     $stockTotalUnidad = $stockEnBodega;
@@ -4372,7 +4372,7 @@ class Ventas extends Component
 
         // Expandir cada producto con sus unidades de precio_has_venta
         $resultadosExpandidos = collect();
-        
+
         foreach ($productos as $producto) {
             // Obtener todas las unidades de precio para este producto
             $preciosVenta = DB::table('precio_has_venta as phv')
@@ -4620,9 +4620,9 @@ class Ventas extends Component
         session(['tramites_temporales_ventas' => $tramites]);
 
         $this->cargarTramitesTemporales();
-        
+
         session()->flash('success', '✅ Trámite guardado temporalmente. Puede continuar más tarde.');
-        
+
         // Limpiar formulario
         $this->resetearFactura();
     }
@@ -4630,10 +4630,10 @@ class Ventas extends Component
     public function cargarTramiteTemporal($index)
     {
         $tramites = session('tramites_temporales_ventas', []);
-        
+
         if (isset($tramites[$index])) {
             $tramite = $tramites[$index];
-            
+
             // Restaurar datos del cliente
             $this->cliente = $tramite['cliente'] ?? null;
             $this->modoClienteManual = $tramite['modo_cliente_manual'] ?? false;
@@ -4642,26 +4642,26 @@ class Ventas extends Component
             $this->telefonoManual = $tramite['cliente_manual']['telefono'] ?? '';
             $this->correoManual = $tramite['cliente_manual']['correo'] ?? '';
             $this->direccionManual = $tramite['cliente_manual']['direccion'] ?? '';
-            
+
             // Restaurar productos
             $this->productosFactura = $tramite['productos'] ?? [];
-            
+
             // Restaurar descuentos
             $this->descuentoTerceraEdad = $tramite['descuento_tercera_edad'] ?? false;
             $this->descuentoCuartaEdad = $tramite['descuento_cuarta_edad'] ?? false;
             $this->datosDescuentoAdulto = $tramite['datos_descuento_adulto'] ?? [];
-            
+
             // Recalcular totales
             $this->calcularTotales();
-            
+
             // Eliminar el trámite de la lista de temporales
             unset($tramites[$index]);
             $tramites = array_values($tramites);
             session(['tramites_temporales_ventas' => $tramites]);
-            
+
             $this->cargarTramitesTemporales();
             $this->cerrarModalTramitesTemporales();
-            
+
             session()->flash('success', '✅ Trámite temporal cargado. Puede continuar editando.');
         }
     }
@@ -4669,7 +4669,7 @@ class Ventas extends Component
     public function cargarTramiteDesdeSession()
     {
         $tramite = session('tramite_venta_a_cargar');
-        
+
         if ($tramite) {
             // Restaurar datos del cliente
             $this->cliente = $tramite['cliente'] ?? null;
@@ -4679,28 +4679,28 @@ class Ventas extends Component
             $this->telefonoManual = $tramite['cliente_manual']['telefono'] ?? '';
             $this->correoManual = $tramite['cliente_manual']['correo'] ?? '';
             $this->direccionManual = $tramite['cliente_manual']['direccion'] ?? '';
-            
+
             // Restaurar productos
             $this->productosFactura = $tramite['productos'] ?? [];
-            
+
             // Restaurar descuentos
             $this->descuentoTerceraEdad = $tramite['descuento_tercera_edad'] ?? false;
             $this->descuentoCuartaEdad = $tramite['descuento_cuarta_edad'] ?? false;
             $this->datosDescuentoAdulto = $tramite['datos_descuento_adulto'] ?? [];
-            
+
             // Recalcular totales
             $this->calcularTotales();
-            
+
             // Limpiar la sesión
             session()->forget('tramite_venta_a_cargar');
-            
+
             // Eliminar el trámite de la lista de temporales
             $tramites = session('tramites_temporales_ventas', []);
             $tramites = array_filter($tramites, function($t) use ($tramite) {
                 return $t['fecha_guardado'] !== $tramite['fecha_guardado'];
             });
             session(['tramites_temporales_ventas' => array_values($tramites)]);
-            
+
             session()->flash('success', '✅ Trámite temporal cargado. Puede continuar editando.');
         }
     }
@@ -4708,12 +4708,12 @@ class Ventas extends Component
     public function eliminarTramiteTemporal($index)
     {
         $tramites = session('tramites_temporales_ventas', []);
-        
+
         if (isset($tramites[$index])) {
             unset($tramites[$index]);
             $tramites = array_values($tramites);
             session(['tramites_temporales_ventas' => $tramites]);
-            
+
             $this->cargarTramitesTemporales();
             session()->flash('success', 'Trámite temporal eliminado correctamente.');
         }

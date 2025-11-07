@@ -124,7 +124,7 @@
                     }
                 }, 150);
             });
-            
+
             Livewire.on('datosActualizados', () => {
                 if (typeof window.chartsInitialized !== 'undefined' && window.chartsInitialized) {
                     if (typeof destroyCharts === 'function') {

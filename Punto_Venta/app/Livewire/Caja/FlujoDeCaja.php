@@ -24,11 +24,11 @@ class FlujoDeCaja extends Component
     public function mount()
     {
         $this->fechaFiltro = Carbon::now()->format('Y-m-d');
-        
+
         // Verificar si el usuario es administrador
         $usuario = Auth::user();
         $this->esAdministrador = $usuario && $usuario->rol && $usuario->rol->txt_nombre === 'Admin';
-        
+
         // Si es administrador, cargar todas las cajas de la tienda
         if ($this->esAdministrador && $usuario->tienda_id) {
             $this->cajasDisponibles = DB::table('caja')
@@ -42,7 +42,7 @@ class FlujoDeCaja extends Component
                 ->get()
                 ->toArray();
         }
-        
+
         $this->cargarTransacciones();
     }
 

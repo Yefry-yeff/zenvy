@@ -54,7 +54,7 @@ class CompraDeProducto extends Component
     public $busquedaProducto = '';
     public $productosFiltrados = [];
     public $mostrarListaProductos = false;
-    
+
     // Código de barras para escáner
     public $codigoBarras = '';
     public $productoSeleccionado = null;
@@ -837,21 +837,21 @@ class CompraDeProducto extends Component
     {
         // Cerrar modal
         $this->mostrarModalCompraExitosa = false;
-        
+
         try {
             // Buscar la compra por número de factura para obtener el ID
             $compra = Compra::with(['estado'])->where('numero_factura', $this->numeroFacturaProcesada)->first();
-            
+
             if ($compra && $compra->estado && (strtolower($compra->estado->nombre) === 'activo' || strtolower($compra->estado->nombre) === 'pendiente' || $compra->estado_id == 5)) {
                 // Usar exactamente la misma lógica que CompraDeProductos
                 $this->dispatch('cambiarVista', ruta: 'Inventario.RecibirProductoCompra', parametros: ['compraId' => $compra->id]);
-                
+
                 session()->flash('success', '🚛 Dirigiendo a recepción de productos...');
-                
+
             } else {
                 session()->flash('error', 'Solo se pueden recibir productos de compras en estado "activo" o "pendiente".');
             }
-            
+
         } catch (\Exception $e) {
             Log::error('Error al cambiar a recibir productos: ' . $e->getMessage());
             session()->flash('error', 'Error al acceder a la recepción de productos');
@@ -1373,37 +1373,37 @@ class CompraDeProducto extends Component
     {
         // Limpiar propiedades que pueden causar problemas en DOM morphing
         $this->dispatch('limpiar-alertas-dom');
-        
+
         // Limpiar arrays grandes para mejorar rendimiento
         if (count($this->resultadosBusquedaModal) > 30) {
             $this->resultadosBusquedaModal = [];
         }
-        
+
         // Limpiar propiedades temporales que pueden causar conflictos
         if (!$this->mostrarModalBusqueda) {
             $this->busquedaModalProductos = '';
         }
-        
+
         // Forzar limpieza de cache de productos si hay muchos elementos
         if (count($this->productos) > 100) {
             $this->productos = [];
         }
-        
+
         // Limpiar referencias problemáticas para DOM morphing
         if (!$this->productoTemporal['producto_id']) {
             $this->productoSeleccionado = null;
         }
-        
+
         // Asegurar que los arrays no tengan elementos null o inválidos
         $this->productos = array_filter($this->productos ?: []);
         $this->productosCompra = array_filter($this->productosCompra ?: []);
-        
+
         // Limpiar datos temporales que pueden causar conflictos de navegación
         if (empty($this->codigoBarras)) {
             // Limpiar estados relacionados con el scanner
             $this->dispatch('limpiar-scanner-state');
         }
-        
+
         // Detectar si hay inconsistencias que requieren refresh forzado
         if (count($this->productosCompra) > 0) {
             foreach ($this->productosCompra as $index => $producto) {

@@ -13,7 +13,7 @@ class MigrarPreciosATablaVenta extends Command
      *
      * @var string
      */
-    protected $signature = 'productos:migrar-precios-venta 
+    protected $signature = 'productos:migrar-precios-venta
                             {--force : Forzar migración incluso si ya existen precios}
                             {--producto-id= : Migrar solo un producto específico}
                             {--dry-run : Simular la migración sin guardar cambios}';
@@ -156,19 +156,19 @@ class MigrarPreciosATablaVenta extends Command
             $this->info('RESUMEN DE MIGRACIÓN');
             $this->info('========================================');
             $this->info("✅ Productos procesados: {$procesados}");
-            
+
             if ($dryRun) {
                 $this->info("🔍 Productos que serían insertados: {$insertados}");
             } else {
                 $this->info("✅ Precios insertados: {$insertados}");
             }
-            
+
             $this->info("⏭️  Productos omitidos (ya tienen precio): {$omitidos}");
-            
+
             if ($errores > 0) {
                 $this->error("❌ Errores encontrados: {$errores}");
             }
-            
+
             $this->newLine();
 
             if ($dryRun) {

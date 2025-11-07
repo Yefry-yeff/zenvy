@@ -97,15 +97,15 @@ class StockForm extends Component
             // CASO 1: Se especifica recibidoId directamente (nuevo método)
             if ($recibidoId) {
                 Log::info('Cargando por recibido_id específico', ['recibido_id' => $recibidoId]);
-                
+
                 $this->recibido = RecibidoBodega::with(['producto.marca', 'producto.subcategoria.categoria', 'producto.unidadMedidaCompra', 'seccion.segmento.bodega.tienda'])
                     ->findOrFail($recibidoId);
-                
+
                 $this->producto = $this->recibido->producto;
                 $this->seccionId = $this->recibido->seccion_id;
                 $this->recibidoId = $this->recibido->id;
                 $this->isEditing = true;
-                
+
                 Log::info('Datos cargados por recibido_id', [
                     'recibido_id' => $this->recibido->id,
                     'producto_id' => $this->producto->id,
@@ -127,13 +127,13 @@ class StockForm extends Component
                         $this->cargarSeccionesPorSegmento();
                     }
                 }
-                
+
                 // Inicializar fecha de distribución con la fecha actual
                 $this->form['fecha_distribucion'] = now()->format('Y-m-d');
-                
+
                 return; // Salir temprano del método
             }
-            
+
             // CASO 2: Método anterior por productoId (mantener compatibilidad)
             if (!$productoId) {
                 throw new \Exception('Debe especificar productoId o recibidoId');

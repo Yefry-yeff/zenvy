@@ -1,4 +1,4 @@
-<div class="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50" 
+<div class="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50"
      wire:init="inicializarDashboard"
      x-data="{ chartsReady: false, refreshing: false }">
     <!-- Header de bienvenida -->
@@ -17,10 +17,10 @@
                                 Último acceso: {{ $datosUsuario['ultimo_acceso'] }}
                             </p>
                         </div>
-                        
+
                         <!-- Botón de actualización -->
-                        <button 
-                            wire:click="actualizarDatos" 
+                        <button
+                            wire:click="actualizarDatos"
                             x-bind:disabled="refreshing"
                             x-bind:class="{ 'opacity-50 cursor-not-allowed': refreshing }"
                             class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white transition-all duration-200 bg-indigo-600 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
@@ -541,7 +541,7 @@
 
         function destroyCharts() {
             window.chartsInitializing = false; // Liberar flag por si acaso
-            
+
             if (window.chartVentas) {
                 try { window.chartVentas.destroy(); } catch(e) {}
                 window.chartVentas = null;
@@ -566,9 +566,9 @@
             if (window.chartsInitializing) {
                 return;
             }
-            
+
             window.chartsInitializing = true;
-            
+
             const datosGraficos = {
                 ventasSemana: {!! json_encode($ventasSemana ?: [0, 0, 0, 0, 0, 0, 0]) !!},
                 diasLabels: {!! json_encode($diasSemanaLabels ?: ['Día 1', 'Día 2', 'Día 3', 'Día 4', 'Día 5', 'Día 6', 'Día 7']) !!},
@@ -592,7 +592,7 @@
                     window.chartsInitializing = false;
                     return;
                 }
-                
+
                 const commonOptions = {
                     responsive: true,
                     maintainAspectRatio: false,
@@ -698,7 +698,7 @@
                 try {
                     const metodosPagoLabels = datosGraficos.pagosLabels;
                     const metodosPagoData = datosGraficos.pagosData;
-                    
+
                     // Colores dinámicos según la cantidad de métodos
                     const colores = [
                         { bg: 'rgba(34, 197, 94, 0.7)', border: 'rgba(34, 197, 94, 1)' },
@@ -706,7 +706,7 @@
                         { bg: 'rgba(249, 115, 22, 0.7)', border: 'rgba(249, 115, 22, 1)' },
                         { bg: 'rgba(168, 85, 247, 0.7)', border: 'rgba(168, 85, 247, 1)' }
                     ];
-                
+
                 window.chartPagos = new Chart(ctxPagos, {
                     type: 'bar',
                     data: {
@@ -795,7 +795,7 @@
                     console.error('Error creando gráfico de clientes:', e);
                 }
             }
-            
+
             // Marcar como inicializados y liberar flag
             window.chartsInitialized = true;
             window.chartsInitializing = false;

@@ -549,13 +549,13 @@ class CompraDeProductos extends Component
     public function cargarTramiteTemporal($index)
     {
         $tramites = session('tramites_temporales_compras', []);
-        
+
         if (isset($tramites[$index])) {
             $tramite = $tramites[$index];
-            
+
             // Guardar el trámite en sesión para que lo cargue el componente CompraDeProducto
             session(['tramite_a_cargar' => $tramite]);
-            
+
             // Ir a la vista de crear compra
             $this->dispatch('cambiarVista', ruta: 'Inventario.CompraDeProducto');
         }
@@ -564,12 +564,12 @@ class CompraDeProductos extends Component
     public function eliminarTramiteTemporal($index)
     {
         $tramites = session('tramites_temporales_compras', []);
-        
+
         if (isset($tramites[$index])) {
             unset($tramites[$index]);
             $tramites = array_values($tramites); // Reindexar el array
             session(['tramites_temporales_compras' => $tramites]);
-            
+
             $this->cargarTramitesTemporales();
             session()->flash('success', 'Trámite temporal eliminado correctamente.');
         }

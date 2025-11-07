@@ -94,7 +94,7 @@
                         <div class="d-flex align-items-center gap-3">
                             <small class="text-muted">Total: {{ count($detallesCompra) }} productos</small>
                             @if(collect($detallesCompra)->sum('cantidad_sin_asignar') > 0)
-                                <button wire:click="abrirModalRecepcionMasiva" 
+                                <button wire:click="abrirModalRecepcionMasiva"
                                         class="btn btn-success btn-sm d-flex align-items-center gap-2">
                                     <i class="fas fa-download"></i>
                                     Recibir Todos
@@ -243,8 +243,8 @@
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="unidadMedidaProducto" class="form-label">Unidad de Medida del Producto <span class="text-red-600">*</span></label>
-                                    <select id="unidadMedidaProducto" 
-                                            class="form-select" 
+                                    <select id="unidadMedidaProducto"
+                                            class="form-select"
                                             wire:model.live="unidadMedidaProducto">
                                         <option value="">Seleccionar unidad</option>
                                         @foreach($unidadesMedida as $unidad)
@@ -642,7 +642,7 @@
             </div>
         </div>
         @endif
-        
+
         <div class="modal-dialog modal-xl">
             <div class="modal-content">
                 <div class="modal-header">
@@ -656,9 +656,9 @@
                     <div class="row mb-4">
                         <div class="col-md-6">
                             <label for="fechaRecepcionMasiva" class="form-label">Fecha de Recepción <span class="text-danger">*</span></label>
-                            <input type="date" 
+                            <input type="date"
                                    id="fechaRecepcionMasiva"
-                                   class="form-control" 
+                                   class="form-control"
                                    wire:model.live="fechaRecepcionMasiva">
                         </div>
 
@@ -668,9 +668,9 @@
                     <div class="row mb-4">
                         <div class="col-12">
                             <label for="comentarioRecepcionMasiva" class="form-label">Comentario General</label>
-                            <textarea id="comentarioRecepcionMasiva" 
-                                      class="form-control" 
-                                      rows="2" 
+                            <textarea id="comentarioRecepcionMasiva"
+                                      class="form-control"
+                                      rows="2"
                                       wire:model.live="comentarioRecepcionMasiva"
                                       placeholder="Comentario opcional para todos los productos..."></textarea>
                         </div>
@@ -707,7 +707,7 @@
                                     </td>
                                     <!-- Cant. Distribuir -->
                                     <td>
-                                        <input type="number" 
+                                        <input type="number"
                                                class="form-control form-control-sm text-center @if($producto['cantidad_distribuir'] > $producto['cantidad_pendiente']) is-invalid @endif"
                                                wire:model.live="productosRecepcionMasiva.{{ $index }}.cantidad_distribuir"
                                                min="1"
@@ -722,7 +722,7 @@
                                         @endif
                                     </td>
                                     <td>
-                                        <select class="form-select form-select-sm @if(empty($producto['unidad_medida_id'])) is-invalid @endif" 
+                                        <select class="form-select form-select-sm @if(empty($producto['unidad_medida_id'])) is-invalid @endif"
                                                 wire:model.live="productosRecepcionMasiva.{{ $index }}.unidad_medida_id"
                                                 required>
                                             <option value="">Seleccionar</option>
@@ -737,7 +737,7 @@
                                         @endif
                                     </td>
                                     <td>
-                                        <input type="number" 
+                                        <input type="number"
                                                class="form-control form-control-sm text-center"
                                                wire:model.live="productosRecepcionMasiva.{{ $index }}.cantidad_stock"
                                                min="1"
@@ -745,7 +745,7 @@
                                     </td>
                                     <!-- Bodega -->
                                     <td>
-                                        <select class="form-select form-select-sm" 
+                                        <select class="form-select form-select-sm"
                                                 wire:model.live="productosRecepcionMasiva.{{ $index }}.bodega_id"
                                                 wire:change="cambiarBodegaProducto({{ $index }}, $event.target.value)"
                                                 x-init="
@@ -767,7 +767,7 @@
                                                     $esPaperland = strtolower($bodega->nombre) === 'paperland';
                                                     $debeSeleccionar = $producto['bodega_id'] == $bodega->id || ($esPaperland && empty($producto['bodega_id']));
                                                 @endphp
-                                                <option value="{{ $bodega->id }}" 
+                                                <option value="{{ $bodega->id }}"
                                                         @if($debeSeleccionar) selected @endif>
                                                     {{ $bodega->nombre }}
                                                 </option>
@@ -776,14 +776,14 @@
                                     </td>
                                     <!-- Segmento -->
                                     <td>
-                                        <select class="form-select form-select-sm" 
+                                        <select class="form-select form-select-sm"
                                                 wire:model.live="productosRecepcionMasiva.{{ $index }}.segmento_id"
                                                 wire:change="cambiarSegmentoProducto({{ $index }}, $event.target.value)"
                                                 @if(empty($producto['bodega_id'])) disabled @endif>
                                             <option value="">Seleccionar segmento</option>
                                             @if(isset($producto['segmentos_disponibles']))
                                                 @foreach($producto['segmentos_disponibles'] as $segmento)
-                                                    <option value="{{ $segmento['id'] }}" 
+                                                    <option value="{{ $segmento['id'] }}"
                                                             @if($producto['segmento_id'] == $segmento['id']) selected @endif>
                                                         {{ $segmento['descripcion'] }}
                                                     </option>
@@ -793,14 +793,14 @@
                                     </td>
                                     <!-- Sección -->
                                     <td>
-                                        <select class="form-select form-select-sm" 
+                                        <select class="form-select form-select-sm"
                                                 wire:model.live="productosRecepcionMasiva.{{ $index }}.seccion_id"
                                                 wire:change="cambiarSeccionProducto({{ $index }}, $event.target.value)"
                                                 @if(empty($producto['segmento_id'])) disabled @endif>
                                             <option value="">Seleccionar sección</option>
                                             @if(isset($producto['secciones_disponibles']))
                                                 @foreach($producto['secciones_disponibles'] as $seccion)
-                                                    <option value="{{ $seccion['id'] }}" 
+                                                    <option value="{{ $seccion['id'] }}"
                                                             @if($producto['seccion_id'] == $seccion['id']) selected @endif>
                                                         {{ $seccion['descripcion'] }}
                                                     </option>

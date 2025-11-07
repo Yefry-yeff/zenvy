@@ -21,7 +21,7 @@
                     Nuevo Producto
                 @endif
             </h5>
-            
+
             <!-- Indicador de sincronización automática -->
             @if($sincronizandoValencia)
             <div class="flex items-center gap-2 px-3 py-2 text-sm text-blue-700 bg-blue-50 rounded-md border border-blue-200">
@@ -29,7 +29,7 @@
                 <span>🔄 Sincronizando con Valencia...</span>
             </div>
             @endif
-            
+
             <button wire:click="volverALista"
                 class="inline-flex items-center gap-1 px-3 py-2 text-sm text-gray-800 bg-white rounded hover:bg-gray-100">
                 <span>←</span> Volver
@@ -49,7 +49,7 @@
                             🔄 Sincronizar Todos
                         </button>
                     </div>
-                    
+
                     <!-- Lista de productos de Valencia -->
                     @if(count($productosValencia['valencia']) > 0)
                         <div class="overflow-x-auto">
@@ -115,8 +115,8 @@
             <!-- Notificaciones Flash (no intrusivas) -->
             @if(session('info'))
                 <div class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-blue-800 text-sm"
-                     x-data="{ show: true }" 
-                     x-show="show" 
+                     x-data="{ show: true }"
+                     x-show="show"
                      x-init="setTimeout(() => show = false, 4000)"
                      x-transition:leave="transition ease-in duration-300"
                      x-transition:leave-start="opacity-100"
@@ -134,16 +134,16 @@
                 <div class="p-4">
                     <div class="p-4 bg-white border shadow rounded-xl">
                         <h2 class="mb-4 text-lg font-semibold text-gray-700">📝 Información Básica</h2>
-                        
+
                         @if($esProductoValencia)
                             <div class="mb-4 p-3 bg-orange-50 border border-orange-200 rounded">
                                 <p class="text-sm text-orange-700">
-                                    🏢 <strong>Producto sincronizado desde Valencia</strong> - Los campos principales son de solo lectura. 
+                                    🏢 <strong>Producto sincronizado desde Valencia</strong> - Los campos principales son de solo lectura.
                                     Puedes modificar: precios, descuentos, imagen, unidad de medida y tipo de ISV.
                                 </p>
                             </div>
                         @endif
-                        
+
                         <div class="row">
                             <div class="mb-3 col-md-6">
                                 <label for="codigo_barra" class="form-label">Código de Barras</label>
@@ -160,12 +160,12 @@
                             <div class="mb-3 col-md-6">
                                 <label for="codigo_estatal" class="form-label">Código Estatal</label>
                                 @if($esProductoValencia)
-                                    <input type="text" 
-                                           id="codigo_estatal" 
-                                           class="form-control bg-gray-100 text-gray-600" 
-                                           value="{{ $form['codigo_estatal'] }}" 
-                                           readonly 
-                                           style="cursor: not-allowed;" 
+                                    <input type="text"
+                                           id="codigo_estatal"
+                                           class="form-control bg-gray-100 text-gray-600"
+                                           value="{{ $form['codigo_estatal'] }}"
+                                           readonly
+                                           style="cursor: not-allowed;"
                                            title="Campo solo de lectura">
                                 @else
                                     <input type="text" id="codigo_estatal" class="form-control" wire:model.defer="form.codigo_estatal">
@@ -179,12 +179,12 @@
                             <div class="mb-3 col-md-6">
                                 <label for="nombre" class="form-label">Nombre <span class="text-red-600">*</span></label>
                                 @if($esProductoValencia)
-                                    <input type="text" 
-                                           id="nombre" 
-                                           class="form-control bg-gray-100 text-gray-600" 
-                                           value="{{ $form['nombre'] }}" 
-                                           readonly 
-                                           style="cursor: not-allowed;" 
+                                    <input type="text"
+                                           id="nombre"
+                                           class="form-control bg-gray-100 text-gray-600"
+                                           value="{{ $form['nombre'] }}"
+                                           readonly
+                                           style="cursor: not-allowed;"
                                            title="Campo solo de lectura">
                                 @else
                                     <input type="text" id="nombre" class="form-control {{ $this->getClaseCampo('nombre') }}" wire:model.live="form.nombre">
@@ -196,12 +196,12 @@
                             <div class="mb-3 col-md-6">
                                 <label for="descripcion" class="form-label">Descripción</label>
                                 @if($esProductoValencia)
-                                    <input type="text" 
-                                           id="descripcion" 
-                                           class="form-control bg-gray-100 text-gray-600" 
-                                           value="{{ $form['descripcion'] }}" 
-                                           readonly 
-                                           style="cursor: not-allowed;" 
+                                    <input type="text"
+                                           id="descripcion"
+                                           class="form-control bg-gray-100 text-gray-600"
+                                           value="{{ $form['descripcion'] }}"
+                                           readonly
+                                           style="cursor: not-allowed;"
                                            title="Campo solo de lectura">
                                 @else
                                     <input type="text" id="descripcion" class="form-control" wire:model.defer="form.descripcion">
@@ -269,10 +269,10 @@
                             <div class="mb-3 col-md-4">
                                 <label for="marca" class="form-label">Marca <span class="text-red-600">*</span></label>
                                 @if($esProductoValencia)
-                                    <select id="marca" 
-                                            class="form-select bg-gray-100 text-gray-600" 
-                                            disabled 
-                                            style="cursor: not-allowed;" 
+                                    <select id="marca"
+                                            class="form-select bg-gray-100 text-gray-600"
+                                            disabled
+                                            style="cursor: not-allowed;"
                                             title="Campo solo de lectura">
                                         <option value="{{ $form['marca_id'] }}">{{ collect($marcas)->where('id', $form['marca_id'])->first()->nombre ?? 'N/A' }}</option>
                                     </select>
@@ -291,10 +291,10 @@
                             <div class="mb-3 col-md-4">
                                 <label for="categoria" class="form-label">Categoría <span class="text-red-600">*</span></label>
                                 @if($esProductoValencia)
-                                    <select id="categoria" 
-                                            class="form-select bg-gray-100 text-gray-600" 
-                                            disabled 
-                                            style="cursor: not-allowed;" 
+                                    <select id="categoria"
+                                            class="form-select bg-gray-100 text-gray-600"
+                                            disabled
+                                            style="cursor: not-allowed;"
                                             title="Campo solo de lectura">
                                         <option value="{{ $categoriaSeleccionada }}">{{ collect($categorias)->where('id', $categoriaSeleccionada)->first()->nombre ?? 'N/A' }}</option>
                                     </select>
@@ -313,10 +313,10 @@
                             <div class="mb-3 col-md-4">
                                 <label for="subcategoria" class="form-label">Subcategoría <span class="text-red-600">*</span></label>
                                 @if($esProductoValencia)
-                                    <select id="subcategoria" 
-                                            class="form-select bg-gray-100 text-gray-600" 
-                                            disabled 
-                                            style="cursor: not-allowed;" 
+                                    <select id="subcategoria"
+                                            class="form-select bg-gray-100 text-gray-600"
+                                            disabled
+                                            style="cursor: not-allowed;"
                                             title="Campo solo de lectura">
                                         <option value="{{ $form['subcategoria_id'] }}">{{ collect($subcategorias)->where('id', $form['subcategoria_id'])->first()->nombre ?? 'N/A' }}</option>
                                     </select>
@@ -403,8 +403,8 @@
                                 <div class="row align-items-end">
                                     <div class="mb-3 col-md-3">
                                         <label for="nueva_unidad_medida" class="form-label">Unidad de Medida <span class="text-red-600">*</span></label>
-                                        <select id="nueva_unidad_medida" 
-                                                class="form-select" 
+                                        <select id="nueva_unidad_medida"
+                                                class="form-select"
                                                 wire:model="nuevoPrecioVenta.unidad_medida_id">
                                             <option value="">Seleccionar unidad</option>
                                             @foreach($unidadesMedida as $unidad)
@@ -414,11 +414,11 @@
                                     </div>
                                     <div class="mb-3 col-md-2">
                                         <label for="nueva_cantidad" class="form-label">Cantidad <span class="text-red-600">*</span></label>
-                                        <input type="number" 
-                                               id="nueva_cantidad" 
-                                               class="form-control" 
+                                        <input type="number"
+                                               id="nueva_cantidad"
+                                               class="form-control"
                                                wire:model="nuevoPrecioVenta.cantidad"
-                                               min="1" 
+                                               min="1"
                                                step="1"
                                                placeholder="1">
                                     </div>
@@ -426,18 +426,18 @@
                                         <label for="nuevo_precio" class="form-label">Precio <span class="text-red-600">*</span></label>
                                         <div class="input-group">
                                             <span class="input-group-text">L.</span>
-                                            <input type="number" 
-                                                   id="nuevo_precio" 
-                                                   class="form-control" 
+                                            <input type="number"
+                                                   id="nuevo_precio"
+                                                   class="form-control"
                                                    wire:model="nuevoPrecioVenta.precio"
-                                                   step="0.01" 
-                                                   min="0" 
+                                                   step="0.01"
+                                                   min="0"
                                                    placeholder="0.00">
                                         </div>
                                     </div>
                                     <div class="mb-3 col-md-4">
-                                        <button type="button" 
-                                                wire:click="agregarPrecioVenta" 
+                                        <button type="button"
+                                                wire:click="agregarPrecioVenta"
                                                 class="w-100 btn"
                                                 :class="{
                                                     'btn-success': theme === 'verde',
@@ -491,7 +491,7 @@
                                                     </span>
                                                 </td>
                                                 <td class="text-center" wire:click="abrirModalEditarPrecio({{ $index }})">
-                                                    <strong>{{ $precio['cantidad'] }}</strong> 
+                                                    <strong>{{ $precio['cantidad'] }}</strong>
                                                     {{ $precio['cantidad'] > 1 ? 'unidades' : 'unidad' }}
                                                 </td>
                                                 <td class="text-end" wire:click="abrirModalEditarPrecio({{ $index }})">
@@ -501,8 +501,8 @@
                                                     <small class="text-muted">L. {{ number_format($precioUnitario, 2) }} c/u</small>
                                                 </td>
                                                 <td class="text-center">
-                                                    <button type="button" 
-                                                            wire:click="abrirModalEliminarPrecio({{ $index }})" 
+                                                    <button type="button"
+                                                            wire:click="abrirModalEliminarPrecio({{ $index }})"
                                                             class="btn btn-danger btn-sm"
                                                             title="Eliminar precio">
                                                         <i class="fas fa-trash"></i>
@@ -577,12 +577,12 @@
                                 @if($esProductoValencia)
                                     <div class="input-group">
                                         <span class="input-group-text">L.</span>
-                                        <input type="number" 
-                                               id="ultimo_costo_compra" 
-                                               class="form-control bg-gray-100 text-gray-600" 
-                                               value="{{ number_format($form['ultimo_costo_compra'] ?? 0, 2) }}" 
-                                               readonly 
-                                               style="cursor: not-allowed;" 
+                                        <input type="number"
+                                               id="ultimo_costo_compra"
+                                               class="form-control bg-gray-100 text-gray-600"
+                                               value="{{ number_format($form['ultimo_costo_compra'] ?? 0, 2) }}"
+                                               readonly
+                                               style="cursor: not-allowed;"
                                                title="Campo solo de lectura">
                                     </div>
                                 @else
@@ -601,12 +601,12 @@
                                 @if($esProductoValencia)
                                     <div class="input-group">
                                         <span class="input-group-text">L.</span>
-                                        <input type="number" 
-                                               id="costo_promedio" 
-                                               class="form-control bg-gray-100 text-gray-600" 
-                                               value="{{ number_format($form['costo_promedio'] ?? 0, 2) }}" 
-                                               readonly 
-                                               style="cursor: not-allowed;" 
+                                        <input type="number"
+                                               id="costo_promedio"
+                                               class="form-control bg-gray-100 text-gray-600"
+                                               value="{{ number_format($form['costo_promedio'] ?? 0, 2) }}"
+                                               readonly
+                                               style="cursor: not-allowed;"
                                                title="Campo solo de lectura">
                                     </div>
                                 @else
@@ -745,13 +745,13 @@
                             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                         </div>
                     @endif
-                    
+
                     <div class="mb-4">
                         <label for="editar_unidad_medida" class="form-label fw-bold">
                             <i class="fas fa-ruler me-1"></i>Unidad de Medida <span class="text-red-600">*</span>
                         </label>
-                        <select id="editar_unidad_medida" 
-                                class="form-select" 
+                        <select id="editar_unidad_medida"
+                                class="form-select"
                                 wire:model="precioEditando.unidad_medida_id">
                             <option value="">Seleccionar unidad</option>
                             @foreach($unidadesMedida as $unidad)
@@ -759,33 +759,33 @@
                             @endforeach
                         </select>
                     </div>
-                    
+
                     <div class="mb-4">
                         <label for="editar_cantidad" class="form-label fw-bold">
                             <i class="fas fa-sort-numeric-up me-1"></i>Cantidad <span class="text-red-600">*</span>
                         </label>
-                        <input type="number" 
-                               id="editar_cantidad" 
-                               class="form-control form-control-lg" 
+                        <input type="number"
+                               id="editar_cantidad"
+                               class="form-control form-control-lg"
                                wire:model="precioEditando.cantidad"
-                               min="1" 
+                               min="1"
                                step="1"
                                placeholder="Ej: 1, 12, 24">
                         <small class="text-muted">Número de unidades por esta presentación</small>
                     </div>
-                    
+
                     <div class="mb-4">
                         <label for="editar_precio" class="form-label fw-bold">
                             <i class="fas fa-dollar-sign me-1"></i>Precio Total <span class="text-red-600">*</span>
                         </label>
                         <div class="input-group input-group-lg">
                             <span class="input-group-text">L.</span>
-                            <input type="number" 
-                                   id="editar_precio" 
-                                   class="form-control" 
+                            <input type="number"
+                                   id="editar_precio"
+                                   class="form-control"
                                    wire:model="precioEditando.precio"
-                                   step="0.01" 
-                                   min="0" 
+                                   step="0.01"
+                                   min="0"
                                    placeholder="0.00">
                         </div>
                         @if(isset($precioEditando['cantidad']) && $precioEditando['cantidad'] > 0 && isset($precioEditando['precio']) && $precioEditando['precio'] > 0)
@@ -833,8 +833,8 @@
                         <h5 class="modal-title">
                             <i class="fas fa-trash me-2"></i>Eliminar Precio de Venta
                         </h5>
-                        <button type="button" 
-                                class="btn-close btn-close-white" 
+                        <button type="button"
+                                class="btn-close btn-close-white"
                                 wire:click="cerrarModalEliminarPrecio"
                                 aria-label="Close"></button>
                     </div>
@@ -845,7 +845,7 @@
                                 $unidadEliminar = collect($unidadesMedida)->firstWhere('id', $precioEliminar['unidad_medida_id']);
                                 $precioUnitarioEliminar = $precioEliminar['cantidad'] > 0 ? $precioEliminar['precio'] / $precioEliminar['cantidad'] : 0;
                             @endphp
-                            
+
                             <div class="alert alert-warning">
                                 <h6><strong>⚠️ Confirmación de eliminación</strong></h6>
                                 <p class="mb-0">¿Está seguro que desea eliminar este precio de venta?</p>
@@ -960,13 +960,13 @@
         [x-cloak] {
             display: none !important;
         }
-        
+
         /* Filas clicables en tabla de precios */
         .table tbody tr[style*="cursor: pointer"] td:not(:last-child):hover {
             background-color: #f0f8ff !important;
             transition: background-color 0.2s ease;
         }
-        
+
         .table tbody tr[style*="cursor: pointer"]:hover td:not(:last-child) {
             background-color: #e3f2fd !important;
         }
@@ -1118,7 +1118,7 @@
             Livewire.on('redirigirEnTresSeg', () => {
                 console.log('Producto guardado exitosamente');
             });
-            
+
             // Escuchar evento de sincronización automática
             Livewire.on('mostrarSincronizacion', () => {
                 console.log('Sincronizando producto de Valencia automáticamente...');

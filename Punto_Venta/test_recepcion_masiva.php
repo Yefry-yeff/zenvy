@@ -48,7 +48,7 @@ $productosRecepcionMasiva = [];
 
 foreach ($detallesCompra as $detalle) {
     if ($detalle['cantidad_sin_asignar'] > 0) {
-        
+
         // Simular unidades disponibles para el producto
         $unidadesProducto = [
             ['id' => $detalle['unidad_medida_id'], 'nombre' => $detalle['unidad_medida'], 'simbolo' => substr($detalle['unidad_medida'], 0, 3)],

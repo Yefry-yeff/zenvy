@@ -122,8 +122,8 @@
                         <label class="block mb-2 text-sm font-medium text-gray-700">
                             🔍 Buscar Compra
                         </label>
-                        <input 
-                            type="text" 
+                        <input
+                            type="text"
                             wire:model.live.debounce.300ms="busqueda"
                             placeholder="N° factura o proveedor..."
                             class="w-full px-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -135,7 +135,7 @@
                         <label class="block mb-2 text-sm font-medium text-gray-700">
                             � Filtrar por Estado
                         </label>
-                        <select 
+                        <select
                             wire:model.live="filtroEstado"
                             class="w-full px-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         >
@@ -152,8 +152,8 @@
                         <label class="block mb-2 text-sm font-medium text-gray-700">
                             📅 Filtrar por Fecha
                         </label>
-                        <input 
-                            type="date" 
+                        <input
+                            type="date"
                             wire:model.live="filtroFecha"
                             class="w-full px-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         >
@@ -884,14 +884,14 @@
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <label class="form-label text-sm fw-medium">Buscar por N° Factura</label>
-                                <input type="text" 
+                                <input type="text"
                                        x-model="filtroTramite"
                                        class="form-control"
                                        placeholder="Ingrese número de factura...">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label text-sm fw-medium">Buscar por Proveedor</label>
-                                <input type="text" 
+                                <input type="text"
                                        x-model="filtroProveedor"
                                        class="form-control"
                                        placeholder="Ingrese nombre de proveedor...">
@@ -914,7 +914,7 @@
                             <tbody>
                                 @foreach($tramitesTemporales as $index => $tramite)
                                     <tr class="transition-colors hover:bg-gray-50"
-                                        x-show="(!filtroTramite || '{{ $tramite['numero_factura'] ?? '' }}'.toLowerCase().includes(filtroTramite.toLowerCase())) && 
+                                        x-show="(!filtroTramite || '{{ $tramite['numero_factura'] ?? '' }}'.toLowerCase().includes(filtroTramite.toLowerCase())) &&
                                                 (!filtroProveedor || '{{ $tramite['proveedor_nombre'] ?? '' }}'.toLowerCase().includes(filtroProveedor.toLowerCase()))">
                                         <td class="px-4 py-3 border-b">
                                             <span class="font-medium">{{ $tramite['numero_factura'] ?? 'N/A' }}</span>

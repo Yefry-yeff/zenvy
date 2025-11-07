@@ -144,7 +144,7 @@ class Producto extends Model
                 $datos['descuento_cuarta'] ?? 0,   // SP normaliza a 0/1 automáticamente
                 $datos['imagen'] ?? null // Nuevo parámetro imagen
             ]);
-            
+
             return $resultado; // Retorna el array con el ID generado
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error('Error en crearProducto: ' . $e->getMessage(), ['datos' => $datos]);

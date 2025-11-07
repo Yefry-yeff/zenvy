@@ -42,7 +42,7 @@ class ListaDeProductos extends Component
     public $nuevaUnidadMedida = '';
     public $unidadesDisponibles = [];
     public $cantidadTotalDisponible = 0;
-    
+
     // Alerta de validación
     public $mostrarAlerta = false;
     public $mensajeAlerta = '';
@@ -449,30 +449,30 @@ class ListaDeProductos extends Component
     public function abrirModalCambiarUnidad($recibidoBodegaId)
     {
         $this->stockSeleccionado = RecibidoBodega::with([
-            'producto.preciosVenta.unidadMedida', 
+            'producto.preciosVenta.unidadMedida',
             'seccion.segmento.bodega',
             'seccion.segmento',
             'seccion'
         ])->find($recibidoBodegaId);
-        
+
         // Obtener la unidad de medida del stock seleccionado
-        $unidadMedidaActual = $this->stockSeleccionado->unidad_medida 
+        $unidadMedidaActual = $this->stockSeleccionado->unidad_medida
             ?? ($this->stockSeleccionado->unidadMedida ? $this->stockSeleccionado->unidadMedida->nombre : null);
-        
+
         // Calcular el total disponible de todos los registros con la misma unidad de medida
         $registrosStock = RecibidoBodega::where('producto_id', $this->stockSeleccionado->producto_id)
             ->where('seccion_id', $this->stockSeleccionado->seccion_id)
             ->where('estado_id', 1)
             ->where('cantidad_disponible', '>', 0)
             ->get();
-        
+
         // Filtrar por unidad de medida y sumar
         $this->cantidadTotalDisponible = $registrosStock->filter(function($registro) use ($unidadMedidaActual) {
-            $unidadRegistro = $registro->unidad_medida 
+            $unidadRegistro = $registro->unidad_medida
                 ?? ($registro->unidadMedida ? $registro->unidadMedida->nombre : null);
             return $unidadRegistro === $unidadMedidaActual;
         })->sum('cantidad_disponible');
-        
+
         // Obtener las unidades de medida disponibles del producto desde precio_has_venta
         if ($this->stockSeleccionado && $this->stockSeleccionado->producto) {
             $this->unidadesDisponibles = $this->stockSeleccionado->producto->preciosVenta()
@@ -489,7 +489,7 @@ class ListaDeProductos extends Component
                 ->values()
                 ->toArray();
         }
-        
+
         $this->mostrarModalCambiarUnidad = true;
         $this->cantidadAConvertir = '';
         $this->cantidadVerificacion = '';
@@ -573,7 +573,7 @@ class ListaDeProductos extends Component
             DB::beginTransaction();
 
             // Obtener la unidad de medida actual
-            $unidadMedidaActual = $this->stockSeleccionado->unidad_medida 
+            $unidadMedidaActual = $this->stockSeleccionado->unidad_medida
                 ?? ($this->stockSeleccionado->unidadMedida ? $this->stockSeleccionado->unidadMedida->nombre : null);
 
             // Verificar que no se esté convirtiendo a la misma unidad
@@ -594,7 +594,7 @@ class ListaDeProductos extends Component
 
             // Filtrar por unidad de medida (puede ser string o relación)
             $registrosStock = $registrosStock->filter(function($registro) use ($unidadMedidaActual) {
-                $unidadRegistro = $registro->unidad_medida 
+                $unidadRegistro = $registro->unidad_medida
                     ?? ($registro->unidadMedida ? $registro->unidadMedida->nombre : null);
                 return $unidadRegistro === $unidadMedidaActual;
             });
@@ -635,7 +635,7 @@ class ListaDeProductos extends Component
 
             // Crear nuevo registro con la nueva unidad
             $unidadMedidaOriginal = $unidadMedidaActual;
-            
+
             $nuevoRecibidoBodega = RecibidoBodega::create([
                 'producto_id' => $this->stockSeleccionado->producto_id,
                 'seccion_id' => $this->stockSeleccionado->seccion_id,
@@ -715,7 +715,7 @@ class ListaDeProductos extends Component
         $unidadMedida = DB::table('unidad_medida')
             ->where('nombre', $nombreUnidad)
             ->first();
-        
+
         return $unidadMedida ? $unidadMedida->id : null;
     }
 
