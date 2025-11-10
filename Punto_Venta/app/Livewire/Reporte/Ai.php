@@ -82,7 +82,7 @@ class Ai extends Component
                 // Guardar en historial solo si fue exitoso
                 $cantidadRegistros = is_array($this->datosTabla) ? count($this->datosTabla) : 0;
                 $this->guardarEnHistorial(
-                    $this->prompt, 
+                    $this->prompt,
                     "Tabla con " . $cantidadRegistros . " registros",
                     $this->consultaSQL
                 );
@@ -126,7 +126,7 @@ class Ai extends Component
         - Para productos usa 'producto'
         - Para clientes usa 'cliente'
         - SOLO genera consultas SELECT, nunca INSERT, UPDATE, DELETE o DROP
-        
+
         FORMATO DE RESPUESTA:
         Presenta solo un breve título o resumen (1-2 líneas) y deja que la tabla hable por sí misma.
         Ejemplo: 'Aquí están las ventas del día de hoy:' o 'Estos son los productos más vendidos:'";
@@ -142,7 +142,7 @@ class Ai extends Component
                 'Content-Type' => 'application/json',
             ],
             'json' => [
-                'model' => 'llama-3.3-70b-versatile', // Modelo gratuito y potente
+                'model' => 'llama-3.3-70b-versatile', // Modelo gratuito
                 'messages' => [
                     [
                         'role' => 'system',
@@ -209,7 +209,7 @@ class Ai extends Component
             foreach ($topProductos as $producto) {
                 $contexto .= "- {$producto->nombre}: {$producto->total_vendido} unidades\n";
             }
-            
+
             // Clientes frecuentes (basado en nombre_cliente de factura)
             $clientesFrecuentes = DB::table('factura')
                 ->select('nombre_cliente', DB::raw('COUNT(*) as total_compras'))
@@ -219,7 +219,7 @@ class Ai extends Component
                 ->orderByDesc('total_compras')
                 ->limit(5)
                 ->get();
-            
+
             if ($clientesFrecuentes->isNotEmpty()) {
                 $contexto .= "\n\nCLIENTES MÁS FRECUENTES:\n";
                 foreach ($clientesFrecuentes as $cliente) {
@@ -243,7 +243,7 @@ class Ai extends Component
     private function obtenerEsquemaTablas()
     {
         $esquema = "TABLAS PRINCIPALES Y SUS COLUMNAS:\n\n";
-        
+
         $esquema .= "1. factura: id, cai_id, tipo_facturacion_id, numero_factura, nombre_cliente, rtn, sub_total, sub_total_grabado, sub_total_exento, isv, total, credito, dias_credito, fecha_emision, fecha_vencimiento, porc_descuento, monto_descuento, estado_factura_id, users_id, descuentos_id, created_at, updated_at\n";
         $esquema .= "   NOTA: La tabla factura NO tiene cliente_id. Usa nombre_cliente y rtn directamente.\n\n";
         $esquema .= "2. factura_has_producto: id, factura_id, producto_id, cantidad, precio_unitario, subtotal, descuento, total, created_at, updated_at\n";
@@ -260,7 +260,7 @@ class Ai extends Component
         $esquema .= "12. tipo_pago: id, nombre, descripcion, created_at, updated_at\n";
         $esquema .= "13. bodega: id, nombre, ubicacion, created_at, updated_at\n";
         $esquema .= "14. descuentos: id, nombre, tipo, valor, activo, created_at, updated_at\n\n";
-        
+
         $esquema .= "RELACIONES IMPORTANTES:\n";
         $esquema .= "- factura.users_id -> users.id (usuario que creó la factura)\n";
         $esquema .= "- factura.nombre_cliente y factura.rtn -> cliente.nombre y cliente.rtn (relación indirecta por texto)\n";
@@ -275,12 +275,12 @@ class Ai extends Component
         $esquema .= "- producto.categoria_id -> categoria.id\n";
         $esquema .= "- producto.segmento_id -> segmento.id\n";
         $esquema .= "- producto.seccion_id -> seccion.id\n\n";
-        
+
         $esquema .= "EJEMPLOS DE CONSULTAS CORRECTAS:\n";
         $esquema .= "- Clientes con más compras: SELECT nombre_cliente, COUNT(*) as total FROM factura WHERE nombre_cliente IS NOT NULL AND nombre_cliente != '' GROUP BY nombre_cliente\n";
         $esquema .= "- Ventas por usuario: SELECT u.name, COUNT(f.id) as total FROM factura f JOIN users u ON f.users_id = u.id GROUP BY u.id\n";
         $esquema .= "- Productos más vendidos: SELECT p.nombre, SUM(fp.cantidad) as total FROM factura_has_producto fp JOIN producto p ON fp.producto_id = p.id GROUP BY p.id\n";
-        
+
         return $esquema;
     }
 
@@ -330,10 +330,10 @@ class Ai extends Component
                     $this->datosTabla = array_map(function($item) {
                         return (array) $item;
                     }, $resultados);
-                    
+
                     // Guardar la respuesta para mostrar al usuario
                     $this->respuesta = $respuesta;
-                    
+
                     return true; // Éxito
                 } else {
                     $this->datosTabla = [];
@@ -414,12 +414,12 @@ class Ai extends Component
             ->select('pregunta', 'respuesta', 'script')
             ->where('id', $id)
             ->first();
-            
+
         if ($consulta) {
             $this->prompt = $consulta->pregunta;
             $this->respuesta = $consulta->respuesta;
             $this->consultaSQL = $consulta->script;
-            
+
             // Si hay script, ejecutarlo para regenerar la tabla
             if ($this->consultaSQL) {
                 try {
