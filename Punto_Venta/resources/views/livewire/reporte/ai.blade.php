@@ -1,4 +1,4 @@
-<div class="container-fluid p-4">
+<div class="container-fluid p-4" x-data>
     <style>
         .markdown-content {
             font-size: 15px;
@@ -188,73 +188,59 @@
                     @endif
 
                     <!-- Ejemplos de Consultas (Desplegable) -->
-                    <div class="card mb-4 border-info">
-                        <div class="card-header bg-light border-bottom cursor-pointer" data-bs-toggle="collapse" data-bs-target="#ejemplosConsultas" style="cursor: pointer;">
+                    <div class="card mb-4 border-info" x-data="{ ejemplosAbierto: false }">
+                        <div class="card-header bg-light border-bottom cursor-pointer" @click="ejemplosAbierto = !ejemplosAbierto" style="cursor: pointer;">
                             <h6 class="mb-0">
-                                <i class="fas fa-chevron-down me-2" id="iconoEjemplos"></i>
+                                <i class="fas" :class="ejemplosAbierto ? 'fa-chevron-up' : 'fa-chevron-down'" style="transition: transform 0.3s;"></i>
                                 <strong>Ejemplos de consultas (con tablas descargables)</strong>
                             </h6>
                         </div>
-                        <div id="ejemplosConsultas" class="collapse">
-                            <div class="card-body">
-                                <div class="row">
-                                    <!-- Ejemplos sugeridos -->
-                                    <div class="col-md-6 mb-3">
-                                        <h6 class="fw-bold text-secondary mb-2">Sugerencias:</h6>
-                                        <div class="list-group list-group-sm">
-                                            <a href="#" class="list-group-item list-group-item-action small" wire:click.prevent="$set('prompt', 'Dame los productos más vendidos del último mes con sus cantidades')">
-                                                📊 Productos más vendidos
-                                            </a>
-                                            <a href="#" class="list-group-item list-group-item-action small" wire:click.prevent="$set('prompt', 'Muestra las ventas del día de hoy con detalle')">
-                                                💰 Ventas de hoy
-                                            </a>
-                                            <a href="#" class="list-group-item list-group-item-action small" wire:click.prevent="$set('prompt', 'Lista los clientes con más compras este año')">
-                                                👥 Clientes frecuentes
-                                            </a>
-                                            <a href="#" class="list-group-item list-group-item-action small" wire:click.prevent="$set('prompt', '¿Qué productos tienen stock bajo? Muestra una tabla')">
-                                                ⚠️ Stock bajo
-                                            </a>
-                                            <a href="#" class="list-group-item list-group-item-action small" wire:click.prevent="$set('prompt', 'Reporte de ventas por método de pago de esta semana')">
-                                                💳 Ventas por pago
-                                            </a>
-                                            <a href="#" class="list-group-item list-group-item-action small" wire:click.prevent="$set('prompt', 'Top 20 productos por ingresos generados')">
-                                                🏆 Top productos
-                                            </a>
-                                        </div>
-                                    </div>
-                                    <!-- Consultas más frecuentes -->
-                                    <div class="col-md-6 mb-3">
-                                        @if(count($topConsultas) > 0)
-                                            <h6 class="fw-bold text-secondary mb-2">Más frecuentes:</h6>
-                                            <div class="list-group list-group-sm">
-                                                @foreach($topConsultas as $top)
-                                                    <a href="#" class="list-group-item list-group-item-action small d-flex justify-content-between align-items-center" wire:click.prevent="$set('prompt', '{{ $top->pregunta }}')">
-                                                        <span class="text-truncate" style="max-width: 150px;">{{ $top->pregunta }}</span>
-                                                        <span class="badge bg-secondary">{{ $top->total }}</span>
-                                                    </a>
-                                                @endforeach
-                                            </div>
-                                        @endif
+                        <div x-show="ejemplosAbierto" x-transition class="card-body">
+                            <div class="row">
+                                <!-- Ejemplos sugeridos -->
+                                <div class="col-md-6 mb-3">
+                                    <h6 class="fw-bold text-secondary mb-2">Sugerencias:</h6>
+                                    <div class="list-group list-group-sm">
+                                        <a href="#" class="list-group-item list-group-item-action small" wire:click.prevent="$set('prompt', 'Dame los productos más vendidos del último mes con sus cantidades')">
+                                            📊 Productos más vendidos
+                                        </a>
+                                        <a href="#" class="list-group-item list-group-item-action small" wire:click.prevent="$set('prompt', 'Muestra las ventas del día de hoy con detalle')">
+                                            💰 Ventas de hoy
+                                        </a>
+                                        <a href="#" class="list-group-item list-group-item-action small" wire:click.prevent="$set('prompt', 'Lista los clientes con más compras este año')">
+                                            👥 Clientes frecuentes
+                                        </a>
+                                        <a href="#" class="list-group-item list-group-item-action small" wire:click.prevent="$set('prompt', '¿Qué productos tienen stock bajo? Muestra una tabla')">
+                                            ⚠️ Stock bajo
+                                        </a>
+                                        <a href="#" class="list-group-item list-group-item-action small" wire:click.prevent="$set('prompt', 'Reporte de ventas por método de pago de esta semana')">
+                                            💳 Ventas por pago
+                                        </a>
+                                        <a href="#" class="list-group-item list-group-item-action small" wire:click.prevent="$set('prompt', 'Top 20 productos por ingresos generados')">
+                                            🏆 Top productos
+                                        </a>
                                     </div>
                                 </div>
-                                <small class="text-muted d-block mt-2">
-                                    💡 <strong>Tip:</strong> Los reportes se generan automáticamente como tablas y puedes descargarlos en Excel
-                                </small>
+                                <!-- Consultas más frecuentes -->
+                                <div class="col-md-6 mb-3">
+                                    @if(count($topConsultas) > 0)
+                                        <h6 class="fw-bold text-secondary mb-2">Más frecuentes:</h6>
+                                        <div class="list-group list-group-sm">
+                                            @foreach($topConsultas as $top)
+                                                <a href="#" class="list-group-item list-group-item-action small d-flex justify-content-between align-items-center" wire:click.prevent="$set('prompt', '{{ $top->pregunta }}')">
+                                                    <span class="text-truncate" style="max-width: 150px;">{{ $top->pregunta }}</span>
+                                                    <span class="badge bg-secondary">{{ $top->total }}</span>
+                                                </a>
+                                            @endforeach
+                                        </div>
+                                    @endif
+                                </div>
                             </div>
+                            <small class="text-muted d-block mt-2">
+                                💡 <strong>Tip:</strong> Los reportes se generan automáticamente como tablas y puedes descargarlos en Excel
+                            </small>
                         </div>
                     </div>
-
-                    <script>
-                        // Cambiar icono al desplegar/colapsar
-                        document.getElementById('ejemplosConsultas').addEventListener('show.bs.collapse', function() {
-                            document.getElementById('iconoEjemplos').classList.remove('fa-chevron-down');
-                            document.getElementById('iconoEjemplos').classList.add('fa-chevron-up');
-                        });
-                        document.getElementById('ejemplosConsultas').addEventListener('hide.bs.collapse', function() {
-                            document.getElementById('iconoEjemplos').classList.remove('fa-chevron-up');
-                            document.getElementById('iconoEjemplos').classList.add('fa-chevron-down');
-                        });
-                    </script>
 
                     <!-- Mensaje de Error -->
                     @if($error)
@@ -379,34 +365,6 @@
                                 @endif
                             </div>
                         </div>
-
-                        <script>
-                            // Auto-scroll hacia la tabla cuando se genere
-                            document.addEventListener('DOMContentLoaded', function() {
-                                const resultadoElemento = document.getElementById('resultado-reporte');
-                                if (resultadoElemento) {
-                                    setTimeout(() => {
-                                        resultadoElemento.scrollIntoView({ 
-                                            behavior: 'smooth', 
-                                            block: 'start'
-                                        });
-                                    }, 100);
-                                }
-                            });
-
-                            // También aplicar scroll cuando Livewire actualice
-                            Livewire.hook('message.processed', (message, component) => {
-                                const resultadoElemento = document.getElementById('resultado-reporte');
-                                if (resultadoElemento) {
-                                    setTimeout(() => {
-                                        resultadoElemento.scrollIntoView({ 
-                                            behavior: 'smooth', 
-                                            block: 'start'
-                                        });
-                                    }, 100);
-                                }
-                            });
-                        </script>
                     @endif
                 </div>
             </div>
@@ -491,3 +449,20 @@
         </div>
     </div>
 </div>
+
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+<script>
+    // Hacer scroll automático a los resultados cuando Livewire actualiza
+    document.addEventListener('livewire:updated', function() {
+        const resultadoElemento = document.getElementById('resultado-reporte');
+        if (resultadoElemento) {
+            setTimeout(() => {
+                resultadoElemento.scrollIntoView({ 
+                    behavior: 'smooth', 
+                    block: 'start'
+                });
+            }, 200);
+        }
+    });
+</script>
