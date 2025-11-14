@@ -435,7 +435,7 @@
                     </div>
                     <div class="card-body">
                         <p class="small mb-2">
-                            <strong>API:</strong> Groq (Llama 3.3 70B)
+                            <strong>API:</strong> Groq (Gemma 7B)
                         </p>
                         <p class="small mb-2">
                             <strong>Estado:</strong>

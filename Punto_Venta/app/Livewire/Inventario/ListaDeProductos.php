@@ -694,13 +694,12 @@ class ListaDeProductos extends Component
     {
         try {
             DB::table('bitacora')->insert([
-                'tabla_afectada' => $datos['tabla_afectada'],
-                'operacion' => $datos['operacion'],
-                'registro_id' => $datos['registro_id'],
-                'datos_anteriores' => json_encode($datos['datos_anteriores']),
-                'datos_nuevos' => json_encode($datos['datos_nuevos']),
-                'usuario_id' => Auth::id(),
-                'fecha_hora' => now(),
+                'tablaReferencia' => $datos['tabla_afectada'],
+                'accion' => $datos['operacion'],
+                'idReferencia' => $datos['registro_id'],
+                'datosAnteriores' => json_encode($datos['datos_anteriores']),
+                'datosNuevos' => json_encode($datos['datos_nuevos']),
+                'users_id' => Auth::id(),
                 'created_at' => now(),
                 'updated_at' => now()
             ]);
