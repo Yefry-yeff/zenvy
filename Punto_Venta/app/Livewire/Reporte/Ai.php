@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Log;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\ReporteAIExport;
 use Illuminate\Support\Facades\Auth;
+use Carbon\Carbon;
 
 class Ai extends Component
 {
@@ -322,8 +323,74 @@ class Ai extends Component
                     return 'Solo se permiten consultas SELECT por seguridad';
                 }
 
-                // Ejecutar la consulta SQL
-                $resultados = DB::select($sql);
+                // Log: registrar la consulta que se va a ejecutar y contexto básico
+                try {
+                    Log::info('AI: ejecutando consulta SQL', [
+                        'user_id' => Auth::check() ? Auth::id() : null,
+                        'prompt' => $this->prompt,
+                        'sql' => $sql,
+                        'respuesta_ai_snippet' => mb_substr($respuesta, 0, 1000),
+                    ]);
+                } catch (\Throwable $_logEx) {
+                    // No bloquear la ejecución si falla el logging
+                }
+
+                // Preparar la consulta para ejecutar respetando el timezone de la app
+                $sqlExec = $sql;
+                try {
+                    $appTz = config('app.timezone') ?: 'UTC';
+                    $appNow = Carbon::now()->setTimezone($appTz)->format('Y-m-d H:i:s');
+                    $appDate = Carbon::now()->setTimezone($appTz)->format('Y-m-d');
+
+                    // Reemplazos comunes que generan discrepancias por timezone
+                    $replacements = [
+                        '/\bCURDATE\(\)/i' => "'{$appDate}'",
+                        '/\bCURRENT_DATE\b/i' => "'{$appDate}'",
+                        '/\bNOW\(\)/i' => "'{$appNow}'",
+                        '/\bCURRENT_TIMESTAMP\b/i' => "'{$appNow}'",
+                    ];
+
+                    foreach ($replacements as $pattern => $replace) {
+                        $sqlExec = preg_replace($pattern, $replace, $sqlExec);
+                    }
+
+                    // Log que indica qué reemplazos se realizaron
+                    Log::info('AI: reemplazo timezone en SQL', [
+                        'original_sql_hash' => substr(md5($sql), 0, 10),
+                        'replaced_sql_hash' => substr(md5($sqlExec), 0, 10),
+                        'app_timezone' => $appTz,
+                        'replacements_preview' => [
+                            'CURDATE()' => $appDate,
+                            'NOW()' => $appNow,
+                        ],
+                    ]);
+                } catch (\Throwable $_tzEx) {
+                    // No bloquear la ejecución si falla el manejo del timezone
+                    Log::warning('AI: fallo al aplicar reemplazo de timezone: ' . $_tzEx->getMessage());
+                    $sqlExec = $sql; // fallback
+                }
+
+                // Ejecutar la consulta SQL (posible con reemplazos aplicados)
+                $resultados = DB::select($sqlExec);
+
+                // Log: registrar cantidad de resultados y una muestra del primer registro
+                try {
+                    $count = is_array($resultados) ? count($resultados) : 0;
+                    $sample = [];
+                    if ($count > 0) {
+                        $first = (array) $resultados[0];
+                        // Mantener solo los primeros 5 campos para la muestra
+                        $sample = array_slice($first, 0, 5, true);
+                    }
+
+                    Log::info('AI: resultados de la consulta', [
+                        'count' => $count,
+                        'sample' => $sample,
+                        'sql_hash' => substr(md5($sql), 0, 10),
+                    ]);
+                } catch (\Throwable $_logEx) {
+                    // No interrumpir la ejecución por fallos de logging
+                }
 
                 if (!empty($resultados)) {
                     // Convertir a array asociativo
@@ -342,9 +409,21 @@ class Ai extends Component
                 }
             } catch (\Exception $e) {
                 $errorMsg = $e->getMessage();
-                Log::warning('Error al ejecutar SQL generado por AI: ' . $errorMsg, [
-                    'sql' => $sql
-                ]);
+                // Registrar error con contexto completo (cuidado con información sensible)
+                try {
+                    Log::error('Error al ejecutar SQL generado por AI', [
+                        'exception' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString(),
+                        'sql' => $sql,
+                        'prompt' => $this->prompt,
+                        'respuesta_ai_snippet' => mb_substr($respuesta, 0, 2000),
+                        'user_id' => Auth::check() ? Auth::id() : null,
+                    ]);
+                } catch (\Throwable $_logEx) {
+                    // Evitar fallos secundarios por logging
+                    Log::error('Error al registrar el error original al ejecutar SQL: ' . $_logEx->getMessage());
+                }
+
                 return $errorMsg; // Devolver el mensaje de error
             }
         } else {
@@ -377,6 +456,17 @@ class Ai extends Component
         }
 
         try {
+            // Log: registrar la consulta ejecutada manualmente desde la UI
+            try {
+                Log::info('AI: ejecutarSQL invocado', [
+                    'user_id' => Auth::check() ? Auth::id() : null,
+                    'consulta' => $this->consultaSQL,
+                    'prompt' => $this->prompt,
+                ]);
+            } catch (\Throwable $_logEx) {
+                // no bloquear la ejecución por fallos de logging
+            }
+
             $resultados = DB::select($this->consultaSQL);
 
             if (!empty($resultados)) {
@@ -396,7 +486,19 @@ class Ai extends Component
                 ]);
             }
         } catch (\Exception $e) {
-            Log::error('Error al ejecutar SQL: ' . $e->getMessage());
+            // Log error con contexto
+            try {
+                Log::error('Error al ejecutar SQL (ejecutarSQL)', [
+                    'exception' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString(),
+                    'consulta' => $this->consultaSQL,
+                    'prompt' => $this->prompt,
+                    'user_id' => Auth::check() ? Auth::id() : null,
+                ]);
+            } catch (\Throwable $_logEx) {
+                Log::error('Error al registrar el error en ejecutarSQL: ' . $_logEx->getMessage());
+            }
+
             $this->error = 'Error al ejecutar la consulta: ' . $e->getMessage();
         }
     }
@@ -430,7 +532,17 @@ class Ai extends Component
                         }, $resultados);
                     }
                 } catch (\Exception $e) {
-                    Log::warning('Error al ejecutar SQL del historial: ' . $e->getMessage());
+                    // Registrar error al ejecutar SQL desde historial
+                    try {
+                        Log::error('Error al ejecutar SQL del historial', [
+                            'exception' => $e->getMessage(),
+                            'trace' => $e->getTraceAsString(),
+                            'consulta' => $this->consultaSQL,
+                            'user_id' => Auth::check() ? Auth::id() : null,
+                        ]);
+                    } catch (\Throwable $_logEx) {
+                        Log::error('Error al registrar el error del historial: ' . $_logEx->getMessage());
+                    }
                 }
             }
         }
