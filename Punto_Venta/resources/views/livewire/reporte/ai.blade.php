@@ -1,4 +1,5 @@
-<div class="container-fluid p-4" x-data>
+<div class="container-fluid p-4" x-data="{ ejemplosAbierto: false, cargando: @entangle('cargando') }"
+    x-init="$watch('cargando', value => { if (!value) { setTimeout(() => { const el = document.getElementById('resultado-reporte'); if (el) el.scrollIntoView({behavior: 'smooth', block: 'start'}); }, 200); } })">
     <style>
         .markdown-content {
             font-size: 15px;
@@ -126,21 +127,27 @@
                     <div class="d-flex gap-2 mb-4">
                         <button
                             wire:click="generarReporte"
-                            class="btn btn-primary"
-                            @if($cargando) disabled @endif
+                            class="btn btn-primary d-inline-flex align-items-center"
+                            wire:loading.attr="disabled"
+                            wire:target="generarReporte"
                         >
-                            @if($cargando)
-                                <span class="spinner-border spinner-border-sm me-2"></span>
-                                Generando reporte...
-                            @else
+                            <span wire:loading.remove wire:target="generarReporte">
                                 <i class="fas fa-magic me-2"></i>
                                 Generar Reporte
-                            @endif
+                            </span>
+                            <span wire:loading wire:target="generarReporte">
+                                <svg class="me-2" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                                </svg>
+                                Generando...
+                            </span>
                         </button>
                         <button
                             wire:click="limpiar"
                             class="btn btn-outline-secondary"
-                            @if($cargando) disabled @endif
+                            wire:loading.attr="disabled"
+                            wire:target="generarReporte"
                         >
                             <i class="fas fa-eraser me-2"></i>
                             Limpiar
@@ -188,7 +195,7 @@
                     @endif
 
                     <!-- Ejemplos de Consultas (Desplegable) -->
-                    <div class="card mb-4 border-info" x-data="{ ejemplosAbierto: false }">
+                    <div class="card mb-4 border-info">
                         <div class="card-header bg-light border-bottom cursor-pointer" @click="ejemplosAbierto = !ejemplosAbierto" style="cursor: pointer;">
                             <h6 class="mb-0">
                                 <i class="fas" :class="ejemplosAbierto ? 'fa-chevron-up' : 'fa-chevron-down'" style="transition: transform 0.3s;"></i>
@@ -268,9 +275,16 @@
                             </div>
                             <div class="card-body">
                                 <!-- Solo mostrar respuesta si hay texto además del SQL -->
-                                @if(trim(preg_replace('/```sql.*?```/s', '', $respuesta)))
+                                @php
+                                    $textoSinSql = preg_replace('/```sql.*?```/s', '', $respuesta);
+                                    $markdownHtml = \Illuminate\Support\Str::markdown($textoSinSql);
+                                    // Eliminar cualquier tabla generada por Markdown para mostrar sólo la tabla resultante desde la consulta
+                                    $markdownSinTablas = preg_replace('/<table.*?>.*?<\/table>/is', '', $markdownHtml);
+                                @endphp
+
+                                @if(trim(strip_tags($markdownSinTablas)))
                                     <div class="markdown-content mb-3">
-                                        {!! \Illuminate\Support\Str::markdown(preg_replace('/```sql.*?```/s', '', $respuesta)) !!}
+                                        {!! $markdownSinTablas !!}
                                     </div>
                                 @endif
 
@@ -321,6 +335,8 @@
                                             <nav aria-label="Page navigation" class="mt-3">
                                                 <ul class="pagination pagination-sm justify-content-center">
                                                     <li class="page-item {{ $paginaActual == 1 ? 'disabled' : '' }}">
+                                            <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
                                                         <button wire:click="$set('paginaActual', 1)" class="page-link">Primera</button>
                                                     </li>
                                                     <li class="page-item {{ $paginaActual == 1 ? 'disabled' : '' }}">
@@ -450,19 +466,4 @@
     </div>
 </div>
 
-<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-
-<script>
-    // Hacer scroll automático a los resultados cuando Livewire actualiza
-    document.addEventListener('livewire:updated', function() {
-        const resultadoElemento = document.getElementById('resultado-reporte');
-        if (resultadoElemento) {
-            setTimeout(() => {
-                resultadoElemento.scrollIntoView({ 
-                    behavior: 'smooth', 
-                    block: 'start'
-                });
-            }, 200);
-        }
-    });
-</script>
+<!-- Scroll automático manejado por Alpine (no hay scripts vanilla adicionales) -->
