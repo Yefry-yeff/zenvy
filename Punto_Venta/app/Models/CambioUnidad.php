@@ -9,7 +9,7 @@ class CambioUnidad extends Model
 {
     use HasFactory;
 
-    protected $table = 'Cambio_unidades';
+    protected $table = 'cambio_unidades';
 
     protected $fillable = [
         'cantidad_rebajada',
