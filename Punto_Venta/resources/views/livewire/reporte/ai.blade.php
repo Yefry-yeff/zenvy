@@ -187,21 +187,74 @@
                         </div>
                     @endif
 
-                    <!-- Ejemplos de Consultas -->
-                    <div class="alert alert-info">
-                        <strong><i class="fas fa-lightbulb me-2"></i>Ejemplos de consultas (con tablas descargables):</strong>
-                        <ul class="mb-0 mt-2">
-                            <li>Dame los productos más vendidos del último mes con sus cantidades</li>
-                            <li>Muestra las ventas del día de hoy con detalle</li>
-                            <li>Lista los clientes con más compras este año</li>
-                            <li>¿Qué productos tienen stock bajo? Muestra una tabla</li>
-                            <li>Reporte de ventas por método de pago de esta semana</li>
-                            <li>Top 20 productos por ingresos generados</li>
-                        </ul>
-                        <small class="text-muted d-block mt-2">
-                            💡 <strong>Tip:</strong> Los reportes se generan automáticamente como tablas y puedes descargarlos en Excel
-                        </small>
+                    <!-- Ejemplos de Consultas (Desplegable) -->
+                    <div class="card mb-4 border-info">
+                        <div class="card-header bg-light border-bottom cursor-pointer" data-bs-toggle="collapse" data-bs-target="#ejemplosConsultas" style="cursor: pointer;">
+                            <h6 class="mb-0">
+                                <i class="fas fa-chevron-down me-2" id="iconoEjemplos"></i>
+                                <strong>Ejemplos de consultas (con tablas descargables)</strong>
+                            </h6>
+                        </div>
+                        <div id="ejemplosConsultas" class="collapse">
+                            <div class="card-body">
+                                <div class="row">
+                                    <!-- Ejemplos sugeridos -->
+                                    <div class="col-md-6 mb-3">
+                                        <h6 class="fw-bold text-secondary mb-2">Sugerencias:</h6>
+                                        <div class="list-group list-group-sm">
+                                            <a href="#" class="list-group-item list-group-item-action small" wire:click.prevent="$set('prompt', 'Dame los productos más vendidos del último mes con sus cantidades')">
+                                                📊 Productos más vendidos
+                                            </a>
+                                            <a href="#" class="list-group-item list-group-item-action small" wire:click.prevent="$set('prompt', 'Muestra las ventas del día de hoy con detalle')">
+                                                💰 Ventas de hoy
+                                            </a>
+                                            <a href="#" class="list-group-item list-group-item-action small" wire:click.prevent="$set('prompt', 'Lista los clientes con más compras este año')">
+                                                👥 Clientes frecuentes
+                                            </a>
+                                            <a href="#" class="list-group-item list-group-item-action small" wire:click.prevent="$set('prompt', '¿Qué productos tienen stock bajo? Muestra una tabla')">
+                                                ⚠️ Stock bajo
+                                            </a>
+                                            <a href="#" class="list-group-item list-group-item-action small" wire:click.prevent="$set('prompt', 'Reporte de ventas por método de pago de esta semana')">
+                                                💳 Ventas por pago
+                                            </a>
+                                            <a href="#" class="list-group-item list-group-item-action small" wire:click.prevent="$set('prompt', 'Top 20 productos por ingresos generados')">
+                                                🏆 Top productos
+                                            </a>
+                                        </div>
+                                    </div>
+                                    <!-- Consultas más frecuentes -->
+                                    <div class="col-md-6 mb-3">
+                                        @if(count($topConsultas) > 0)
+                                            <h6 class="fw-bold text-secondary mb-2">Más frecuentes:</h6>
+                                            <div class="list-group list-group-sm">
+                                                @foreach($topConsultas as $top)
+                                                    <a href="#" class="list-group-item list-group-item-action small d-flex justify-content-between align-items-center" wire:click.prevent="$set('prompt', '{{ $top->pregunta }}')">
+                                                        <span class="text-truncate" style="max-width: 150px;">{{ $top->pregunta }}</span>
+                                                        <span class="badge bg-secondary">{{ $top->total }}</span>
+                                                    </a>
+                                                @endforeach
+                                            </div>
+                                        @endif
+                                    </div>
+                                </div>
+                                <small class="text-muted d-block mt-2">
+                                    💡 <strong>Tip:</strong> Los reportes se generan automáticamente como tablas y puedes descargarlos en Excel
+                                </small>
+                            </div>
+                        </div>
                     </div>
+
+                    <script>
+                        // Cambiar icono al desplegar/colapsar
+                        document.getElementById('ejemplosConsultas').addEventListener('show.bs.collapse', function() {
+                            document.getElementById('iconoEjemplos').classList.remove('fa-chevron-down');
+                            document.getElementById('iconoEjemplos').classList.add('fa-chevron-up');
+                        });
+                        document.getElementById('ejemplosConsultas').addEventListener('hide.bs.collapse', function() {
+                            document.getElementById('iconoEjemplos').classList.remove('fa-chevron-up');
+                            document.getElementById('iconoEjemplos').classList.add('fa-chevron-down');
+                        });
+                    </script>
 
                     <!-- Mensaje de Error -->
                     @if($error)
@@ -254,7 +307,14 @@
                                                     </tr>
                                                 </thead>
                                                 <tbody>
-                                                    @foreach($datosTabla as $fila)
+                                                    @php
+                                                        // Calcular paginación
+                                                        $totalFilas = count($datosTabla);
+                                                        $totalPaginas = ceil($totalFilas / $filasPerPagina);
+                                                        $inicio = ($paginaActual - 1) * $filasPerPagina;
+                                                        $datosActuales = array_slice($datosTabla, $inicio, $filasPerPagina);
+                                                    @endphp
+                                                    @foreach($datosActuales as $fila)
                                                         <tr>
                                                             @foreach($fila as $valor)
                                                                 <td>
@@ -270,6 +330,41 @@
                                                 </tbody>
                                             </table>
                                         </div>
+
+                                        @if($totalPaginas > 1)
+                                            <nav aria-label="Page navigation" class="mt-3">
+                                                <ul class="pagination pagination-sm justify-content-center">
+                                                    <li class="page-item {{ $paginaActual == 1 ? 'disabled' : '' }}">
+                                                        <button wire:click="$set('paginaActual', 1)" class="page-link">Primera</button>
+                                                    </li>
+                                                    <li class="page-item {{ $paginaActual == 1 ? 'disabled' : '' }}">
+                                                        <button wire:click="$set('paginaActual', {{ $paginaActual - 1 }})" class="page-link">Anterior</button>
+                                                    </li>
+
+                                                    @for($i = 1; $i <= $totalPaginas; $i++)
+                                                        @if($i == 1 || $i == $totalPaginas || ($i >= $paginaActual - 1 && $i <= $paginaActual + 1))
+                                                            @if($i == $paginaActual - 2 || $i == $paginaActual + 2)
+                                                                <li class="page-item disabled"><span class="page-link">...</span></li>
+                                                            @endif
+                                                            <li class="page-item {{ $i == $paginaActual ? 'active' : '' }}">
+                                                                <button wire:click="$set('paginaActual', {{ $i }})" class="page-link">{{ $i }}</button>
+                                                            </li>
+                                                        @endif
+                                                    @endfor
+
+                                                    <li class="page-item {{ $paginaActual == $totalPaginas ? 'disabled' : '' }}">
+                                                        <button wire:click="$set('paginaActual', {{ $paginaActual + 1 }})" class="page-link">Siguiente</button>
+                                                    </li>
+                                                    <li class="page-item {{ $paginaActual == $totalPaginas ? 'disabled' : '' }}">
+                                                        <button wire:click="$set('paginaActual', {{ $totalPaginas }})" class="page-link">Última</button>
+                                                    </li>
+                                                </ul>
+                                            </nav>
+
+                                            <div class="text-center text-muted small mt-2">
+                                                Página {{ $paginaActual }} de {{ $totalPaginas }} | Mostrando {{ count($datosActuales) }} de {{ $totalFilas }} registros
+                                            </div>
+                                        @endif
                                     </div>
                                 @elseif(!$datosTabla)
                                     <div class="alert alert-info">
@@ -343,12 +438,6 @@
                                             {{ \Carbon\Carbon::parse($consulta->created_at)->diffForHumans() }}
                                         </small>
                                     </div>
-                                    @if($consulta->script ?? null)
-                                        <small class="text-success">
-                                            <i class="fas fa-code me-1"></i>
-                                            Con consulta SQL
-                                        </small>
-                                    @endif
                                 </a>
                             @endforeach
                         </div>
@@ -361,42 +450,44 @@
                 </div>
             </div>
 
-            <!-- Tarjeta de Configuración -->
-            <div class="card shadow-sm mt-3">
-                <div class="card-header bg-info text-white">
-                    <h6 class="mb-0">
-                        <i class="fas fa-cog me-2"></i>
-                        Configuración
-                    </h6>
-                </div>
-                <div class="card-body">
-                    <p class="small mb-2">
-                        <strong>API:</strong> Groq (Llama 3.3 70B)
-                    </p>
-                    <p class="small mb-2">
-                        <strong>Estado:</strong>
-                        @if(env('GROQ_API_KEY'))
-                            <span class="badge bg-success">Configurado</span>
-                        @else
-                            <span class="badge bg-danger">No configurado</span>
+            <!-- Tarjeta de Configuración (Solo para Admins) -->
+            @if($isAdmin)
+                <div class="card shadow-sm mt-3">
+                    <div class="card-header bg-info text-white">
+                        <h6 class="mb-0">
+                            <i class="fas fa-cog me-2"></i>
+                            Configuración
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <p class="small mb-2">
+                            <strong>API:</strong> Groq (Llama 3.3 70B)
+                        </p>
+                        <p class="small mb-2">
+                            <strong>Estado:</strong>
+                            @if(env('GROQ_API_KEY'))
+                                <span class="badge bg-success">Configurado</span>
+                            @else
+                                <span class="badge bg-danger">No configurado</span>
+                            @endif
+                        </p>
+                        @if(!env('GROQ_API_KEY'))
+                            <hr>
+                            <div class="alert alert-warning small mb-0">
+                                <strong>Configuración requerida:</strong>
+                                <ol class="mb-0 ps-3">
+                                    <li>Visita <a href="https://console.groq.com" target="_blank">console.groq.com</a></li>
+                                    <li>Crea una cuenta gratuita</li>
+                                    <li>Genera una API Key</li>
+                                    <li>Agrega en .env:<br>
+                                        <code>GROQ_API_KEY=tu_key_aqui</code>
+                                    </li>
+                                </ol>
+                            </div>
                         @endif
-                    </p>
-                    @if(!env('GROQ_API_KEY'))
-                        <hr>
-                        <div class="alert alert-warning small mb-0">
-                            <strong>Configuración requerida:</strong>
-                            <ol class="mb-0 ps-3">
-                                <li>Visita <a href="https://console.groq.com" target="_blank">console.groq.com</a></li>
-                                <li>Crea una cuenta gratuita</li>
-                                <li>Genera una API Key</li>
-                                <li>Agrega en .env:<br>
-                                    <code>GROQ_API_KEY=tu_key_aqui</code>
-                                </li>
-                            </ol>
-                        </div>
-                    @endif
+                    </div>
                 </div>
-            </div>
+            @endif
         </div>
     </div>
 </div>

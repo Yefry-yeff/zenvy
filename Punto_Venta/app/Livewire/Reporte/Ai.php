@@ -5,11 +5,17 @@ namespace App\Livewire\Reporte;
 use Livewire\Component;
 use Illuminate\Support\Facades\DB;
 use GuzzleHttp\Client;
-use Illuminate\Support\Facades\Log;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\ReporteAIExport;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
+
+/**
+ * NOTE: Logging removed as requested by user. This component exposes
+ * - `$historial` limited to last 5 entries that have `script`
+ * - `$topConsultas` with most frequent queries
+ * - `$isAdmin` boolean to indicate admin role (rol_id == 1)
+ */
 
 class Ai extends Component
 {
@@ -20,11 +26,18 @@ class Ai extends Component
     public $historial = [];
     public $datosTabla = null;
     public $consultaSQL = null;
+    public $topConsultas = [];
+    public $isAdmin = false;
+    public $paginaActual = 1;
+    public $filasPerPagina = 10;
 
     public function mount()
     {
         // Cargar historial de consultas recientes
         $this->cargarHistorial();
+
+        // Determinar si el usuario es admin (asumimos rol_id==1 es admin)
+        $this->isAdmin = Auth::check() && (isset(Auth::user()->rol_id) ? Auth::user()->rol_id == 1 : false);
     }
 
     public function generarReporte()
@@ -42,6 +55,7 @@ class Ai extends Component
         $this->respuesta = '';
         $this->datosTabla = null;
         $this->consultaSQL = null;
+        $this->paginaActual = 1;
 
         try {
             // Obtener contexto de la base de datos
@@ -78,7 +92,6 @@ class Ai extends Component
             if (!$exito) {
                 // No mostramos detalles técnicos al usuario, sólo un mensaje genérico
                 $this->error = 'No se pudo generar el reporte. Intenta reformular tu consulta.';
-                Log::warning('AI: no se pudo generar reporte tras varios intentos', ['prompt' => $this->prompt, 'ultimo_error' => $ultimoError]);
             } else {
                 // Guardar en historial solo si fue exitoso
                 $cantidadRegistros = is_array($this->datosTabla) ? count($this->datosTabla) : 0;
@@ -91,7 +104,6 @@ class Ai extends Component
             }
 
         } catch (\Exception $e) {
-            Log::error('Error al generar reporte con AI: ' . $e->getMessage());
             $this->error = 'Error al generar el reporte. Por favor intenta con otra consulta.';
         } finally {
             $this->cargando = false;
@@ -233,7 +245,6 @@ class Ai extends Component
             $contexto .= $this->obtenerEsquemaTablas();
 
         } catch (\Exception $e) {
-            Log::error('Error al obtener contexto de BD: ' . $e->getMessage());
             $contexto .= "\n\nNOTA: Hubo un error al obtener estadísticas. Usando esquema básico.\n";
             $contexto .= $this->obtenerEsquemaTablas();
         }
@@ -299,11 +310,25 @@ class Ai extends Component
 
     private function cargarHistorial()
     {
+        // Mostrar solo las últimas 5 consultas que incluyen un script SQL (script IS NOT NULL y no vacío)
         $this->historial = DB::table('ai_consultas')
             ->select('id', 'usuario_id', 'pregunta', 'respuesta', 'script', 'created_at', 'updated_at')
             ->where('usuario_id', Auth::check() ? Auth::id() : 1)
+            ->whereNotNull('script')
+            ->where('script', '<>', '')
             ->orderByDesc('created_at')
-            ->limit(10)
+            ->limit(5)
+            ->get()
+            ->toArray();
+
+        // Cargar las consultas más frecuentes para mostrar en un recuadro desplegable
+        $this->topConsultas = DB::table('ai_consultas')
+            ->select('pregunta', DB::raw('COUNT(*) as total'))
+            ->whereNotNull('script')
+            ->where('script', '<>', '')
+            ->groupBy('pregunta')
+            ->orderByDesc('total')
+            ->limit(5)
             ->get()
             ->toArray();
     }
@@ -321,18 +346,6 @@ class Ai extends Component
                 // Validar que sea una consulta SELECT
                 if (!preg_match('/^\s*SELECT\s+/i', $sql)) {
                     return 'Solo se permiten consultas SELECT por seguridad';
-                }
-
-                // Log: registrar la consulta que se va a ejecutar y contexto básico
-                try {
-                    Log::info('AI: ejecutando consulta SQL', [
-                        'user_id' => Auth::check() ? Auth::id() : null,
-                        'prompt' => $this->prompt,
-                        'sql' => $sql,
-                        'respuesta_ai_snippet' => mb_substr($respuesta, 0, 1000),
-                    ]);
-                } catch (\Throwable $_logEx) {
-                    // No bloquear la ejecución si falla el logging
                 }
 
                 // Preparar la consulta para ejecutar respetando el timezone de la app
@@ -354,43 +367,15 @@ class Ai extends Component
                         $sqlExec = preg_replace($pattern, $replace, $sqlExec);
                     }
 
-                    // Log que indica qué reemplazos se realizaron
-                    Log::info('AI: reemplazo timezone en SQL', [
-                        'original_sql_hash' => substr(md5($sql), 0, 10),
-                        'replaced_sql_hash' => substr(md5($sqlExec), 0, 10),
-                        'app_timezone' => $appTz,
-                        'replacements_preview' => [
-                            'CURDATE()' => $appDate,
-                            'NOW()' => $appNow,
-                        ],
-                    ]);
                 } catch (\Throwable $_tzEx) {
                     // No bloquear la ejecución si falla el manejo del timezone
-                    Log::warning('AI: fallo al aplicar reemplazo de timezone: ' . $_tzEx->getMessage());
                     $sqlExec = $sql; // fallback
                 }
 
                 // Ejecutar la consulta SQL (posible con reemplazos aplicados)
                 $resultados = DB::select($sqlExec);
 
-                // Log: registrar cantidad de resultados y una muestra del primer registro
-                try {
-                    $count = is_array($resultados) ? count($resultados) : 0;
-                    $sample = [];
-                    if ($count > 0) {
-                        $first = (array) $resultados[0];
-                        // Mantener solo los primeros 5 campos para la muestra
-                        $sample = array_slice($first, 0, 5, true);
-                    }
 
-                    Log::info('AI: resultados de la consulta', [
-                        'count' => $count,
-                        'sample' => $sample,
-                        'sql_hash' => substr(md5($sql), 0, 10),
-                    ]);
-                } catch (\Throwable $_logEx) {
-                    // No interrumpir la ejecución por fallos de logging
-                }
 
                 if (!empty($resultados)) {
                     // Convertir a array asociativo
@@ -409,21 +394,6 @@ class Ai extends Component
                 }
             } catch (\Exception $e) {
                 $errorMsg = $e->getMessage();
-                // Registrar error con contexto completo (cuidado con información sensible)
-                try {
-                    Log::error('Error al ejecutar SQL generado por AI', [
-                        'exception' => $e->getMessage(),
-                        'trace' => $e->getTraceAsString(),
-                        'sql' => $sql,
-                        'prompt' => $this->prompt,
-                        'respuesta_ai_snippet' => mb_substr($respuesta, 0, 2000),
-                        'user_id' => Auth::check() ? Auth::id() : null,
-                    ]);
-                } catch (\Throwable $_logEx) {
-                    // Evitar fallos secundarios por logging
-                    Log::error('Error al registrar el error original al ejecutar SQL: ' . $_logEx->getMessage());
-                }
-
                 return $errorMsg; // Devolver el mensaje de error
             }
         } else {
@@ -443,7 +413,6 @@ class Ai extends Component
         try {
             return Excel::download(new ReporteAIExport($this->datosTabla), 'reporte_' . date('YmdHis') . '.xlsx');
         } catch (\Exception $e) {
-            Log::error('Error al descargar Excel: ' . $e->getMessage());
             $this->error = 'Error al generar el archivo Excel';
         }
     }
@@ -456,17 +425,6 @@ class Ai extends Component
         }
 
         try {
-            // Log: registrar la consulta ejecutada manualmente desde la UI
-            try {
-                Log::info('AI: ejecutarSQL invocado', [
-                    'user_id' => Auth::check() ? Auth::id() : null,
-                    'consulta' => $this->consultaSQL,
-                    'prompt' => $this->prompt,
-                ]);
-            } catch (\Throwable $_logEx) {
-                // no bloquear la ejecución por fallos de logging
-            }
-
             $resultados = DB::select($this->consultaSQL);
 
             if (!empty($resultados)) {
@@ -487,18 +445,6 @@ class Ai extends Component
             }
         } catch (\Exception $e) {
             // Log error con contexto
-            try {
-                Log::error('Error al ejecutar SQL (ejecutarSQL)', [
-                    'exception' => $e->getMessage(),
-                    'trace' => $e->getTraceAsString(),
-                    'consulta' => $this->consultaSQL,
-                    'prompt' => $this->prompt,
-                    'user_id' => Auth::check() ? Auth::id() : null,
-                ]);
-            } catch (\Throwable $_logEx) {
-                Log::error('Error al registrar el error en ejecutarSQL: ' . $_logEx->getMessage());
-            }
-
             $this->error = 'Error al ejecutar la consulta: ' . $e->getMessage();
         }
     }
@@ -532,17 +478,7 @@ class Ai extends Component
                         }, $resultados);
                     }
                 } catch (\Exception $e) {
-                    // Registrar error al ejecutar SQL desde historial
-                    try {
-                        Log::error('Error al ejecutar SQL del historial', [
-                            'exception' => $e->getMessage(),
-                            'trace' => $e->getTraceAsString(),
-                            'consulta' => $this->consultaSQL,
-                            'user_id' => Auth::check() ? Auth::id() : null,
-                        ]);
-                    } catch (\Throwable $_logEx) {
-                        Log::error('Error al registrar el error del historial: ' . $_logEx->getMessage());
-                    }
+                    // Ignorar errores al ejecutar SQL del historial
                 }
             }
         }
