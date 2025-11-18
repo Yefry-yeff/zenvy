@@ -119,7 +119,7 @@ class SincronizacionSubcategoriasService
             
             if ($mapeoExistente) {
                 // Actualizar subcategoría existente
-                $subcategoriaLocal = Subcategoria::find($mapeoExistente->id_zenvy);
+                $subcategoriaLocal = Subcategoria::find($mapeoExistente->id_zenvy, ['id', 'nombre', 'categoria_id']);
                 if ($subcategoriaLocal) {
                     $cambios = false;
                     
@@ -280,6 +280,106 @@ class SincronizacionSubcategoriasService
         } catch (Exception $e) {
             Log::error('Error creando mapeos retroactivos de subcategorías: ' . $e->getMessage());
             throw $e;
+        }
+    }
+
+    /**
+     * Sincroniza una subcategoría individual desde Valencia a Zenvy
+     * @param int $idValencia
+     * @return array [success, mensaje, id_zenvy]
+     */
+    public function sincronizarSubcategoria($idValencia)
+    {
+        try {
+            // Verificar conectividad
+            if (!$this->verificarConectividad()) {
+                return [
+                    'success' => false,
+                    'mensaje' => 'No se puede conectar con la base de datos externa',
+                ];
+            }
+
+            // Buscar subcategoría externa por ID
+            $subcategoriaExterna = SubcategoriaExterna::where('id', $idValencia)->first();
+            if (!$subcategoriaExterna) {
+                return [
+                    'success' => false,
+                    'mensaje' => "No se encontró la subcategoría externa con ID: $idValencia",
+                ];
+            }
+
+            // Buscar el mapeo de la categoría padre
+            $mapeoCategoriaExterna = IdZenvyValencia::buscarPorValencia(
+                $subcategoriaExterna->categoria_producto_id,
+                self::TIPO_DATO_CATEGORIAS
+            );
+            if (!$mapeoCategoriaExterna) {
+                return [
+                    'success' => false,
+                    'mensaje' => "No se encontró mapeo para la categoría externa ID: {$subcategoriaExterna->categoria_producto_id}",
+                ];
+            }
+            $categoriaLocalId = $mapeoCategoriaExterna->id_zenvy;
+
+            // Buscar si ya existe un mapeo para esta subcategoría de Valencia
+            $mapeoExistente = IdZenvyValencia::buscarPorValencia($idValencia, self::TIPO_DATO_SUBCATEGORIAS);
+            if ($mapeoExistente) {
+                // Ya existe, actualizar si es necesario
+                $subcategoriaLocal = Subcategoria::find($mapeoExistente->id_zenvy, ['id', 'nombre', 'categoria_id']);
+                if ($subcategoriaLocal) {
+                    $cambios = false;
+                    if ($subcategoriaLocal->nombre !== $subcategoriaExterna->descripcion) {
+                        $subcategoriaLocal->nombre = $subcategoriaExterna->descripcion;
+                        $cambios = true;
+                    }
+                    if ($subcategoriaLocal->categoria_id !== $categoriaLocalId) {
+                        $subcategoriaLocal->categoria_id = $categoriaLocalId;
+                        $cambios = true;
+                    }
+                    if ($cambios) {
+                        $subcategoriaLocal->save();
+                        return [
+                            'success' => true,
+                            'mensaje' => 'Subcategoría actualizada',
+                            'id_zenvy' => $subcategoriaLocal->id
+                        ];
+                    }
+                    return [
+                        'success' => true,
+                        'mensaje' => 'Subcategoría ya sincronizada (sin cambios)',
+                        'id_zenvy' => $subcategoriaLocal->id
+                    ];
+                } else {
+                    return [
+                        'success' => false,
+                        'mensaje' => 'El mapeo existe pero la subcategoría local no fue encontrada',
+                    ];
+                }
+            } else {
+                // Crear nueva subcategoría
+                $nuevaSubcategoria = Subcategoria::create([
+                    'nombre' => $subcategoriaExterna->descripcion,
+                    'categoria_id' => $categoriaLocalId,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+                // Crear mapeo
+                IdZenvyValencia::crearMapeo($nuevaSubcategoria->id, $subcategoriaExterna->id, self::TIPO_DATO_SUBCATEGORIAS);
+                return [
+                    'success' => true,
+                    'mensaje' => 'Subcategoría creada y mapeada',
+                    'id_zenvy' => $nuevaSubcategoria->id
+                ];
+            }
+        } catch (\Exception $e) {
+            Log::error('Error al sincronizar subcategoría individual: ' . $e->getMessage(), [
+                'id_valencia' => $idValencia,
+                'error' => $e->getTraceAsString()
+            ]);
+            return [
+                'success' => false,
+                'mensaje' => 'Error al sincronizar subcategoría: ' . $e->getMessage(),
+            ];
         }
     }
 }

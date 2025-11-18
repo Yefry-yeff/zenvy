@@ -5,6 +5,7 @@ namespace App\Services;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Models\IdZenvyValencia;
+use App\Services\SincronizacionSubcategoriasService;
 
 class SincronizacionProductosService
 {
@@ -123,7 +124,13 @@ class SincronizacionProductosService
                 throw new \Exception("Unidad de medida no sincronizada. Sincroniza primero la unidad con ID: {$productoValencia->unidad_medida_compra_id}");
             }
             if (!$subcategoriaIdZenvy) {
-                throw new \Exception("Subcategoría no sincronizada. Sincroniza primero la subcategoría con ID: {$productoValencia->sub_categoria_id}");
+                // Sincronizar subcategoría usando el servicio especializado
+                $subcatSyncService = new SincronizacionSubcategoriasService();
+                $syncResult = $subcatSyncService->sincronizarSubcategoria($productoValencia->sub_categoria_id);
+                if (!$syncResult['success']) {
+                    throw new \Exception("No se pudo sincronizar la subcategoría: " . $syncResult['mensaje']);
+                }
+                $subcategoriaIdZenvy = $syncResult['id_zenvy'];
             }
 
             // Preparar datos para insertar/actualizar en Zenvy

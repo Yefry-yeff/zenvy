@@ -56,6 +56,19 @@ class SincronizacionComprasService
 
             foreach ($comprasAgrupadas as $numeroFactura => $productosCompra) {
                 try {
+                    // Validar número de factura (viene de Valencia: puede ser traslado_id o compra_id)
+                    if (empty($numeroFactura) || $numeroFactura === '') {
+                        $primerProductoTmp = $productosCompra->first();
+                        $fallback = $primerProductoTmp->compra_id ?? null;
+                        Log::warning("Número de factura vacío para un grupo de productos. Intentando fallback con compra_id: {$fallback}");
+                        if ($fallback) {
+                            $numeroFactura = $fallback;
+                        } else {
+                            Log::error('No se pudo determinar numero_factura desde Valencia. Omite este grupo de productos.', ['productos' => $productosCompra->toArray()]);
+                            $estadisticas['errores']++;
+                            continue;
+                        }
+                    }
                     // Verificar si la compra ya existe
                     $compraExistente = Compra::where('numero_factura', $numeroFactura)->first();
 
@@ -82,7 +95,7 @@ class SincronizacionComprasService
                         $tipoOrigen = $primerProducto->tipo_origen === 'TRASLADO' ?
                             IdZenvyValencia::TIPO_TRASLADO : IdZenvyValencia::TIPO_COMPRA;
 
-                        $this->registrarCompraSincronizada($compra->id, $numeroFactura, $tipoOrigen);
+                        $this->registrarCompraSincronizada($compra->id, $numeroFactura, $tipoOrigen, $primerProducto);
 
                         // Agregar productos a la compra
                         foreach ($productosCompra as $productoData) {
@@ -241,6 +254,12 @@ class SincronizacionComprasService
                 return false;
             }
 
+            // Validar precio y valores críticos
+            if (!isset($datosProducto->precio) || $datosProducto->precio === null || $datosProducto->precio === '') {
+                Log::error("Precio nulo o vacío para producto Valencia ID {$datosProducto->producto_id_valencia} al agregar a compra {$compraId}", ['datosProducto' => (array)$datosProducto]);
+                return false;
+            }
+
             $compraProducto = CompraHasProducto::create([
                 'compra_id' => $compraId,
                 'producto_id' => $idProductoZenvy,
@@ -290,18 +309,27 @@ class SincronizacionComprasService
     /**
      * Registrar la compra sincronizada en la tabla de mapeo
      */
-    private function registrarCompraSincronizada($idCompraZenvy, $numeroFacturaValencia, $tipoCompra = IdZenvyValencia::TIPO_COMPRA)
+    private function registrarCompraSincronizada($idCompraZenvy, $numeroFacturaValencia, $tipoCompra = IdZenvyValencia::TIPO_COMPRA, $primerProducto = null)
     {
         try {
+            // Validar numero de factura
+            if (empty($numeroFacturaValencia) || $numeroFacturaValencia === '') {
+                Log::error('No se registrará mapeo: id_valencia vacío para la compra Zenvy', [
+                    'id_zenvy' => $idCompraZenvy,
+                    'primer_producto' => $primerProducto ? (array)$primerProducto : null
+                ]);
+                return false;
+            }
+
             // Registrar en id_zenvy_valencia para tracking de sincronización
-            IdZenvyValencia::crearMapeo(
+            $mapeo = IdZenvyValencia::crearMapeo(
                 $idCompraZenvy,
                 $numeroFacturaValencia,
                 $tipoCompra // 8 para COMPRA, 9 para TRASLADO
             );
 
             $tipoTexto = $tipoCompra === IdZenvyValencia::TIPO_TRASLADO ? 'TRASLADO' : 'COMPRA';
-            Log::info("Compra registrada en mapeo: Zenvy ID {$idCompraZenvy}, Valencia Factura {$numeroFacturaValencia}, Tipo: {$tipoTexto}");
+            Log::info("Compra registrada en mapeo: Zenvy ID {$idCompraZenvy}, Valencia Factura {$numeroFacturaValencia}, Tipo: {$tipoTexto}", ['mapeo' => $mapeo ? $mapeo->toArray() : null]);
             return true;
 
         } catch (\Exception $e) {
