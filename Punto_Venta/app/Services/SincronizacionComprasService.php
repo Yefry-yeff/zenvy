@@ -60,11 +60,20 @@ class SincronizacionComprasService
                     if (empty($numeroFactura) || $numeroFactura === '') {
                         $primerProductoTmp = $productosCompra->first();
                         $fallback = $primerProductoTmp->compra_id ?? null;
-                        Log::warning("Número de factura vacío para un grupo de productos. Intentando fallback con compra_id: {$fallback}");
+                        Log::warning("Número de factura vacío para un grupo de productos. Intentando fallback con compra_id: {$fallback}", [
+                            'recibido_bodega_ids' => $productosCompra->pluck('recibido_bodega_id')->unique()->values()->toArray(),
+                            'compra_id_valencia' => $primerProductoTmp->compra_id_valencia ?? null,
+                            'translado_id_valencia' => $primerProductoTmp->translado_id_valencia ?? null
+                        ]);
                         if ($fallback) {
                             $numeroFactura = $fallback;
                         } else {
-                            Log::error('No se pudo determinar numero_factura desde Valencia. Omite este grupo de productos.', ['productos' => $productosCompra->toArray()]);
+                            Log::error('No se pudo determinar numero_factura desde Valencia. Omite este grupo de productos.', [
+                                'productos' => $productosCompra->toArray(),
+                                'recibido_bodega_ids' => $productosCompra->pluck('recibido_bodega_id')->unique()->values()->toArray(),
+                                'compra_id_valencia' => $primerProductoTmp->compra_id_valencia ?? null,
+                                'translado_id_valencia' => $primerProductoTmp->translado_id_valencia ?? null
+                            ]);
                             $estadisticas['errores']++;
                             continue;
                         }
@@ -146,6 +155,11 @@ class SincronizacionComprasService
     {
         $sql = "
             SELECT
+                -- IDs de origen en Valencia para traceabilidad
+                A.id AS recibido_bodega_id,
+                A.compra_id AS compra_id_valencia,
+                C.translado_id AS translado_id_valencia,
+
                 -- llenado de Tabla Compra
                 COALESCE(C.translado_id, A.compra_id) AS numero_factura,
                 NULL AS fec_vecimiento,
@@ -168,7 +182,7 @@ class SincronizacionComprasService
                 ((COALESCE(chp.precio_unidad, B.precio_unidad) * A.cantidad_inicial_seccion) +
                  ((COALESCE(chp.precio_unidad, B.precio_unidad) * A.cantidad_inicial_seccion) * (P.isv / 100.0))) AS precio_total,
 
-                'El id_compra insertado en zenvy' AS compra_id,
+                A.compra_id AS compra_id,
                 A.producto_id AS producto_id_valencia,
                 IFNULL(A.unidad_compra_id, 1) AS unidad_medida_id,
 
@@ -213,11 +227,19 @@ class SincronizacionComprasService
                 'updated_at' => now()
             ]);
 
-            Log::info("Compra creada exitosamente: {$compra->numero_factura} (ID: {$compra->id})");
+            Log::info("Compra creada exitosamente: {$compra->numero_factura} (ID: {$compra->id})", [
+                'recibido_bodega_id' => $datosCompra->recibido_bodega_id ?? null,
+                'compra_id_valencia' => $datosCompra->compra_id_valencia ?? null,
+                'translado_id_valencia' => $datosCompra->translado_id_valencia ?? null
+            ]);
             return $compra;
 
         } catch (\Exception $e) {
-            Log::error("Error al crear compra {$datosCompra->numero_factura}: " . $e->getMessage());
+            Log::error("Error al crear compra {$datosCompra->numero_factura}: " . $e->getMessage(), [
+                'recibido_bodega_id' => $datosCompra->recibido_bodega_id ?? null,
+                'compra_id_valencia' => $datosCompra->compra_id_valencia ?? null,
+                'translado_id_valencia' => $datosCompra->translado_id_valencia ?? null
+            ]);
             return null;
         }
     }
@@ -232,7 +254,11 @@ class SincronizacionComprasService
             $idProductoZenvy = $this->obtenerIdProductoZenvy($datosProducto->producto_id_valencia);
 
             if (!$idProductoZenvy) {
-                Log::warning("Producto Valencia ID {$datosProducto->producto_id_valencia} no encontrado en Zenvy, omitiendo...");
+                Log::warning("Producto Valencia ID {$datosProducto->producto_id_valencia} no encontrado en Zenvy, omitiendo...", [
+                    'recibido_bodega_id' => $datosProducto->recibido_bodega_id ?? null,
+                    'compra_id_valencia' => $datosProducto->compra_id_valencia ?? null,
+                    'translado_id_valencia' => $datosProducto->translado_id_valencia ?? null
+                ]);
                 return false;
             }
 
@@ -256,7 +282,12 @@ class SincronizacionComprasService
 
             // Validar precio y valores críticos
             if (!isset($datosProducto->precio) || $datosProducto->precio === null || $datosProducto->precio === '') {
-                Log::error("Precio nulo o vacío para producto Valencia ID {$datosProducto->producto_id_valencia} al agregar a compra {$compraId}", ['datosProducto' => (array)$datosProducto]);
+                Log::error("Precio nulo o vacío para producto Valencia ID {$datosProducto->producto_id_valencia} al agregar a compra {$compraId}", [
+                    'recibido_bodega_id' => $datosProducto->recibido_bodega_id ?? null,
+                    'compra_id_valencia' => $datosProducto->compra_id_valencia ?? null,
+                    'translado_id_valencia' => $datosProducto->translado_id_valencia ?? null,
+                    'datosProducto' => (array)$datosProducto
+                ]);
                 return false;
             }
 
@@ -277,7 +308,12 @@ class SincronizacionComprasService
             return true;
 
         } catch (\Exception $e) {
-            Log::error("Error al agregar producto a compra {$compraId}: " . $e->getMessage());
+            Log::error("Error al agregar producto a compra {$compraId}: " . $e->getMessage(), [
+                'recibido_bodega_id' => $datosProducto->recibido_bodega_id ?? null,
+                'compra_id_valencia' => $datosProducto->compra_id_valencia ?? null,
+                'translado_id_valencia' => $datosProducto->translado_id_valencia ?? null,
+                'producto_id_valencia' => $datosProducto->producto_id_valencia ?? null
+            ]);
             return false;
         }
     }
@@ -312,19 +348,23 @@ class SincronizacionComprasService
     private function registrarCompraSincronizada($idCompraZenvy, $numeroFacturaValencia, $tipoCompra = IdZenvyValencia::TIPO_COMPRA, $primerProducto = null)
     {
         try {
-            // Validar numero de factura
-            if (empty($numeroFacturaValencia) || $numeroFacturaValencia === '') {
-                Log::error('No se registrará mapeo: id_valencia vacío para la compra Zenvy', [
+            // Validar numero de factura: debe ser un entero válido (proviene de Valencia)
+            if (empty($numeroFacturaValencia) || !is_numeric($numeroFacturaValencia)) {
+                Log::warning('No se registrará mapeo: id_valencia inválido para la compra Zenvy', [
                     'id_zenvy' => $idCompraZenvy,
+                    'id_valencia_original' => $numeroFacturaValencia,
                     'primer_producto' => $primerProducto ? (array)$primerProducto : null
                 ]);
                 return false;
             }
 
+            // Asegurar entero
+            $numeroFacturaInt = (int)$numeroFacturaValencia;
+
             // Registrar en id_zenvy_valencia para tracking de sincronización
             $mapeo = IdZenvyValencia::crearMapeo(
                 $idCompraZenvy,
-                $numeroFacturaValencia,
+                $numeroFacturaInt,
                 $tipoCompra // 8 para COMPRA, 9 para TRASLADO
             );
 
