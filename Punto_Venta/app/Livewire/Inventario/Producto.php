@@ -8,6 +8,7 @@ use App\Models\Producto as ProductoModel;
 use App\Services\SincronizacionProductosService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 use Barryvdh\DomPDF\Facade\Pdf;
 use App\Excel\ProductosExport;
 use Maatwebsite\Excel\Facades\Excel;
@@ -190,23 +191,26 @@ class Producto extends Component
     {
         // Query optimizada con paginación
         $query = ProductoModel::select([
-                'id', 'nombre', 'descripcion', 'codigo_barra',
-                'precio_base', 'producto_valencia', 'estado_id',
-                'subcategoria_id', 'marca_id', 'created_at'
+                'producto.id', 'producto.nombre', 'producto.descripcion', 'producto.codigo_barra',
+                'producto.precio_base', 'producto.producto_valencia', 'producto.estado_id',
+                'producto.subcategoria_id', 'producto.marca_id', 'producto.created_at'
             ])
             ->with([
                 'subcategoria:id,nombre,categoria_id',
                 'subcategoria.categoria:id,nombre',
                 'marca:id,nombre'
             ])
-            ->where('estado_id', 1);
+            ->where('producto.estado_id', 1);
 
         // Aplicar filtro de búsqueda
         if (!empty($this->buscar)) {
             $query->where(function($q) {
-                $q->where('nombre', 'LIKE', '%' . $this->buscar . '%')
-                  ->orWhere('codigo_barra', 'LIKE', '%' . $this->buscar . '%')
-                  ->orWhere('descripcion', 'LIKE', '%' . $this->buscar . '%');
+                $q->where('producto.nombre', 'LIKE', '%' . $this->buscar . '%')
+                  ->orWhere('producto.codigo_barra', 'LIKE', '%' . $this->buscar . '%')
+                  ->orWhere('producto.descripcion', 'LIKE', '%' . $this->buscar . '%')
+                  ->orWhereHas('preciosVenta', function($sq) {
+                      $sq->where('codigo_barra', 'LIKE', '%' . $this->buscar . '%');
+                  });
             });
         }
 
@@ -241,19 +245,33 @@ class Producto extends Component
 
             if ($filtroOrigenLower === 'valencia') {
                 // Productos de Valencia: producto_valencia = 1
-                $query->where('producto_valencia', 1);
+                $query->where('producto.producto_valencia', 1);
             } elseif ($filtroOrigenLower === 'paperland' || $filtroOrigenLower === 'zenvy') {
                 // Productos locales (Paperland/Zenvy): producto_valencia es NULL
                 // Según los datos, no hay productos con valor 0, solo NULL
-                $query->whereNull('producto_valencia');
+                $query->whereNull('producto.producto_valencia');
             }
         }
 
         // Aplicar ordenamiento
-        $query->orderBy($this->ordenarPor, $this->direccionOrden);
+        $query->orderBy('producto.' . $this->ordenarPor, $this->direccionOrden);
 
-        // Paginar resultados
+        // Paginar resultados y cargar códigos de barras de precio_has_venta
         $productos = $query->paginate($this->registrosPorPagina, ['*'], 'page', $this->page);
+        
+        // Cargar códigos de barras desde precio_has_venta
+        $productos->getCollection()->transform(function($producto) {
+            $producto->codigos_barras = DB::table('precio_has_venta')
+                ->where('producto_id', $producto->id)
+                ->where('estado_id', 1)
+                ->whereNotNull('codigo_barra')
+                ->where('codigo_barra', '!=', '')
+                ->pluck('codigo_barra')
+                ->unique()
+                ->values()
+                ->toArray();
+            return $producto;
+        });
 
         return view('livewire.inventario.producto', [
             'productos' => $productos
