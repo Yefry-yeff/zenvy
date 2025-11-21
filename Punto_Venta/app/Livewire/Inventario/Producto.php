@@ -225,7 +225,7 @@ class Producto extends Component
 
         // Aplicar filtros individuales
         if (!empty($this->filtroId)) {
-            $query->where('producto.id', 'LIKE', '%' . $this->filtroId . '%');
+            $query->where('producto.id', '=', $this->filtroId);
         }
 
         if (!empty($this->filtroNombre)) {
@@ -234,7 +234,7 @@ class Producto extends Component
 
         if (!empty($this->filtroCodigoBarras)) {
             $query->whereHas('preciosVenta', function($q) {
-                $q->where('codigo_barra', 'LIKE', '%' . $this->filtroCodigoBarras . '%');
+                $q->where('codigo_barra', '=', $this->filtroCodigoBarras);
             });
         }
 
