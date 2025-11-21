@@ -27,7 +27,7 @@ class CompraDeProducto extends Component
         $this->proveedores = Cliente::whereHas('tipoCliente', function($query) {
             $query->where('nombre', 'LIKE', '%proveedor%');
         })
-        ->where('estado_id', 1)
+        ->where('estado_id', '=', 1, 'and')
         ->orderBy('nombre')
         ->get()
         ->map(function($cliente) {
@@ -282,7 +282,7 @@ class CompraDeProducto extends Component
 
         // Cachear unidades de medida (rara vez cambian)
         $this->unidadesMedida = Cache::remember('unidades_medida', 60 * 60, function() {
-            return UnidadMedida::orderBy('nombre')
+            return UnidadMedida::orderBy('nombre', 'asc')
                 ->get()
                 ->map(function($unidad) {
                     return [
@@ -544,7 +544,7 @@ class CompraDeProducto extends Component
 
         // Actualizar ultimo_costo_compra en la tabla producto cuando se agrega el producto
         try {
-            $producto = Producto::find($this->productoTemporal['producto_id']);
+            $producto = Producto::find($this->productoTemporal['producto_id']); // Correcto, $columns es opcional
             if ($producto && $this->productoTemporal['precio'] > 0) {
                 $costoAnterior = $producto->ultimo_costo_compra;
                 $producto->ultimo_costo_compra = $this->productoTemporal['precio'];
@@ -803,6 +803,13 @@ class CompraDeProducto extends Component
             $this->numeroFacturaProcesada = $this->compra['numero_factura'];
             $this->totalCompraProcesada = $this->total;
 
+            // Log para depuración
+            Log::info('Compra procesada, activando modal de éxito', [
+                'numero_factura' => $this->numeroFacturaProcesada,
+                'total' => $this->totalCompraProcesada
+            ]);
+            session()->flash('success', 'Se ejecutó mostrarModalCompraExitosa = true');
+
             // Mostrar modal de compra exitosa
             $this->mostrarModalCompraExitosa = true;
 
@@ -823,7 +830,7 @@ class CompraDeProducto extends Component
         $numeroFactura = $this->compra['numero_factura'];
 
         // Buscar compras existentes con el mismo número de factura
-        $compraExistente = Compra::where('numero_factura', $numeroFactura)
+        $compraExistente = Compra::where('numero_factura', '=', $numeroFactura, 'and')
             ->with('estado')
             ->first();
 
@@ -856,7 +863,7 @@ class CompraDeProducto extends Component
 
         if (!empty($value)) {
             // Buscar compras existentes con el mismo número de factura
-            $compraExistente = Compra::where('numero_factura', $value)
+            $compraExistente = Compra::where('numero_factura', '=', $value, 'and')
                 ->with('estado')
                 ->first();
 
@@ -1263,7 +1270,7 @@ class CompraDeProducto extends Component
             return; // Si hay errores, no continuar
         }
 
-        $proveedor = Cliente::find($this->proveedorSeleccionado);
+        $proveedor = Cliente::find($this->proveedorSeleccionado); // Correcto, $columns es opcional
 
         $tramite = [
             'numero_factura' => $this->compra['numero_factura'],
