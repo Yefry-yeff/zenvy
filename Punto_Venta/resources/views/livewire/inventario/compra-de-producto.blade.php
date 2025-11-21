@@ -387,7 +387,7 @@
                             @foreach($productosCompra as $index => $producto)
                                 <tr>
                                     <td class="text-left">
-                                        <strong>{{ $producto['nombre'] ?? 'N/A' }}</strong>
+                                        <strong>{{ $producto['producto_nombre'] ?? 'N/A' }}</strong>
                                     </td>
                                     <td>{{ $producto['producto_codigo'] ?? 'N/A' }}</td>
                                     <td>
