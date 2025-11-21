@@ -383,6 +383,7 @@ class Ventas extends Component
 
     public function cargarProductos()
     {
+        // CAMBIO: Buscar también en precio_has_venta.codigo_barra
         $this->productos = Producto::with(['isv', 'estado'])
             ->select('id', 'nombre', 'descripcion', 'precio_base', 'estado_id', 'isv_id',
                     'descuento_unitario', 'descuento_tercera', 'descuento_cuarta', 'codigo_barra') // Excluir 'imagen'
@@ -390,7 +391,14 @@ class Ventas extends Component
             ->when($this->busquedaProductosServicios, function ($query) {
                 $query->where('nombre', 'like', '%' . $this->busquedaProductosServicios . '%')
                       ->orWhere('descripcion', 'like', '%' . $this->busquedaProductosServicios . '%')
-                      ->orWhere('codigo_barra', 'like', '%' . $this->busquedaProductosServicios . '%');
+                      ->orWhere('codigo_barra', 'like', '%' . $this->busquedaProductosServicios . '%')
+                      ->orWhereExists(function($subQuery) {
+                          $subQuery->select(DB::raw(1))
+                              ->from('precio_has_venta')
+                              ->whereColumn('precio_has_venta.producto_id', 'producto.id')
+                              ->where('precio_has_venta.codigo_barra', 'like', '%' . $this->busquedaProductosServicios . '%')
+                              ->where('precio_has_venta.estado_id', 1);
+                      });
             })
             ->orderBy('nombre')
             ->get();
@@ -820,7 +828,19 @@ class Ventas extends Component
             'productos_en_carrito' => count($this->productosFactura)
         ]);
 
-        $producto = Producto::with('isv')->where('codigo_barra', $this->codigoBarras)->first();
+        // CAMBIO: Buscar primero en precio_has_venta en lugar de producto.codigo_barra
+        $precioEncontrado = DB::table('precio_has_venta')
+            ->where('codigo_barra', $this->codigoBarras)
+            ->where('estado_id', 1)
+            ->first();
+
+        if (!$precioEncontrado) {
+            $this->dispatch('mostrar-error', ['mensaje' => 'Código de barras no encontrado']);
+            return;
+        }
+
+        // Obtener el producto desde el precio_has_venta encontrado
+        $producto = Producto::with('isv')->find($precioEncontrado->producto_id);
 
         if (!$producto) {
             $this->dispatch('mostrar-error', ['mensaje' => 'Producto no encontrado']);
@@ -835,6 +855,7 @@ class Ventas extends Component
             ->select(
                 'precio_has_venta.id as precio_id',
                 'precio_has_venta.unidad_medida_id',
+                'precio_has_venta.codigo_barra',
                 'unidad_medida.nombre as unidad_nombre',
                 'unidad_medida.simbolo as unidad_simbolo',
                 'precio_has_venta.cantidad',
@@ -901,7 +922,7 @@ class Ventas extends Component
         $this->productosFactura[] = [
             'id' => $producto->id,
             'nombre' => $producto->nombre,
-            'codigo' => $producto->codigo_barra,
+            'codigo' => $precioDefecto->codigo_barra ?? $producto->codigo_barra,
             'precio' => $precioDefecto->precio, // Precio de la unidad de medida
             'precio_id' => $precioDefecto->precio_id,
             'unidad_medida_id' => $precioDefecto->unidad_medida_id,
@@ -4045,6 +4066,7 @@ class Ventas extends Component
                 ->select(
                     'precio_has_venta.id as precio_id',
                     'precio_has_venta.unidad_medida_id',
+                    'precio_has_venta.codigo_barra',
                     'unidad_medida.nombre as unidad_nombre',
                     'unidad_medida.simbolo as unidad_simbolo',
                     'precio_has_venta.cantidad',
@@ -4107,7 +4129,7 @@ class Ventas extends Component
             $this->productosFactura[] = [
                 'id' => $producto->id,
                 'nombre' => $producto->nombre,
-                'codigo' => $producto->codigo_barra,
+                'codigo' => $precioDefecto->codigo_barra ?? $producto->codigo_barra,
                 'precio' => $precioDefecto->precio,
                 'precio_id' => $precioDefecto->precio_id,
                 'unidad_medida_id' => $precioDefecto->unidad_medida_id,
@@ -4254,7 +4276,14 @@ class Ventas extends Component
                 ->where('estado_id', 1)
                 ->when($this->busquedaProductosServicios, function ($q) {
                     $q->where('nombre', 'like', '%' . $this->busquedaProductosServicios . '%')
-                      ->orWhere('codigo_barra', 'like', '%' . $this->busquedaProductosServicios . '%');
+                      ->orWhere('codigo_barra', 'like', '%' . $this->busquedaProductosServicios . '%')
+                      ->orWhereExists(function($subQuery) {
+                          $subQuery->select(DB::raw(1))
+                              ->from('precio_has_venta')
+                              ->whereColumn('precio_has_venta.producto_id', 'producto.id')
+                              ->where('precio_has_venta.codigo_barra', 'like', '%' . $this->busquedaProductosServicios . '%')
+                              ->where('precio_has_venta.estado_id', 1);
+                      });
                 })
                 ->get()
                 ->map(function ($producto) {
@@ -4346,7 +4375,14 @@ class Ventas extends Component
             $query->where(function($q) use ($busqueda) {
                 $q->where('nombre', 'like', '%' . $busqueda . '%')
                   ->orWhere('codigo_barra', 'like', '%' . $busqueda . '%')
-                  ->orWhere('descripcion', 'like', '%' . $busqueda . '%');
+                  ->orWhere('descripcion', 'like', '%' . $busqueda . '%')
+                  ->orWhereExists(function($subQuery) use ($busqueda) {
+                      $subQuery->select(DB::raw(1))
+                          ->from('precio_has_venta')
+                          ->whereColumn('precio_has_venta.producto_id', 'producto.id')
+                          ->where('precio_has_venta.codigo_barra', 'like', '%' . $busqueda . '%')
+                          ->where('precio_has_venta.estado_id', 1);
+                  });
             });
         }
 
@@ -4382,6 +4418,7 @@ class Ventas extends Component
                 ->select(
                     'phv.id as precio_id',
                     'phv.precio',
+                    'phv.codigo_barra',
                     'phv.cantidad as cantidad_por_unidad',
                     'um.id as unidad_medida_id',
                     'um.nombre as unidad_nombre'
@@ -4423,7 +4460,7 @@ class Ventas extends Component
                         'id' => $producto->id,
                         'nombre' => $producto->nombre ?? '',
                         'descripcion' => $producto->descripcion ?? '',
-                        'codigo_barra' => $producto->codigo_barra ?? '',
+                        'codigo_barra' => $precioVenta->codigo_barra ?? $producto->codigo_barra ?? '',
                         'imagen_base64' => $imagenBase64,
                         'tiene_imagen' => $imagenBase64 !== null,
                         'precio_base' => $producto->precio_base ?? 0,
