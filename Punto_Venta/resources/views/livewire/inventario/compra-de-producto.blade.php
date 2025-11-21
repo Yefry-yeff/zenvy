@@ -624,7 +624,7 @@
                             @forelse($resultadosBusquedaModal as $resultado)
                                 <tr wire:key="resultado-busqueda-{{ $resultado['id'] }}"
                                     class="transition-colors cursor-pointer hover:bg-gray-50"
-                                    @dblclick="$wire.seleccionarProductoDesdeModal({{ $resultado['id'] }})"
+                                    @dblclick="$wire.seleccionarProductoDesdeModal({{ $resultado['id'] }}, '{{ $resultado['codigo_barra'] }}')"
                                     title="Doble clic para seleccionar">
                                     <td class="px-4 py-3 font-mono text-xs">{{ $resultado['codigo_barra'] ?? 'N/A' }}</td>
                                     <td class="px-4 py-3 font-semibold">{{ $resultado['nombre'] }}</td>
@@ -642,7 +642,7 @@
                                     </td>
                                     <td class="px-4 py-3 text-center">
                                         <button type="button"
-                                                wire:click="seleccionarProductoDesdeModal({{ $resultado['id'] }})"
+                                                wire:click="seleccionarProductoDesdeModal({{ $resultado['id'] }}, '{{ $resultado['codigo_barra'] }}')"
                                                 class="px-3 py-1 text-sm text-white transition-colors rounded"
                                                 :class="{
                                                     'bg-emerald-600 hover:bg-emerald-700': theme === 'verde',

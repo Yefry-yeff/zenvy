@@ -25,20 +25,20 @@ class CompraDeProducto extends Component
     {
         // Proveedores activos (tipo proveedor)
         $this->proveedores = Cliente::whereHas('tipoCliente', function($query) {
-                $query->where('nombre', 'LIKE', '%proveedor%');
-            })
-            ->where('estado_id', 1)
-            ->orderBy('nombre')
-            ->get()
-            ->map(function($cliente) {
-                return [
-                    'id' => $cliente->id,
-                    'nombre' => $cliente->nombre,
-                    'rtn' => $cliente->rtn,
-                    'tipo_cliente' => $cliente->tipoCliente->nombre ?? 'N/A'
-                ];
-            })
-            ->toArray();
+            $query->where('nombre', 'LIKE', '%proveedor%');
+        })
+        ->where('estado_id', 1)
+        ->orderBy('nombre')
+        ->get()
+        ->map(function($cliente) {
+            return [
+                'id' => $cliente->id,
+                'nombre' => $cliente->nombre,
+                'rtn' => $cliente->rtn,
+                'tipo_cliente' => $cliente->tipoCliente->nombre ?? 'N/A'
+            ];
+        })
+        ->toArray();
 
         // Unidades de medida
         $this->unidadesMedida = UnidadMedida::orderBy('nombre', 'asc')->get()->map(function($unidad) {
@@ -49,7 +49,7 @@ class CompraDeProducto extends Component
             ];
         })->toArray();
     }
-    // Control para carga diferida (mejora de rendimiento)
+
     public $readyToLoad = false;
 
     // Datos de la compra principal
@@ -766,8 +766,6 @@ class CompraDeProducto extends Component
                     'compra_id' => $compra->id,
                     'producto_id' => $producto['producto_id'],
                     'precio' => $producto['precio'],
-                    'cantidad_ingresada' => $producto['cantidad_ingresada'],
-                    'cantidad_sin_asignar' => $producto['cantidad_sin_asignar'],
                     'fecha_expiracion' => $producto['fecha_expiracion'],
                     'sub_total_producto' => $producto['sub_total_producto'],
                     'isv' => $producto['sub_total_producto'] * ($producto['isv'] / 100),
@@ -963,7 +961,8 @@ class CompraDeProducto extends Component
             Log::error('Error al cambiar a recibir productos: ' . $e->getMessage());
             session()->flash('error', 'Error al acceder a la recepción de productos');
         }
-    }    public function reiniciarFormulario()
+    }
+    public function reiniciarFormulario()
     {
         // Limpiar datos de la compra
         $this->compra = [
@@ -1094,94 +1093,130 @@ class CompraDeProducto extends Component
     public function buscarProductosModal()
     {
         // Limitar a 30 resultados para mejorar rendimiento
-        $query = Producto::select('producto.id', 'producto.nombre', 'producto.descripcion', 'producto.codigo_barra', 'producto.precio_base', 'producto.ultimo_costo_compra', 'producto.marca_id', 'producto.subcategoria_id')
-            ->where('producto.estado_id', 1);
-
-        // Filtro de búsqueda por texto (solo si hay 3+ caracteres)
+        $resultados = [];
         if ($this->busquedaModalProductos && strlen($this->busquedaModalProductos) >= 3) {
             $busqueda = $this->busquedaModalProductos;
-            $query->where(function($q) use ($busqueda) {
-                $q->where('nombre', 'like', '%' . $busqueda . '%')
-                  ->orWhere('codigo_barra', 'like', '%' . $busqueda . '%')
-                  ->orWhere('descripcion', 'like', '%' . $busqueda . '%');
-            });
+            // Buscar productos que tengan presentaciones con ese código de barra
+            $presentaciones = DB::table('precio_has_venta as phv')
+                ->join('producto as p', 'phv.producto_id', '=', 'p.id')
+                ->leftJoin('marca as m', 'p.marca_id', '=', 'm.id')
+                ->leftJoin('subcategoria as sc', 'p.subcategoria_id', '=', 'sc.id')
+                ->leftJoin('categoria as c', 'sc.categoria_id', '=', 'c.id')
+                ->where('phv.codigo_barra', 'like', '%' . $busqueda . '%')
+                ->where('phv.estado_id', 1)
+                ->where('p.estado_id', 1)
+                ->select(
+                    'p.id as producto_id',
+                    'p.nombre as producto_nombre',
+                    'p.descripcion',
+                    'phv.codigo_barra',
+                    'phv.precio as precio_base',
+                    'p.ultimo_costo_compra',
+                    'm.nombre as marca',
+                    'sc.nombre as subcategoria',
+                    'c.nombre as categoria'
+                )
+                ->limit(30)
+                ->get();
+
+            $resultados = $presentaciones->map(function($row) {
+                return [
+                    'id' => $row->producto_id,
+                    'nombre' => $row->producto_nombre,
+                    'descripcion' => $row->descripcion,
+                    'codigo_barra' => $row->codigo_barra, // SIEMPRE de precio_has_venta
+                    'precio_base' => $row->precio_base,
+                    'ultimo_costo_compra' => $row->ultimo_costo_compra,
+                    'marca' => $row->marca,
+                    'categoria' => $row->categoria,
+                    'subcategoria' => $row->subcategoria,
+                ];
+            })->toArray();
         }
-
-        // Filtro por marca
-        if ($this->marcaSeleccionadaModal) {
-            $query->where('marca_id', $this->marcaSeleccionadaModal);
-        }
-
-        // Filtro por subcategoría
-        if ($this->subcategoriaSeleccionadaModal) {
-            $query->where('subcategoria_id', $this->subcategoriaSeleccionadaModal);
-        }
-
-        // Filtro por categoría (a través de subcategoría)
-        if ($this->categoriaSeleccionadaModal && !$this->subcategoriaSeleccionadaModal) {
-            $query->join('subcategoria', 'producto.subcategoria_id', '=', 'subcategoria.id')
-                  ->where('subcategoria.categoria_id', $this->categoriaSeleccionadaModal);
-        }
-
-        // Cargar solo 30 resultados y las relaciones necesarias
-        $productos = $query->with(['marca:id,nombre', 'subcategoria:id,nombre,categoria_id', 'subcategoria.categoria:id,nombre'])
-            ->limit(30)
-            ->get();
-
-        $this->resultadosBusquedaModal = $productos->map(function($producto) {
-            return [
-                'id' => $producto->id,
-                'nombre' => $producto->nombre,
-                'descripcion' => $producto->descripcion,
-                'codigo_barra' => $producto->codigo_barra,
-                'precio_base' => $producto->precio_base,
-                'ultimo_costo_compra' => $producto->ultimo_costo_compra,
-                'marca' => $producto->marca->nombre ?? null,
-                'categoria' => $producto->subcategoria->categoria->nombre ?? null,
-                'subcategoria' => $producto->subcategoria->nombre ?? null,
-            ];
-        })->toArray();
+        $this->resultadosBusquedaModal = $resultados;
     }
 
-    public function seleccionarProductoModal($productoId)
+    public function seleccionarProductoModal($productoId, $codigoBarraSeleccionado = null)
     {
+
         $producto = Producto::with(['marca', 'subcategoria', 'unidadMedidaVenta'])->find($productoId);
 
-        if ($producto) {
-            // Intentar obtener un código de barra desde precio_has_venta para este producto
-            try {
-                $phv = DB::table('precio_has_venta')
-                    ->where('producto_id', $producto->id)
-                    ->where('estado_id', 1)
-                    ->whereNotNull('codigo_barra')
-                    ->where('codigo_barra', '<>', '')
-                    ->select('codigo_barra')
-                    ->first();
-
-                if ($phv && !empty($phv->codigo_barra)) {
-                    $this->busquedaProducto = $phv->codigo_barra;
-                } else {
-                    // No usar el codigo de barra del producto; mostrar el nombre como referencia
-                    $this->busquedaProducto = $producto->nombre;
+        // Si no se pasa el código de barra, buscarlo en los resultados del modal
+        if ($codigoBarraSeleccionado === null && $producto) {
+            foreach ($this->resultadosBusquedaModal as $row) {
+                if ($row['id'] == $producto->id) {
+                    $codigoBarraSeleccionado = $row['codigo_barra'] ?? null;
+                    break;
                 }
-            } catch (\Exception $e) {
-                Log::error('Error obteniendo codigo_barra desde precio_has_venta en seleccionarProductoModal', ['producto_id' => $producto->id, 'error' => $e->getMessage()]);
-                $this->busquedaProducto = $producto->nombre;
             }
+        }
 
-            // Guardar la información completa del producto seleccionado
+        // Buscar la presentación exacta en precio_has_venta
+        $presentacion = null;
+        if ($producto && $codigoBarraSeleccionado) {
+            $presentacion = DB::table('precio_has_venta as phv')
+                ->join('producto as p', 'phv.producto_id', '=', 'p.id')
+                ->leftJoin('unidad_medida as um', 'phv.unidad_medida_id', '=', 'um.id')
+                ->leftJoin('marca as m', 'p.marca_id', '=', 'm.id')
+                ->leftJoin('subcategoria as sc', 'p.subcategoria_id', '=', 'sc.id')
+                ->leftJoin('categoria as c', 'sc.categoria_id', '=', 'c.id')
+                ->where('phv.codigo_barra', $codigoBarraSeleccionado)
+                ->where('phv.estado_id', 1)
+                ->where('p.estado_id', 1)
+                ->select(
+                    'phv.id as precio_id',
+                    'phv.producto_id',
+                    'phv.precio as precio',
+                    'phv.cantidad as cantidad_por_unidad',
+                    'phv.unidad_medida_id',
+                    'p.nombre as producto_nombre',
+                    'p.descripcion as producto_descripcion',
+                    'p.ultimo_costo_compra',
+                    'p.precio_base',
+                    'um.nombre as unidad_medida_nombre',
+                    'm.nombre as marca_nombre',
+                    'sc.nombre as subcategoria_nombre',
+                    'c.nombre as categoria_nombre'
+                )
+                ->first();
+        }
+
+        if ($presentacion) {
+            $this->busquedaProducto = $codigoBarraSeleccionado;
+            $this->productoSeleccionado = [
+                'id' => $presentacion->producto_id,
+                'nombre' => $presentacion->producto_nombre,
+                'codigo_barra' => $codigoBarraSeleccionado,
+                'precio_base' => $presentacion->precio ?? 0,
+                'ultimo_costo_compra' => $presentacion->ultimo_costo_compra ?? $presentacion->precio_base ?? 0,
+                'descripcion' => $presentacion->producto_descripcion ?? '',
+                'marca' => $presentacion->marca_nombre ?? 'N/A',
+                'subcategoria' => $presentacion->subcategoria_nombre ?? 'N/A',
+                'categoria' => $presentacion->categoria_nombre ?? 'N/A',
+            ];
+            $this->productoTemporal = [
+                'producto_id' => $presentacion->producto_id,
+                'precio' => $presentacion->precio ?? 0,
+                'cantidad_recibida' => 1,
+                'cantidad_por_unidad' => $presentacion->cantidad_por_unidad ?? 1,
+                'cantidad_ingresada' => $presentacion->cantidad_por_unidad ?? 1,
+                'fecha_expiracion' => '',
+                'unidad_medida_id' => $presentacion->unidad_medida_id ?? null,
+                'isv' => 0,
+            ];
+        } else if ($producto) {
+            // Fallback: comportamiento anterior si no se encuentra la presentación
+            $this->busquedaProducto = $codigoBarraSeleccionado ?: $producto->nombre;
             $this->productoSeleccionado = [
                 'id' => $producto->id,
                 'nombre' => $producto->nombre,
-                'codigo_barra' => $producto->codigo_barra,
+                'codigo_barra' => $codigoBarraSeleccionado,
                 'precio_base' => $producto->precio_base ?? 0,
                 'ultimo_costo_compra' => $producto->ultimo_costo_compra ?? 0,
                 'descripcion' => $producto->descripcion ?? '',
                 'marca' => $producto->marca->nombre ?? 'N/A',
                 'subcategoria' => $producto->subcategoria->nombre ?? 'N/A',
             ];
-
-            // Establecer el producto temporal con ultimo_costo_compra como precio por defecto
             $this->productoTemporal = [
                 'producto_id' => $producto->id,
                 'precio' => $producto->ultimo_costo_compra ?? $producto->precio_base ?? 0,
@@ -1192,17 +1227,32 @@ class CompraDeProducto extends Component
                 'unidad_medida_id' => $producto->unidad_medida_venta_id ?? null,
                 'isv' => 0,
             ];
-
-            // Cerrar modal
-            $this->cerrarModalBusqueda();
         }
+        // Cerrar modal
+        $this->cerrarModalBusqueda();
     }
 
     // Método para seleccionar producto desde modal de búsqueda
-    public function seleccionarProductoDesdeModal($productoId)
+    public function seleccionarProductoDesdeModal($productoId, $codigoBarra = null)
     {
-        // Usar el método existente para seleccionar
-        $this->seleccionarProductoModal($productoId);
+        // Si se pasa el código de barra, usarlo directamente
+        if ($codigoBarra) {
+            $this->seleccionarProductoModal($productoId, $codigoBarra);
+        } else {
+            // Fallback: buscar el código de barra en los resultados del modal
+            $codigoBarraSeleccionado = null;
+            foreach ($this->resultadosBusquedaModal as $row) {
+                if ($row['id'] == $productoId) {
+                    $codigoBarraSeleccionado = $row['codigo_barra'] ?? null;
+                    break;
+                }
+            }
+            if ($codigoBarraSeleccionado) {
+                $this->seleccionarProductoModal($productoId, $codigoBarraSeleccionado);
+            } else {
+                $this->seleccionarProductoModal($productoId);
+            }
+        }
     }
 
     // Métodos para trámites temporales
