@@ -23,7 +23,7 @@ class MigrarPreciosATablaVenta extends Command
      *
      * @var string
      */
-    protected $description = 'Migra masivamente los precios base de todos los productos a la tabla precio_has_venta';
+    protected $description = 'Migra masivamente los precios base y códigos de barras de todos los productos a la tabla precio_has_venta';
 
     /**
      * Execute the console command.
@@ -31,7 +31,7 @@ class MigrarPreciosATablaVenta extends Command
     public function handle()
     {
         $this->info('========================================');
-        $this->info('MIGRACIÓN MASIVA DE PRECIOS A TABLA VENTA');
+        $this->info('MIGRACIÓN MASIVA DE PRECIOS Y CÓDIGOS DE BARRAS');
         $this->info('========================================');
         $this->newLine();
 
@@ -45,8 +45,9 @@ class MigrarPreciosATablaVenta extends Command
         }
 
         try {
-            // Construir query base
+            // Construir query base - obtener también codigo_barra y unidad_medida_venta_id
             $query = DB::table('producto')
+                ->select('id', 'nombre', 'precio_base', 'codigo_barra', 'unidad_medida_venta_id')
                 ->where('estado_id', 1)
                 ->whereNotNull('precio_base')
                 ->where('precio_base', '>', 0);
@@ -87,6 +88,7 @@ class MigrarPreciosATablaVenta extends Command
             $insertados = 0;
             $omitidos = 0;
             $errores = 0;
+            $codigosBarraMigrados = 0;
 
             // Barra de progreso
             $bar = $this->output->createProgressBar($productos->count());
@@ -96,11 +98,15 @@ class MigrarPreciosATablaVenta extends Command
                 $procesados++;
 
                 try {
-                    // Verificar si ya existe un precio_has_venta para este producto
+                    // Determinar la unidad de medida a usar
+                    $unidadMedidaId = $producto->unidad_medida_venta_id ?? $unidadBase->id;
+                    
+                    // Verificar si ya existe un precio_has_venta para este producto y unidad de medida
                     $precioExistente = DB::table('precio_has_venta')
                         ->where('producto_id', $producto->id)
+                        ->where('unidad_medida_id', $unidadMedidaId)
                         ->where('estado_id', 1)
-                        ->exists();
+                        ->first();
 
                     if ($precioExistente && !$force) {
                         $omitidos++;
@@ -109,34 +115,55 @@ class MigrarPreciosATablaVenta extends Command
                     }
 
                     if (!$dryRun) {
-                        // Si existe y se usa --force, desactivar precios existentes
+                        // Si existe y se usa --force, actualizar el registro existente
                         if ($precioExistente && $force) {
                             DB::table('precio_has_venta')
-                                ->where('producto_id', $producto->id)
-                                ->update(['estado_id' => 2]);
+                                ->where('id', $precioExistente->id)
+                                ->update([
+                                    'precio' => $producto->precio_base,
+                                    'codigo_barra' => $producto->codigo_barra,
+                                    'updated_at' => now()
+                                ]);
+                            
+                            $insertados++;
+                            if ($producto->codigo_barra) {
+                                $codigosBarraMigrados++;
+                            }
+                        } else {
+                            // Insertar el nuevo precio en precio_has_venta
+                            $insertId = DB::table('precio_has_venta')->insertGetId([
+                                'producto_id' => $producto->id,
+                                'unidad_medida_id' => $unidadMedidaId,
+                                'cantidad' => 1, // 1 unidad base
+                                'precio' => $producto->precio_base,
+                                'codigo_barra' => $producto->codigo_barra, // Migrar código de barras
+                                'users_id' => 1, // Usuario sistema
+                                'estado_id' => 1, // Activo
+                                'created_at' => now(),
+                                'updated_at' => now()
+                            ]);
+
+                            if ($producto->codigo_barra) {
+                                $codigosBarraMigrados++;
+                            }
+
+                            Log::info('Precio y código de barras migrado', [
+                                'producto_id' => $producto->id,
+                                'nombre' => $producto->nombre,
+                                'precio_base' => $producto->precio_base,
+                                'codigo_barra' => $producto->codigo_barra ?? 'Sin código',
+                                'unidad_medida_id' => $unidadMedidaId,
+                                'precio_has_venta_id' => $insertId
+                            ]);
+
+                            $insertados++;
                         }
-
-                        // Insertar el nuevo precio en precio_has_venta
-                        $insertId = DB::table('precio_has_venta')->insertGetId([
-                            'producto_id' => $producto->id,
-                            'unidad_medida_id' => $unidadBase->id,
-                            'cantidad' => 1, // 1 unidad base
-                            'precio' => $producto->precio_base,
-                            'users_id' => 1, // Usuario sistema
-                            'estado_id' => 1, // Activo
-                            'created_at' => now(),
-                            'updated_at' => now()
-                        ]);
-
-                        Log::info('Precio migrado', [
-                            'producto_id' => $producto->id,
-                            'nombre' => $producto->nombre,
-                            'precio_base' => $producto->precio_base,
-                            'precio_has_venta_id' => $insertId
-                        ]);
+                    } else {
+                        $insertados++;
+                        if ($producto->codigo_barra) {
+                            $codigosBarraMigrados++;
+                        }
                     }
-
-                    $insertados++;
                 } catch (\Exception $e) {
                     $errores++;
                     Log::error('Error al migrar precio', [
@@ -158,9 +185,11 @@ class MigrarPreciosATablaVenta extends Command
             $this->info("✅ Productos procesados: {$procesados}");
 
             if ($dryRun) {
-                $this->info("🔍 Productos que serían insertados: {$insertados}");
+                $this->info("🔍 Productos que serían insertados/actualizados: {$insertados}");
+                $this->info("🔍 Códigos de barras que serían migrados: {$codigosBarraMigrados}");
             } else {
-                $this->info("✅ Precios insertados: {$insertados}");
+                $this->info("✅ Precios insertados/actualizados: {$insertados}");
+                $this->info("✅ Códigos de barras migrados: {$codigosBarraMigrados}");
             }
 
             $this->info("⏭️  Productos omitidos (ya tienen precio): {$omitidos}");
