@@ -26,9 +26,15 @@ class ListaDeProductos extends Component
 
     // Filtros
     public $filtroProducto = '';
+    public $filtroCodigoProducto = '';
+    public $filtroCodigoBarra = '';
     public $filtroBodega = '';
     public $filtroEstado = '';
     public $filtroMarca = '';
+    public $filtroSegmento = '';
+    public $filtroSeccion = '';
+    public $filtroFechaRecibido = '';
+    public $filtroFechaExpiracion = '';
 
     // Datos
     public $bodegas = [];
@@ -95,9 +101,15 @@ class ListaDeProductos extends Component
         $filtrosSesion = session('productos_filtros');
         if ($filtrosSesion) {
             $this->filtroProducto = $filtrosSesion['filtroProducto'] ?? '';
+            $this->filtroCodigoProducto = $filtrosSesion['filtroCodigoProducto'] ?? '';
+            $this->filtroCodigoBarra = $filtrosSesion['filtroCodigoBarra'] ?? '';
             $this->filtroBodega = $filtrosSesion['filtroBodega'] ?? '';
             $this->filtroEstado = $filtrosSesion['filtroEstado'] ?? '';
             $this->filtroMarca = $filtrosSesion['filtroMarca'] ?? '';
+            $this->filtroSegmento = $filtrosSesion['filtroSegmento'] ?? '';
+            $this->filtroSeccion = $filtrosSesion['filtroSeccion'] ?? '';
+            $this->filtroFechaRecibido = $filtrosSesion['filtroFechaRecibido'] ?? '';
+            $this->filtroFechaExpiracion = $filtrosSesion['filtroFechaExpiracion'] ?? '';
             $this->ordenarPor = $filtrosSesion['ordenarPor'] ?? 'fecha_recibido';
             $this->direccionOrden = $filtrosSesion['direccionOrden'] ?? 'desc';
             $this->page = $filtrosSesion['page'] ?? 1;
@@ -120,9 +132,15 @@ class ListaDeProductos extends Component
             $this->ordenarPor = 'fecha_recibido';
             $this->direccionOrden = 'desc';
             $this->filtroProducto = '';
+            $this->filtroCodigoProducto = '';
+            $this->filtroCodigoBarra = '';
             $this->filtroBodega = '';
             $this->filtroEstado = '';
             $this->filtroMarca = '';
+            $this->filtroSegmento = '';
+            $this->filtroSeccion = '';
+            $this->filtroFechaRecibido = '';
+            $this->filtroFechaExpiracion = '';
             $this->page = 1; // Resetear también la página
             $this->resetPage();
         }
@@ -160,9 +178,15 @@ class ListaDeProductos extends Component
         // Guardar filtros en sesión en cada actualización
         session(['productos_filtros' => [
             'filtroProducto' => $this->filtroProducto,
+            'filtroCodigoProducto' => $this->filtroCodigoProducto,
+            'filtroCodigoBarra' => $this->filtroCodigoBarra,
             'filtroBodega' => $this->filtroBodega,
             'filtroEstado' => $this->filtroEstado,
             'filtroMarca' => $this->filtroMarca,
+            'filtroSegmento' => $this->filtroSegmento,
+            'filtroSeccion' => $this->filtroSeccion,
+            'filtroFechaRecibido' => $this->filtroFechaRecibido,
+            'filtroFechaExpiracion' => $this->filtroFechaExpiracion,
             'ordenarPor' => $this->ordenarPor,
             'direccionOrden' => $this->direccionOrden,
             'page' => $this->page
@@ -213,6 +237,36 @@ class ListaDeProductos extends Component
         $this->resetPage();
     }
 
+    public function updatedFiltroCodigoProducto()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedFiltroCodigoBarra()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedFiltroSegmento()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedFiltroSeccion()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedFiltroFechaRecibido()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedFiltroFechaExpiracion()
+    {
+        $this->resetPage();
+    }
+
     public function cargarDatos($paginacion = true)
     {
         try {
@@ -227,6 +281,10 @@ class ListaDeProductos extends Component
                 ->leftJoin('marca as m', 'p.marca_id', '=', 'm.id')
                 ->leftJoin('unidad_medida as um', 'rb.unidad_medida_id', '=', 'um.id')
                 ->leftJoin('unidad_medida as umv', 'p.unidad_medida_venta_id', '=', 'umv.id')
+                ->leftJoin('precio_has_venta as phv', function($join) {
+                    $join->on('phv.producto_id', '=', 'p.id')
+                         ->where('phv.estado_id', '=', 1);
+                })
                 ->select(
                     'rb.id',
                     'rb.cantidad_disponible',
@@ -236,7 +294,7 @@ class ListaDeProductos extends Component
                     'p.id as producto_id',
                     'p.nombre as producto_nombre',
                     'p.descripcion as producto_descripcion',
-                    'p.codigo_barra',
+                    DB::raw('(SELECT phv2.codigo_barra FROM precio_has_venta phv2 WHERE phv2.producto_id = p.id AND phv2.estado_id = 1 LIMIT 1) as codigo_barra'),
                     'm.nombre as marca_nombre',
                     'm.id as marca_id',
                     'b.nombre as bodega_nombre',
@@ -259,9 +317,38 @@ class ListaDeProductos extends Component
             if (!empty($this->filtroProducto)) {
                 $query->where(function($q) {
                     $q->where('p.nombre', 'like', '%' . $this->filtroProducto . '%')
-                      ->orWhere('p.codigo_barra', 'like', '%' . $this->filtroProducto . '%')
                       ->orWhere('p.codigo_estatal', 'like', '%' . $this->filtroProducto . '%');
                 });
+            }
+
+            if (!empty($this->filtroCodigoProducto)) {
+                $query->where('p.id', 'like', '%' . $this->filtroCodigoProducto . '%');
+            }
+
+            if (!empty($this->filtroCodigoBarra)) {
+                $query->whereExists(function($q) {
+                    $q->select(DB::raw(1))
+                      ->from('precio_has_venta as phv_filtro')
+                      ->whereRaw('phv_filtro.producto_id = p.id')
+                      ->where('phv_filtro.estado_id', 1)
+                      ->where('phv_filtro.codigo_barra', 'like', '%' . $this->filtroCodigoBarra . '%');
+                });
+            }
+
+            if (!empty($this->filtroSegmento)) {
+                $query->where('seg.descripcion', 'like', '%' . $this->filtroSegmento . '%');
+            }
+
+            if (!empty($this->filtroSeccion)) {
+                $query->where('sec.descripcion', 'like', '%' . $this->filtroSeccion . '%');
+            }
+
+            if (!empty($this->filtroFechaRecibido)) {
+                $query->whereDate('rb.fecha_recibido', $this->filtroFechaRecibido);
+            }
+
+            if (!empty($this->filtroFechaExpiracion)) {
+                $query->whereDate('rb.fecha_expiracion', $this->filtroFechaExpiracion);
             }
 
             if (!empty($this->filtroBodega)) {
@@ -304,7 +391,9 @@ class ListaDeProductos extends Component
             } elseif ($this->ordenarPor === 'marca_nombre') {
                 $campoOrden = 'm.nombre';
             } elseif ($this->ordenarPor === 'codigo_barra') {
-                $campoOrden = 'p.codigo_barra';
+                $campoOrden = DB::raw('(SELECT phv_orden.codigo_barra FROM precio_has_venta phv_orden WHERE phv_orden.producto_id = p.id AND phv_orden.estado_id = 1 LIMIT 1)');
+            } elseif ($this->ordenarPor === 'producto_id') {
+                $campoOrden = 'p.id';
             }
 
             $query->orderBy($campoOrden, $this->direccionOrden);
@@ -376,9 +465,15 @@ class ListaDeProductos extends Component
     public function limpiarFiltros()
     {
         $this->filtroProducto = '';
+        $this->filtroCodigoProducto = '';
+        $this->filtroCodigoBarra = '';
         $this->filtroBodega = '';
         $this->filtroEstado = '';
         $this->filtroMarca = '';
+        $this->filtroSegmento = '';
+        $this->filtroSeccion = '';
+        $this->filtroFechaRecibido = '';
+        $this->filtroFechaExpiracion = '';
         $this->resetPage();
     }
 
@@ -424,8 +519,14 @@ class ListaDeProductos extends Component
     private function obtenerFiltrosAplicados()
     {
         $filtros = [];
+        if (!empty($this->filtroCodigoProducto)) {
+            $filtros[] = "Código Producto: '{$this->filtroCodigoProducto}'";
+        }
         if (!empty($this->filtroProducto)) {
             $filtros[] = "Producto: '{$this->filtroProducto}'";
+        }
+        if (!empty($this->filtroCodigoBarra)) {
+            $filtros[] = "Código de Barras: '{$this->filtroCodigoBarra}'";
         }
         if (!empty($this->filtroBodega)) {
             $filtros[] = "Bodega: '{$this->filtroBodega}'";
@@ -435,6 +536,18 @@ class ListaDeProductos extends Component
         }
         if (!empty($this->filtroMarca)) {
             $filtros[] = "Marca: '{$this->filtroMarca}'";
+        }
+        if (!empty($this->filtroSegmento)) {
+            $filtros[] = "Segmento: '{$this->filtroSegmento}'";
+        }
+        if (!empty($this->filtroSeccion)) {
+            $filtros[] = "Sección: '{$this->filtroSeccion}'";
+        }
+        if (!empty($this->filtroFechaRecibido)) {
+            $filtros[] = "Fecha Recibido: '{$this->filtroFechaRecibido}'";
+        }
+        if (!empty($this->filtroFechaExpiracion)) {
+            $filtros[] = "Fecha Expiración: '{$this->filtroFechaExpiracion}'";
         }
         return empty($filtros) ? 'Ninguno' : implode(', ', $filtros);
     }

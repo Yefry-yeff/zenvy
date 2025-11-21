@@ -73,52 +73,7 @@
 
         <!-- FILTROS Y BÚSQUEDA (Debajo del título) -->
         <div class="px-4 py-3 border-b bg-gray-50">
-            <div class="grid grid-cols-1 gap-4 md:grid-cols-4">
-                <!-- Búsqueda de Producto -->
-                <div>
-                    <label class="block mb-1 text-sm font-medium text-gray-700">Buscar Producto</label>
-                    <input type="text"
-                           wire:model.live.debounce.300ms="filtroProducto"
-                           placeholder="Nombre, código de barras..."
-                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                </div>
-
-                <!-- Filtro de Bodega -->
-                <div>
-                    <label class="block mb-1 text-sm font-medium text-gray-700">Bodega</label>
-                    <select wire:model.live="filtroBodega" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500">
-                        <option value="">Todas las bodegas</option>
-                        @foreach($bodegas as $bodega)
-                            <option value="{{ $bodega->id }}">{{ $bodega->nombre }}</option>
-                        @endforeach
-                    </select>
-                </div>
-
-                <!-- Filtro de Estado Stock -->
-                <div>
-                    <label class="block mb-1 text-sm font-medium text-gray-700">Estado Stock</label>
-                    <select wire:model.live="filtroEstado" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500">
-                        <option value="">Con Stock (Por defecto)</option>
-                        <option value="disponible">Disponible (&gt; 10)</option>
-                        <option value="poco_stock">Poco Stock (1-10)</option>
-                        <option value="agotado">Stock Agotado (0)</option>
-                    </select>
-                </div>
-
-                <!-- Filtro de Marca -->
-                <div>
-                    <label class="block mb-1 text-sm font-medium text-gray-700">Marca</label>
-                    <select wire:model.live="filtroMarca" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500">
-                        <option value="">Todas las marcas</option>
-                        @foreach($marcas as $marca)
-                            <option value="{{ $marca->id }}">{{ $marca->nombre }}</option>
-                        @endforeach
-                    </select>
-                </div>
-
-            </div>
-
-            <div class="flex gap-2 mt-3">
+            <div class="flex gap-2">
                 <button wire:click="limpiarFiltros" class="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
                     🗑️ Limpiar Filtros
                 </button>
@@ -160,6 +115,17 @@
                             <!-- Encabezados con ordenamiento -->
                             <tr>
                                 <th class="px-4 py-3 text-left border-b cursor-pointer hover:bg-gray-100"
+                                    wire:click="ordenar('producto_id')">
+                                    <div class="flex items-center space-x-1">
+                                        <span>Código de Producto</span>
+                                        @if($ordenarPor === 'producto_id')
+                                            <span class="text-blue-500">
+                                                @if($direccionOrden === 'asc') ↑ @else ↓ @endif
+                                            </span>
+                                        @endif
+                                    </div>
+                                </th>
+                                <th class="px-4 py-3 text-left border-b cursor-pointer hover:bg-gray-100"
                                     wire:click="ordenar('producto_nombre')">
                                     <div class="flex items-center space-x-1">
                                         <span>Producto</span>
@@ -173,7 +139,7 @@
                                 <th class="px-4 py-3 text-left border-b cursor-pointer hover:bg-gray-100"
                                     wire:click="ordenar('codigo_barra')">
                                     <div class="flex items-center space-x-1">
-                                        <span>Código</span>
+                                        <span>Código de Barras</span>
                                         @if($ordenarPor === 'codigo_barra')
                                             <span class="text-blue-500">
                                                 @if($direccionOrden === 'asc') ↑ @else ↓ @endif
@@ -232,10 +198,88 @@
                                 <th class="px-4 py-3 text-center border-b">Comentario</th>
                                 <th class="px-4 py-3 text-center border-b">Acciones</th>
                             </tr>
+                            <!-- Fila de filtros -->
+                            <tr class="bg-white">
+                                <th class="px-2 py-2 border-b">
+                                    <input type="text" 
+                                           wire:model.live.debounce.300ms="filtroCodigoProducto"
+                                           placeholder="Filtrar..."
+                                           class="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-transparent">
+                                </th>
+                                <th class="px-2 py-2 border-b">
+                                    <input type="text" 
+                                           wire:model.live.debounce.300ms="filtroProducto"
+                                           placeholder="Filtrar..."
+                                           class="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-transparent">
+                                </th>
+                                <th class="px-2 py-2 border-b">
+                                    <input type="text" 
+                                           wire:model.live.debounce.300ms="filtroCodigoBarra"
+                                           placeholder="Filtrar..."
+                                           class="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-transparent">
+                                </th>
+                                <th class="px-2 py-2 border-b">
+                                    <select wire:model.live="filtroMarca" 
+                                            class="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500">
+                                        <option value="">Todas</option>
+                                        @foreach($marcas as $marca)
+                                            <option value="{{ $marca->id }}">{{ $marca->nombre }}</option>
+                                        @endforeach
+                                    </select>
+                                </th>
+                                <th class="px-2 py-2 border-b">
+                                    <select wire:model.live="filtroBodega" 
+                                            class="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500">
+                                        <option value="">Todas</option>
+                                        @foreach($bodegas as $bodega)
+                                            <option value="{{ $bodega->id }}">{{ $bodega->nombre }}</option>
+                                        @endforeach
+                                    </select>
+                                </th>
+                                <th class="px-2 py-2 border-b">
+                                    <input type="text" 
+                                           wire:model.live.debounce.300ms="filtroSegmento"
+                                           placeholder="Filtrar..."
+                                           class="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-transparent">
+                                </th>
+                                <th class="px-2 py-2 border-b">
+                                    <input type="text" 
+                                           wire:model.live.debounce.300ms="filtroSeccion"
+                                           placeholder="Filtrar..."
+                                           class="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-transparent">
+                                </th>
+                                <th class="px-2 py-2 border-b">
+                                    <select wire:model.live="filtroEstado" 
+                                            class="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500">
+                                        <option value="">Todos</option>
+                                        <option value="disponible">Disponible (&gt; 10)</option>
+                                        <option value="poco_stock">Poco Stock (1-10)</option>
+                                        <option value="agotado">Agotado (0)</option>
+                                    </select>
+                                </th>
+                                <th class="px-2 py-2 border-b">
+                                    <input type="date" 
+                                           wire:model.live="filtroFechaRecibido"
+                                           class="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-transparent">
+                                </th>
+                                <th class="px-2 py-2 border-b">
+                                    <input type="date" 
+                                           wire:model.live="filtroFechaExpiracion"
+                                           class="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-transparent">
+                                </th>
+                                <th class="px-2 py-2 border-b"></th>
+                                <th class="px-2 py-2 border-b"></th>
+                                <th class="px-2 py-2 border-b"></th>
+                            </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-200">
                             @foreach($productosRecibidos as $item)
                                 <tr class="hover:bg-gray-50 {{ $item->cantidad_disponible > 10 ? 'bg-green-50' : ($item->cantidad_disponible > 0 ? 'bg-yellow-50' : 'bg-red-50') }}">
+
+                                    <!-- Código de Producto -->
+                                    <td class="px-4 py-3 border-b">
+                                        <code class="px-2 py-1 text-sm font-semibold text-blue-700 bg-blue-100 rounded">{{ $item->producto_id ?? 'N/A' }}</code>
+                                    </td>
 
                                     <!-- Producto -->
                                     <td class="px-4 py-3 border-b">
@@ -247,7 +291,7 @@
                                         </div>
                                     </td>
 
-                                    <!-- Código -->
+                                    <!-- Código de Barras -->
                                     <td class="px-4 py-3 border-b">
                                         <code class="px-2 py-1 text-sm bg-gray-100 rounded">{{ $item->codigo_barra ?? 'N/A' }}</code>
                                     </td>
