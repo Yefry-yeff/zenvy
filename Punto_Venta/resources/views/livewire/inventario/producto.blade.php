@@ -191,28 +191,6 @@
                                     </div>
                                 </th>
                                 <th class="px-4 py-3 text-center border-b cursor-pointer hover:bg-gray-100"
-                                    wire:click="ordenar('precio_base')">
-                                    <div class="flex items-center justify-center space-x-1">
-                                        <span>Precio</span>
-                                        @if($ordenarPor === 'precio_base')
-                                            <span class="text-blue-500">
-                                                @if($direccionOrden === 'asc') ↑ @else ↓ @endif
-                                            </span>
-                                        @endif
-                                    </div>
-                                </th>
-                                <th class="px-4 py-3 text-center border-b cursor-pointer hover:bg-gray-100"
-                                    wire:click="ordenar('created_at')">
-                                    <div class="flex items-center justify-center space-x-1">
-                                        <span>Fecha</span>
-                                        @if($ordenarPor === 'created_at')
-                                            <span class="text-blue-500">
-                                                @if($direccionOrden === 'asc') ↑ @else ↓ @endif
-                                            </span>
-                                        @endif
-                                    </div>
-                                </th>
-                                <th class="px-4 py-3 text-center border-b cursor-pointer hover:bg-gray-100"
                                     wire:click="ordenar('producto_valencia')">
                                     <div class="flex items-center justify-center space-x-1">
                                         <span>Origen</span>
@@ -261,15 +239,6 @@
                                            wire:model.live.debounce.300ms="filtroMarca"
                                            placeholder="Filtrar..."
                                            class="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500">
-                                </th>
-                                <th class="px-4 py-2 border-b">
-                                    <input type="text"
-                                           wire:model.live.debounce.300ms="filtroPrecio"
-                                           placeholder="Filtrar..."
-                                           class="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500">
-                                </th>
-                                <th class="px-4 py-2 border-b">
-                                    <!-- Sin filtro para fecha -->
                                 </th>
                                 <th class="px-4 py-2 border-b">
                                     <!-- Sin filtro para origen -->
@@ -347,18 +316,6 @@
                                                     wire:click="editar({{ $producto->id }})">
                                                     {{ $producto->marca->nombre ?? 'Sin marca' }}
                                                 </td>
-                                                <!-- Precio - solo en primera fila -->
-                                                <td class="px-4 py-3 text-sm font-medium text-center text-green-600" 
-                                                    rowspan="{{ $numPresentaciones }}"
-                                                    wire:click="editar({{ $producto->id }})">
-                                                    L. {{ number_format($producto->precio_base, 2) }}
-                                                </td>
-                                                <!-- Fecha - solo en primera fila -->
-                                                <td class="px-4 py-3 text-sm text-center text-gray-500" 
-                                                    rowspan="{{ $numPresentaciones }}"
-                                                    wire:click="editar({{ $producto->id }})">
-                                                    {{ $producto->created_at ? $producto->created_at->format('d/m/Y') : 'N/A' }}
-                                                </td>
                                                 <!-- Origen - solo en primera fila -->
                                                 <td class="px-4 py-3 text-center" 
                                                     rowspan="{{ $numPresentaciones }}"
@@ -430,14 +387,6 @@
                                             <td class="px-4 py-3 text-sm text-gray-700" wire:click="editar({{ $producto->id }})">
                                                 {{ $producto->marca->nombre ?? 'Sin marca' }}
                                             </td>
-                                            <!-- Precio -->
-                                            <td class="px-4 py-3 text-sm font-medium text-center text-green-600" wire:click="editar({{ $producto->id }})">
-                                                L. {{ number_format($producto->precio_base, 2) }}
-                                            </td>
-                                            <!-- Fecha -->
-                                            <td class="px-4 py-3 text-sm text-center text-gray-500" wire:click="editar({{ $producto->id }})">
-                                                {{ $producto->created_at ? $producto->created_at->format('d/m/Y') : 'N/A' }}
-                                            </td>
                                             <!-- Origen -->
                                             <td class="px-4 py-3 text-center" wire:click="editar({{ $producto->id }})">
                                                 @if($producto->producto_valencia)
@@ -472,7 +421,7 @@
                         @else
                             <!-- Mensaje cuando no hay productos -->
                             <tr>
-                                <td colspan="10" class="px-4 py-12 text-center">
+                                <td colspan="8" class="px-4 py-12 text-center">
                                     <div class="mb-4 text-6xl text-gray-400">📦</div>
                                     <h3 class="mb-2 text-lg font-medium text-gray-900">No se encontraron productos</h3>
                                     <p class="mb-4 text-gray-500">

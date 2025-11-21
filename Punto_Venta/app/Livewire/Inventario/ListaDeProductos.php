@@ -48,6 +48,7 @@ class ListaDeProductos extends Component
     public $nuevaUnidadMedida = '';
     public $unidadesDisponibles = [];
     public $cantidadTotalDisponible = 0;
+    public $procesandoConversion = false;
 
     // Alerta de validación
     public $mostrarAlerta = false;
@@ -281,10 +282,6 @@ class ListaDeProductos extends Component
                 ->leftJoin('marca as m', 'p.marca_id', '=', 'm.id')
                 ->leftJoin('unidad_medida as um', 'rb.unidad_medida_id', '=', 'um.id')
                 ->leftJoin('unidad_medida as umv', 'p.unidad_medida_venta_id', '=', 'umv.id')
-                ->leftJoin('precio_has_venta as phv', function($join) {
-                    $join->on('phv.producto_id', '=', 'p.id')
-                         ->where('phv.estado_id', '=', 1);
-                })
                 ->select(
                     'rb.id',
                     'rb.cantidad_disponible',
@@ -621,6 +618,7 @@ class ListaDeProductos extends Component
         $this->cantidadTotalDisponible = 0;
         $this->mostrarAlerta = false;
         $this->mensajeAlerta = '';
+        $this->procesandoConversion = false;
         $this->resetValidation();
     }
 
@@ -632,26 +630,37 @@ class ListaDeProductos extends Component
 
     public function procesarCambioUnidad()
     {
+        // Evitar procesamiento duplicado
+        if ($this->procesandoConversion) {
+            return;
+        }
+        
+        $this->procesandoConversion = true;
+
         // Validación previa con alertas
         if (empty($this->cantidadVerificacion) || $this->cantidadVerificacion <= 0) {
+            $this->procesandoConversion = false;
             $this->mostrarAlerta = true;
             $this->mensajeAlerta = 'La cantidad a rebajar es obligatoria y debe ser mayor a 0.';
             return;
         }
 
         if ($this->cantidadVerificacion > $this->cantidadTotalDisponible) {
+            $this->procesandoConversion = false;
             $this->mostrarAlerta = true;
             $this->mensajeAlerta = 'La cantidad a rebajar no puede exceder el stock total disponible (' . $this->cantidadTotalDisponible . ').';
             return;
         }
 
         if (empty($this->nuevaUnidadMedida)) {
+            $this->procesandoConversion = false;
             $this->mostrarAlerta = true;
             $this->mensajeAlerta = 'Debe seleccionar una unidad de medida a convertir.';
             return;
         }
 
         if (empty($this->cantidadAConvertir) || $this->cantidadAConvertir <= 0) {
+            $this->procesandoConversion = false;
             $this->mostrarAlerta = true;
             $this->mensajeAlerta = 'La cantidad a convertir es obligatoria y debe ser mayor a 0.';
             return;
@@ -691,6 +700,7 @@ class ListaDeProductos extends Component
 
             // Verificar que no se esté convirtiendo a la misma unidad
             if ($this->nuevaUnidadMedida === $unidadMedidaActual) {
+                $this->procesandoConversion = false;
                 $this->mostrarAlerta = true;
                 $this->mensajeAlerta = 'No puede convertir a la misma unidad de medida actual.';
                 DB::rollback();
@@ -715,6 +725,7 @@ class ListaDeProductos extends Component
             // Verificar que hay suficiente stock total
             $stockTotalDisponible = $registrosStock->sum('cantidad_disponible');
             if ($this->cantidadVerificacion > $stockTotalDisponible) {
+                $this->procesandoConversion = false;
                 $this->mostrarAlerta = true;
                 $this->mensajeAlerta = 'La cantidad a rebajar (' . $this->cantidadVerificacion . ') excede el stock total disponible (' . $stockTotalDisponible . ').';
                 DB::rollback();
@@ -798,6 +809,7 @@ class ListaDeProductos extends Component
 
         } catch (\Exception $e) {
             DB::rollback();
+            $this->procesandoConversion = false;
             Log::error('Error en conversión de unidad: ' . $e->getMessage());
             session()->flash('error', 'Error al procesar la conversión de unidad: ' . $e->getMessage());
         }
