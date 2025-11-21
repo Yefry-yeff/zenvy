@@ -498,7 +498,7 @@ class CompraDeProductos extends Component
                 'compras_nuevas' => $resultado['estadisticas']['compras_nuevas'] ?? 0,
                 'productos_sincronizados' => $resultado['estadisticas']['productos_sincronizados'] ?? 0,
                 'total_procesadas' => $resultado['estadisticas']['total_procesadas'] ?? 0,
-                'errores' => $resultado['estadisticas']['errores'] ?? 0,
+                'compras_no_procesadas' => $resultado['estadisticas']['errores'] ?? 0,
                 'tiempo_ejecucion' => '~2 segundos'
             ];
 

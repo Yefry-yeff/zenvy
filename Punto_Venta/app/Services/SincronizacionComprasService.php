@@ -63,11 +63,8 @@ class SincronizacionComprasService
                         
                         if ($fallback) {
                             $numeroFactura = $fallback;
-                            Log::warning("Número de factura vacío. Usando fallback compra_id: {$fallback}", [
-                                'recibido_bodega_ids' => $productosCompra->pluck('recibido_bodega_id')->unique()->values()->toArray(),
-                            ]);
                         } else {
-                            // Omitir silenciosamente este grupo de productos sin generar error
+                            // Omitir silenciosamente este grupo de productos
                             $estadisticas['errores']++;
                             continue;
                         }

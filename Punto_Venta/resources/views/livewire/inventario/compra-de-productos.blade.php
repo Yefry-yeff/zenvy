@@ -822,10 +822,10 @@
                         <span class="font-bold text-orange-600">{{ $detallesSincronizacion['total_procesadas'] }}</span>
                     </div>
 
-                    @if($detallesSincronizacion['errores'] > 0)
-                        <div class="flex items-center justify-between p-3 rounded bg-red-50">
-                            <span class="font-medium text-red-800">❌ Errores:</span>
-                            <span class="font-bold text-red-600">{{ $detallesSincronizacion['errores'] }}</span>
+                    @if(($detallesSincronizacion['compras_no_procesadas'] ?? 0) > 0)
+                        <div class="flex items-center justify-between p-3 rounded bg-gray-50">
+                            <span class="font-medium text-gray-800">⚠️ Compras no procesadas:</span>
+                            <span class="font-bold text-gray-600">{{ $detallesSincronizacion['compras_no_procesadas'] }}</span>
                         </div>
                     @endif
 
