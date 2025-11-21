@@ -43,7 +43,10 @@ class Producto extends Component
     public $page = 1; // Agregar propiedad page
 
     // Filtros por columna
+    public $filtroId = '';
     public $filtroNombre = '';
+    public $filtroCodigoBarras = '';
+    public $filtroUnidadMedida = '';
     public $filtroCodigo = '';
     public $filtroCategoria = '';
     public $filtroMarca = '';
@@ -154,7 +157,10 @@ class Producto extends Component
             'filtroOrigen' => $this->filtroOrigen,
             'ordenarPor' => $this->ordenarPor,
             'direccionOrden' => $this->direccionOrden,
+            'filtroId' => $this->filtroId,
             'filtroNombre' => $this->filtroNombre,
+            'filtroCodigoBarras' => $this->filtroCodigoBarras,
+            'filtroUnidadMedida' => $this->filtroUnidadMedida,
             'filtroCodigo' => $this->filtroCodigo,
             'filtroCategoria' => $this->filtroCategoria,
             'filtroMarca' => $this->filtroMarca,
@@ -172,7 +178,10 @@ class Producto extends Component
             $this->filtroOrigen = $filtrosSesion['filtroOrigen'] ?? 'todos';
             $this->ordenarPor = $filtrosSesion['ordenarPor'] ?? 'nombre';
             $this->direccionOrden = $filtrosSesion['direccionOrden'] ?? 'asc';
+            $this->filtroId = $filtrosSesion['filtroId'] ?? '';
             $this->filtroNombre = $filtrosSesion['filtroNombre'] ?? '';
+            $this->filtroCodigoBarras = $filtrosSesion['filtroCodigoBarras'] ?? '';
+            $this->filtroUnidadMedida = $filtrosSesion['filtroUnidadMedida'] ?? '';
             $this->filtroCodigo = $filtrosSesion['filtroCodigo'] ?? '';
             $this->filtroCategoria = $filtrosSesion['filtroCategoria'] ?? '';
             $this->filtroMarca = $filtrosSesion['filtroMarca'] ?? '';
@@ -215,12 +224,29 @@ class Producto extends Component
         }
 
         // Aplicar filtros individuales
+        if (!empty($this->filtroId)) {
+            $query->where('producto.id', 'LIKE', '%' . $this->filtroId . '%');
+        }
+
         if (!empty($this->filtroNombre)) {
-            $query->where('nombre', 'LIKE', '%' . $this->filtroNombre . '%');
+            $query->where('producto.nombre', 'LIKE', '%' . $this->filtroNombre . '%');
+        }
+
+        if (!empty($this->filtroCodigoBarras)) {
+            $query->whereHas('preciosVenta', function($q) {
+                $q->where('codigo_barra', 'LIKE', '%' . $this->filtroCodigoBarras . '%');
+            });
+        }
+
+        if (!empty($this->filtroUnidadMedida)) {
+            $query->whereHas('preciosVenta.unidadMedida', function($q) {
+                $q->where('nombre', 'LIKE', '%' . $this->filtroUnidadMedida . '%')
+                  ->orWhere('simbolo', 'LIKE', '%' . $this->filtroUnidadMedida . '%');
+            });
         }
 
         if (!empty($this->filtroCodigo)) {
-            $query->where('codigo_barra', 'LIKE', '%' . $this->filtroCodigo . '%');
+            $query->where('producto.codigo_barra', 'LIKE', '%' . $this->filtroCodigo . '%');
         }
 
         if (!empty($this->filtroCategoria)) {
@@ -236,7 +262,7 @@ class Producto extends Component
         }
 
         if (!empty($this->filtroPrecio)) {
-            $query->where('precio_base', 'LIKE', '%' . $this->filtroPrecio . '%');
+            $query->where('producto.precio_base', 'LIKE', '%' . $this->filtroPrecio . '%');
         }
 
         // Aplicar filtro de origen basado en los datos reales
@@ -256,19 +282,19 @@ class Producto extends Component
         // Aplicar ordenamiento
         $query->orderBy('producto.' . $this->ordenarPor, $this->direccionOrden);
 
-        // Paginar resultados y cargar códigos de barras de precio_has_venta
+        // Paginar resultados y cargar códigos de barras con unidades de medida desde precio_has_venta
         $productos = $query->paginate($this->registrosPorPagina, ['*'], 'page', $this->page);
         
-        // Cargar códigos de barras desde precio_has_venta
+        // Cargar códigos de barras y unidades de medida desde precio_has_venta
         $productos->getCollection()->transform(function($producto) {
-            $producto->codigos_barras = DB::table('precio_has_venta')
-                ->where('producto_id', $producto->id)
-                ->where('estado_id', 1)
-                ->whereNotNull('codigo_barra')
-                ->where('codigo_barra', '!=', '')
-                ->pluck('codigo_barra')
-                ->unique()
-                ->values()
+            $producto->presentaciones = DB::table('precio_has_venta as phv')
+                ->leftJoin('unidad_medida as um', 'phv.unidad_medida_id', '=', 'um.id')
+                ->where('phv.producto_id', $producto->id)
+                ->where('phv.estado_id', 1)
+                ->whereNotNull('phv.codigo_barra')
+                ->where('phv.codigo_barra', '!=', '')
+                ->select('phv.codigo_barra', 'um.nombre as unidad_medida', 'um.simbolo as unidad_simbolo')
+                ->get()
                 ->toArray();
             return $producto;
         });
