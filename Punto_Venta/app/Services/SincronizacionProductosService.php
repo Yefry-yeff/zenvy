@@ -43,7 +43,6 @@ class SincronizacionProductosService
                     'precio_base',
                     'ultimo_costo_compra',
                     'costo_promedio',
-                    'codigo_barra',
                     'codigo_estatal',
                     'marca_id',
                     'unidad_medida_compra_id',
@@ -133,7 +132,7 @@ class SincronizacionProductosService
                 $subcategoriaIdZenvy = $syncResult['id_zenvy'];
             }
 
-            // Preparar datos para insertar/actualizar en Zenvy
+            // Preparar datos para insertar/actualizar en Zenvy (sin codigo_barra)
             $datosProductoZenvy = [
                 'nombre' => $productoValencia->nombre,
                 'descripcion' => $productoValencia->descripcion,
@@ -141,7 +140,6 @@ class SincronizacionProductosService
                 'precio_base' => $productoValencia->precio_base,
                 'ultimo_costo_compra' => $productoValencia->ultimo_costo_compra,
                 'costo_promedio' => $productoValencia->costo_promedio,
-                'codigo_barra' => $productoValencia->codigo_barra,
                 'codigo_estatal' => $productoValencia->codigo_estatal,
                 'marca_id' => $marcaIdZenvy,
                 'unidad_medida_venta_id' => $unidadIdZenvy,
@@ -158,6 +156,12 @@ class SincronizacionProductosService
                 'producto_valencia' => 1, // Marcado como producto de Valencia
                 'updated_at' => now()
             ];
+
+            // Obtener codigo_barra de Valencia para actualizar en precio_has_venta
+            $codigoBarraValencia = $this->conexionProfac
+                ->table('producto')
+                ->where('id', $idProductoValencia)
+                ->value('codigo_barra');
 
             $accion = '';
             $idProductoZenvy = null;
@@ -207,7 +211,7 @@ class SincronizacionProductosService
                     // Si precio_base >= precio4, mantener el valor actual (no sincronizar)
 
                     // Campos que NO se sincronizan en actualizaciones:
-                    // - codigo_barra (mantener valor actual)
+                    // - codigo_barra (se maneja en precio_has_venta, no en producto)
                     // - imagen (mantener valor actual)
                     // - descuento_unitario (mantener valor actual)
                     // - isv_id (mantener valor local - puede ser diferente según configuración de la tienda)
@@ -217,12 +221,40 @@ class SincronizacionProductosService
                         ->table('producto')
                         ->where('id', $idProductoZenvy)
                         ->update($datosActualizacion);
+
+                    // Actualizar codigo_barra en precio_has_venta para la unidad de medida correspondiente
+                    if ($codigoBarraValencia && $unidadIdZenvy) {
+                        $this->conexionZenvy
+                            ->table('precio_has_venta')
+                            ->where('producto_id', $idProductoZenvy)
+                            ->where('unidad_medida_id', $unidadIdZenvy)
+                            ->where('estado_id', 1)
+                            ->update([
+                                'codigo_barra' => $codigoBarraValencia,
+                                'updated_at' => now()
+                            ]);
+                        Log::info("Código de barras actualizado en precio_has_venta para producto Zenvy ID: $idProductoZenvy, Unidad: $unidadIdZenvy");
+                    }
                 } else {
                     // Si no existe el producto en Zenvy (caso raro), usar datos completos
                     $this->conexionZenvy
                         ->table('producto')
                         ->where('id', $idProductoZenvy)
                         ->update($datosProductoZenvy);
+
+                    // Actualizar codigo_barra en precio_has_venta para la unidad de medida correspondiente
+                    if ($codigoBarraValencia && $unidadIdZenvy) {
+                        $this->conexionZenvy
+                            ->table('precio_has_venta')
+                            ->where('producto_id', $idProductoZenvy)
+                            ->where('unidad_medida_id', $unidadIdZenvy)
+                            ->where('estado_id', 1)
+                            ->update([
+                                'codigo_barra' => $codigoBarraValencia,
+                                'updated_at' => now()
+                            ]);
+                        Log::info("Código de barras actualizado en precio_has_venta para producto Zenvy ID: $idProductoZenvy, Unidad: $unidadIdZenvy");
+                    }
                 }
 
                 $accion = 'actualizado';
@@ -243,6 +275,20 @@ class SincronizacionProductosService
                     'created_at' => now(),
                     'updated_at' => now()
                 ]);
+
+                // Actualizar codigo_barra en precio_has_venta para la unidad de medida correspondiente
+                if ($codigoBarraValencia && $unidadIdZenvy) {
+                    $this->conexionZenvy
+                        ->table('precio_has_venta')
+                        ->where('producto_id', $idProductoZenvy)
+                        ->where('unidad_medida_id', $unidadIdZenvy)
+                        ->where('estado_id', 1)
+                        ->update([
+                            'codigo_barra' => $codigoBarraValencia,
+                            'updated_at' => now()
+                        ]);
+                    Log::info("Código de barras establecido en precio_has_venta para nuevo producto Zenvy ID: $idProductoZenvy, Unidad: $unidadIdZenvy");
+                }
 
                 $accion = 'creado';
                 Log::info("Producto creado exitosamente. Valencia ID: $idProductoValencia, Zenvy ID: $idProductoZenvy");
@@ -445,6 +491,26 @@ class SincronizacionProductosService
                 ->table('producto')
                 ->where('id', $idProductoZenvy)
                 ->update($camposSoloLectura);
+
+            // Obtener codigo_barra de Valencia y actualizar en precio_has_venta
+            $codigoBarraValencia = $this->conexionProfac
+                ->table('producto')
+                ->where('id', $mapeo->id_valencia)
+                ->value('codigo_barra');
+
+            // Actualizar codigo_barra en precio_has_venta para la unidad de medida correspondiente
+            if ($codigoBarraValencia && $unidadIdZenvy) {
+                $this->conexionZenvy
+                    ->table('precio_has_venta')
+                    ->where('producto_id', $idProductoZenvy)
+                    ->where('unidad_medida_id', $unidadIdZenvy)
+                    ->where('estado_id', 1)
+                    ->update([
+                        'codigo_barra' => $codigoBarraValencia,
+                        'updated_at' => now()
+                    ]);
+                Log::info("Código de barras actualizado en precio_has_venta para producto Zenvy ID: $idProductoZenvy, Unidad: $unidadIdZenvy");
+            }
 
             Log::info("Producto de Valencia actualizado exitosamente. Zenvy ID: $idProductoZenvy");
 
