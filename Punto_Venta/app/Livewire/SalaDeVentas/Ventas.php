@@ -386,12 +386,11 @@ class Ventas extends Component
         // CAMBIO: Buscar también en precio_has_venta.codigo_barra
         $this->productos = Producto::with(['isv', 'estado'])
             ->select('id', 'nombre', 'descripcion', 'precio_base', 'estado_id', 'isv_id',
-                    'descuento_unitario', 'descuento_tercera', 'descuento_cuarta', 'codigo_barra') // Excluir 'imagen'
+                    'descuento_unitario', 'descuento_tercera', 'descuento_cuarta') // Excluir 'imagen' y 'codigo_barra'
             ->where('estado_id', 1) // Solo productos activos
             ->when($this->busquedaProductosServicios, function ($query) {
                 $query->where('nombre', 'like', '%' . $this->busquedaProductosServicios . '%')
                       ->orWhere('descripcion', 'like', '%' . $this->busquedaProductosServicios . '%')
-                      ->orWhere('codigo_barra', 'like', '%' . $this->busquedaProductosServicios . '%')
                       ->orWhereExists(function($subQuery) {
                           $subQuery->select(DB::raw(1))
                               ->from('precio_has_venta')
@@ -922,7 +921,7 @@ class Ventas extends Component
         $this->productosFactura[] = [
             'id' => $producto->id,
             'nombre' => $producto->nombre,
-            'codigo' => $precioDefecto->codigo_barra ?? $producto->codigo_barra,
+            'codigo' => $precioDefecto->codigo_barra,
             'precio' => $precioDefecto->precio, // Precio de la unidad de medida
             'precio_id' => $precioDefecto->precio_id,
             'unidad_medida_id' => $precioDefecto->unidad_medida_id,
@@ -3123,7 +3122,7 @@ class Ventas extends Component
             ->select(
                 DB::raw('COALESCE(p.id, s.id) as item_id'),
                 DB::raw('COALESCE(p.nombre, s.nombre) as nombre'),
-                DB::raw('COALESCE(p.codigo_barra, "SERVICIO") as codigo_barra'),
+                DB::raw('CASE WHEN p.id IS NOT NULL THEN "PRODUCTO" ELSE "SERVICIO" END as codigo_barra'),
                 DB::raw('COALESCE(i_producto.cantidad, i_servicio.cantidad, 0) as tasa_isv'),
                 DB::raw('CASE WHEN p.id IS NOT NULL THEN "producto" ELSE "servicio" END as tipo'),
                 'fp.cantidad',
@@ -3998,11 +3997,18 @@ class Ventas extends Component
                     $descuentoUnitarioAplicado = $producto->descuento_unitario;
                 }
 
+                // Obtener el primer precio disponible para obtener el código de barras
+                $primerPrecio = DB::table('precio_has_venta')
+                    ->where('producto_id', $producto->id)
+                    ->where('estado_id', 1)
+                    ->orderBy('cantidad', 'asc')
+                    ->first();
+
                 $this->productosFactura[] = [
                     'id' => $producto->id,
                     'servicio_id' => null,
                     'nombre' => $producto->nombre,
-                    'codigo' => $producto->codigo_barra,
+                    'codigo' => $primerPrecio->codigo_barra ?? 'SIN-CODIGO',
                     'precio' => $precioDefecto['precio'],
                     'tipo_precio' => $precioDefecto['tipo'],
                     'precio1' => $producto->precio1 ?? 0,
@@ -4129,7 +4135,7 @@ class Ventas extends Component
             $this->productosFactura[] = [
                 'id' => $producto->id,
                 'nombre' => $producto->nombre,
-                'codigo' => $precioDefecto->codigo_barra ?? $producto->codigo_barra,
+                'codigo' => $precioDefecto->codigo_barra,
                 'precio' => $precioDefecto->precio,
                 'precio_id' => $precioDefecto->precio_id,
                 'unidad_medida_id' => $precioDefecto->unidad_medida_id,
@@ -4276,7 +4282,6 @@ class Ventas extends Component
                 ->where('estado_id', 1)
                 ->when($this->busquedaProductosServicios, function ($q) {
                     $q->where('nombre', 'like', '%' . $this->busquedaProductosServicios . '%')
-                      ->orWhere('codigo_barra', 'like', '%' . $this->busquedaProductosServicios . '%')
                       ->orWhereExists(function($subQuery) {
                           $subQuery->select(DB::raw(1))
                               ->from('precio_has_venta')
@@ -4374,7 +4379,6 @@ class Ventas extends Component
             $busqueda = $this->busquedaProductosServicios;
             $query->where(function($q) use ($busqueda) {
                 $q->where('nombre', 'like', '%' . $busqueda . '%')
-                  ->orWhere('codigo_barra', 'like', '%' . $busqueda . '%')
                   ->orWhere('descripcion', 'like', '%' . $busqueda . '%')
                   ->orWhereExists(function($subQuery) use ($busqueda) {
                       $subQuery->select(DB::raw(1))
@@ -4460,7 +4464,7 @@ class Ventas extends Component
                         'id' => $producto->id,
                         'nombre' => $producto->nombre ?? '',
                         'descripcion' => $producto->descripcion ?? '',
-                        'codigo_barra' => $precioVenta->codigo_barra ?? $producto->codigo_barra ?? '',
+                        'codigo_barra' => $precioVenta->codigo_barra ?? '',
                         'imagen_base64' => $imagenBase64,
                         'tiene_imagen' => $imagenBase64 !== null,
                         'precio_base' => $producto->precio_base ?? 0,
@@ -4499,7 +4503,7 @@ class Ventas extends Component
                     'id' => $producto->id,
                     'nombre' => $producto->nombre ?? '',
                     'descripcion' => $producto->descripcion ?? '',
-                    'codigo_barra' => $producto->codigo_barra ?? '',
+                    'codigo_barra' => '',
                     'imagen_base64' => $imagenBase64,
                     'tiene_imagen' => $imagenBase64 !== null,
                     'precio_base' => $producto->precio_base ?? 0,

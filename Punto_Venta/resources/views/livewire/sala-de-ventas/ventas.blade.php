@@ -574,8 +574,7 @@
                                     <thead class="table-light">
                                         <tr style="font-size: 0.65rem;">
                                             <th>Producto/Servicio</th>
-                                            <th>Código</th>
-                                            <th>Unidad de Venta</th>
+                                            <th>Código de Barras</th>
                                             <th>Precio Unit.</th>
                                             <th>Cantidad</th>
                                             <th>Subtotal</th>
@@ -652,119 +651,9 @@
                                             <td>{{ $item['codigo'] }}</td>
                                             <td>
                                                 @if($esServicio)
-                                                    <span class="text-white badge bg-info">
-                                                        <i class="fas fa-concierge-bell me-1"></i>
-                                                        Servicio
-                                                    </span>
-                                                @elseif(isset($item['precios_disponibles']) && !empty($item['precios_disponibles']))
-                                                    @php
-                                                        // Filtrar solo las unidades con stock disponible
-                                                        $preciosConStock = [];
-                                                        foreach($item['precios_disponibles'] as $precioDisp) {
-                                                            // Calcular stock en bodega para esta unidad
-                                                            $stockBodega = DB::table('recibido_bodega as rb')
-                                                                ->join('seccion as s', 'rb.seccion_id', '=', 's.id')
-                                                                ->join('segmento as seg', 's.segmento_id', '=', 'seg.id')
-                                                                ->join('bodega as b', 'seg.bodega_id', '=', 'b.id')
-                                                                ->where('b.tienda_id', $this->tiendaUsuario)
-                                                                ->where('b.principal', 1)
-                                                                ->where('b.estado_id', 1)
-                                                                ->where('b.id', '!=', 2)
-                                                                ->where('rb.producto_id', $item['id'])
-                                                                ->where('rb.unidad_medida_id', $precioDisp->unidad_medida_id)
-                                                                ->where('rb.estado_id', 1)
-                                                                ->where('rb.cantidad_disponible', '>', 0)
-                                                                ->sum('rb.cantidad_disponible');
-
-                                                            // Calcular cuánto hay en el carrito para esta unidad
-                                                            $cantidadEnCarrito = 0;
-                                                            foreach($productosFactura as $itemCarr) {
-                                                                if ($itemCarr['id'] == $item['id'] &&
-                                                                    isset($itemCarr['unidad_medida_id']) &&
-                                                                    $itemCarr['unidad_medida_id'] == $precioDisp->unidad_medida_id) {
-                                                                    $cantidadEnCarrito += (int)($itemCarr['cantidad'] ?? 0);
-                                                                }
-                                                            }
-
-                                                            $stockDisponibleUnidad = $stockBodega - $cantidadEnCarrito;
-
-                                                            // Solo agregar si tiene stock O si es la unidad actualmente seleccionada
-                                                            if ($stockDisponibleUnidad > 0 || $precioDisp->precio_id == $item['precio_id']) {
-                                                                $preciosConStock[] = $precioDisp;
-                                                            }
-                                                        }
-                                                    @endphp
-
-                                                    <!-- Nuevo sistema: Dropdown de unidades de medida desde precio_has_venta (solo con stock) -->
-                                                    <select class="form-select form-select-sm"
-                                                            style="min-width: 150px; font-size: 0.875rem;"
-                                                            wire:change="cambiarPrecioProducto({{ $loop->index }}, $event.target.value)">
-                                                        @foreach($preciosConStock as $precioDisponible)
-                                                            <option value="{{ $precioDisponible->precio_id }}"
-                                                                    {{ $item['precio_id'] == $precioDisponible->precio_id ? 'selected' : '' }}>
-                                                                {{ $precioDisponible->unidad_nombre }} ({{ $precioDisponible->unidad_simbolo }}) -
-                                                                {{ $precioDisponible->cantidad }} {{ $precioDisponible->cantidad > 1 ? 'unidades' : 'unidad' }}
-                                                            </option>
-                                                        @endforeach
-                                                    </select>
-                                                @else
-                                                    <!-- Sistema anterior: mostrar badge de producto -->
-                                                    <span class="text-white badge bg-primary">
-                                                        <i class="fas fa-box me-1"></i>
-                                                        Producto
-                                                    </span>
-                                                @endif
-                                            </td>
-                                            <td>
-                                                @if($esServicio)
                                                     L. {{ number_format($item['precio'], 2) }}
                                                 @elseif(isset($item['precios_disponibles']) && !empty($item['precios_disponibles']))
-                                                    <!-- Nuevo sistema: Dropdown combinado (precio_has_venta + precios Valencia) -->
-                                                    <select class="form-select form-select-sm"
-                                                            style="min-width: 120px; font-size: 0.875rem;"
-                                                            wire:change="cambiarPrecioProducto({{ $loop->index }}, $event.target.value)">
-
-                                                        @php
-                                                            // Encontrar el precio de la unidad seleccionada
-                                                            $precioUnidadSeleccionada = collect($item['precios_disponibles'])
-                                                                ->firstWhere('precio_id', $item['precio_id']);
-                                                            $tipoPrecioActual = $item['tipo_precio'] ?? 'precio_has_venta';
-                                                        @endphp
-
-                                                        <!-- Precio de la unidad de medida seleccionada -->
-                                                        @if($precioUnidadSeleccionada)
-                                                            <option value="precio_has_venta_{{ $precioUnidadSeleccionada->precio_id }}"
-                                                                    {{ $tipoPrecioActual == 'precio_has_venta' ? 'selected' : '' }}>
-                                                                {{ $precioUnidadSeleccionada->unidad_nombre }}
-                                                                ({{ $precioUnidadSeleccionada->cantidad }} {{ $precioUnidadSeleccionada->cantidad > 1 ? 'unids' : 'unid' }})
-                                                                - L. {{ number_format($precioUnidadSeleccionada->precio, 2) }}
-                                                            </option>
-                                                        @endif
-
-                                                        <!-- Precios de Valencia (si es producto de Valencia) -->
-                                                        @if(($item['producto_valencia'] ?? 0) == 1)
-                                                            @if(($item['precio1'] ?? 0) > 0)
-                                                                <option value="precio1" {{ $tipoPrecioActual == 'precio1' ? 'selected' : '' }}>
-                                                                    Precio A - L. {{ number_format($item['precio1'], 2) }}
-                                                                </option>
-                                                            @endif
-                                                            @if(($item['precio2'] ?? 0) > 0)
-                                                                <option value="precio2" {{ $tipoPrecioActual == 'precio2' ? 'selected' : '' }}>
-                                                                    Precio B - L. {{ number_format($item['precio2'], 2) }}
-                                                                </option>
-                                                            @endif
-                                                            @if(($item['precio3'] ?? 0) > 0)
-                                                                <option value="precio3" {{ $tipoPrecioActual == 'precio3' ? 'selected' : '' }}>
-                                                                    Precio C - L. {{ number_format($item['precio3'], 2) }}
-                                                                </option>
-                                                            @endif
-                                                            @if(($item['precio4'] ?? 0) > 0)
-                                                                <option value="precio4" {{ $tipoPrecioActual == 'precio4' ? 'selected' : '' }}>
-                                                                    Precio D - L. {{ number_format($item['precio4'], 2) }}
-                                                                </option>
-                                                            @endif
-                                                        @endif
-                                                    </select>
+                                                    L. {{ number_format($item['precio'], 2) }}
                                                 @else
                                                     <!-- Sistema anterior: Dropdown para seleccionar precio (Valencia) -->
                                                     <select class="form-select form-select-sm"
@@ -964,7 +853,7 @@
                                         </tr>
                                         @empty
                                         <tr>
-                                            <td colspan="9" class="text-center text-muted">No hay productos o servicios agregados</td>
+                                            <td colspan="8" class="text-center text-muted">No hay productos o servicios agregados</td>
                                         </tr>
                                         @endforelse
                                     </tbody>
