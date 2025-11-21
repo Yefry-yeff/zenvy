@@ -146,16 +146,14 @@
 
                         <div class="row">
                             <div class="mb-3 col-md-6">
-                                <label for="codigo_barra" class="form-label">Código de Barras</label>
+                                <label for="id_producto" class="form-label">ID del Producto</label>
                                 <input type="text"
-                                       id="codigo_barra"
-                                       class="form-control {{ $this->getClaseCampo('codigo_barra') }}"
-                                       wire:model="form.codigo_barra"
-                                       onkeydown="if(event.key==='Enter'){event.preventDefault(); return false;}"
-                                       autofocus>
-                                @error('form.codigo_barra')
-                                    <div class="mt-1 text-sm text-danger">{{ $message }}</div>
-                                @enderror
+                                       id="id_producto"
+                                       class="form-control bg-gray-100 text-gray-600"
+                                       value="{{ $isEditing ? $productoId : 'Se asignará automáticamente' }}"
+                                       readonly
+                                       style="cursor: not-allowed;"
+                                       title="Campo solo de lectura - Se asigna automáticamente">
                             </div>
                             <div class="mb-3 col-md-6">
                                 <label for="codigo_estatal" class="form-label">Código Estatal</label>
@@ -401,6 +399,14 @@
                             <div class="p-3 mb-3 border rounded bg-light">
                                 <h6 class="mb-3 text-gray-700"><i class="fas fa-plus-circle me-2"></i>Agregar Precio</h6>
                                 <div class="row align-items-end">
+                                    <div class="mb-3 col-md-2">
+                                        <label for="nuevo_codigo_barra" class="form-label">Código de Barras</label>
+                                        <input type="text"
+                                               id="nuevo_codigo_barra"
+                                               class="form-control"
+                                               wire:model="nuevoPrecioVenta.codigo_barra"
+                                               placeholder="Código">
+                                    </div>
                                     <div class="mb-3 col-md-3">
                                         <label for="nueva_unidad_medida" class="form-label">Unidad de Medida <span class="text-red-600">*</span></label>
                                         <select id="nueva_unidad_medida"
@@ -422,7 +428,7 @@
                                                step="1"
                                                placeholder="1">
                                     </div>
-                                    <div class="mb-3 col-md-3">
+                                    <div class="mb-3 col-md-2">
                                         <label for="nuevo_precio" class="form-label">Precio <span class="text-red-600">*</span></label>
                                         <div class="input-group">
                                             <span class="input-group-text">L.</span>
@@ -435,7 +441,7 @@
                                                    placeholder="0.00">
                                         </div>
                                     </div>
-                                    <div class="mb-3 col-md-4">
+                                    <div class="mb-3 col-md-3">
                                         <button type="button"
                                                 wire:click="agregarPrecioVenta"
                                                 class="w-100 btn"
@@ -470,6 +476,7 @@
                                     <thead class="table-light">
                                         <tr>
                                             <th class="text-center">#</th>
+                                            <th>Código de Barras</th>
                                             <th>Unidad de Medida</th>
                                             <th class="text-center">Cantidad</th>
                                             <th class="text-end">Precio Total</th>
@@ -485,6 +492,13 @@
                                             @endphp
                                             <tr style="cursor: pointer;">
                                                 <td class="text-center" wire:click="abrirModalEditarPrecio({{ $index }})">{{ $index + 1 }}</td>
+                                                <td wire:click="abrirModalEditarPrecio({{ $index }})">
+                                                    @if(!empty($precio['codigo_barra']))
+                                                        <span class="badge bg-secondary">{{ $precio['codigo_barra'] }}</span>
+                                                    @else
+                                                        <span class="text-muted text-sm">Sin código</span>
+                                                    @endif
+                                                </td>
                                                 <td wire:click="abrirModalEditarPrecio({{ $index }})">
                                                     <span class="badge bg-info">
                                                         {{ $unidad->nombre ?? 'N/A' }} ({{ $unidad->simbolo ?? '' }})
@@ -745,6 +759,18 @@
                             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                         </div>
                     @endif
+
+                    <div class="mb-4">
+                        <label for="editar_codigo_barra" class="form-label fw-bold">
+                            <i class="fas fa-barcode me-1"></i>Código de Barras
+                        </label>
+                        <input type="text"
+                               id="editar_codigo_barra"
+                               class="form-control"
+                               wire:model="precioEditando.codigo_barra"
+                               placeholder="Código de barras (opcional)">
+                        <small class="text-muted">Código de barras específico para esta presentación</small>
+                    </div>
 
                     <div class="mb-4">
                         <label for="editar_unidad_medida" class="form-label fw-bold">

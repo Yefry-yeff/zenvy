@@ -88,6 +88,7 @@ class ProductoForm extends Component
     // Propiedades para precios de venta por unidad de medida
     public $preciosVenta = [];
     public $nuevoPrecioVenta = [
+        'codigo_barra' => '',
         'unidad_medida_id' => null,
         'cantidad' => 1,
         'precio' => 0
@@ -98,6 +99,7 @@ class ProductoForm extends Component
     public $precioEditando = [
         'index' => null,
         'id' => null,
+        'codigo_barra' => '',
         'unidad_medida_id' => null,
         'cantidad' => 1,
         'precio' => 0
@@ -334,6 +336,7 @@ class ProductoForm extends Component
             $this->preciosVenta = $preciosDB->map(function($precio) {
                 return [
                     'id' => $precio->id,
+                    'codigo_barra' => $precio->codigo_barra ?? '',
                     'unidad_medida_id' => $precio->unidad_medida_id,
                     'cantidad' => $precio->cantidad,
                     'precio' => $precio->precio
@@ -353,6 +356,7 @@ class ProductoForm extends Component
 
                 $this->preciosVenta[] = [
                     'id' => null,
+                    'codigo_barra' => '',
                     'unidad_medida_id' => $this->form['unidad_medida_venta_id'],
                     'cantidad' => 1,
                     'precio' => $this->form['precio_base']
@@ -471,7 +475,20 @@ class ProductoForm extends Component
             return;
         }
 
-        // Verificar que no exista la misma combinación de unidad y cantidad
+        // Validar que el código de barras sea único en la BD si está presente
+        if (!empty($this->nuevoPrecioVenta['codigo_barra'])) {
+            $existeEnBD = DB::table('precio_has_venta')
+                ->where('codigo_barra', $this->nuevoPrecioVenta['codigo_barra'])
+                ->where('estado_id', 1)
+                ->exists();
+            
+            if ($existeEnBD) {
+                session()->flash('error', 'Este código de barras ya está asignado a otro producto. Debe ser único.');
+                return;
+            }
+        }
+
+        // Validar que no exista la misma combinación de unidad y cantidad
         $existe = collect($this->preciosVenta)->first(function($precio) {
             return $precio['unidad_medida_id'] == $this->nuevoPrecioVenta['unidad_medida_id']
                 && $precio['cantidad'] == $this->nuevoPrecioVenta['cantidad'];
@@ -485,6 +502,7 @@ class ProductoForm extends Component
         // Agregar el nuevo precio
         $this->preciosVenta[] = [
             'id' => null, // Se generará al guardar
+            'codigo_barra' => $this->nuevoPrecioVenta['codigo_barra'],
             'unidad_medida_id' => $this->nuevoPrecioVenta['unidad_medida_id'],
             'cantidad' => $this->nuevoPrecioVenta['cantidad'],
             'precio' => $this->nuevoPrecioVenta['precio']
@@ -497,6 +515,7 @@ class ProductoForm extends Component
 
         // Limpiar el formulario
         $this->nuevoPrecioVenta = [
+            'codigo_barra' => '',
             'unidad_medida_id' => null,
             'cantidad' => 1,
             'precio' => 0
@@ -548,6 +567,7 @@ class ProductoForm extends Component
             $this->precioEditando = [
                 'index' => $index,
                 'id' => $this->preciosVenta[$index]['id'] ?? null,
+                'codigo_barra' => $this->preciosVenta[$index]['codigo_barra'] ?? '',
                 'unidad_medida_id' => $this->preciosVenta[$index]['unidad_medida_id'],
                 'cantidad' => $this->preciosVenta[$index]['cantidad'],
                 'precio' => $this->preciosVenta[$index]['precio']
@@ -562,6 +582,7 @@ class ProductoForm extends Component
         $this->precioEditando = [
             'index' => null,
             'id' => null,
+            'codigo_barra' => '',
             'unidad_medida_id' => null,
             'cantidad' => 1,
             'precio' => 0
@@ -592,6 +613,24 @@ class ProductoForm extends Component
             return;
         }
 
+        // Validar que el código de barras sea único en la BD (si cambió y no está vacío)
+        if (!empty($this->precioEditando['codigo_barra'])) {
+            $codigoOriginal = $this->preciosVenta[$this->precioEditando['index']]['codigo_barra'] ?? '';
+            
+            // Solo validar si el código cambió
+            if ($this->precioEditando['codigo_barra'] !== $codigoOriginal) {
+                $existeEnBD = DB::table('precio_has_venta')
+                    ->where('codigo_barra', $this->precioEditando['codigo_barra'])
+                    ->where('estado_id', 1)
+                    ->exists();
+                
+                if ($existeEnBD) {
+                    session()->flash('error', 'Este código de barras ya está asignado a otro producto. Debe ser único.');
+                    return;
+                }
+            }
+        }
+
         // Verificar que no exista otro precio con la misma unidad y cantidad (excepto el actual)
         foreach ($this->preciosVenta as $index => $precio) {
             if ($index != $this->precioEditando['index']) {
@@ -607,6 +646,7 @@ class ProductoForm extends Component
         $indexToUpdate = $this->precioEditando['index'];
         $this->preciosVenta[$indexToUpdate] = [
             'id' => $this->precioEditando['id'],
+            'codigo_barra' => $this->precioEditando['codigo_barra'] ?? '',
             'unidad_medida_id' => $this->precioEditando['unidad_medida_id'],
             'cantidad' => $this->precioEditando['cantidad'],
             'precio' => $this->precioEditando['precio']
@@ -711,6 +751,7 @@ class ProductoForm extends Component
                     $actualizado = DB::table('precio_has_venta')
                         ->where('id', $precio['id'])
                         ->update([
+                            'codigo_barra' => $precio['codigo_barra'] ?? '',
                             'unidad_medida_id' => $precio['unidad_medida_id'],
                             'cantidad' => $precio['cantidad'],
                             'precio' => $precio['precio'],
@@ -723,6 +764,7 @@ class ProductoForm extends Component
                     // Insertar nuevo precio
                     $insertId = DB::table('precio_has_venta')->insertGetId([
                         'producto_id' => $productoId,
+                        'codigo_barra' => $precio['codigo_barra'] ?? '',
                         'unidad_medida_id' => $precio['unidad_medida_id'],
                         'cantidad' => $precio['cantidad'],
                         'precio' => $precio['precio'],
