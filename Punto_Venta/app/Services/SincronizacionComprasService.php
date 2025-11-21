@@ -60,20 +60,14 @@ class SincronizacionComprasService
                     if (empty($numeroFactura) || $numeroFactura === '') {
                         $primerProductoTmp = $productosCompra->first();
                         $fallback = $primerProductoTmp->compra_id ?? null;
-                        Log::warning("Número de factura vacío para un grupo de productos. Intentando fallback con compra_id: {$fallback}", [
-                            'recibido_bodega_ids' => $productosCompra->pluck('recibido_bodega_id')->unique()->values()->toArray(),
-                            'compra_id_valencia' => $primerProductoTmp->compra_id_valencia ?? null,
-                            'translado_id_valencia' => $primerProductoTmp->translado_id_valencia ?? null
-                        ]);
+                        
                         if ($fallback) {
                             $numeroFactura = $fallback;
-                        } else {
-                            Log::error('No se pudo determinar numero_factura desde Valencia. Omite este grupo de productos.', [
-                                'productos' => $productosCompra->toArray(),
+                            Log::warning("Número de factura vacío. Usando fallback compra_id: {$fallback}", [
                                 'recibido_bodega_ids' => $productosCompra->pluck('recibido_bodega_id')->unique()->values()->toArray(),
-                                'compra_id_valencia' => $primerProductoTmp->compra_id_valencia ?? null,
-                                'translado_id_valencia' => $primerProductoTmp->translado_id_valencia ?? null
                             ]);
+                        } else {
+                            // Omitir silenciosamente este grupo de productos sin generar error
                             $estadisticas['errores']++;
                             continue;
                         }
