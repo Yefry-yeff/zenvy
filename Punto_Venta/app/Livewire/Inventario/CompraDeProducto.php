@@ -18,6 +18,37 @@ use App\Livewire\DynamicContent;
 
 class CompraDeProducto extends Component
 {
+    /**
+     * Inicializa proveedores y unidades de medida para la vista de compras.
+     */
+    public function cargarDatosIniciales()
+    {
+        // Proveedores activos (tipo proveedor)
+        $this->proveedores = Cliente::whereHas('tipoCliente', function($query) {
+                $query->where('nombre', 'LIKE', '%proveedor%');
+            })
+            ->where('estado_id', 1)
+            ->orderBy('nombre')
+            ->get()
+            ->map(function($cliente) {
+                return [
+                    'id' => $cliente->id,
+                    'nombre' => $cliente->nombre,
+                    'rtn' => $cliente->rtn,
+                    'tipo_cliente' => $cliente->tipoCliente->nombre ?? 'N/A'
+                ];
+            })
+            ->toArray();
+
+        // Unidades de medida
+        $this->unidadesMedida = UnidadMedida::orderBy('nombre', 'asc')->get()->map(function($unidad) {
+            return [
+                'id' => $unidad->id,
+                'nombre' => $unidad->nombre,
+                'simbolo' => $unidad->simbolo
+            ];
+        })->toArray();
+    }
     // Control para carga diferida (mejora de rendimiento)
     public $readyToLoad = false;
 
@@ -142,66 +173,79 @@ class CompraDeProducto extends Component
         $this->cargarDatosIniciales();
     }
 
-    public function cargarTramiteDesdeSession()
+    public function agregarProductoPorCodigo()
     {
-        $tramite = session('tramite_a_cargar');
-
-        if ($tramite) {
-            $this->compra['numero_factura'] = $tramite['numero_factura'] ?? '';
-            $this->compra['fecha_emision'] = $tramite['fecha_emision'] ?? now()->format('Y-m-d');
-            $this->compra['fecha_recepcion'] = $tramite['fecha_recepcion'] ?? now()->format('Y-m-d');
-            $this->compra['fecha_vencimiento'] = $tramite['fecha_vencimiento'] ?? '';
-            $this->proveedorSeleccionado = $tramite['proveedor_id'] ?? null;
-            $this->productosCompra = $tramite['productos'] ?? [];
-
-            // Recalcular totales
-            $this->calcularTotales();
-
-            // Activar la sección de productos
-            $this->mostrarSeccionProductosActiva = true;
-
-            // Limpiar la sesión
-            session()->forget('tramite_a_cargar');
-
-            // Eliminar el trámite de la lista de temporales
-            $tramites = session('tramites_temporales_compras', []);
-            $tramites = array_filter($tramites, function($t) use ($tramite) {
-                return $t['fecha_guardado'] !== $tramite['fecha_guardado'];
-            });
-            session(['tramites_temporales_compras' => array_values($tramites)]);
-
-            session()->flash('success', '✅ Trámite temporal cargado. Puede continuar editando.');
+        if (empty($this->codigoBarras)) {
+            return;
         }
-    }
 
-    public function cargarDatosIniciales()
-    {
-        // Debug: Verificar qué tipos de cliente existen
-        $tiposCliente = TipoCliente::all();
-        Log::info('Tipos de cliente disponibles: ', $tiposCliente->toArray());
+        // Buscar presentación por código de barras en precio_has_venta
+        $presentacion = DB::table('precio_has_venta as phv')
+            ->join('producto as p', 'phv.producto_id', '=', 'p.id')
+            ->leftJoin('unidad_medida as um', 'phv.unidad_medida_id', '=', 'um.id')
+            ->leftJoin('marca as m', 'p.marca_id', '=', 'm.id')
+            ->leftJoin('subcategoria as sc', 'p.subcategoria_id', '=', 'sc.id')
+            ->leftJoin('categoria as c', 'sc.categoria_id', '=', 'c.id')
+            ->where('phv.codigo_barra', trim($this->codigoBarras))
+            ->where('phv.estado_id', 1)
+            ->where('p.estado_id', 1)
+            ->select(
+                'phv.id as precio_id',
+                'phv.producto_id',
+                'phv.precio as precio',
+                'phv.cantidad as cantidad_por_unidad',
+                'phv.unidad_medida_id',
+                'p.nombre as producto_nombre',
+                'p.descripcion as producto_descripcion',
+                'p.ultimo_costo_compra',
+                'p.precio_base',
+                'um.nombre as unidad_medida_nombre',
+                'm.nombre as marca_nombre',
+                'sc.nombre as subcategoria_nombre',
+                'c.nombre as categoria_nombre'
+            )
+            ->first();
 
-        // Cargar solo proveedores (clientes con tipo_cliente = "Proveedor")
-        // Cachear proveedores por 60 minutos para acelerar cargas repetidas
-        $this->proveedores = Cache::remember('proveedores_activos', 60 * 60, function() {
-            return Cliente::whereHas('tipoCliente', function($query) {
-                    $query->where('nombre', 'LIKE', '%Proveedor%');
-                })
-                ->with(['tipoCliente'])
-                ->where('estado_id', 1) // Solo clientes activos
-                ->orderBy('nombre')
-                ->get()
-                ->map(function($cliente) {
-                    return [
-                        'id' => $cliente->id,
-                        'nombre' => $cliente->nombre,
-                        'rtn' => $cliente->rtn,
-                        'tipo_cliente' => $cliente->tipoCliente->nombre ?? 'N/A'
-                    ];
-                })
-                ->toArray();
-        });
+        if (!$presentacion) {
+            session()->flash('error', 'No se encontró ninguna presentación activa con el código: ' . $this->codigoBarras);
+            $this->codigoBarras = '';
+            $this->productoSeleccionado = null;
+            return;
+        }
 
-        // Debug: Log para verificar proveedores encontrados
+        // Guardar la información completa del producto seleccionado
+        $this->productoSeleccionado = [
+            'id' => $presentacion->producto_id,
+            'nombre' => $presentacion->producto_nombre,
+            'codigo_barra' => $this->codigoBarras,
+            'precio_base' => $presentacion->precio ?? 0,
+            'ultimo_costo_compra' => $presentacion->ultimo_costo_compra ?? $presentacion->precio_base ?? 0,
+            'descripcion' => $presentacion->producto_descripcion ?? '',
+            'marca' => $presentacion->marca_nombre ?? 'N/A',
+            'subcategoria' => $presentacion->subcategoria_nombre ?? 'N/A',
+            'categoria' => $presentacion->categoria_nombre ?? 'N/A',
+        ];
+
+        // Actualizar el producto en el formulario temporal con el precio de la presentación
+        $this->productoTemporal = [
+            'producto_id' => $presentacion->producto_id,
+            'precio' => $presentacion->precio ?? 0,
+            'cantidad_recibida' => 1,
+            'cantidad_por_unidad' => $presentacion->cantidad_por_unidad ?? 1,
+            'cantidad_ingresada' => $presentacion->cantidad_por_unidad ?? 1,
+            'fecha_expiracion' => '',
+            'unidad_medida_id' => $presentacion->unidad_medida_id ?? null,
+            'isv' => 0,
+        ];
+
+        // Activar la sección de productos si no está activa
+        $this->mostrarSeccionProductosActiva = true;
+
+        // Limpiar código de barras
+        $this->codigoBarras = '';
+
+        // Mensaje actualizado para indicar que se seleccionó/actualizó la presentación
+        session()->flash('success', '✅ Presentación seleccionada: ' . $presentacion->producto_nombre);
         Log::info('Proveedores encontrados: ', $this->proveedores);
 
         // Si no hay proveedores, intentar con diferentes variaciones del nombre
@@ -258,18 +302,61 @@ class CompraDeProducto extends Component
             // Limpiar espacios en blanco
             $codigoBarra = trim($this->busquedaProducto);
 
-            // Buscar producto por código de barras exacto (solo campos de la tabla producto)
-            $productoPorCodigo = DB::table('producto')
-                ->where('codigo_barra', $codigoBarra)
-                ->where('estado_id', 1)
-                ->select('id')
-                ->first();
+            // Primero intentar encontrar una presentación (precio_has_venta) por su código de barras
+            try {
+                $presentacion = DB::table('precio_has_venta as phv')
+                    ->join('producto as p', 'phv.producto_id', '=', 'p.id')
+                    ->leftJoin('unidad_medida as um', 'phv.unidad_medida_id', '=', 'um.id')
+                    ->where('phv.codigo_barra', $codigoBarra)
+                    ->where('phv.estado_id', 1)
+                    ->where('p.estado_id', 1)
+                    ->select(
+                        'phv.id as precio_id',
+                        'phv.producto_id',
+                        'phv.precio as precio',
+                        'phv.cantidad as cantidad_por_unidad',
+                        'phv.unidad_medida_id',
+                        'p.nombre as producto_nombre',
+                        'p.codigo_barra as producto_codigo_barra',
+                        'um.nombre as unidad_medida_nombre'
+                    )
+                    ->first();
 
-            if ($productoPorCodigo) {
-                // Auto-seleccionar producto si coincide el código de barras exacto
-                $this->seleccionarProducto($productoPorCodigo->id);
-                return;
+                if ($presentacion) {
+                    // Llenar la información del producto seleccionado y el temporal
+                    $this->productoSeleccionado = [
+                        'id' => $presentacion->producto_id,
+                        'nombre' => $presentacion->producto_nombre,
+                        'codigo_barra' => $presentacion->producto_codigo_barra,
+                        'precio_base' => $presentacion->precio ?? 0,
+                        'ultimo_costo_compra' => $presentacion->precio ?? 0,
+                        'descripcion' => '',
+                        'marca' => null,
+                        'subcategoria' => null,
+                    ];
+
+                    $this->productoTemporal = [
+                        'producto_id' => $presentacion->producto_id,
+                        'precio' => $presentacion->precio ?? 0,
+                        'cantidad_recibida' => 1,
+                        'cantidad_por_unidad' => $presentacion->cantidad_por_unidad ?? 1,
+                        'cantidad_ingresada' => $presentacion->cantidad_por_unidad ?? 1,
+                        'fecha_expiracion' => '',
+                        'unidad_medida_id' => $presentacion->unidad_medida_id ?? null,
+                        'isv' => 0,
+                    ];
+
+                    // Mostrar en el campo de búsqueda el código escaneado (presentación)
+                    $this->busquedaProducto = $codigoBarra;
+                    $this->mostrarListaProductos = false;
+
+                    return;
+                }
+            } catch (\Exception $e) {
+                Log::error('Error buscando presentacion por codigo_barra', ['codigo' => $codigoBarra, 'error' => $e->getMessage()]);
+                // continuar con fallback a producto
             }
+
         }
 
         // No mostrar lista de productos filtrados (solo funciona con códigos exactos)
@@ -282,8 +369,28 @@ class CompraDeProducto extends Component
         $producto = collect($this->productos)->firstWhere('id', $productoId);
         if ($producto) {
             $this->productoTemporal['producto_id'] = $producto['id'];
-            // Mostrar solo el código de barras en el campo
-            $this->busquedaProducto = $producto['codigo_barra'] ?? '';
+
+            // Intentar obtener un código de barra desde precio_has_venta para esta producto
+            try {
+                $phv = DB::table('precio_has_venta')
+                    ->where('producto_id', $producto['id'])
+                    ->where('estado_id', 1)
+                    ->whereNotNull('codigo_barra')
+                    ->where('codigo_barra', '<>', '')
+                    ->select('codigo_barra')
+                    ->first();
+
+                if ($phv && !empty($phv->codigo_barra)) {
+                    $this->busquedaProducto = $phv->codigo_barra;
+                } else {
+                    // Si no hay código en precio_has_venta, dejar el campo vacío (no usar producto.codigo_barra)
+                    $this->busquedaProducto = '';
+                }
+            } catch (\Exception $e) {
+                Log::error('Error obteniendo codigo_barra desde precio_has_venta en seleccionarProducto', ['producto_id' => $producto['id'], 'error' => $e->getMessage()]);
+                $this->busquedaProducto = '';
+            }
+
             $this->mostrarListaProductos = false;
         }
     }
@@ -1041,32 +1148,52 @@ class CompraDeProducto extends Component
         $producto = Producto::with(['marca', 'subcategoria', 'unidadMedidaVenta'])->find($productoId);
 
         if ($producto) {
-            // Llenar el campo de búsqueda con el código de barras o nombre
-            $this->busquedaProducto = $producto->codigo_barra ?? $producto->nombre;
+            // Intentar obtener un código de barra desde precio_has_venta para este producto
+            try {
+                $phv = DB::table('precio_has_venta')
+                    ->where('producto_id', $producto->id)
+                    ->where('estado_id', 1)
+                    ->whereNotNull('codigo_barra')
+                    ->where('codigo_barra', '<>', '')
+                    ->select('codigo_barra')
+                    ->first();
 
-        // Guardar la información completa del producto seleccionado
-        $this->productoSeleccionado = [
-            'id' => $producto->id,
-            'nombre' => $producto->nombre,
-            'codigo_barra' => $producto->codigo_barra,
-            'precio_base' => $producto->precio_base ?? 0,
-            'ultimo_costo_compra' => $producto->ultimo_costo_compra ?? 0,
-            'descripcion' => $producto->descripcion ?? '',
-            'marca' => $producto->marca->nombre ?? 'N/A',
-            'subcategoria' => $producto->subcategoria->nombre ?? 'N/A',
-        ];
+                if ($phv && !empty($phv->codigo_barra)) {
+                    $this->busquedaProducto = $phv->codigo_barra;
+                } else {
+                    // No usar el codigo de barra del producto; mostrar el nombre como referencia
+                    $this->busquedaProducto = $producto->nombre;
+                }
+            } catch (\Exception $e) {
+                Log::error('Error obteniendo codigo_barra desde precio_has_venta en seleccionarProductoModal', ['producto_id' => $producto->id, 'error' => $e->getMessage()]);
+                $this->busquedaProducto = $producto->nombre;
+            }
 
-        // Establecer el producto temporal con ultimo_costo_compra como precio por defecto
-        $this->productoTemporal = [
-            'producto_id' => $producto->id,
-            'precio' => $producto->ultimo_costo_compra ?? $producto->precio_base ?? 0,
-            'cantidad_recibida' => 1,
-            'cantidad_por_unidad' => 1,
-            'cantidad_ingresada' => 1,
-            'fecha_expiracion' => '',
-            'unidad_medida_id' => $producto->unidad_medida_venta_id ?? null,
-            'isv' => 0,
-        ];            // Cerrar modal
+            // Guardar la información completa del producto seleccionado
+            $this->productoSeleccionado = [
+                'id' => $producto->id,
+                'nombre' => $producto->nombre,
+                'codigo_barra' => $producto->codigo_barra,
+                'precio_base' => $producto->precio_base ?? 0,
+                'ultimo_costo_compra' => $producto->ultimo_costo_compra ?? 0,
+                'descripcion' => $producto->descripcion ?? '',
+                'marca' => $producto->marca->nombre ?? 'N/A',
+                'subcategoria' => $producto->subcategoria->nombre ?? 'N/A',
+            ];
+
+            // Establecer el producto temporal con ultimo_costo_compra como precio por defecto
+            $this->productoTemporal = [
+                'producto_id' => $producto->id,
+                'precio' => $producto->ultimo_costo_compra ?? $producto->precio_base ?? 0,
+                'cantidad_recibida' => 1,
+                'cantidad_por_unidad' => 1,
+                'cantidad_ingresada' => 1,
+                'fecha_expiracion' => '',
+                'unidad_medida_id' => $producto->unidad_medida_venta_id ?? null,
+                'isv' => 0,
+            ];
+
+            // Cerrar modal
             $this->cerrarModalBusqueda();
         }
     }
@@ -1302,71 +1429,6 @@ class CompraDeProducto extends Component
             $this->mostrarAlerta = false;
             $this->mensajeAlerta = '';
         }
-    }
-
-    public function agregarProductoPorCodigo()
-    {
-        if (empty($this->codigoBarras)) {
-            return;
-        }
-
-        // Buscar producto por código de barras
-        $producto = Producto::with(['unidadMedida', 'isv', 'marca', 'subcategoria'])
-            ->where('codigo_barra', $this->codigoBarras)
-            ->where('estado_id', 1) // Solo productos activos
-            ->first();
-
-        if (!$producto) {
-            session()->flash('error', 'Producto no encontrado con código: ' . $this->codigoBarras);
-            $this->codigoBarras = '';
-            $this->productoSeleccionado = null; // Limpiar producto seleccionado
-            return;
-        }
-
-        // Obtener la unidad de medida del producto
-        $unidadMedida = $producto->unidadMedida;
-        if (!$unidadMedida) {
-            session()->flash('error', 'Este producto no tiene unidad de medida configurada');
-            $this->codigoBarras = '';
-            $this->productoSeleccionado = null; // Limpiar producto seleccionado
-            return;
-        }
-
-        // Guardar la información completa del producto seleccionado
-        $this->productoSeleccionado = [
-            'id' => $producto->id,
-            'nombre' => $producto->nombre,
-            'codigo_barra' => $producto->codigo_barra,
-            'precio_base' => $producto->precio_base ?? 0,
-            'ultimo_costo_compra' => $producto->ultimo_costo_compra ?? 0,
-            'descripcion' => $producto->descripcion ?? '',
-            'marca' => $producto->marca->nombre ?? 'N/A',
-            'subcategoria' => $producto->subcategoria->nombre ?? 'N/A',
-        ];
-
-        // Actualizar el producto en el formulario temporal con ultimo_costo_compra como precio por defecto
-        $this->productoTemporal = [
-            'producto_id' => $producto->id,
-            'precio' => $producto->ultimo_costo_compra ?? $producto->precio_base ?? 0,
-            'cantidad_recibida' => 1,
-            'cantidad_por_unidad' => 1,
-            'cantidad_ingresada' => 1,
-            'fecha_expiracion' => '',
-            'unidad_medida_id' => $unidadMedida->id,
-            'isv' => $producto->isv ? $producto->isv->cantidad : 0,
-        ];
-
-        // Activar la sección de productos si no está activa
-        $this->mostrarSeccionProductosActiva = true;
-
-        // Limpiar código de barras
-        $this->codigoBarras = '';
-
-        // Mensaje actualizado para indicar que se seleccionó/actualizó el producto
-        session()->flash('success', '✅ Producto seleccionado: ' . $producto->nombre);
-
-        // Disparar evento para enfocar el campo de código de barras
-        $this->dispatch('producto-encontrado');
     }
 
     public function dehydrate()

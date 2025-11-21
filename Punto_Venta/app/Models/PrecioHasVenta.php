@@ -18,6 +18,7 @@ class PrecioHasVenta extends Model
         'precio',
         'users_id',
         'estado_id',
+        'codigo_barra',
     ];
 
     protected $casts = [
