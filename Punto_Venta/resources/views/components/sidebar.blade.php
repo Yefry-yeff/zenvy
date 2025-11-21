@@ -88,7 +88,7 @@
                 <span>© 2025 ZENVY POS</span>
             </div>
             <div class="font-mono text-xs text-white/40">
-                v4.0.7
+                v5.0.0
             </div>
             <div class="text-xs text-white/30">
                 Desarrollado por Cadss

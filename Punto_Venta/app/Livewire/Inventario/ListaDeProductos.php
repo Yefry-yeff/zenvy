@@ -292,7 +292,25 @@ class ListaDeProductos extends Component
                     'p.id as producto_id',
                     'p.nombre as producto_nombre',
                     'p.descripcion as producto_descripcion',
-                    DB::raw('(SELECT phv2.codigo_barra FROM precio_has_venta phv2 WHERE phv2.producto_id = p.id AND phv2.unidad_medida_id = rb.unidad_medida_id AND phv2.estado_id = 1 LIMIT 1) as codigo_barra'),
+                    DB::raw('COALESCE(
+                        (SELECT phv2.codigo_barra 
+                         FROM precio_has_venta phv2 
+                         WHERE phv2.producto_id = p.id 
+                         AND phv2.unidad_medida_id = rb.unidad_medida_id
+                         AND phv2.estado_id = 1 
+                         LIMIT 1),
+                        (SELECT phv3.codigo_barra 
+                         FROM precio_has_venta phv3 
+                         WHERE phv3.producto_id = p.id 
+                         AND phv3.unidad_medida_id = p.unidad_medida_venta_id
+                         AND phv3.estado_id = 1 
+                         LIMIT 1),
+                        (SELECT phv4.codigo_barra 
+                         FROM precio_has_venta phv4 
+                         WHERE phv4.producto_id = p.id 
+                         AND phv4.estado_id = 1 
+                         LIMIT 1)
+                    ) as codigo_barra'),
                     'm.nombre as marca_nombre',
                     'm.id as marca_id',
                     'b.nombre as bodega_nombre',
