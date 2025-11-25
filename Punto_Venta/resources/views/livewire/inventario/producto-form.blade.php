@@ -405,7 +405,8 @@
                                                id="nuevo_codigo_barra"
                                                class="form-control"
                                                wire:model="nuevoPrecioVenta.codigo_barra"
-                                               placeholder="Código">
+                                               placeholder="Código"
+                                               @keydown.enter.prevent="">
                                     </div>
                                     <div class="mb-3 col-md-3">
                                         <label for="nueva_unidad_medida" class="form-label">Unidad de Medida <span class="text-red-600">*</span></label>
@@ -768,7 +769,8 @@
                                id="editar_codigo_barra"
                                class="form-control"
                                wire:model="precioEditando.codigo_barra"
-                               placeholder="Código de barras (opcional)">
+                               placeholder="Código de barras (opcional)"
+                               @keydown.enter.prevent="">
                         <small class="text-muted">Código de barras específico para esta presentación</small>
                     </div>
 
