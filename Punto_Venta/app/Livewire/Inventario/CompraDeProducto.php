@@ -1105,13 +1105,17 @@ class CompraDeProducto extends Component
         $resultados = [];
         if ($this->busquedaModalProductos && strlen($this->busquedaModalProductos) >= 3) {
             $busqueda = $this->busquedaModalProductos;
-            // Buscar productos que tengan presentaciones con ese código de barra
+            // Buscar productos que tengan presentaciones con ese código de barra O por nombre
             $presentaciones = DB::table('precio_has_venta as phv')
                 ->join('producto as p', 'phv.producto_id', '=', 'p.id')
                 ->leftJoin('marca as m', 'p.marca_id', '=', 'm.id')
                 ->leftJoin('subcategoria as sc', 'p.subcategoria_id', '=', 'sc.id')
                 ->leftJoin('categoria as c', 'sc.categoria_id', '=', 'c.id')
-                ->where('phv.codigo_barra', 'like', '%' . $busqueda . '%')
+                ->where(function($query) use ($busqueda) {
+                    $query->where('phv.codigo_barra', 'like', '%' . $busqueda . '%')
+                          ->orWhere('p.nombre', 'like', '%' . $busqueda . '%')
+                          ->orWhere('p.descripcion', 'like', '%' . $busqueda . '%');
+                })
                 ->where('phv.estado_id', 1)
                 ->where('p.estado_id', 1)
                 ->select(
