@@ -868,45 +868,49 @@ class Ventas extends Component
             return;
         }
 
-        // NUEVO: Buscar la primera unidad de medida que tenga stock disponible
-        // considerando lo que ya está en el carrito
-        $precioConStock = null;
-        $stockTotalUnidad = 0;
+        // NUEVO: Usar DIRECTAMENTE el precio/unidad del código escaneado
+        $precioDefecto = DB::table('precio_has_venta')
+            ->join('unidad_medida', 'precio_has_venta.unidad_medida_id', '=', 'unidad_medida.id')
+            ->where('precio_has_venta.codigo_barra', $this->codigoBarras)
+            ->where('precio_has_venta.estado_id', 1)
+            ->select(
+                'precio_has_venta.id as precio_id',
+                'precio_has_venta.unidad_medida_id',
+                'precio_has_venta.codigo_barra',
+                'unidad_medida.nombre as unidad_nombre',
+                'unidad_medida.simbolo as unidad_simbolo',
+                'precio_has_venta.cantidad',
+                'precio_has_venta.precio'
+            )
+            ->first();
 
-        foreach ($preciosDisponibles as $precio) {
-            // Calcular stock total en bodega
-            $stockEnBodega = $this->calcularStockTotalPorUnidad($producto->id, $precio->unidad_medida_id);
-
-            // Calcular cuánto ya está en el carrito para esta combinación producto+unidad
-            $cantidadEnCarrito = 0;
-            foreach ($this->productosFactura as $itemCarrito) {
-                // Verificar si es el mismo producto y la misma unidad de medida
-                if ($itemCarrito['id'] == $producto->id &&
-                    isset($itemCarrito['unidad_medida_id']) &&
-                    $itemCarrito['unidad_medida_id'] == $precio->unidad_medida_id) {
-                    $cantidadEnCarrito += (int)($itemCarrito['cantidad'] ?? 0);
-                }
-            }
-
-            // Stock real disponible = stock en bodega - lo que ya está en el carrito
-            $stockDisponibleReal = $stockEnBodega - $cantidadEnCarrito;
-
-            if ($stockDisponibleReal > 0) {
-                $precioConStock = $precio;
-                $stockTotalUnidad = $stockEnBodega; // Guardamos el stock total para referencia
-                break; // Encontramos la primera unidad con stock real, salimos del loop
-            }
-        }
-
-        // Si ninguna unidad tiene stock real disponible, mostrar alerta
-        if (!$precioConStock) {
-            $this->mostrarModalSinStock = true;
-            $this->dispatch('mostrar-error', ['mensaje' => 'No hay stock disponible para este producto. Todo el stock está en el carrito o agotado.']);
+        if (!$precioDefecto) {
+            $this->dispatch('mostrar-error', ['mensaje' => 'No se pudo obtener el precio para este código']);
             return;
         }
 
-        // Usar la unidad de medida con stock como precio por defecto
-        $precioDefecto = $precioConStock;
+        // Calcular stock total en bodega para esta unidad específica
+        $stockEnBodega = $this->calcularStockTotalPorUnidad($producto->id, $precioDefecto->unidad_medida_id);
+
+        // Calcular cuánto ya está en el carrito para esta combinación producto+unidad
+        $cantidadEnCarrito = 0;
+        foreach ($this->productosFactura as $itemCarrito) {
+            if ($itemCarrito['id'] == $producto->id &&
+                isset($itemCarrito['unidad_medida_id']) &&
+                $itemCarrito['unidad_medida_id'] == $precioDefecto->unidad_medida_id) {
+                $cantidadEnCarrito += (int)($itemCarrito['cantidad'] ?? 0);
+            }
+        }
+
+        // Stock real disponible = stock en bodega - lo que ya está en el carrito
+        $stockDisponibleReal = $stockEnBodega - $cantidadEnCarrito;
+
+        // Si no hay stock disponible, mostrar alerta
+        if ($stockDisponibleReal <= 0) {
+            $this->mostrarModalSinStock = true;
+            $this->dispatch('mostrar-error', ['mensaje' => 'No hay stock disponible para esta presentación. Stock en carrito: ' . $cantidadEnCarrito]);
+            return;
+        }
 
         // CAMBIO: Siempre agregar una nueva línea, permitir múltiples líneas del mismo producto con diferentes unidades
         // Obtener el valor de ISV desde la relación
@@ -929,7 +933,7 @@ class Ventas extends Component
             'unidad_medida_simbolo' => $precioDefecto->unidad_simbolo,
             'cantidad_por_unidad' => $precioDefecto->cantidad, // Unidades reales del producto
             'precios_disponibles' => $preciosDisponibles->toArray(),
-            'stock_total_unidad' => $stockTotalUnidad, // Stock disponible para esta unidad
+            'stock_total_unidad' => $stockEnBodega, // Stock disponible para esta unidad
             'producto_valencia' => $producto->producto_valencia,
             // Agregar precios de Valencia para el dropdown
             'precio1' => $producto->precio1 ?? 0,
