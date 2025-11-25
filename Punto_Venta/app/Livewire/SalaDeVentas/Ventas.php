@@ -3150,8 +3150,8 @@ class Ventas extends Component
                 return (array) $item;
             })->toArray();
 
-        // Generar y guardar imagen de la factura
-        $this->generarYGuardarImagenFactura($facturaId);
+        // Generar y guardar imagen de la factura - DESHABILITADO
+        // $this->generarYGuardarImagenFactura($facturaId);
     }
 
     private function generarYGuardarImagenFactura($facturaId)
@@ -3445,10 +3445,10 @@ class Ventas extends Component
                 throw new \Exception("Error: PNG generado no tiene la signature correcta. Signature: $signature");
             }
 
-            // Guardar en la base de datos
-            DB::table('factura')
-                ->where('id', $facturaId)
-                ->update(['factura_imagen' => $imagenBlob]);
+            // Ya no se guarda la imagen en la base de datos (factura_imagen eliminado)
+            // DB::table('factura')
+            //     ->where('id', $facturaId)
+            //     ->update(['factura_imagen' => $imagenBlob]);
 
             // Limpiar memoria
             imagedestroy($imagen);
