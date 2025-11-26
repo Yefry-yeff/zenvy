@@ -4054,13 +4054,13 @@ class Ventas extends Component
     }
 
     /**
-     * Agregar producto desde modal de búsqueda usando el ID del producto
-     * MISMA LÓGICA que agregarProductoPorCodigo: busca automáticamente la primera unidad con stock
+     * Agregar producto desde modal de búsqueda usando el código de barras y unidad específica
+     * Usa la unidad exacta seleccionada en el modal, no busca la primera disponible
      */
-    public function agregarProductoDesdeModal($productoId)
+    public function agregarProductoDesdeModal($productoId, $codigoBarra = null, $unidadMedidaId = null)
     {
         try {
-            // Obtener el producto con sus relaciones (igual que en agregarProductoPorCodigo)
+            // Obtener el producto con sus relaciones
             $producto = Producto::with('isv')->find($productoId);
 
             if (!$producto) {
@@ -4091,43 +4091,71 @@ class Ventas extends Component
                 return;
             }
 
-            // MISMO ALGORITMO: Buscar la primera unidad de medida que tenga stock disponible
-            $precioConStock = null;
+            // Si se proporcionó código de barras y unidad, buscar ese precio específico
+            $precioDefecto = null;
             $stockTotalUnidad = 0;
 
-            foreach ($preciosDisponibles as $precio) {
-                // Calcular stock total en bodega para esta unidad
-                $stockEnBodega = $this->calcularStockTotalPorUnidad($producto->id, $precio->unidad_medida_id);
+            if ($codigoBarra && $unidadMedidaId) {
+                // Buscar el precio exacto que corresponde al código de barras y unidad seleccionada
+                $precioDefecto = $preciosDisponibles->first(function($precio) use ($codigoBarra, $unidadMedidaId) {
+                    return $precio->codigo_barra === $codigoBarra && $precio->unidad_medida_id == $unidadMedidaId;
+                });
 
-                // Calcular cuánto ya está en el carrito para esta combinación producto+unidad
-                $cantidadEnCarrito = 0;
-                foreach ($this->productosFactura as $itemCarrito) {
-                    if ($itemCarrito['id'] == $producto->id &&
-                        isset($itemCarrito['unidad_medida_id']) &&
-                        $itemCarrito['unidad_medida_id'] == $precio->unidad_medida_id) {
-                        $cantidadEnCarrito += (int)($itemCarrito['cantidad'] ?? 0);
+                if ($precioDefecto) {
+                    // Calcular stock para esta unidad específica
+                    $stockEnBodega = $this->calcularStockTotalPorUnidad($producto->id, $precioDefecto->unidad_medida_id);
+
+                    // Calcular cuánto ya está en el carrito para esta combinación
+                    $cantidadEnCarrito = 0;
+                    foreach ($this->productosFactura as $itemCarrito) {
+                        if ($itemCarrito['id'] == $producto->id &&
+                            isset($itemCarrito['unidad_medida_id']) &&
+                            $itemCarrito['unidad_medida_id'] == $precioDefecto->unidad_medida_id) {
+                            $cantidadEnCarrito += (int)($itemCarrito['cantidad'] ?? 0);
+                        }
+                    }
+
+                    $stockDisponibleReal = $stockEnBodega - $cantidadEnCarrito;
+                    $stockTotalUnidad = $stockEnBodega;
+
+                    if ($stockDisponibleReal <= 0) {
+                        session()->flash('error', '⚠️ No hay stock disponible para esta unidad');
+                        $this->dispatch('mostrar-error', ['mensaje' => 'No hay stock disponible']);
+                        return;
                     }
                 }
+            }
 
-                // Stock real disponible = stock en bodega - lo que ya está en el carrito
-                $stockDisponibleReal = $stockEnBodega - $cantidadEnCarrito;
+            // Si no se encontró el precio específico, buscar el primero con stock
+            if (!$precioDefecto) {
+                foreach ($preciosDisponibles as $precio) {
+                    $stockEnBodega = $this->calcularStockTotalPorUnidad($producto->id, $precio->unidad_medida_id);
 
-                if ($stockDisponibleReal > 0) {
-                    $precioConStock = $precio;
-                    $stockTotalUnidad = $stockEnBodega;
-                    break; // Encontramos la primera unidad con stock real
+                    $cantidadEnCarrito = 0;
+                    foreach ($this->productosFactura as $itemCarrito) {
+                        if ($itemCarrito['id'] == $producto->id &&
+                            isset($itemCarrito['unidad_medida_id']) &&
+                            $itemCarrito['unidad_medida_id'] == $precio->unidad_medida_id) {
+                            $cantidadEnCarrito += (int)($itemCarrito['cantidad'] ?? 0);
+                        }
+                    }
+
+                    $stockDisponibleReal = $stockEnBodega - $cantidadEnCarrito;
+
+                    if ($stockDisponibleReal > 0) {
+                        $precioDefecto = $precio;
+                        $stockTotalUnidad = $stockEnBodega;
+                        break;
+                    }
                 }
             }
 
-            // Si ninguna unidad tiene stock real disponible, mostrar alerta con mensaje específico
-            if (!$precioConStock) {
-                session()->flash('error', '⚠️ Producto no cuenta con esa unidad de venta. El producto no ha sido recepcionado con ninguna unidad disponible para venta. Por favor, verifique las unidades disponibles en stock.');
-                $this->dispatch('mostrar-error', ['mensaje' => 'No hay stock disponible para este producto']);
+            // Si ninguna unidad tiene stock, mostrar error
+            if (!$precioDefecto) {
+                session()->flash('error', '⚠️ Producto no cuenta con stock disponible para venta');
+                $this->dispatch('mostrar-error', ['mensaje' => 'No hay stock disponible']);
                 return;
             }
-
-            // Usar la unidad de medida con stock como precio por defecto
-            $precioDefecto = $precioConStock;
 
             // SIEMPRE agregar una nueva línea (igual que agregarProductoPorCodigo)
             $valorIsv = $producto->isv ? $producto->isv->cantidad : 0;
