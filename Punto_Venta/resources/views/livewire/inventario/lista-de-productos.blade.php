@@ -71,9 +71,54 @@
             </div>
         </div>
 
-        <!-- FILTROS Y BÚSQUEDA (Debajo del título) -->
+        <!-- FILTROS Y BÚSQUEDA -->
         <div class="px-4 py-3 border-b bg-gray-50">
-            <div class="flex gap-2">
+            <div class="grid grid-cols-1 gap-4 md:grid-cols-4">
+                <!-- Búsqueda de Producto -->
+                <div>
+                    <label class="block mb-1 text-sm font-medium text-gray-700">Buscar Producto</label>
+                    <input type="text"
+                           wire:model.live.debounce.300ms="filtroProducto"
+                           placeholder="Nombre, código de barras..."
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                </div>
+
+                <!-- Filtro de Bodega -->
+                <div>
+                    <label class="block mb-1 text-sm font-medium text-gray-700">Bodega</label>
+                    <select wire:model.live="filtroBodega" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500">
+                        <option value="">Todas las bodegas</option>
+                        @foreach($bodegas as $bodega)
+                            <option value="{{ $bodega->id }}">{{ $bodega->nombre }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <!-- Filtro de Estado Stock -->
+                <div>
+                    <label class="block mb-1 text-sm font-medium text-gray-700">Estado Stock</label>
+                    <select wire:model.live="filtroEstado" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500">
+                        <option value="">Todos</option>
+                        <option value="disponible">Disponible</option>
+                        <option value="poco_stock">Poco Stock</option>
+                        <option value="agotado">Agotado</option>
+                    </select>
+                </div>
+
+                <!-- Filtro de Marca -->
+                <div>
+                    <label class="block mb-1 text-sm font-medium text-gray-700">Marca</label>
+                    <select wire:model.live="filtroMarca" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500">
+                        <option value="">Todas las marcas</option>
+                        @foreach($marcas as $marca)
+                            <option value="{{ $marca->id }}">{{ $marca->nombre }}</option>
+                        @endforeach
+                    </select>
+                </div>
+            </div>
+            
+            <!-- Botones de acción -->
+            <div class="flex gap-2 mt-3">
                 <button wire:click="limpiarFiltros" class="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
                     🗑️ Limpiar Filtros
                 </button>
@@ -371,10 +416,10 @@
                                     </td>
 
                                     <!-- Acciones -->
-                                    <td class="px-4 py-3 text-center border-b" x-data="{ open: false }">
+                                    <td class="px-4 py-3 text-center border-b" x-data="{ menuOpen: false }">
                                         <div class="relative inline-block text-left">
-                                            <button @click="open = !open"
-                                                    @click.away="open = false"
+                                            <button @click="menuOpen = !menuOpen"
+                                                    @click.away="menuOpen = false"
                                                     type="button"
                                                     class="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -383,7 +428,7 @@
                                             </button>
 
                                             <!-- Dropdown Menu -->
-                                            <div x-show="open"
+                                            <div x-show="menuOpen"
                                                  x-transition:enter="transition ease-out duration-100"
                                                  x-transition:enter-start="transform opacity-0 scale-95"
                                                  x-transition:enter-end="transform opacity-100 scale-100"
@@ -394,7 +439,7 @@
                                                  style="display: none;">
                                                 <div class="py-1">
                                                     <button wire:click="editarProducto({{ $item->producto_id }})"
-                                                            @click="open = false"
+                                                            @click="menuOpen = false"
                                                             class="flex items-center w-full px-4 py-2 text-sm text-left text-gray-700 hover:bg-gray-100 hover:text-gray-900">
                                                         <svg class="w-4 h-4 mr-3 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
@@ -402,7 +447,7 @@
                                                         Editar Producto
                                                     </button>
                                                     <button wire:click="editarStock({{ $item->id }})"
-                                                            @click="open = false"
+                                                            @click="menuOpen = false"
                                                             class="flex items-center w-full px-4 py-2 text-sm text-left text-gray-700 hover:bg-gray-100 hover:text-gray-900">
                                                         <svg class="w-4 h-4 mr-3 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
@@ -410,7 +455,7 @@
                                                         Traslados o regalías
                                                     </button>
                                                     <button wire:click="abrirModalCambiarUnidad({{ $item->id }})"
-                                                            @click="open = false"
+                                                            @click="menuOpen = false"
                                                             class="flex items-center w-full px-4 py-2 text-sm text-left text-gray-700 hover:bg-gray-100 hover:text-gray-900">
                                                         <svg class="w-4 h-4 mr-3 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
