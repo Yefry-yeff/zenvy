@@ -2,38 +2,109 @@
 
 namespace App\Excel;
 
-use Maatwebsite\Excel\Concerns\FromView;
+use Maatwebsite\Excel\Concerns\FromCollection;
+use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithStyles;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
+use Maatwebsite\Excel\Concerns\WithColumnFormatting;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
-use Illuminate\Contracts\View\View;
+use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
+use Illuminate\Support\Collection;
 
-class ProductosExport implements FromView, WithStyles, ShouldAutoSize
+class ProductosExport implements FromCollection, WithHeadings, WithStyles, ShouldAutoSize, WithColumnFormatting
 {
-    private $productos;
+    private $query;
     private $fechaGeneracion;
     private $totalProductos;
     private $filtrosAplicados;
     private $usuarioReporte;
 
-    public function __construct($productos, $fechaGeneracion, $totalProductos, $filtrosAplicados, $usuarioReporte)
+    public function __construct($query, $fechaGeneracion, $totalProductos, $filtrosAplicados, $usuarioReporte)
     {
-        $this->productos = $productos;
+        $this->query = $query;
         $this->fechaGeneracion = $fechaGeneracion;
         $this->totalProductos = $totalProductos;
         $this->filtrosAplicados = $filtrosAplicados;
         $this->usuarioReporte = $usuarioReporte;
     }
 
-    public function view(): View
+    public function collection()
     {
-        return view('exports.productos', [
-            'productos' => $this->productos,
-            'fechaGeneracion' => $this->fechaGeneracion,
-            'totalProductos' => $this->totalProductos,
-            'filtrosAplicados' => $this->filtrosAplicados,
-            'usuarioReporte' => $this->usuarioReporte,
-        ]);
+        $rows = new Collection();
+        
+        // Procesar en chunks para evitar sobrecarga de memoria
+        $this->query->chunk(200, function ($productos) use ($rows) {
+            foreach ($productos as $producto) {
+                $preciosVenta = $producto->preciosVenta;
+                
+                if ($preciosVenta->count() > 0) {
+                    foreach ($preciosVenta as $precioVenta) {
+                        $rows->push([
+                            $producto->id,
+                            $precioVenta->codigo_barra ?? 'Sin código', // Se formateará como texto con columnFormats()
+                            $producto->nombre,
+                            $producto->marca->nombre ?? 'Sin marca',
+                            $producto->subcategoria->categoria->nombre ?? 'N/A',
+                            $producto->subcategoria->nombre ?? 'N/A',
+                            $precioVenta->unidadMedida->nombre ?? 'N/A',
+                            number_format($precioVenta->precio, 2),
+                            $precioVenta->cantidad ?? 1,
+                            $producto->producto_valencia ? 'Valencia' : 'Paperland',
+                        ]);
+                    }
+                } else {
+                    $rows->push([
+                        $producto->id,
+                        'Sin código', // Se formateará como texto con columnFormats()
+                        $producto->nombre,
+                        $producto->marca->nombre ?? 'Sin marca',
+                        $producto->subcategoria->categoria->nombre ?? 'N/A',
+                        $producto->subcategoria->nombre ?? 'N/A',
+                        'Sin precio de venta',
+                        '-',
+                        '-',
+                        $producto->producto_valencia ? 'Valencia' : 'Paperland',
+                    ]);
+                }
+            }
+        });
+        
+        return $rows;
+    }
+
+    public function headings(): array
+    {
+        return [
+            ['📦 LISTADO DE PRODUCTOS'],
+            ['Sistema ZENVY - Gestión de Inventario'],
+            [''],
+            ["📅 Generado el: {$this->fechaGeneracion} | 👤 Usuario: {$this->usuarioReporte} | 📊 Total: {$this->totalProductos} productos | 🔍 Filtros: {$this->filtrosAplicados}"],
+            [''],
+            [
+                'ID',
+                'Código de Barras',
+                'Nombre',
+                'Marca',
+                'Categoría',
+                'Subcategoría',
+                'Unidad de Medida',
+                'Precio de Venta',
+                'Cantidad por Unidad',
+                'Origen'
+            ]
+        ];
+    }
+
+    public function chunkSize(): int
+    {
+        return 500; // Procesar 500 registros a la vez
+    }
+
+    public function columnFormats(): array
+    {
+        return [
+            'B' => NumberFormat::FORMAT_TEXT, // Columna B = Código de Barras como texto
+        ];
     }
 
     public function styles(Worksheet $sheet)

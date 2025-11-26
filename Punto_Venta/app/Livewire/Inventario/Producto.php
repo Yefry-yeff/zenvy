@@ -574,16 +574,22 @@ class Producto extends Component
     public function descargarExcel()
     {
         try {
-            // Obtener todos los productos según los filtros actuales (sin paginación)
-            $productos = $this->aplicarFiltros(ProductoModel::with(['marca', 'subcategoria.categoria']))
-                ->orderBy($this->ordenarPor, $this->direccionOrden)
-                ->get();
+            // Deshabilitar tiempo de ejecución máximo y aumentar memoria
+            set_time_limit(600); // 10 minutos para datasets muy grandes
+            ini_set('memory_limit', '1024M'); // 1GB de memoria
 
-            // Preparar datos para el export
+            // Construir la consulta sin ejecutarla (no usar ->get())
+            $query = $this->aplicarFiltros(ProductoModel::with(['marca', 'subcategoria.categoria', 'preciosVenta' => function($query) {
+                    $query->where('estado_id', 1)->with('unidadMedida');
+                }]))
+                ->orderBy($this->ordenarPor, $this->direccionOrden);
+
+            // Contar total sin cargar todos los datos
+            $totalProductos = $query->count();
+
+            // Preparar metadatos
             $fechaGeneracion = now()->format('d/m/Y H:i:s');
-            $totalProductos = $productos->count();
             $filtrosAplicados = $this->obtenerFiltrosAplicados();
-
             $usuarioReporte = \Auth::user() ? \Auth::user()->name : 'Invitado';
 
             // Generar nombre del archivo con timestamp
@@ -596,10 +602,13 @@ class Producto extends Component
                 mkdir($tempDir, 0755, true);
             }
 
-            $filepath = $tempDir . '/' . $filename;
-
-            // Crear el archivo Excel usando la nueva sintaxis de maatwebsite/excel 3.x
-            Excel::store(new ProductosExport($productos, $fechaGeneracion, $totalProductos, $filtrosAplicados, $usuarioReporte), $filename, 'temp');
+            // Pasar la CONSULTA (query builder) al exportador, no los resultados
+            // El exportador procesará los datos en chunks automáticamente
+            Excel::store(
+                new ProductosExport($query, $fechaGeneracion, $totalProductos, $filtrosAplicados, $usuarioReporte), 
+                $filename, 
+                'temp'
+            );
 
             // Redirigir directamente a la URL de descarga
             return redirect()->route('download.file', ['file' => $filename]);
