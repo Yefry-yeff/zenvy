@@ -419,7 +419,14 @@ class ListaDeProductos extends Component
                 $campoOrden = 'p.id';
             }
 
+            // Aplicar ordenamiento primario
             $query->orderBy($campoOrden, $this->direccionOrden);
+            
+            // SIEMPRE aplicar ordenamiento secundario por fecha de recepción (más reciente primero)
+            // Excepto si ya estamos ordenando por fecha_recibido
+            if ($this->ordenarPor !== 'fecha_recibido') {
+                $query->orderBy('rb.fecha_recibido', 'desc');
+            }
 
             // Paginar resultados
             return $paginacion ? $query->paginate($this->registrosPorPagina, ['*'], 'page', $this->page) : $query->get();

@@ -378,6 +378,7 @@ class CierreDeCaja extends Component
                 'conteo_tarjeta' => $this->safeFloat($this->resumenTransacciones['tarjeta']), // Mismo valor
                 'conteo_cheque' => $this->safeFloat($this->resumenTransacciones['cheque']), // Mismo valor
                 'diferencia_efectivo' => $this->safeFloat($this->diferenciaEfectivo),
+                'tipo_cierre' => 1, // 1 = Cierre de Caja manual
                 'diferencia_tarjeta' => 0, // No hay diferencia en tarjetas
                 'diferencia_cheque' => 0, // No hay diferencia en cheques
                 'fecha_cierre' => $this->jornada->fecha, // Fecha de la jornada que se está cerrando

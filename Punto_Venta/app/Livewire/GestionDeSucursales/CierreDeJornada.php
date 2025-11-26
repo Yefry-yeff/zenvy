@@ -260,6 +260,7 @@ class CierreDeJornada extends Component
                     'conteo_tarjeta' => 0,
                     'conteo_cheque' => 0,
                     'diferencia_efectivo' => $diferenciaEfectivo,
+                    'tipo_cierre' => 2, // 2 = Cierre de Jornada automático
                     'diferencia_tarjeta' => $diferenciaTarjeta,
                     'diferencia_cheque' => $diferenciaCheque,
                     // Inicializar todas las denominaciones en 0
@@ -338,6 +339,7 @@ class CierreDeJornada extends Component
                     'total_transferencia' => $totalTransferencia, // Total transferencia calculado
                     'conteo_efectivo' => 0,
                     'conteo_tarjeta' => 0,
+                    'tipo_cierre' => 2, // 2 = Cierre de Jornada automático
                     'conteo_cheque' => 0,
                     'diferencia_efectivo' => $diferenciaEfectivo,
                     'diferencia_tarjeta' => $diferenciaTarjeta,
