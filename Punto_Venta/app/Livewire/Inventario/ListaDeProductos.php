@@ -333,7 +333,14 @@ class ListaDeProductos extends Component
             if (!empty($this->filtroProducto)) {
                 $query->where(function($q) {
                     $q->where('p.nombre', 'like', '%' . $this->filtroProducto . '%')
-                      ->orWhere('p.codigo_estatal', 'like', '%' . $this->filtroProducto . '%');
+                      ->orWhere('p.codigo_estatal', 'like', '%' . $this->filtroProducto . '%')
+                      ->orWhereExists(function($subQuery) {
+                          $subQuery->select(DB::raw(1))
+                              ->from('precio_has_venta as phv_busqueda')
+                              ->whereRaw('phv_busqueda.producto_id = p.id')
+                              ->where('phv_busqueda.estado_id', 1)
+                              ->where('phv_busqueda.codigo_barra', 'like', '%' . $this->filtroProducto . '%');
+                      });
                 });
             }
 
