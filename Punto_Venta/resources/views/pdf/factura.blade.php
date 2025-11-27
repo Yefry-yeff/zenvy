@@ -484,40 +484,64 @@
                 $especiales = ['DIEZ', 'ONCE', 'DOCE', 'TRECE', 'CATORCE', 'QUINCE', 'DIECISÉIS', 'DIECISIETE', 'DIECIOCHO', 'DIECINUEVE'];
                 $centenas = ['', 'CIENTO', 'DOSCIENTOS', 'TRESCIENTOS', 'CUATROCIENTOS', 'QUINIENTOS', 'SEISCIENTOS', 'SETECIENTOS', 'OCHOCIENTOS', 'NOVECIENTOS'];
 
+                // Función auxiliar para convertir números menores a 1000
+                function convertirGrupo($num, $unidades, $decenas, $especiales, $centenas) {
+                    $texto = '';
+                    
+                    if ($num >= 100) {
+                        $c = floor($num / 100);
+                        if ($num == 100) {
+                            $texto .= 'CIEN ';
+                        } else {
+                            $texto .= $centenas[$c] . ' ';
+                        }
+                        $num %= 100;
+                    }
+
+                    if ($num >= 20) {
+                        $d = floor($num / 10);
+                        $texto .= $decenas[$d];
+                        $num %= 10;
+                        if ($num > 0) $texto .= ' Y ' . $unidades[$num];
+                    } elseif ($num >= 10) {
+                        $texto .= $especiales[$num - 10];
+                    } elseif ($num > 0) {
+                        $texto .= $unidades[$num];
+                    }
+                    
+                    return $texto;
+                }
+
                 // Convertir parte entera
                 $letrasEntero = '';
                 if ($entero == 0) {
                     $letrasEntero = 'CERO';
                 } else {
+                    // Manejar millones
+                    if ($entero >= 1000000) {
+                        $millones = floor($entero / 1000000);
+                        if ($millones == 1) {
+                            $letrasEntero .= 'UN MILLON ';
+                        } else {
+                            $letrasEntero .= convertirGrupo($millones, $unidades, $decenas, $especiales, $centenas) . ' MILLONES ';
+                        }
+                        $entero %= 1000000;
+                    }
+                    
+                    // Manejar miles
                     if ($entero >= 1000) {
                         $miles = floor($entero / 1000);
                         if ($miles == 1) {
                             $letrasEntero .= 'MIL ';
                         } else {
-                            $letrasEntero .= $unidades[$miles] . ' MIL ';
+                            $letrasEntero .= convertirGrupo($miles, $unidades, $decenas, $especiales, $centenas) . ' MIL ';
                         }
                         $entero %= 1000;
                     }
 
-                    if ($entero >= 100) {
-                        $c = floor($entero / 100);
-                        if ($entero == 100) {
-                            $letrasEntero .= 'CIEN ';
-                        } else {
-                            $letrasEntero .= $centenas[$c] . ' ';
-                        }
-                        $entero %= 100;
-                    }
-
-                    if ($entero >= 20) {
-                        $d = floor($entero / 10);
-                        $letrasEntero .= $decenas[$d];
-                        $entero %= 10;
-                        if ($entero > 0) $letrasEntero .= ' Y ' . $unidades[$entero];
-                    } elseif ($entero >= 10) {
-                        $letrasEntero .= $especiales[$entero - 10];
-                    } elseif ($entero > 0) {
-                        $letrasEntero .= $unidades[$entero];
+                    // Manejar centenas, decenas y unidades
+                    if ($entero > 0) {
+                        $letrasEntero .= convertirGrupo($entero, $unidades, $decenas, $especiales, $centenas);
                     }
                 }
 

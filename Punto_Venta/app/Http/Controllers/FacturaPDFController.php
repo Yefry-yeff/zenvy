@@ -52,10 +52,12 @@ class FacturaPDFController extends Controller
                     'um.nombre as unidad_nombre'
                 )
                 ->get()
-                ->map(function($item) {
-                    return (array) $item;
-                })
                 ->toArray();
+
+            // Convertir cada objeto stdClass a array asociativo
+            $productos = array_map(function($item) {
+                return json_decode(json_encode($item), true);
+            }, $productos);
 
             // Cargar TODOS los descuentos de la factura agrupados por producto, índice y tipo
             $descuentos = DB::table('descuentos')
@@ -65,7 +67,7 @@ class FacturaPDFController extends Controller
                 ->get()
                 ->groupBy(function($item) {
                     // Agrupar por producto_id + índice (clave compuesta)
-                    return $item->producto_id . '_' . $item->indice_factura_has_producto;
+                    return $item->producto_id . '_' . ($item->indice_factura_has_producto ?? 0);
                 })
                 ->map(function($descuentosProducto) {
                     return $descuentosProducto->mapWithKeys(function($item) {
@@ -76,8 +78,8 @@ class FacturaPDFController extends Controller
 
             // Agregar los descuentos agrupados a cada producto según su índice
             foreach ($productos as &$producto) {
-                $productoId = $producto['producto_id'];
-                $indice = $producto['indice'];
+                $productoId = $producto['producto_id'] ?? 0;
+                $indice = $producto['indice'] ?? 0;
                 $claveCompuesta = $productoId . '_' . $indice;
 
                 $producto['descuentos'] = $descuentos[$claveCompuesta] ?? [];
@@ -85,6 +87,10 @@ class FacturaPDFController extends Controller
                 // Calcular el total de descuentos para este producto
                 $producto['total_descuentos'] = array_sum($producto['descuentos']);
             }
+            unset($producto); // Romper la referencia
+            
+            // Re-indexar el array para que tenga índices secuenciales 0, 1, 2, etc.
+            $productos = array_values($productos);
 
             // Cargar métodos de pago
             $pagos = DB::table('factura_has_pago as fp')
@@ -92,10 +98,12 @@ class FacturaPDFController extends Controller
                 ->where('fp.factura_id', $facturaId)
                 ->select('tp.nombre as metodo', 'fp.pago_recibido')
                 ->get()
-                ->map(function($item) {
-                    return (array) $item;
-                })
                 ->toArray();
+
+            // Convertir cada objeto a array asociativo
+            $pagos = array_map(function($item) {
+                return json_decode(json_encode($item), true);
+            }, $pagos);
 
             // Cargar datos de empresa
             $empresa = DB::table('empresa')->first();
@@ -188,10 +196,12 @@ class FacturaPDFController extends Controller
                     'um.nombre as unidad_nombre'
                 )
                 ->get()
-                ->map(function($item) {
-                    return (array) $item;
-                })
                 ->toArray();
+
+            // Convertir cada objeto stdClass a array asociativo
+            $productos = array_map(function($item) {
+                return json_decode(json_encode($item), true);
+            }, $productos);
 
             // Cargar TODOS los descuentos de la factura agrupados por producto, índice y tipo
             $descuentos = DB::table('descuentos')
@@ -201,7 +211,7 @@ class FacturaPDFController extends Controller
                 ->get()
                 ->groupBy(function($item) {
                     // Agrupar por producto_id + índice (clave compuesta)
-                    return $item->producto_id . '_' . $item->indice_factura_has_producto;
+                    return $item->producto_id . '_' . ($item->indice_factura_has_producto ?? 0);
                 })
                 ->map(function($descuentosProducto) {
                     return $descuentosProducto->mapWithKeys(function($item) {
@@ -212,8 +222,8 @@ class FacturaPDFController extends Controller
 
             // Agregar los descuentos agrupados a cada producto según su índice
             foreach ($productos as &$producto) {
-                $productoId = $producto['producto_id'];
-                $indice = $producto['indice'];
+                $productoId = $producto['producto_id'] ?? 0;
+                $indice = $producto['indice'] ?? 0;
                 $claveCompuesta = $productoId . '_' . $indice;
 
                 $producto['descuentos'] = $descuentos[$claveCompuesta] ?? [];
@@ -221,6 +231,18 @@ class FacturaPDFController extends Controller
                 // Calcular el total de descuentos para este producto
                 $producto['total_descuentos'] = array_sum($producto['descuentos']);
             }
+            unset($producto); // Romper la referencia
+            
+            // Re-indexar el array para que tenga índices secuenciales 0, 1, 2, etc.
+            $productos = array_values($productos);
+            
+            // DEBUG: Log de la estructura de productos
+            Log::info('DEBUG Productos para PDF (previsualizar):', [
+                'factura_id' => $facturaId,
+                'total_productos' => count($productos),
+                'indices' => array_keys($productos),
+                'estructura_completa' => $productos
+            ]);
 
             // Cargar métodos de pago
             $pagos = DB::table('factura_has_pago as fp')
@@ -228,10 +250,12 @@ class FacturaPDFController extends Controller
                 ->where('fp.factura_id', $facturaId)
                 ->select('tp.nombre as metodo', 'fp.pago_recibido')
                 ->get()
-                ->map(function($item) {
-                    return (array) $item;
-                })
                 ->toArray();
+
+            // Convertir cada objeto a array asociativo
+            $pagos = array_map(function($item) {
+                return json_decode(json_encode($item), true);
+            }, $pagos);
 
             // Cargar datos de empresa
             $empresa = DB::table('empresa')->first();
