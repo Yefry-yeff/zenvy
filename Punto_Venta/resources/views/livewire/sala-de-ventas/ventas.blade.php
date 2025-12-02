@@ -648,7 +648,42 @@
                                                     </small>
                                                 @endif
                                             </td>
-                                            <td>{{ $item['codigo'] }}</td>
+                                            <td>
+                                                @if(!$esServicio && isset($item['precios_disponibles']) && count($item['precios_disponibles']) > 1)
+                                                    <!-- Selector de unidad de medida / código de barras -->
+                                                    <select class="form-select form-select-sm"
+                                                            style="min-width: 180px; font-size: 0.75rem;"
+                                                            wire:change="cambiarUnidadProducto({{ $loop->index }}, $event.target.value)">
+                                                        @foreach($item['precios_disponibles'] as $precioDisp)
+                                                            @php
+                                                                // Calcular stock disponible para esta unidad
+                                                                $stockUnidad = $this->calcularStockTotalPorUnidad($item['id'], $precioDisp->unidad_medida_id);
+                                                                $cantidadEnCarritoUnidad = 0;
+                                                                foreach($productosFactura as $idx => $otroItem) {
+                                                                    if ($idx !== $loop->parent->index && 
+                                                                        $otroItem['id'] == $item['id'] &&
+                                                                        isset($otroItem['unidad_medida_id']) &&
+                                                                        $otroItem['unidad_medida_id'] == $precioDisp->unidad_medida_id) {
+                                                                        $cantidadEnCarritoUnidad += (int)($otroItem['cantidad'] ?? 0);
+                                                                    }
+                                                                }
+                                                                $stockDisponibleUnidad = $stockUnidad - $cantidadEnCarritoUnidad;
+                                                                $tieneStock = $stockDisponibleUnidad > 0;
+                                                            @endphp
+                                                            
+                                                            @if($tieneStock || ($item['precio_id'] ?? null) == $precioDisp->precio_id)
+                                                                <option value="{{ $precioDisp->precio_id }}"
+                                                                        {{ ($item['precio_id'] ?? null) == $precioDisp->precio_id ? 'selected' : '' }}>
+                                                                    {{ $precioDisp->codigo_barra }} - {{ $precioDisp->unidad_nombre }} ({{ $precioDisp->cantidad }} {{ $precioDisp->unidad_simbolo }}) - Stock: {{ $stockDisponibleUnidad }}
+                                                                </option>
+                                                            @endif
+                                                        @endforeach
+                                                    </select>
+                                                    <small class="d-block text-muted mt-1">{{ $item['codigo'] }}</small>
+                                                @else
+                                                    {{ $item['codigo'] }}
+                                                @endif
+                                            </td>
                                             <td>
                                                 @if($esServicio)
                                                     L. {{ number_format($item['precio'], 2) }}

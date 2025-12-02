@@ -517,6 +517,88 @@ class Ventas extends Component
         $this->dispatch('enfocar-input-codigo');
     }
 
+    public function cambiarUnidadProducto($index, $precioId)
+    {
+        // Verificar que el índice existe
+        if (!isset($this->productosFactura[$index])) {
+            $this->dispatch('mostrar-error', ['mensaje' => 'Producto no encontrado en el carrito']);
+            return;
+        }
+
+        $producto = $this->productosFactura[$index];
+        $cantidadActual = $producto['cantidad'];
+
+        // Buscar el precio seleccionado en precios_disponibles
+        $precioSeleccionado = collect($producto['precios_disponibles'] ?? [])
+            ->firstWhere('precio_id', $precioId);
+
+        if (!$precioSeleccionado) {
+            $this->dispatch('mostrar-error', ['mensaje' => 'Unidad de medida no encontrada']);
+            return;
+        }
+
+        // Calcular stock disponible para la nueva unidad
+        $stockEnBodega = $this->calcularStockTotalPorUnidad(
+            $producto['id'],
+            $precioSeleccionado->unidad_medida_id
+        );
+
+        // Calcular stock ya usado en otras líneas del carrito (excluyendo la línea actual)
+        $cantidadEnCarritoOtrasLineas = 0;
+        foreach ($this->productosFactura as $idx => $itemCarrito) {
+            if ($idx !== $index && // Excluir la línea actual
+                $itemCarrito['id'] == $producto['id'] &&
+                isset($itemCarrito['unidad_medida_id']) &&
+                $itemCarrito['unidad_medida_id'] == $precioSeleccionado->unidad_medida_id) {
+                $cantidadEnCarritoOtrasLineas += (int)($itemCarrito['cantidad'] ?? 0);
+            }
+        }
+
+        $stockDisponibleReal = $stockEnBodega - $cantidadEnCarritoOtrasLineas;
+
+        if ($stockDisponibleReal <= 0) {
+            $this->dispatch('mostrar-error', [
+                'mensaje' => "No hay stock disponible para '{$precioSeleccionado->unidad_nombre}'. Stock en otras líneas del carrito: {$cantidadEnCarritoOtrasLineas}"
+            ]);
+            return;
+        }
+
+        // Actualizar los datos del producto en el carrito
+        $this->productosFactura[$index]['precio'] = $precioSeleccionado->precio;
+        $this->productosFactura[$index]['precio_id'] = $precioSeleccionado->precio_id;
+        $this->productosFactura[$index]['unidad_medida_id'] = $precioSeleccionado->unidad_medida_id;
+        $this->productosFactura[$index]['unidad_medida_nombre'] = $precioSeleccionado->unidad_nombre;
+        $this->productosFactura[$index]['unidad_medida_simbolo'] = $precioSeleccionado->unidad_simbolo;
+        $this->productosFactura[$index]['cantidad_por_unidad'] = $precioSeleccionado->cantidad;
+        $this->productosFactura[$index]['codigo'] = $precioSeleccionado->codigo_barra;
+        $this->productosFactura[$index]['stock_total_unidad'] = $stockEnBodega;
+        $this->productosFactura[$index]['tipo_precio'] = 'precio_has_venta';
+
+        // Ajustar cantidad si excede el stock disponible
+        if ($cantidadActual > $stockDisponibleReal) {
+            $this->productosFactura[$index]['cantidad'] = $stockDisponibleReal;
+            $cantidadActual = $stockDisponibleReal;
+            session()->flash('warning', "Cantidad ajustada a stock disponible: {$stockDisponibleReal}");
+        }
+
+        // Recalcular descuento unitario si estaba aplicado
+        $descuentoUnitarioAplicadoActual = $this->productosFactura[$index]['descuento_unitario_aplicado'] ?? 0;
+        if ($descuentoUnitarioAplicadoActual > 0) {
+            $descuentoUnitarioProducto = $producto['descuento_unitario_producto'] ?? 0;
+            if ($descuentoUnitarioProducto > 0) {
+                $this->productosFactura[$index]['descuento_unitario_aplicado'] =
+                    $descuentoUnitarioProducto * $precioSeleccionado->cantidad * $cantidadActual;
+            }
+        }
+
+        // Recalcular totales
+        $this->calcularTotales();
+
+        session()->flash('success', 'Presentación actualizada correctamente');
+    }
+
+
+
     public function buscarClientePorIdentidad($identidad)
     {
         $cliente = Cliente::select([
@@ -868,7 +950,7 @@ class Ventas extends Component
             return;
         }
 
-        // NUEVO: Usar DIRECTAMENTE el precio/unidad del código escaneado
+        // Buscar la unidad escaneada o la primera con stock disponible
         $precioDefecto = DB::table('precio_has_venta')
             ->join('unidad_medida', 'precio_has_venta.unidad_medida_id', '=', 'unidad_medida.id')
             ->where('precio_has_venta.codigo_barra', $this->codigoBarras)
@@ -905,11 +987,38 @@ class Ventas extends Component
         // Stock real disponible = stock en bodega - lo que ya está en el carrito
         $stockDisponibleReal = $stockEnBodega - $cantidadEnCarrito;
 
-        // Si no hay stock disponible, mostrar alerta
+        // Si no hay stock disponible, buscar otra unidad con stock
         if ($stockDisponibleReal <= 0) {
-            $this->mostrarModalSinStock = true;
-            $this->dispatch('mostrar-error', ['mensaje' => 'No hay stock disponible para esta presentación. Stock en carrito: ' . $cantidadEnCarrito]);
-            return;
+            // Buscar otra unidad del mismo producto que tenga stock
+            foreach ($preciosDisponibles as $precioAlternativo) {
+                $stockAlternativo = $this->calcularStockTotalPorUnidad($producto->id, $precioAlternativo->unidad_medida_id);
+                
+                $cantidadEnCarritoAlternativo = 0;
+                foreach ($this->productosFactura as $itemCarrito) {
+                    if ($itemCarrito['id'] == $producto->id &&
+                        isset($itemCarrito['unidad_medida_id']) &&
+                        $itemCarrito['unidad_medida_id'] == $precioAlternativo->unidad_medida_id) {
+                        $cantidadEnCarritoAlternativo += (int)($itemCarrito['cantidad'] ?? 0);
+                    }
+                }
+                
+                $stockDisponibleAlternativo = $stockAlternativo - $cantidadEnCarritoAlternativo;
+                
+                if ($stockDisponibleAlternativo > 0) {
+                    // Usar esta unidad alternativa
+                    $precioDefecto = $precioAlternativo;
+                    $stockEnBodega = $stockAlternativo;
+                    $stockDisponibleReal = $stockDisponibleAlternativo;
+                    break;
+                }
+            }
+            
+            // Si ninguna unidad tiene stock, mostrar error
+            if ($stockDisponibleReal <= 0) {
+                $this->mostrarModalSinStock = true;
+                $this->dispatch('mostrar-error', ['mensaje' => 'No hay stock disponible para ninguna presentación de este producto']);
+                return;
+            }
         }
 
         // CAMBIO: Siempre agregar una nueva línea, permitir múltiples líneas del mismo producto con diferentes unidades
