@@ -153,97 +153,96 @@
 
         <!-- TABLA OPTIMIZADA -->
         <div class="px-4 py-3">
-            @if($productosRecibidos->count() > 0)
-                <div class="overflow-x-auto">
-                    <table class="min-w-full border border-gray-200 table-auto">
-                        <thead class="bg-gray-50">
-                            <!-- Encabezados con ordenamiento -->
-                            <tr>
-                                <th class="px-4 py-3 text-left border-b cursor-pointer hover:bg-gray-100"
-                                    wire:click="ordenar('producto_id')">
-                                    <div class="flex items-center space-x-1">
-                                        <span>Código de Producto</span>
-                                        @if($ordenarPor === 'producto_id')
-                                            <span class="text-blue-500">
-                                                @if($direccionOrden === 'asc') ↑ @else ↓ @endif
-                                            </span>
-                                        @endif
-                                    </div>
-                                </th>
-                                <th class="px-4 py-3 text-left border-b cursor-pointer hover:bg-gray-100"
-                                    wire:click="ordenar('producto_nombre')">
-                                    <div class="flex items-center space-x-1">
-                                        <span>Producto</span>
-                                        @if($ordenarPor === 'producto_nombre')
-                                            <span class="text-blue-500">
-                                                @if($direccionOrden === 'asc') ↑ @else ↓ @endif
-                                            </span>
-                                        @endif
-                                    </div>
-                                </th>
-                                <th class="px-4 py-3 text-left border-b cursor-pointer hover:bg-gray-100"
-                                    wire:click="ordenar('codigo_barra')">
-                                    <div class="flex items-center space-x-1">
-                                        <span>Código de Barras</span>
-                                        @if($ordenarPor === 'codigo_barra')
-                                            <span class="text-blue-500">
-                                                @if($direccionOrden === 'asc') ↑ @else ↓ @endif
-                                            </span>
-                                        @endif
-                                    </div>
-                                </th>
-                                <th class="px-4 py-3 text-left border-b cursor-pointer hover:bg-gray-100"
-                                    wire:click="ordenar('marca_nombre')">
-                                    <div class="flex items-center space-x-1">
-                                        <span>Marca</span>
-                                        @if($ordenarPor === 'marca_nombre')
-                                            <span class="text-blue-500">
-                                                @if($direccionOrden === 'asc') ↑ @else ↓ @endif
-                                            </span>
-                                        @endif
-                                    </div>
-                                </th>
-                                <th class="px-4 py-3 text-left border-b cursor-pointer hover:bg-gray-100"
-                                    wire:click="ordenar('bodega_nombre')">
-                                    <div class="flex items-center space-x-1">
-                                        <span>Bodega</span>
-                                        @if($ordenarPor === 'bodega_nombre')
-                                            <span class="text-blue-500">
-                                                @if($direccionOrden === 'asc') ↑ @else ↓ @endif
-                                            </span>
-                                        @endif
-                                    </div>
-                                </th>
-                                <th class="px-4 py-3 text-left border-b">Segmento</th>
-                                <th class="px-4 py-3 text-left border-b">Sección</th>
-                                <th class="px-4 py-3 text-center border-b cursor-pointer hover:bg-gray-100"
-                                    wire:click="ordenar('cantidad_disponible')">
-                                    <div class="flex items-center justify-center space-x-1">
-                                        <span>Stock</span>
-                                        @if($ordenarPor === 'cantidad_disponible')
-                                            <span class="text-blue-500">
-                                                @if($direccionOrden === 'asc') ↑ @else ↓ @endif
-                                            </span>
-                                        @endif
-                                    </div>
-                                </th>
-                                <th class="px-4 py-3 text-center border-b cursor-pointer hover:bg-gray-100"
-                                    wire:click="ordenar('fecha_recibido')">
-                                    <div class="flex items-center justify-center space-x-1">
-                                        <span>Fecha Recibido</span>
-                                        @if($ordenarPor === 'fecha_recibido')
-                                            <span class="text-blue-500">
-                                                @if($direccionOrden === 'asc') ↑ @else ↓ @endif
-                                            </span>
-                                        @endif
-                                    </div>
-                                </th>
-                                <th class="px-4 py-3 text-center border-b">Fecha Expiración</th>
-                                <th class="px-4 py-3 text-center border-b">Estado</th>
-                                <th class="px-4 py-3 text-center border-b">Comentario</th>
-                                <th class="px-4 py-3 text-center border-b">Acciones</th>
-                            </tr>
-                            <!-- Fila de filtros -->
+            <div class="overflow-x-auto">
+                <table class="min-w-full border border-gray-200 table-auto">
+                    <thead class="bg-gray-50">
+                        <!-- Encabezados con ordenamiento -->
+                        <tr>
+                            <th class="px-4 py-3 text-left border-b cursor-pointer hover:bg-gray-100"
+                                wire:click="ordenar('producto_id')">
+                                <div class="flex items-center space-x-1">
+                                    <span>Código de Producto</span>
+                                    @if($ordenarPor === 'producto_id')
+                                        <span class="text-blue-500">
+                                            @if($direccionOrden === 'asc') ↑ @else ↓ @endif
+                                        </span>
+                                    @endif
+                                </div>
+                            </th>
+                            <th class="px-4 py-3 text-left border-b cursor-pointer hover:bg-gray-100"
+                                wire:click="ordenar('producto_nombre')">
+                                <div class="flex items-center space-x-1">
+                                    <span>Producto</span>
+                                    @if($ordenarPor === 'producto_nombre')
+                                        <span class="text-blue-500">
+                                            @if($direccionOrden === 'asc') ↑ @else ↓ @endif
+                                        </span>
+                                    @endif
+                                </div>
+                            </th>
+                            <th class="px-4 py-3 text-left border-b cursor-pointer hover:bg-gray-100"
+                                wire:click="ordenar('codigo_barra')">
+                                <div class="flex items-center space-x-1">
+                                    <span>Código de Barras</span>
+                                    @if($ordenarPor === 'codigo_barra')
+                                        <span class="text-blue-500">
+                                            @if($direccionOrden === 'asc') ↑ @else ↓ @endif
+                                        </span>
+                                    @endif
+                                </div>
+                            </th>
+                            <th class="px-4 py-3 text-left border-b cursor-pointer hover:bg-gray-100"
+                                wire:click="ordenar('marca_nombre')">
+                                <div class="flex items-center space-x-1">
+                                    <span>Marca</span>
+                                    @if($ordenarPor === 'marca_nombre')
+                                        <span class="text-blue-500">
+                                            @if($direccionOrden === 'asc') ↑ @else ↓ @endif
+                                        </span>
+                                    @endif
+                                </div>
+                            </th>
+                            <th class="px-4 py-3 text-left border-b cursor-pointer hover:bg-gray-100"
+                                wire:click="ordenar('bodega_nombre')">
+                                <div class="flex items-center space-x-1">
+                                    <span>Bodega</span>
+                                    @if($ordenarPor === 'bodega_nombre')
+                                        <span class="text-blue-500">
+                                            @if($direccionOrden === 'asc') ↑ @else ↓ @endif
+                                        </span>
+                                    @endif
+                                </div>
+                            </th>
+                            <th class="px-4 py-3 text-left border-b">Segmento</th>
+                            <th class="px-4 py-3 text-left border-b">Sección</th>
+                            <th class="px-4 py-3 text-center border-b cursor-pointer hover:bg-gray-100"
+                                wire:click="ordenar('cantidad_disponible')">
+                                <div class="flex items-center justify-center space-x-1">
+                                    <span>Stock</span>
+                                    @if($ordenarPor === 'cantidad_disponible')
+                                        <span class="text-blue-500">
+                                            @if($direccionOrden === 'asc') ↑ @else ↓ @endif
+                                        </span>
+                                    @endif
+                                </div>
+                            </th>
+                            <th class="px-4 py-3 text-center border-b cursor-pointer hover:bg-gray-100"
+                                wire:click="ordenar('fecha_recibido')">
+                                <div class="flex items-center justify-center space-x-1">
+                                    <span>Fecha Recibido</span>
+                                    @if($ordenarPor === 'fecha_recibido')
+                                        <span class="text-blue-500">
+                                            @if($direccionOrden === 'asc') ↑ @else ↓ @endif
+                                        </span>
+                                    @endif
+                                </div>
+                            </th>
+                            <th class="px-4 py-3 text-center border-b">Fecha Expiración</th>
+                            <th class="px-4 py-3 text-center border-b">Estado</th>
+                            <th class="px-4 py-3 text-center border-b">Comentario</th>
+                            <th class="px-4 py-3 text-center border-b">Acciones</th>
+                        </tr>
+                        <!-- Fila de filtros -->
                             <tr class="bg-white">
                                 <th class="px-2 py-2 border-b">
                                     <input type="text" 
@@ -318,12 +317,13 @@
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-200">
-                            @foreach($productosRecibidos as $item)
-                                <tr class="hover:bg-gray-50 {{ $item->cantidad_disponible > 10 ? 'bg-green-50' : ($item->cantidad_disponible > 0 ? 'bg-yellow-50' : 'bg-red-50') }}">
+                            @if($productosRecibidos->count() > 0)
+                                @foreach($productosRecibidos as $item)
+                                    <tr class="hover:bg-gray-50 {{ $item->cantidad_disponible > 10 ? 'bg-green-50' : ($item->cantidad_disponible > 0 ? 'bg-yellow-50' : 'bg-red-50') }}">
 
-                                    <!-- Código de Producto -->
-                                    <td class="px-4 py-3 border-b">
-                                        <code class="px-2 py-1 text-sm font-semibold text-blue-700 bg-blue-100 rounded">{{ $item->producto_id ?? 'N/A' }}</code>
+                                        <!-- Código de Producto -->
+                                        <td class="px-4 py-3 border-b">
+                                            <code class="px-2 py-1 text-sm font-semibold text-blue-700 bg-blue-100 rounded">{{ $item->producto_id ?? 'N/A' }}</code>
                                     </td>
 
                                     <!-- Producto -->
@@ -468,20 +468,22 @@
                                     </td>
                                 </tr>
                             @endforeach
+                        @else
+                            <tr>
+                                <td colspan="13" class="px-4 py-12 text-center">
+                                    <div class="flex flex-col items-center">
+                                        <svg class="w-16 h-16 mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-4.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 009.586 13H7"></path>
+                                        </svg>
+                                        <span class="text-xl font-medium text-gray-500">No se encontraron productos</span>
+                                        <small class="mt-1 text-gray-400">Intenta ajustar los filtros de búsqueda</small>
+                                    </div>
+                                </td>
+                            </tr>
+                        @endif
                         </tbody>
                     </table>
                 </div>
-            @else
-                <div class="py-12 text-center">
-                    <div class="flex flex-col items-center">
-                        <svg class="w-16 h-16 mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-4.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 009.586 13H7"></path>
-                        </svg>
-                        <span class="text-xl font-medium text-gray-500">No hay productos recibidos en bodega</span>
-                        <small class="mt-1 text-gray-400">Los productos aparecerán aquí cuando sean distribuidos a las bodegas</small>
-                    </div>
-                </div>
-            @endif
 
             <!-- PAGINACIÓN PERSONALIZADA CON SELECTOR -->
             <div class="mt-4">
