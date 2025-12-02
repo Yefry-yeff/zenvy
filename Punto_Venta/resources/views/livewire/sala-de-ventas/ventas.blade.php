@@ -749,10 +749,13 @@
                                                     <!-- Para servicios, cantidad editable sin restricción de stock -->
                                                     <input type="number"
                                                         wire:key="servicio-{{ $loop->index }}-{{ $item['cantidad'] }}"
-                                                        wire:model.live.debounce.300ms="productosFactura.{{ $loop->index }}.cantidad"
-                                                        x-data="{ valor: {{ $item['cantidad'] }} }"
-                                                        x-model="valor"
-                                                        @input="if(valor < 1) valor = 1"
+                                                        value="{{ $item['cantidad'] }}"
+                                                        @blur="
+                                                            let val = parseInt($event.target.value) || 1;
+                                                            if(val < 1) val = 1;
+                                                            $event.target.value = val;
+                                                            $wire.set('productosFactura.{{ $loop->index }}.cantidad', val);
+                                                        "
                                                         min="1"
                                                         class="w-20 text-center form-control"
                                                         style="min-width: 60px;">
@@ -774,23 +777,17 @@
                                                     <!-- Nuevo sistema: Cantidad editable limitada por stock_total_unidad -->
                                                     <input type="number"
                                                         wire:key="producto-{{ $loop->index }}-{{ $item['cantidad'] }}"
-                                                        wire:model.live.debounce.300ms="productosFactura.{{ $loop->index }}.cantidad"
+                                                        value="{{ $item['cantidad'] }}"
                                                         x-data="{
-                                                            valor: {{ $item['cantidad'] }},
-                                                            stockMax: {{ $stockMaxParaEstaLinea }},
-                                                            excedido: false
+                                                            stockMax: {{ $stockMaxParaEstaLinea }}
                                                         }"
-                                                        x-model="valor"
-                                                        @input="
-                                                            if(valor < 1) { valor = 1; excedido = false; }
-                                                            else if(valor > stockMax) {
-                                                                excedido = true;
-                                                                setTimeout(() => { valor = stockMax; excedido = false; }, 500);
-                                                            } else {
-                                                                excedido = false;
-                                                            }
+                                                        @blur="
+                                                            let val = parseInt($event.target.value) || 1;
+                                                            if(val < 1) val = 1;
+                                                            if(val > stockMax) val = stockMax;
+                                                            $event.target.value = val;
+                                                            $wire.set('productosFactura.{{ $loop->index }}.cantidad', val);
                                                         "
-                                                        :class="excedido ? 'border-red-500 bg-red-50' : ''"
                                                         min="1"
                                                         max="{{ $stockMaxParaEstaLinea }}"
                                                         class="w-20 text-center form-control"
@@ -800,23 +797,17 @@
                                                     <!-- Sistema anterior: Para productos, cantidad limitada por stock -->
                                                     <input type="number"
                                                         wire:key="producto-{{ $loop->index }}-{{ $item['cantidad'] }}"
-                                                        wire:model.live.debounce.300ms="productosFactura.{{ $loop->index }}.cantidad"
+                                                        value="{{ $item['cantidad'] }}"
                                                         x-data="{
-                                                            valor: {{ $item['cantidad'] }},
-                                                            stockMax: {{ $stockDisponible }},
-                                                            excedido: false
+                                                            stockMax: {{ $stockDisponible }}
                                                         }"
-                                                        x-model="valor"
-                                                        @input="
-                                                            if(valor < 1) { valor = 1; excedido = false; }
-                                                            else if(valor > stockMax) {
-                                                                excedido = true;
-                                                                setTimeout(() => { valor = stockMax; excedido = false; }, 500);
-                                                            } else {
-                                                                excedido = false;
-                                                            }
+                                                        @blur="
+                                                            let val = parseInt($event.target.value) || 1;
+                                                            if(val < 1) val = 1;
+                                                            if(val > stockMax) val = stockMax;
+                                                            $event.target.value = val;
+                                                            $wire.set('productosFactura.{{ $loop->index }}.cantidad', val);
                                                         "
-                                                        :class="excedido ? 'border-red-500 bg-red-50' : ''"
                                                         min="1"
                                                         max="{{ $stockDisponible }}"
                                                         class="w-20 text-center form-control"
