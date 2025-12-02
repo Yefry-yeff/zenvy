@@ -649,10 +649,10 @@
                                                 @endif
                                             </td>
                                             <td>
-                                                @if(!$esServicio && isset($item['precios_disponibles']) && count($item['precios_disponibles']) > 1)
-                                                    <!-- Selector de unidad de medida / código de barras -->
+                                                @if(!$esServicio && isset($item['precios_disponibles']))
+                                                    <!-- Selector de unidad de medida -->
                                                     <select class="form-select form-select-sm"
-                                                            style="min-width: 180px; font-size: 0.75rem;"
+                                                            style="min-width: 150px; font-size: 0.75rem;"
                                                             wire:change="cambiarUnidadProducto({{ $loop->index }}, $event.target.value)">
                                                         @foreach($item['precios_disponibles'] as $precioDisp)
                                                             @php
@@ -674,14 +674,13 @@
                                                             @if($tieneStock || ($item['precio_id'] ?? null) == $precioDisp->precio_id)
                                                                 <option value="{{ $precioDisp->precio_id }}"
                                                                         {{ ($item['precio_id'] ?? null) == $precioDisp->precio_id ? 'selected' : '' }}>
-                                                                    {{ $precioDisp->codigo_barra }} - {{ $precioDisp->unidad_nombre }} ({{ $precioDisp->cantidad }} {{ $precioDisp->unidad_simbolo }}) - Stock: {{ $stockDisponibleUnidad }}
+                                                                    {{ $precioDisp->unidad_nombre }} - Stock: {{ $stockDisponibleUnidad }}
                                                                 </option>
                                                             @endif
                                                         @endforeach
                                                     </select>
-                                                    <small class="d-block text-muted mt-1">{{ $item['codigo'] }}</small>
                                                 @else
-                                                    {{ $item['codigo'] }}
+                                                    {{ $item['codigo'] ?? 'N/A' }}
                                                 @endif
                                             </td>
                                             <td>
