@@ -379,6 +379,9 @@
                     $totalDescuentos = collect($productos)->sum(function($producto) {
                         return $producto['total_descuentos'] ?? 0;
                     });
+                    
+                    // Agregar el descuento de factura al total de descuentos
+                    $totalDescuentos += ($factura->monto_descuento ?? 0);
 
                     // SUB-TOTAL = Total Importe - Descuentos
                     $subtotalFinal = $subtotalSinDescuentos - $totalDescuentos;

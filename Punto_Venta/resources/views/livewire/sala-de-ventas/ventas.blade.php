@@ -891,28 +891,40 @@
 
                         <!-- Botones de Descuento -->
                         @if(count($productosFactura) > 0)
-                        <div class="mb-3 d-flex justify-content-end">
-                            <!-- Botón 3ra Edad -->
+                        <div class="mb-3 d-flex justify-content-between align-items-center">
+                            <!-- Botón Descuento General a la izquierda -->
                             <button
-                                wire:click="aplicarDescuentoTerceraEdad"
-                                class="btn me-2 {{ $descuentoTerceraEdad ? 'btn-danger' : 'btn-success' }} {{ $descuentoCuartaEdad ? 'opacity-50' : '' }}"
-                                {{ $descuentoCuartaEdad ? 'disabled' : '' }}
-                                style="{{ $descuentoCuartaEdad ? 'cursor: not-allowed;' : 'cursor: pointer;' }}"
-                                title="{{ $descuentoCuartaEdad ? 'Deshabilitado: ya hay un descuento de 4ta edad aplicado' : 'Descuento para personas de 60-64 años' }}">
-                                <i class="fas fa-user-friends me-1"></i>
-                                {{ $descuentoTerceraEdad ? 'Remover' : 'Aplicar' }} 3ra Edad
+                                wire:click="abrirModalDescuentoFactura"
+                                class="btn btn-primary"
+                                title="Aplicar descuento general a toda la factura">
+                                <i class="fas fa-percentage me-1"></i>
+                                {{ $descuentoFactura > 0 ? 'Desc. Factura: ' . $descuentoFactura . '%' : 'Descuento Factura' }}
                             </button>
 
-                            <!-- Botón 4ta Edad -->
-                            <button
-                                wire:click="aplicarDescuentoCuartaEdad"
-                                class="btn {{ $descuentoCuartaEdad ? 'btn-danger' : 'btn-success' }} {{ $descuentoTerceraEdad ? 'opacity-50' : '' }}"
-                                {{ $descuentoTerceraEdad ? 'disabled' : '' }}
-                                style="{{ $descuentoTerceraEdad ? 'cursor: not-allowed;' : 'cursor: pointer;' }}"
-                                title="{{ $descuentoTerceraEdad ? 'Deshabilitado: ya hay un descuento de 3ra edad aplicado' : 'Descuento para personas de 65+ años' }}">
-                                <i class="fas fa-user-check me-1"></i>
-                                {{ $descuentoCuartaEdad ? 'Remover' : 'Aplicar' }} 4ta Edad
-                            </button>
+                            <!-- Botones de edad a la derecha -->
+                            <div class="d-flex gap-2">
+                                <!-- Botón 3ra Edad -->
+                                <button
+                                    wire:click="aplicarDescuentoTerceraEdad"
+                                    class="btn me-2 {{ $descuentoTerceraEdad ? 'btn-danger' : 'btn-success' }} {{ $descuentoCuartaEdad ? 'opacity-50' : '' }}"
+                                    {{ $descuentoCuartaEdad ? 'disabled' : '' }}
+                                    style="{{ $descuentoCuartaEdad ? 'cursor: not-allowed;' : 'cursor: pointer;' }}"
+                                    title="{{ $descuentoCuartaEdad ? 'Deshabilitado: ya hay un descuento de 4ta edad aplicado' : 'Descuento para personas de 60-64 años' }}">
+                                    <i class="fas fa-user-friends me-1"></i>
+                                    {{ $descuentoTerceraEdad ? 'Remover' : 'Aplicar' }} 3ra Edad
+                                </button>
+
+                                <!-- Botón 4ta Edad -->
+                                <button
+                                    wire:click="aplicarDescuentoCuartaEdad"
+                                    class="btn {{ $descuentoCuartaEdad ? 'btn-danger' : 'btn-success' }} {{ $descuentoTerceraEdad ? 'opacity-50' : '' }}"
+                                    {{ $descuentoTerceraEdad ? 'disabled' : '' }}
+                                    style="{{ $descuentoTerceraEdad ? 'cursor: not-allowed;' : 'cursor: pointer;' }}"
+                                    title="{{ $descuentoTerceraEdad ? 'Deshabilitado: ya hay un descuento de 3ra edad aplicado' : 'Descuento para personas de 65+ años' }}">
+                                    <i class="fas fa-user-check me-1"></i>
+                                    {{ $descuentoCuartaEdad ? 'Remover' : 'Aplicar' }} 4ta Edad
+                                </button>
+                            </div>
                         </div>
                         @endif
 
@@ -1005,6 +1017,25 @@
                                     <div class="flex justify-between mb-2 font-medium text-gray-700">
                                         <span>Subtotal con descuentos:</span>
                                         <span x-text="'L. ' + parseFloat(subtotal).toFixed(2)">L. {{ number_format($subtotal, 2) }}</span>
+                                    </div>
+                                @endif
+
+                                <!-- Descuento general de la factura -->
+                                @if($descuentoFactura > 0)
+                                    <div class="pl-3 mb-2 border-l-4 border-orange-400 bg-orange-50">
+                                        <div class="flex justify-between mb-1">
+                                            <span class="font-medium text-orange-700">
+                                                <i class="mr-1 fas fa-tag"></i>
+                                                Descuento Factura ({{ $descuentoFactura }}%):
+                                            </span>
+                                            <span class="font-medium text-orange-700">-L. {{ number_format($montoDescuentoFactura, 2) }}</span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Subtotal después del descuento de factura -->
+                                    <div class="flex justify-between mb-2 font-medium text-gray-700">
+                                        <span>Subtotal final:</span>
+                                        <span>L. {{ number_format($subtotal - $montoDescuentoFactura, 2) }}</span>
                                     </div>
                                 @endif
 
@@ -1741,6 +1772,80 @@
                         <button type="button"
                             class="btn btn-success"
                             wire:click="confirmarDescuentoAdulto">
+                            Aplicar Descuento
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    <!-- Modal Descuento General de Factura -->
+    @if($mostrarModalDescuentoFactura)
+        <div class="modal fade show" tabindex="-1" role="dialog" style="display: block; background-color: rgba(0,0,0,0.5);">
+            <div class="modal-dialog modal-dialog-centered" role="document" x-data="{ porcentaje: @entangle('descuentoFactura') }">
+                <div class="modal-content">
+                    <div class="modal-header bg-primary text-white">
+                        <h5 class="modal-title">
+                            <i class="fas fa-percentage me-2"></i>
+                            Aplicar Descuento a la Factura
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" wire:click="cerrarModalDescuentoFactura"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="fw-bold">Subtotal Actual:</label>
+                            <p class="mb-2 text-success fs-5">L {{ number_format($subtotal, 2) }}</p>
+                        </div>
+                        <div class="mb-3">
+                            <label for="porcentaje_descuento_factura" class="form-label">
+                                <i class="fas fa-percent me-1"></i>
+                                Porcentaje de Descuento (%)
+                            </label>
+                            <input type="number"
+                                id="porcentaje_descuento_factura"
+                                class="form-control form-control-lg"
+                                wire:model="descuentoFactura"
+                                min="0"
+                                max="100"
+                                step="0.1"
+                                placeholder="Ej: 10.5">
+                            @error('descuentoFactura')
+                                <div class="mt-1 text-danger">{{ $message }}</div>
+                            @enderror
+                        </div>
+                        @if($descuentoFactura > 0)
+                            <div class="p-3 alert alert-info">
+                                <div class="d-flex justify-content-between">
+                                    <span><strong>Descuento:</strong></span>
+                                    <span class="text-danger fw-bold">-L {{ number_format($subtotal * ($descuentoFactura / 100), 2) }}</span>
+                                </div>
+                                <div class="d-flex justify-content-between mt-2">
+                                    <span><strong>Nuevo Subtotal:</strong></span>
+                                    <span class="text-success fw-bold">L {{ number_format($subtotal - ($subtotal * ($descuentoFactura / 100)), 2) }}</span>
+                                </div>
+                            </div>
+                        @endif
+                    </div>
+                    <div class="modal-footer">
+                        @if($descuentoFactura > 0)
+                            <button type="button"
+                                class="btn btn-warning"
+                                wire:click="removerDescuentoFactura">
+                                <i class="fas fa-times me-1"></i>
+                                Remover Descuento
+                            </button>
+                        @endif
+                        <button type="button"
+                            class="btn btn-secondary"
+                            wire:click="cerrarModalDescuentoFactura">
+                            Cancelar
+                        </button>
+                        <button type="button"
+                            class="btn btn-primary"
+                            wire:click="aplicarDescuentoFactura"
+                            x-bind:disabled="!porcentaje || porcentaje <= 0">
+                            <i class="fas fa-check me-1"></i>
                             Aplicar Descuento
                         </button>
                     </div>

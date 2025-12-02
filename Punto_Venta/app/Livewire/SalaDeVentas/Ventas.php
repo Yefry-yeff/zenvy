@@ -90,6 +90,11 @@ class Ventas extends Component
     public $descuentoCuartaEdad = false;
     public $totalDescuentos = 0;
 
+    // Descuento general de la factura
+    public $descuentoFactura = 0; // Porcentaje de descuento
+    public $montoDescuentoFactura = 0; // Monto del descuento
+    public $mostrarModalDescuentoFactura = false;
+
     // Descuentos guardados en BD (para mostrar en facturas guardadas)
     public $descuentosGuardados = [];
 
@@ -1614,14 +1619,66 @@ class Ventas extends Component
 
         $this->subtotal = (float)number_format($this->subtotal, 2, '.', '');
         $this->totalIsv = (float)number_format($this->totalIsv, 2, '.', '');
-        $this->total = (float)number_format($this->subtotal + $this->totalIsv, 2, '.', '');
+
+        // Aplicar descuento general de factura al subtotal
+        if ($this->descuentoFactura > 0) {
+            $this->montoDescuentoFactura = round($this->subtotal * ($this->descuentoFactura / 100), 2);
+            $subtotalConDescuentoFactura = $this->subtotal - $this->montoDescuentoFactura;
+            
+            // Recalcular ISV respetando las tasas individuales de cada producto
+            $this->totalIsv = 0;
+            $isvPorTasa = [];
+            
+            foreach ($this->productosFactura as $index => $producto) {
+                $tasaIsv = $producto['isv'];
+                
+                // Solo calcular ISV si el producto tiene una tasa mayor a 0
+                if ($tasaIsv > 0) {
+                    // Calcular la proporción del subtotal que corresponde a este producto
+                    $subtotalProducto = $producto['subtotal_con_descuento'];
+                    $proporcion = $this->subtotal > 0 ? ($subtotalProducto / $this->subtotal) : 0;
+                    
+                    // Aplicar la proporción del descuento de factura a este producto
+                    $descuentoFacturaProducto = $this->montoDescuentoFactura * $proporcion;
+                    $subtotalProductoConDescuentoFactura = $subtotalProducto - $descuentoFacturaProducto;
+                    
+                    // Calcular ISV sobre el subtotal con descuento de factura
+                    $isvProducto = round($subtotalProductoConDescuentoFactura * ($tasaIsv / 100), 2);
+                    $this->totalIsv += $isvProducto;
+                    
+                    // Actualizar ISV calculado en el producto
+                    $this->productosFactura[$index]['isv_calculado'] = $isvProducto;
+                    
+                    // Agrupar ISV por tasa
+                    if (!isset($isvPorTasa[$tasaIsv])) {
+                        $isvPorTasa[$tasaIsv] = 0;
+                    }
+                    $isvPorTasa[$tasaIsv] += $isvProducto;
+                }
+            }
+            
+            // Actualizar isvPorTasa con los nuevos valores
+            $this->isvPorTasa = array_map(function($monto) {
+                return (float)number_format($monto, 2, '.', '');
+            }, $isvPorTasa);
+            
+            $this->totalIsv = (float)number_format($this->totalIsv, 2, '.', '');
+            
+            // Total final
+            $this->total = (float)number_format($subtotalConDescuentoFactura + $this->totalIsv, 2, '.', '');
+        } else {
+            $this->montoDescuentoFactura = 0;
+            $this->total = (float)number_format($this->subtotal + $this->totalIsv, 2, '.', '');
+        }
 
         // Forzar actualización de la vista
         $this->dispatch('totales-actualizados', [
             'subtotal' => $this->subtotal,
             'totalIsv' => $this->totalIsv,
             'total' => $this->total,
-            'totalDescuentos' => $this->totalDescuentos
+            'totalDescuentos' => $this->totalDescuentos,
+            'descuentoFactura' => $this->descuentoFactura,
+            'montoDescuentoFactura' => $this->montoDescuentoFactura
         ]);
     }
 
@@ -1825,6 +1882,52 @@ class Ventas extends Component
         $this->porcentajeDescuentoProducto = 0;
     }
 
+    // Métodos para descuento general de la factura
+    public function abrirModalDescuentoFactura()
+    {
+        // Verificar que hay productos en la factura
+        if (empty($this->productosFactura)) {
+            session()->flash('error', 'No hay productos en la factura para aplicar el descuento.');
+            return;
+        }
+
+        $this->mostrarModalDescuentoFactura = true;
+    }
+
+    public function aplicarDescuentoFactura()
+    {
+        // Validaciones
+        if ($this->descuentoFactura < 0 || $this->descuentoFactura > 100) {
+            session()->flash('error', 'El porcentaje de descuento debe estar entre 0 y 100');
+            return;
+        }
+
+        // Calcular el monto del descuento sobre el subtotal
+        $this->montoDescuentoFactura = round($this->subtotal * ($this->descuentoFactura / 100), 2);
+
+        // Recalcular totales
+        $this->calcularTotales();
+
+        // Mensaje de éxito
+        session()->flash('success', "Descuento del {$this->descuentoFactura}% aplicado a la factura (L. " . number_format($this->montoDescuentoFactura, 2) . ")");
+
+        // Cerrar modal
+        $this->cerrarModalDescuentoFactura();
+    }
+
+    public function removerDescuentoFactura()
+    {
+        $this->descuentoFactura = 0;
+        $this->montoDescuentoFactura = 0;
+        $this->calcularTotales();
+        session()->flash('success', 'Descuento de factura removido');
+    }
+
+    public function cerrarModalDescuentoFactura()
+    {
+        $this->mostrarModalDescuentoFactura = false;
+    }
+
     // Método para resetear completamente la factura
     public function resetearFactura()
     {
@@ -1836,6 +1939,10 @@ class Ventas extends Component
         $this->descuentoCuartaEdad = false;
         $this->totalDescuentos = 0;
         $this->datosDescuentoAdulto = []; // Limpiar datos del adulto mayor
+
+        // Limpiar descuento de factura
+        $this->descuentoFactura = 0;
+        $this->montoDescuentoFactura = 0;
 
         // Limpiar datos del descuento por producto
         $this->cerrarModalDescuentoProducto();
@@ -2140,7 +2247,9 @@ class Ventas extends Component
                 'credito' => 0,
                 'fecha_emision' => now()->format('Y-m-d'),
                 'estado_factura_id' => 1,
-                'users_id' => Auth::id()
+                'users_id' => Auth::id(),
+                'porc_descuento' => $this->descuentoFactura ?? 0,
+                'monto_descuento' => $this->montoDescuentoFactura ?? 0
             ];
 
             Log::info("DEBUG Datos que se van a insertar en factura", $datosFactura);
@@ -3480,6 +3589,13 @@ class Ventas extends Component
                     $y += 12;
                     $totalDescuentos += $producto['descuento'];
                 }
+            }
+            
+            // Agregar el descuento de factura al total de descuentos
+            $totalDescuentos += ($factura->monto_descuento ?? 0);
+            
+            // Continuar con el bucle de productos para agrupar ISV
+            foreach ($this->productosFacturaImpresa as $producto) {
 
                 // Agrupar ISV por tasa
                 $tasaIsv = $producto['isv_aplicado'];
