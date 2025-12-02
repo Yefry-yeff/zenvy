@@ -748,13 +748,13 @@
                                                 @if($esServicio)
                                                     <!-- Para servicios, cantidad editable sin restricción de stock -->
                                                     <input type="number"
-                                                        wire:key="servicio-{{ $loop->index }}-{{ $item['cantidad'] }}"
-                                                        value="{{ $item['cantidad'] }}"
-                                                        @blur="
+                                                        wire:key="servicio-{{ $loop->index }}-{{ $item['cantidad'] }}-{{ $item['unidad_medida_id'] ?? 0 }}"
+                                                        wire:model.lazy="productosFactura.{{ $loop->index }}.cantidad"
+                                                        @input="
                                                             let val = parseInt($event.target.value) || 1;
-                                                            if(val < 1) val = 1;
-                                                            $event.target.value = val;
-                                                            $wire.set('productosFactura.{{ $loop->index }}.cantidad', val);
+                                                            if(val < 1) {
+                                                                $event.target.value = 1;
+                                                            }
                                                         "
                                                         min="1"
                                                         class="w-20 text-center form-control"
@@ -776,17 +776,18 @@
                                                     @endphp
                                                     <!-- Nuevo sistema: Cantidad editable limitada por stock_total_unidad -->
                                                     <input type="number"
-                                                        wire:key="producto-{{ $loop->index }}-{{ $item['cantidad'] }}"
-                                                        value="{{ $item['cantidad'] }}"
+                                                        wire:key="producto-{{ $loop->index }}-{{ $item['cantidad'] }}-{{ $item['unidad_medida_id'] ?? 0 }}"
+                                                        wire:model.lazy="productosFactura.{{ $loop->index }}.cantidad"
                                                         x-data="{
                                                             stockMax: {{ $stockMaxParaEstaLinea }}
                                                         }"
-                                                        @blur="
+                                                        @input="
                                                             let val = parseInt($event.target.value) || 1;
-                                                            if(val < 1) val = 1;
-                                                            if(val > stockMax) val = stockMax;
-                                                            $event.target.value = val;
-                                                            $wire.set('productosFactura.{{ $loop->index }}.cantidad', val);
+                                                            if(val < 1) {
+                                                                $event.target.value = 1;
+                                                            } else if(val > stockMax) {
+                                                                $event.target.value = stockMax;
+                                                            }
                                                         "
                                                         min="1"
                                                         max="{{ $stockMaxParaEstaLinea }}"
@@ -796,17 +797,18 @@
                                                 @else
                                                     <!-- Sistema anterior: Para productos, cantidad limitada por stock -->
                                                     <input type="number"
-                                                        wire:key="producto-{{ $loop->index }}-{{ $item['cantidad'] }}"
-                                                        value="{{ $item['cantidad'] }}"
+                                                        wire:key="producto-{{ $loop->index }}-{{ $item['cantidad'] }}-{{ $item['unidad_medida_id'] ?? 0 }}"
+                                                        wire:model.lazy="productosFactura.{{ $loop->index }}.cantidad"
                                                         x-data="{
                                                             stockMax: {{ $stockDisponible }}
                                                         }"
-                                                        @blur="
+                                                        @input="
                                                             let val = parseInt($event.target.value) || 1;
-                                                            if(val < 1) val = 1;
-                                                            if(val > stockMax) val = stockMax;
-                                                            $event.target.value = val;
-                                                            $wire.set('productosFactura.{{ $loop->index }}.cantidad', val);
+                                                            if(val < 1) {
+                                                                $event.target.value = 1;
+                                                            } else if(val > stockMax) {
+                                                                $event.target.value = stockMax;
+                                                            }
                                                         "
                                                         min="1"
                                                         max="{{ $stockDisponible }}"
