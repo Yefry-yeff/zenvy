@@ -4779,10 +4779,12 @@ class Ventas extends Component
             'cliente' => $this->cliente,
             'cliente_manual' => [
                 'rtn' => $this->rtnManual,
-                'nombre' => $this->nombreCompletoManual,
-                'telefono' => $this->telefonoManual,
-                'correo' => $this->correoManual,
-                'direccion' => $this->direccionManual,
+                'nombre' => $this->nombreClienteManual,
+                'telefono' => $this->telefonoClienteManual,
+                'correo' => $this->correoClienteManual,
+                'direccion' => $this->direccionClienteManual,
+                'tipo_persona_id' => $this->tipoPersonaId ?? 1,
+                'tipo_cliente_id' => $this->tipoClienteId ?? 1,
             ],
             'modo_cliente_manual' => $this->modoClienteManual,
             'productos' => $this->productosFactura,
@@ -4816,14 +4818,45 @@ class Ventas extends Component
         if (isset($tramites[$index])) {
             $tramite = $tramites[$index];
 
-            // Restaurar datos del cliente
-            $this->cliente = $tramite['cliente'] ?? null;
+            // Restaurar datos del cliente manual
             $this->modoClienteManual = $tramite['modo_cliente_manual'] ?? false;
             $this->rtnManual = $tramite['cliente_manual']['rtn'] ?? '';
-            $this->nombreCompletoManual = $tramite['cliente_manual']['nombre'] ?? '';
-            $this->telefonoManual = $tramite['cliente_manual']['telefono'] ?? '';
-            $this->correoManual = $tramite['cliente_manual']['correo'] ?? '';
-            $this->direccionManual = $tramite['cliente_manual']['direccion'] ?? '';
+            $this->nombreClienteManual = $tramite['cliente_manual']['nombre'] ?? '';
+            $this->telefonoClienteManual = $tramite['cliente_manual']['telefono'] ?? '';
+            $this->correoClienteManual = $tramite['cliente_manual']['correo'] ?? '';
+            $this->direccionClienteManual = $tramite['cliente_manual']['direccion'] ?? '';
+            $this->tipoPersonaId = $tramite['cliente_manual']['tipo_persona_id'] ?? 1;
+            $this->tipoClienteId = $tramite['cliente_manual']['tipo_cliente_id'] ?? 1;
+
+            // Buscar cliente en base de datos si hay RTN
+            if (!empty($this->rtnManual)) {
+                try {
+                    $clienteEncontrado = Cliente::with(['tipoPersona', 'tipoCliente'])
+                        ->where('identidad', $this->rtnManual)
+                        ->first();
+
+                    if ($clienteEncontrado) {
+                        // Cliente encontrado, actualizar con datos actuales de BD
+                        $this->nombreClienteManual = $clienteEncontrado->nombre;
+                        $this->telefonoClienteManual = $clienteEncontrado->telefono ?? '';
+                        $this->correoClienteManual = $clienteEncontrado->correo ?? '';
+                        $this->direccionClienteManual = $clienteEncontrado->direccion ?? '';
+                        $this->tipoPersonaId = $clienteEncontrado->tipo_persona_id ?? 1;
+                        $this->tipoClienteId = $clienteEncontrado->tipo_cliente_id ?? 1;
+                        $this->cliente = $clienteEncontrado;
+                        $this->camposBloqueados = true;
+                    } else {
+                        // Cliente no existe, usar datos guardados en trámite
+                        $this->cliente = null;
+                        $this->camposBloqueados = false;
+                    }
+                } catch (Exception $e) {
+                    Log::error('Error al buscar cliente al cargar trámite: ' . $e->getMessage());
+                    $this->cliente = $tramite['cliente'] ?? null;
+                }
+            } else {
+                $this->cliente = $tramite['cliente'] ?? null;
+            }
 
             // Restaurar productos
             $this->productosFactura = $tramite['productos'] ?? [];
@@ -4853,14 +4886,45 @@ class Ventas extends Component
         $tramite = session('tramite_venta_a_cargar');
 
         if ($tramite) {
-            // Restaurar datos del cliente
-            $this->cliente = $tramite['cliente'] ?? null;
+            // Restaurar datos del cliente manual
             $this->modoClienteManual = $tramite['modo_cliente_manual'] ?? false;
             $this->rtnManual = $tramite['cliente_manual']['rtn'] ?? '';
-            $this->nombreCompletoManual = $tramite['cliente_manual']['nombre'] ?? '';
-            $this->telefonoManual = $tramite['cliente_manual']['telefono'] ?? '';
-            $this->correoManual = $tramite['cliente_manual']['correo'] ?? '';
-            $this->direccionManual = $tramite['cliente_manual']['direccion'] ?? '';
+            $this->nombreClienteManual = $tramite['cliente_manual']['nombre'] ?? '';
+            $this->telefonoClienteManual = $tramite['cliente_manual']['telefono'] ?? '';
+            $this->correoClienteManual = $tramite['cliente_manual']['correo'] ?? '';
+            $this->direccionClienteManual = $tramite['cliente_manual']['direccion'] ?? '';
+            $this->tipoPersonaId = $tramite['cliente_manual']['tipo_persona_id'] ?? 1;
+            $this->tipoClienteId = $tramite['cliente_manual']['tipo_cliente_id'] ?? 1;
+
+            // Buscar cliente en base de datos si hay RTN
+            if (!empty($this->rtnManual)) {
+                try {
+                    $clienteEncontrado = Cliente::with(['tipoPersona', 'tipoCliente'])
+                        ->where('identidad', $this->rtnManual)
+                        ->first();
+
+                    if ($clienteEncontrado) {
+                        // Cliente encontrado, actualizar con datos actuales de BD
+                        $this->nombreClienteManual = $clienteEncontrado->nombre;
+                        $this->telefonoClienteManual = $clienteEncontrado->telefono ?? '';
+                        $this->correoClienteManual = $clienteEncontrado->correo ?? '';
+                        $this->direccionClienteManual = $clienteEncontrado->direccion ?? '';
+                        $this->tipoPersonaId = $clienteEncontrado->tipo_persona_id ?? 1;
+                        $this->tipoClienteId = $clienteEncontrado->tipo_cliente_id ?? 1;
+                        $this->cliente = $clienteEncontrado;
+                        $this->camposBloqueados = true;
+                    } else {
+                        // Cliente no existe, usar datos guardados en trámite
+                        $this->cliente = null;
+                        $this->camposBloqueados = false;
+                    }
+                } catch (Exception $e) {
+                    Log::error('Error al buscar cliente al cargar trámite desde sesión: ' . $e->getMessage());
+                    $this->cliente = $tramite['cliente'] ?? null;
+                }
+            } else {
+                $this->cliente = $tramite['cliente'] ?? null;
+            }
 
             // Restaurar productos
             $this->productosFactura = $tramite['productos'] ?? [];
