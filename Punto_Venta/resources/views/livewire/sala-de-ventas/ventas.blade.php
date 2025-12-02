@@ -674,11 +674,12 @@
                                                             @if($tieneStock || ($item['precio_id'] ?? null) == $precioDisp->precio_id)
                                                                 <option value="{{ $precioDisp->precio_id }}"
                                                                         {{ ($item['precio_id'] ?? null) == $precioDisp->precio_id ? 'selected' : '' }}>
-                                                                    {{ $precioDisp->unidad_nombre }} - Stock: {{ $stockDisponibleUnidad }}
+                                                                    {{ $precioDisp->unidad_nombre }}
                                                                 </option>
                                                             @endif
                                                         @endforeach
                                                     </select>
+                                                    <small class="d-block text-muted mt-1">{{ $item['codigo'] }}</small>
                                                 @else
                                                     {{ $item['codigo'] ?? 'N/A' }}
                                                 @endif
