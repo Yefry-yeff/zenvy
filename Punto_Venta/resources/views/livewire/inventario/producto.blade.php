@@ -214,7 +214,7 @@
                                 <th class="px-4 py-2 border-b">
                                     <input type="text"
                                            wire:model.live.debounce.300ms="filtroNombre"
-                                           placeholder="Filtrar..."
+                                           placeholder="Filtrar Producto..."
                                            class="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500">
                                 </th>
                                 <th class="px-4 py-2 border-b">
@@ -229,15 +229,16 @@
                                            placeholder="Filtrar unidad..."
                                            class="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500">
                                 </th>
+                                <th class="px-4 py-2 border-b">
                                     <input type="text"
                                            wire:model.live.debounce.300ms="filtroCategoria"
-                                           placeholder="Filtrar..."
+                                           placeholder="Filtrar categoría..."
                                            class="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500">
                                 </th>
                                 <th class="px-4 py-2 border-b">
                                     <input type="text"
                                            wire:model.live.debounce.300ms="filtroMarca"
-                                           placeholder="Filtrar..."
+                                           placeholder="Filtrar Marca..."
                                            class="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500">
                                 </th>
                                 <th class="px-4 py-2 border-b">
@@ -255,20 +256,20 @@
                                         $numPresentaciones = !empty($producto->presentaciones) ? count($producto->presentaciones) : 1;
                                         $primeraPresentacion = true;
                                     @endphp
-                                    
+
                                     @if(!empty($producto->presentaciones) && count($producto->presentaciones) > 0)
                                         @foreach($producto->presentaciones as $index => $presentacion)
                                         <tr class="transition-colors duration-150 cursor-pointer hover:bg-gray-50"
                                             wire:key="producto-{{ $producto->id }}-presentacion-{{ $index }}">
                                             @if($index === 0)
                                                 <!-- Código del Producto (ID) - solo en primera fila -->
-                                                <td class="px-4 py-3 text-sm font-semibold text-gray-900 border-r" 
+                                                <td class="px-4 py-3 text-sm font-semibold text-gray-900 border-r"
                                                     rowspan="{{ $numPresentaciones }}"
                                                     wire:click="editar({{ $producto->id }})">
                                                     #{{ $producto->id }}
                                                 </td>
                                                 <!-- Producto - solo en primera fila -->
-                                                <td class="px-4 py-3 border-r" 
+                                                <td class="px-4 py-3 border-r"
                                                     rowspan="{{ $numPresentaciones }}"
                                                     wire:click="editar({{ $producto->id }})">
                                                     <div>
@@ -297,12 +298,12 @@
                                                         @endif
                                                     </span>
                                                 @else
-                                                    <span class="text-gray-400 text-xs">N/A</span>
+                                                    <span class="text-xs text-gray-400">N/A</span>
                                                 @endif
                                             </td>
                                             @if($index === 0)
                                                 <!-- Categoría - solo en primera fila -->
-                                                <td class="px-4 py-3 text-sm text-gray-700 border-l" 
+                                                <td class="px-4 py-3 text-sm text-gray-700 border-l"
                                                     rowspan="{{ $numPresentaciones }}"
                                                     wire:click="editar({{ $producto->id }})">
                                                     <div>
@@ -311,13 +312,13 @@
                                                     </div>
                                                 </td>
                                                 <!-- Marca - solo en primera fila -->
-                                                <td class="px-4 py-3 text-sm text-gray-700" 
+                                                <td class="px-4 py-3 text-sm text-gray-700"
                                                     rowspan="{{ $numPresentaciones }}"
                                                     wire:click="editar({{ $producto->id }})">
                                                     {{ $producto->marca->nombre ?? 'Sin marca' }}
                                                 </td>
                                                 <!-- Origen - solo en primera fila -->
-                                                <td class="px-4 py-3 text-center" 
+                                                <td class="px-4 py-3 text-center"
                                                     rowspan="{{ $numPresentaciones }}"
                                                     wire:click="editar({{ $producto->id }})">
                                                     @if($producto->producto_valencia)
