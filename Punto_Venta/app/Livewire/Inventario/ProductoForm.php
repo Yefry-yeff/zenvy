@@ -906,15 +906,15 @@ class ProductoForm extends Component
                     }
 
                     $datosPermitidos = [
-                        'nombre' => $producto->nombre,
-                        'descripcion' => $producto->descripcion,
+                        'nombre' => $datos['nombre'], // Permitir editar nombre
+                        'descripcion' => $datos['descripcion'], // Permitir editar descripción
                         'isv_id' => $datos['isv_id'], // Permitir modificar ISV
                         'precio_base' => $datos['precio_base'],
                         'ultimo_costo_compra' => $producto->ultimo_costo_compra,
                         'costo_promedio' => $producto->costo_promedio,
                         // Si el código de barras está vacío, asignar el id
                         'codigo_barra' => (!empty($datos['codigo_barra']) && trim($datos['codigo_barra']) !== '') ? $datos['codigo_barra'] : (string)$this->productoId,
-                        'codigo_estatal' => $producto->codigo_estatal,
+                        'codigo_estatal' => $datos['codigo_estatal'], // Permitir editar código estatal
                         'estado_id' => $producto->estado_id,
                         'subcategoria_id' => $producto->subcategoria_id,
                         'marca_id' => $producto->marca_id,

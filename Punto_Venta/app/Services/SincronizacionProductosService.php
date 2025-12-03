@@ -177,15 +177,16 @@ class SincronizacionProductosService
                     ->first();
 
                 if ($productoZenvyActual) {
-                    // Para actualizaciones, NO sincronizar: codigo_barra, imagen, descuento_unitario, isv_id, unidad_medida_venta_id
+                    // Para actualizaciones de productos EXISTENTES, NO sincronizar:
+                    // - codigo_barra, imagen, descuento_unitario, isv_id, unidad_medida_venta_id
+                    // - nombre, descripcion, codigo_estatal (mantener valores locales de Paperland)
                     // Para precio_base: solo sincronizar si es necesario ajustarlo al precio4
+                    
                     $datosActualizacion = [
-                        'nombre' => $productoValencia->nombre,
-                        'descripcion' => $productoValencia->descripcion,
+                        // NO sincronizar nombre, descripcion, codigo_estatal (mantener valores locales)
                         // NO sincronizar isv_id en actualizaciones (mantener valor local)
                         'ultimo_costo_compra' => $productoValencia->ultimo_costo_compra,
                         'costo_promedio' => $productoValencia->costo_promedio,
-                        'codigo_estatal' => $productoValencia->codigo_estatal,
                         'marca_id' => $marcaIdZenvy,
                         // NO sincronizar unidad_medida_venta_id en actualizaciones (mantener valor local)
                         'estado_id' => $productoValencia->estado_producto_id,
@@ -197,6 +198,9 @@ class SincronizacionProductosService
                         'precio4' => $productoValencia->precio4,
                         'updated_at' => now()
                     ];
+                    
+                    // Los campos nombre, descripcion y codigo_estatal NO se actualizan
+                    // para productos existentes en Paperland - se mantienen los valores locales
 
                     // Lógica especial para precio_base:
                     // Solo actualizar si precio_base actual es menor que precio4

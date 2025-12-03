@@ -135,15 +135,6 @@
                     <div class="p-4 bg-white border shadow rounded-xl">
                         <h2 class="mb-4 text-lg font-semibold text-gray-700">📝 Información Básica</h2>
 
-                        @if($esProductoValencia)
-                            <div class="mb-4 p-3 bg-orange-50 border border-orange-200 rounded">
-                                <p class="text-sm text-orange-700">
-                                    🏢 <strong>Producto sincronizado desde Valencia</strong> - Los campos principales son de solo lectura.
-                                    Puedes modificar: precios, descuentos, imagen, unidad de medida y tipo de ISV.
-                                </p>
-                            </div>
-                        @endif
-
                         <div class="row">
                             <div class="mb-3 col-md-6">
                                 <label for="id_producto" class="form-label">ID del Producto</label>
@@ -157,17 +148,7 @@
                             </div>
                             <div class="mb-3 col-md-6">
                                 <label for="codigo_estatal" class="form-label">Código Estatal</label>
-                                @if($esProductoValencia)
-                                    <input type="text"
-                                           id="codigo_estatal"
-                                           class="form-control bg-gray-100 text-gray-600"
-                                           value="{{ $form['codigo_estatal'] }}"
-                                           readonly
-                                           style="cursor: not-allowed;"
-                                           title="Campo solo de lectura">
-                                @else
-                                    <input type="text" id="codigo_estatal" class="form-control" wire:model.defer="form.codigo_estatal">
-                                @endif
+                                <input type="text" id="codigo_estatal" class="form-control" wire:model.defer="form.codigo_estatal">
                                 @error('form.codigo_estatal')
                                     <div class="mt-1 text-sm text-danger">{{ $message }}</div>
                                 @enderror
@@ -176,34 +157,14 @@
                         <div class="row">
                             <div class="mb-3 col-md-6">
                                 <label for="nombre" class="form-label">Nombre <span class="text-red-600">*</span></label>
-                                @if($esProductoValencia)
-                                    <input type="text"
-                                           id="nombre"
-                                           class="form-control bg-gray-100 text-gray-600"
-                                           value="{{ $form['nombre'] }}"
-                                           readonly
-                                           style="cursor: not-allowed;"
-                                           title="Campo solo de lectura">
-                                @else
-                                    <input type="text" id="nombre" class="form-control {{ $this->getClaseCampo('nombre') }}" wire:model.live="form.nombre">
-                                @endif
+                                <input type="text" id="nombre" class="form-control {{ $this->getClaseCampo('nombre') }}" wire:model.live="form.nombre">
                                 @error('form.nombre')
                                     <div class="mt-1 text-sm text-danger">❌ El nombre del producto es obligatorio y no puede estar vacío</div>
                                 @enderror
                             </div>
                             <div class="mb-3 col-md-6">
                                 <label for="descripcion" class="form-label">Descripción</label>
-                                @if($esProductoValencia)
-                                    <input type="text"
-                                           id="descripcion"
-                                           class="form-control bg-gray-100 text-gray-600"
-                                           value="{{ $form['descripcion'] }}"
-                                           readonly
-                                           style="cursor: not-allowed;"
-                                           title="Campo solo de lectura">
-                                @else
-                                    <input type="text" id="descripcion" class="form-control" wire:model.defer="form.descripcion">
-                                @endif
+                                <input type="text" id="descripcion" class="form-control" wire:model.defer="form.descripcion">
                                 @error('form.descripcion')
                                     <div class="mt-1 text-sm text-danger">{{ $message }}</div>
                                 @enderror
