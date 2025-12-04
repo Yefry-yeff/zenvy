@@ -1480,12 +1480,12 @@ class Ventas extends Component
                 // Actualizar el stock_total_unidad mostrado para esta línea
                 $this->productosFactura[$index]['stock_total_unidad'] = $stockEnBodega;
 
-                // IMPORTANTE: Actualizar stock_total_unidad en TODAS las líneas del mismo producto+unidad
+                // IMPORTANTE: Actualizar stock_total_unidad en TODAS las líneas del mismo producto+precio_id
                 // para que todas muestren el mismo stock de bodega
                 foreach ($this->productosFactura as $i => $itemCarrito) {
                     if ($itemCarrito['id'] == $item['id'] &&
-                        isset($itemCarrito['unidad_medida_id']) &&
-                        $itemCarrito['unidad_medida_id'] == $item['unidad_medida_id']) {
+                        isset($itemCarrito['precio_id']) &&
+                        $itemCarrito['precio_id'] == $item['precio_id']) {
                         $this->productosFactura[$i]['stock_total_unidad'] = $stockEnBodega;
                     }
                 }
@@ -3087,6 +3087,7 @@ class Ventas extends Component
             'Servicios_id' => null,
             'seccion_id' => $primeraSeccion->seccion_id,
             'unidad_medida_id' => $producto['unidad_medida_id'] ?? null,
+            'precio_id' => $producto['precio_id'] ?? null,
             'indice' => $indice,
             'numero_unidades_resta_inventario' => $producto['cantidad'],
             'unidades_nota_credito_resta_inventario' => 0,
@@ -3352,6 +3353,7 @@ class Ventas extends Component
         $this->productosFacturaImpresa = DB::table('factura_has_producto as fp')
             ->leftJoin('producto as p', 'fp.producto_id', '=', 'p.id')
             ->leftJoin('servicios as s', 'fp.Servicios_id', '=', 's.id')
+            ->leftJoin('precio_has_venta as phv', 'fp.precio_id', '=', 'phv.id')
             ->leftJoin('isv as i_producto', 'p.isv_id', '=', 'i_producto.id')
             ->leftJoin('isv as i_servicio', 's.isv_id', '=', 'i_servicio.id')
             ->leftJoinSub($descuentosAgrupados, 'd', function($join) {
@@ -3362,7 +3364,11 @@ class Ventas extends Component
             ->where('fp.factura_id', $facturaId)
             ->select(
                 DB::raw('COALESCE(p.id, s.id) as item_id'),
-                DB::raw('COALESCE(p.nombre, s.nombre) as nombre'),
+                DB::raw('CASE 
+                    WHEN p.id IS NOT NULL AND phv.descripcion IS NOT NULL AND phv.descripcion != "" 
+                    THEN CONCAT(p.nombre, " - ", phv.descripcion) 
+                    ELSE COALESCE(p.nombre, s.nombre) 
+                END as nombre'),
                 DB::raw('CASE WHEN p.id IS NOT NULL THEN "PRODUCTO" ELSE "SERVICIO" END as codigo_barra'),
                 DB::raw('COALESCE(i_producto.cantidad, i_servicio.cantidad, 0) as tasa_isv'),
                 DB::raw('CASE WHEN p.id IS NOT NULL THEN "producto" ELSE "servicio" END as tipo'),
