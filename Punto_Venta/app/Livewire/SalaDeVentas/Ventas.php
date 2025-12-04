@@ -3350,7 +3350,7 @@ class Ventas extends Component
             ->where('factura_id', $facturaId)
             ->groupBy('factura_id', 'producto_id', 'indice_factura_has_producto');
 
-        $this->productosFacturaImpresa = DB::table('factura_has_producto as fp')
+        $queryProductos = DB::table('factura_has_producto as fp')
             ->leftJoin('producto as p', 'fp.producto_id', '=', 'p.id')
             ->leftJoin('servicios as s', 'fp.Servicios_id', '=', 's.id')
             ->leftJoin('precio_has_venta as phv', 'fp.precio_id', '=', 'phv.id')
@@ -3364,6 +3364,11 @@ class Ventas extends Component
             ->where('fp.factura_id', $facturaId)
             ->select(
                 DB::raw('COALESCE(p.id, s.id) as item_id'),
+                'p.nombre as producto_nombre',
+                's.nombre as servicio_nombre',
+                'fp.precio_id',
+                'phv.id as phv_id',
+                'phv.descripcion',
                 DB::raw('CASE 
                     WHEN p.id IS NOT NULL AND phv.descripcion IS NOT NULL AND phv.descripcion != "" 
                     THEN CONCAT(p.nombre, " - ", phv.descripcion) 
@@ -3381,12 +3386,32 @@ class Ventas extends Component
                 'fp.total',
                 'fp.indice',
                 DB::raw('COALESCE(d.descuento_total, 0) as descuento_unitario')
-            )
-            ->get()
+            );
+
+        // Log de la consulta SQL
+        Log::info("DEBUG SQL para impresión", [
+            'factura_id' => $facturaId,
+            'sql' => $queryProductos->toSql(),
+            'bindings' => $queryProductos->getBindings()
+        ]);
+
+        $this->productosFacturaImpresa = $queryProductos->get()
             ->map(function($item) {
                 return (array) $item;
             })
             ->toArray();
+
+        // Log para debug de impresión
+        Log::info("DEBUG Productos para impresión", [
+            'factura_id' => $facturaId,
+            'productos' => collect($this->productosFacturaImpresa)->map(function($p) {
+                return [
+                    'nombre' => $p['nombre'] ?? 'N/A',
+                    'precio_id' => $p['precio_id'] ?? 'NULL',
+                    'presentacion_descripcion' => $p['presentacion_descripcion'] ?? 'NULL'
+                ];
+            })->toArray()
+        ]);
 
         // Cargar métodos de pago
         $this->pagosFacturaImpresa = DB::table('factura_has_pago as fp')

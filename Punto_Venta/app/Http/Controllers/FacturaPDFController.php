@@ -174,13 +174,18 @@ class FacturaPDFController extends Controller
             $productos = DB::table('factura_has_producto as fp')
                 ->leftJoin('producto as p', 'fp.producto_id', '=', 'p.id')
                 ->leftJoin('servicios as s', 'fp.Servicios_id', '=', 's.id')
+                ->leftJoin('precio_has_venta as phv', 'fp.precio_id', '=', 'phv.id')
                 ->leftJoin('isv as i_producto', 'p.isv_id', '=', 'i_producto.id')
                 ->leftJoin('isv as i_servicio', 's.isv_id', '=', 'i_servicio.id')
                 ->leftJoin('unidad_medida as um', 'fp.unidad_medida_id', '=', 'um.id')
                 ->where('fp.factura_id', $facturaId)
                 ->select(
                     DB::raw('COALESCE(p.id, s.id) as producto_id'),
-                    DB::raw('COALESCE(p.nombre, s.nombre) as nombre'),
+                    DB::raw('CASE 
+                        WHEN p.id IS NOT NULL AND phv.descripcion IS NOT NULL AND phv.descripcion != "" 
+                        THEN CONCAT(p.nombre, " - ", phv.descripcion) 
+                        ELSE COALESCE(p.nombre, s.nombre) 
+                    END as nombre'),
                     DB::raw('COALESCE(p.codigo_barra, "SERVICIO") as codigo_barra'),
                     DB::raw('COALESCE(i_producto.cantidad, i_servicio.cantidad, 0) as tasa_isv'),
                     DB::raw('CASE WHEN p.id IS NOT NULL THEN "producto" ELSE "servicio" END as tipo'),
