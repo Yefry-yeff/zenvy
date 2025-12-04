@@ -943,6 +943,7 @@ class Ventas extends Component
                 'precio_has_venta.id as precio_id',
                 'precio_has_venta.unidad_medida_id',
                 'precio_has_venta.codigo_barra',
+                'precio_has_venta.descripcion',
                 'unidad_medida.nombre as unidad_nombre',
                 'unidad_medida.simbolo as unidad_simbolo',
                 'precio_has_venta.cantidad',
@@ -965,6 +966,7 @@ class Ventas extends Component
                 'precio_has_venta.id as precio_id',
                 'precio_has_venta.unidad_medida_id',
                 'precio_has_venta.codigo_barra',
+                'precio_has_venta.descripcion',
                 'unidad_medida.nombre as unidad_nombre',
                 'unidad_medida.simbolo as unidad_simbolo',
                 'precio_has_venta.cantidad',
@@ -4333,6 +4335,7 @@ class Ventas extends Component
                     'precio_has_venta.id as precio_id',
                     'precio_has_venta.unidad_medida_id',
                     'precio_has_venta.codigo_barra',
+                    'precio_has_venta.descripcion',
                     'unidad_medida.nombre as unidad_nombre',
                     'unidad_medida.simbolo as unidad_simbolo',
                     'precio_has_venta.cantidad',
@@ -4719,6 +4722,7 @@ class Ventas extends Component
                     'phv.id as precio_id',
                     'phv.precio',
                     'phv.codigo_barra',
+                    'phv.descripcion',
                     'phv.cantidad as cantidad_por_unidad',
                     'um.id as unidad_medida_id',
                     'um.nombre as unidad_nombre'
@@ -4738,14 +4742,18 @@ class Ventas extends Component
                         }
                     }
 
-                    // Calcular stock específico para esta unidad de medida
-                    $stockUnidadTotal = $this->calcularStockTotalPorUnidad($producto->id, $precioVenta->unidad_medida_id);
+                    // Calcular stock específico para esta presentación (precio_venta_id)
+                    $stockUnidadTotal = $this->calcularStockTotalPorUnidad(
+                        $producto->id, 
+                        $precioVenta->unidad_medida_id,
+                        $precioVenta->precio_id  // precio_venta_id
+                    );
 
-                    // Calcular cuánto hay en el carrito para esta misma unidad (en unidades reales de venta)
+                    // Calcular cuánto hay en el carrito para esta misma presentación (precio_id)
                     $cantidadEnCarritoUnidad = 0;
                     foreach ($this->productosFactura as $itemCarrito) {
                         if (isset($itemCarrito['id']) && $itemCarrito['id'] == $producto->id &&
-                            isset($itemCarrito['unidad_medida_id']) && $itemCarrito['unidad_medida_id'] == $precioVenta->unidad_medida_id) {
+                            isset($itemCarrito['precio_id']) && $itemCarrito['precio_id'] == $precioVenta->precio_id) {
                             $cantidadEnCarritoUnidad += (int)($itemCarrito['cantidad'] ?? 0);
                         }
                     }
@@ -4760,6 +4768,7 @@ class Ventas extends Component
                         'id' => $producto->id,
                         'nombre' => $producto->nombre ?? '',
                         'descripcion' => $producto->descripcion ?? '',
+                        'presentacion_descripcion' => $precioVenta->descripcion ?? '',
                         'codigo_barra' => $precioVenta->codigo_barra ?? '',
                         'imagen_base64' => $imagenBase64,
                         'tiene_imagen' => $imagenBase64 !== null,

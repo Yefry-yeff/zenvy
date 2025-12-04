@@ -612,13 +612,13 @@
                                             // Calcular stock disponible (stock total - cantidad en carrito)
                                             if (!$esServicio) {
                                                 // NUEVO: Usar stock_total_unidad si está disponible (para productos con unidades de medida)
-                                                if (isset($item['stock_total_unidad']) && isset($item['unidad_medida_id'])) {
-                                                    // Calcular la suma de TODAS las cantidades en el carrito para este producto+unidad
+                                                if (isset($item['stock_total_unidad']) && isset($item['precio_id'])) {
+                                                    // Calcular la suma de TODAS las cantidades en el carrito para este producto+precio_id
                                                     $cantidadTotalEnCarrito = 0;
                                                     foreach($productosFactura as $itemCarrito) {
                                                         if ($itemCarrito['id'] == $item['id'] &&
-                                                            isset($itemCarrito['unidad_medida_id']) &&
-                                                            $itemCarrito['unidad_medida_id'] == $item['unidad_medida_id']) {
+                                                            isset($itemCarrito['precio_id']) &&
+                                                            $itemCarrito['precio_id'] == $item['precio_id']) {
                                                             $cantidadTotalEnCarrito += (int)($itemCarrito['cantidad'] ?? 0);
                                                         }
                                                     }
@@ -629,7 +629,13 @@
                                                     // Sistema anterior: calcular con cantidad por unidad
                                                     $cantidadPorUnidad = $item['cantidad_por_unidad'] ?? 1;
                                                     $cantidadEnCarrito = $item['cantidad'] ?? 0;
-                                                    $stockDisponible = $this->obtenerStockDisponibleConUnidad($item['id'], $cantidadPorUnidad, $cantidadEnCarrito, $loop->index);
+                                                    $stockDisponible = $this->obtenerStockDisponibleConUnidad(
+                                                        $item['id'], 
+                                                        $cantidadPorUnidad, 
+                                                        $cantidadEnCarrito, 
+                                                        $loop->index,
+                                                        $item['precio_id'] ?? null
+                                                    );
                                                 }
                                             } else {
                                                 $stockDisponible = null;
@@ -650,20 +656,27 @@
                                             </td>
                                             <td>
                                                 @if(!$esServicio && isset($item['precios_disponibles']))
+                                                    @php
+                                                        $indiceActual = $loop->index;
+                                                    @endphp
                                                     <!-- Selector de unidad de medida -->
                                                     <select class="form-select form-select-sm"
                                                             style="min-width: 150px; font-size: 0.75rem;"
-                                                            wire:change="cambiarUnidadProducto({{ $loop->index }}, $event.target.value)">
+                                                            wire:change="cambiarUnidadProducto({{ $indiceActual }}, $event.target.value)">
                                                         @foreach($item['precios_disponibles'] as $precioDisp)
                                                             @php
-                                                                // Calcular stock disponible para esta unidad
-                                                                $stockUnidad = $this->calcularStockTotalPorUnidad($item['id'], $precioDisp->unidad_medida_id);
+                                                                // Calcular stock disponible para esta presentación (precio_id)
+                                                                $stockUnidad = $this->calcularStockTotalPorUnidad(
+                                                                    $item['id'], 
+                                                                    $precioDisp->unidad_medida_id,
+                                                                    $precioDisp->precio_id
+                                                                );
                                                                 $cantidadEnCarritoUnidad = 0;
                                                                 foreach($productosFactura as $idx => $otroItem) {
-                                                                    if ($idx !== $loop->parent->index && 
+                                                                    if ($idx !== $indiceActual && 
                                                                         $otroItem['id'] == $item['id'] &&
-                                                                        isset($otroItem['unidad_medida_id']) &&
-                                                                        $otroItem['unidad_medida_id'] == $precioDisp->unidad_medida_id) {
+                                                                        isset($otroItem['precio_id']) &&
+                                                                        $otroItem['precio_id'] == $precioDisp->precio_id) {
                                                                         $cantidadEnCarritoUnidad += (int)($otroItem['cantidad'] ?? 0);
                                                                     }
                                                                 }
@@ -675,6 +688,9 @@
                                                                 <option value="{{ $precioDisp->precio_id }}"
                                                                         {{ ($item['precio_id'] ?? null) == $precioDisp->precio_id ? 'selected' : '' }}>
                                                                     {{ $precioDisp->unidad_nombre }}
+                                                                    @if($precioDisp->descripcion)
+                                                                        - {{ $precioDisp->descripcion }}
+                                                                    @endif
                                                                 </option>
                                                             @endif
                                                         @endforeach
@@ -1277,6 +1293,11 @@
                                             <span class="ml-1 text-xs">({{ $item->cantidad_por_unidad }} unids.)</span>
                                         @endif
                                     </div>
+                                    @if($item->presentacion_descripcion)
+                                        <div class="mt-1 text-xs text-gray-600">
+                                            <i class="mr-1 fas fa-info-circle"></i>{{ $item->presentacion_descripcion }}
+                                        </div>
+                                    @endif
                                 </div>
 
                                 <!-- Código -->

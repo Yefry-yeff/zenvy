@@ -330,6 +330,9 @@
                                     <td class="px-4 py-3 border-b">
                                         <div class="flex flex-col">
                                             <span class="font-semibold text-gray-900">{{ $item->producto_nombre }}</span>
+                                            @if($item->presentacion_descripcion)
+                                                <small class="text-blue-600"><i class="mr-1 fas fa-tag"></i>{{ $item->presentacion_descripcion }}</small>
+                                            @endif
                                             @if($item->producto_descripcion)
                                                 <small class="text-gray-500">{{ Str::limit($item->producto_descripcion, 30) }}</small>
                                             @endif
