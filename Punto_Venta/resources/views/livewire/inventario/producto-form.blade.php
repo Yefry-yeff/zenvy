@@ -404,6 +404,14 @@
                                         </div>
                                     </div>
                                     <div class="mb-3 col-md-3">
+                                        <label for="nueva_descripcion" class="form-label">Descripción</label>
+                                        <input type="text"
+                                               id="nueva_descripcion"
+                                               class="form-control"
+                                               wire:model="nuevoPrecioVenta.descripcion"
+                                               placeholder="Descripción opcional">
+                                    </div>
+                                    <div class="mb-3 col-md-2">
                                         <button type="button"
                                                 wire:click="agregarPrecioVenta"
                                                 class="w-100 btn"
@@ -443,6 +451,7 @@
                                             <th class="text-center">Cantidad</th>
                                             <th class="text-end">Precio Total</th>
                                             <th class="text-end">Precio Unitario</th>
+                                            <th>Descripción</th>
                                             <th class="text-center" style="width: 80px;">Acciones</th>
                                         </tr>
                                     </thead>
@@ -475,6 +484,9 @@
                                                 </td>
                                                 <td class="text-end" wire:click="abrirModalEditarPrecio({{ $index }})">
                                                     <small class="text-muted">L. {{ number_format($precioUnitario, 2) }} c/u</small>
+                                                </td>
+                                                <td wire:click="abrirModalEditarPrecio({{ $index }})">
+                                                    <small class="text-muted">{{ $precio['descripcion'] ?? '-' }}</small>
                                                 </td>
                                                 <td class="text-center">
                                                     <button type="button"
@@ -783,6 +795,18 @@
                                 Precio unitario: L. {{ number_format($precioEditando['precio'] / $precioEditando['cantidad'], 2) }} c/u
                             </small>
                         @endif
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="editar_descripcion" class="form-label fw-bold">
+                            <i class="fas fa-align-left me-1"></i>Descripción
+                        </label>
+                        <input type="text"
+                               id="editar_descripcion"
+                               class="form-control"
+                               wire:model="precioEditando.descripcion"
+                               placeholder="Descripción opcional del precio">
+                        <small class="text-muted">Información adicional sobre esta presentación (opcional)</small>
                     </div>
                 </div>
 

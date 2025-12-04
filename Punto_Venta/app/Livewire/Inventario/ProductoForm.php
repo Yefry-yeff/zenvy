@@ -91,7 +91,8 @@ class ProductoForm extends Component
         'codigo_barra' => '',
         'unidad_medida_id' => null,
         'cantidad' => 1,
-        'precio' => 0
+        'precio' => 0,
+        'descripcion' => ''
     ];
 
     // Propiedades para modal de edición de precio
@@ -102,7 +103,8 @@ class ProductoForm extends Component
         'codigo_barra' => '',
         'unidad_medida_id' => null,
         'cantidad' => 1,
-        'precio' => 0
+        'precio' => 0,
+        'descripcion' => ''
     ];
 
     // Propiedades para modal de eliminación de precio
@@ -339,7 +341,8 @@ class ProductoForm extends Component
                     'codigo_barra' => $precio->codigo_barra ?? '',
                     'unidad_medida_id' => $precio->unidad_medida_id,
                     'cantidad' => $precio->cantidad,
-                    'precio' => $precio->precio
+                    'precio' => $precio->precio,
+                    'descripcion' => $precio->descripcion ?? ''
                 ];
             })->toArray();
 
@@ -359,7 +362,8 @@ class ProductoForm extends Component
                     'codigo_barra' => '',
                     'unidad_medida_id' => $this->form['unidad_medida_venta_id'],
                     'cantidad' => 1,
-                    'precio' => $this->form['precio_base']
+                    'precio' => $this->form['precio_base'],
+                    'descripcion' => ''
                 ];
             }
         }
@@ -488,24 +492,14 @@ class ProductoForm extends Component
             }
         }
 
-        // Validar que no exista la misma combinación de unidad y cantidad
-        $existe = collect($this->preciosVenta)->first(function($precio) {
-            return $precio['unidad_medida_id'] == $this->nuevoPrecioVenta['unidad_medida_id']
-                && $precio['cantidad'] == $this->nuevoPrecioVenta['cantidad'];
-        });
-
-        if ($existe) {
-            session()->flash('error', 'Ya existe un precio para esta unidad de medida y cantidad');
-            return;
-        }
-
-        // Agregar el nuevo precio
+        // Agregar el nuevo precio (permitir múltiples precios con la misma unidad)
         $this->preciosVenta[] = [
             'id' => null, // Se generará al guardar
             'codigo_barra' => $this->nuevoPrecioVenta['codigo_barra'],
             'unidad_medida_id' => $this->nuevoPrecioVenta['unidad_medida_id'],
             'cantidad' => $this->nuevoPrecioVenta['cantidad'],
-            'precio' => $this->nuevoPrecioVenta['precio']
+            'precio' => $this->nuevoPrecioVenta['precio'],
+            'descripcion' => $this->nuevoPrecioVenta['descripcion'] ?? ''
         ];
 
         // Ordenar por cantidad
@@ -518,7 +512,8 @@ class ProductoForm extends Component
             'codigo_barra' => '',
             'unidad_medida_id' => null,
             'cantidad' => 1,
-            'precio' => 0
+            'precio' => 0,
+            'descripcion' => ''
         ];
     }
 
@@ -570,7 +565,8 @@ class ProductoForm extends Component
                 'codigo_barra' => $this->preciosVenta[$index]['codigo_barra'] ?? '',
                 'unidad_medida_id' => $this->preciosVenta[$index]['unidad_medida_id'],
                 'cantidad' => $this->preciosVenta[$index]['cantidad'],
-                'precio' => $this->preciosVenta[$index]['precio']
+                'precio' => $this->preciosVenta[$index]['precio'],
+                'descripcion' => $this->preciosVenta[$index]['descripcion'] ?? ''
             ];
             $this->mostrarModalEditarPrecio = true;
         }
@@ -585,7 +581,8 @@ class ProductoForm extends Component
             'codigo_barra' => '',
             'unidad_medida_id' => null,
             'cantidad' => 1,
-            'precio' => 0
+            'precio' => 0,
+            'descripcion' => ''
         ];
     }
 
@@ -631,25 +628,15 @@ class ProductoForm extends Component
             }
         }
 
-        // Verificar que no exista otro precio con la misma unidad y cantidad (excepto el actual)
-        foreach ($this->preciosVenta as $index => $precio) {
-            if ($index != $this->precioEditando['index']) {
-                if ($precio['unidad_medida_id'] == $this->precioEditando['unidad_medida_id'] &&
-                    $precio['cantidad'] == $this->precioEditando['cantidad']) {
-                    session()->flash('error', 'Ya existe un precio para esta unidad de medida con esta cantidad');
-                    return;
-                }
-            }
-        }
-
-        // Actualizar el precio en el array
+        // Actualizar el precio en el array (permitir múltiples precios con la misma unidad)
         $indexToUpdate = $this->precioEditando['index'];
         $this->preciosVenta[$indexToUpdate] = [
             'id' => $this->precioEditando['id'],
             'codigo_barra' => $this->precioEditando['codigo_barra'] ?? '',
             'unidad_medida_id' => $this->precioEditando['unidad_medida_id'],
             'cantidad' => $this->precioEditando['cantidad'],
-            'precio' => $this->precioEditando['precio']
+            'precio' => $this->precioEditando['precio'],
+            'descripcion' => $this->precioEditando['descripcion'] ?? ''
         ];
 
         // Ordenar por cantidad
@@ -755,6 +742,8 @@ class ProductoForm extends Component
                             'unidad_medida_id' => $precio['unidad_medida_id'],
                             'cantidad' => $precio['cantidad'],
                             'precio' => $precio['precio'],
+                            'descripcion' => $precio['descripcion'] ?? '',
+                            'user_update_id' => Auth::id(),
                             'estado_id' => 1,
                             'users_id' => Auth::id(),
                             'updated_at' => now()
@@ -768,6 +757,7 @@ class ProductoForm extends Component
                         'unidad_medida_id' => $precio['unidad_medida_id'],
                         'cantidad' => $precio['cantidad'],
                         'precio' => $precio['precio'],
+                        'descripcion' => $precio['descripcion'] ?? '',
                         'users_id' => Auth::id(),
                         'estado_id' => 1,
                         'created_at' => now(),
