@@ -248,7 +248,9 @@
                                             wire:model.live="unidadMedidaProducto">
                                         <option value="">Seleccionar unidad</option>
                                         @foreach($unidadesMedida as $unidad)
-                                            <option value="{{ $unidad->id }}">{{ $unidad->nombre }} ({{ $unidad->simbolo }})</option>
+                                            <option value="{{ $unidad->id }}">
+                                                {{ $unidad->nombre }} ({{ $unidad->simbolo }})@if(!empty($unidad->codigo_barra)) - Código: {{ $unidad->codigo_barra }}@endif@if(!empty($unidad->descripcion_precio)) - {{ $unidad->descripcion_precio }}@endif
+                                            </option>
                                         @endforeach
                                     </select>
                                     <small class="text-muted">Unidad de medida de venta del producto</small>
@@ -727,7 +729,9 @@
                                                 required>
                                             <option value="">Seleccionar</option>
                                             @foreach($producto['unidades_disponibles'] as $unidad)
-                                                <option value="{{ $unidad['id'] }}">{{ $unidad['nombre'] }} ({{ $unidad['simbolo'] }})</option>
+                                                <option value="{{ $unidad['id'] }}">
+                                                    {{ $unidad['nombre'] }} ({{ $unidad['simbolo'] }})@if(!empty($unidad['codigo_barra'])) - Código: {{ $unidad['codigo_barra'] }}@endif@if(!empty($unidad['descripcion'])) - {{ $unidad['descripcion'] }}@endif
+                                                </option>
                                             @endforeach
                                         </select>
                                         @if(empty($producto['unidad_medida_id']))

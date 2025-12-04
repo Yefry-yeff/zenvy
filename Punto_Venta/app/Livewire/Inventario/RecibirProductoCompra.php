@@ -197,11 +197,36 @@ class RecibirProductoCompra extends Component
     public function cargarUnidadesMedidaProducto($productoId)
     {
         try {
-            // Cargar solo las unidades de medida que tiene asignadas este producto en precio_has_venta
-            $this->unidadesMedida = UnidadMedida::whereHas('preciosVenta', function($query) use ($productoId) {
-                $query->where('producto_id', $productoId)
-                      ->where('estado_id', 1); // Solo activos
-            })->orderBy('nombre', 'asc')->get();
+            // Cargar todas las presentaciones (registros de precio_has_venta) del producto
+            // Cada presentación puede tener diferente código de barras, unidad, descripción
+            $this->unidadesMedida = DB::table('precio_has_venta as phv')
+                ->join('unidad_medida as um', 'phv.unidad_medida_id', '=', 'um.id')
+                ->where('phv.producto_id', $productoId)
+                ->select(
+                    'phv.id as precio_venta_id',
+                    'phv.unidad_medida_id',
+                    'phv.codigo_barra',
+                    'phv.descripcion',
+                    'phv.cantidad',
+                    'phv.precio',
+                    'um.nombre as unidad_nombre',
+                    'um.simbolo as unidad_simbolo'
+                )
+                ->orderBy('um.nombre', 'asc')
+                ->orderBy('phv.codigo_barra', 'asc')
+                ->get()
+                ->map(function($presentacion) {
+                    return (object)[
+                        'id' => $presentacion->unidad_medida_id,
+                        'precio_venta_id' => $presentacion->precio_venta_id,
+                        'nombre' => $presentacion->unidad_nombre,
+                        'simbolo' => $presentacion->unidad_simbolo,
+                        'codigo_barra' => $presentacion->codigo_barra ?? '',
+                        'descripcion_precio' => $presentacion->descripcion ?? '',
+                        'cantidad' => $presentacion->cantidad,
+                        'precio' => $presentacion->precio
+                    ];
+                });
 
             Log::info('Unidades de medida cargadas para producto', [
                 'producto_id' => $productoId,
@@ -663,15 +688,49 @@ class RecibirProductoCompra extends Component
 
             foreach ($this->detallesCompra as $detalle) {
                 if ($detalle['cantidad_sin_asignar'] > 0) {
-                    // Cargar unidades específicas para este producto
-                    $unidadesProducto = UnidadMedida::whereHas('preciosVenta', function($query) use ($detalle) {
-                        $query->where('producto_id', $detalle['producto_id'])
-                              ->where('estado_id', 1);
-                    })->orderBy('nombre', 'asc')->get();
+                    // Cargar todas las presentaciones del producto con sus códigos de barras
+                    $unidadesProducto = DB::table('precio_has_venta as phv')
+                        ->join('unidad_medida as um', 'phv.unidad_medida_id', '=', 'um.id')
+                        ->where('phv.producto_id', $detalle['producto_id'])
+                        ->select(
+                            'phv.id as precio_venta_id',
+                            'phv.unidad_medida_id as id',
+                            'phv.codigo_barra',
+                            'phv.descripcion',
+                            'phv.cantidad',
+                            'phv.precio',
+                            'um.nombre',
+                            'um.simbolo'
+                        )
+                        ->orderBy('um.nombre', 'asc')
+                        ->orderBy('phv.codigo_barra', 'asc')
+                        ->get()
+                        ->map(function($presentacion) {
+                            return [
+                                'id' => $presentacion->id,
+                                'precio_venta_id' => $presentacion->precio_venta_id,
+                                'nombre' => $presentacion->nombre,
+                                'simbolo' => $presentacion->simbolo,
+                                'codigo_barra' => $presentacion->codigo_barra ?? '',
+                                'descripcion' => $presentacion->descripcion ?? '',
+                                'cantidad' => $presentacion->cantidad,
+                                'precio' => $presentacion->precio
+                            ];
+                        });
 
                     // Si no tiene unidades específicas, usar la unidad de la compra
                     if ($unidadesProducto->isEmpty()) {
-                        $unidadesProducto = UnidadMedida::where('id', $detalle['unidad_medida_id'])->get();
+                        $unidadCompra = UnidadMedida::where('id', $detalle['unidad_medida_id'])->first();
+                        if ($unidadCompra) {
+                            $unidadesProducto = collect([
+                                [
+                                    'id' => $unidadCompra->id,
+                                    'nombre' => $unidadCompra->nombre,
+                                    'simbolo' => $unidadCompra->simbolo,
+                                    'descripcion' => ''
+                                ]
+                            ]);
+                        }
                     }
 
                     $this->productosRecepcionMasiva[] = [
