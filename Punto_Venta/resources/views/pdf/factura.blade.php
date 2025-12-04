@@ -268,6 +268,10 @@
                 @if($factura->nombre_cliente && $factura->nombre_cliente != 'Consumidor Final')
                     CLIENTE: {{ $factura->nombre_cliente }}
                 @endif
+                <br>
+                No. O/C Exenta:<br>
+                No. REG DE EXONERADO:<br>
+                No. REG DE LA SAG:
             @else
                 <strong>CONSUMIDOR FINAL</strong>
             @endif
