@@ -536,6 +536,7 @@ class RecibirProductoCompra extends Component
                     'comentario' => $this->comentarioDistribucion,
                     'unidades_compra' => $cantidadTotalDistribuir,
                     'unidad_medida_id' => $distribucion['unidad_medida_id'],
+                    'precio_venta_id' => $distribucion['precio_venta_id'], // ID específico de precio_has_venta
                     'users_registro_id' => Auth::id(),
                     'estado_id' => 1
                 ]);

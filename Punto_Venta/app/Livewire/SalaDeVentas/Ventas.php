@@ -545,7 +545,8 @@ class Ventas extends Component
         // Calcular stock disponible para la nueva unidad
         $stockEnBodega = $this->calcularStockTotalPorUnidad(
             $producto['id'],
-            $precioSeleccionado->unidad_medida_id
+            $precioSeleccionado->unidad_medida_id,
+            $precioSeleccionado->precio_id  // precio_venta_id
         );
 
         // Calcular stock ya usado en otras líneas del carrito (excluyendo la línea actual)
@@ -553,8 +554,8 @@ class Ventas extends Component
         foreach ($this->productosFactura as $idx => $itemCarrito) {
             if ($idx !== $index && // Excluir la línea actual
                 $itemCarrito['id'] == $producto['id'] &&
-                isset($itemCarrito['unidad_medida_id']) &&
-                $itemCarrito['unidad_medida_id'] == $precioSeleccionado->unidad_medida_id) {
+                isset($itemCarrito['precio_id']) &&
+                $itemCarrito['precio_id'] == $precioSeleccionado->precio_id) {
                 $cantidadEnCarritoOtrasLineas += (int)($itemCarrito['cantidad'] ?? 0);
             }
         }
@@ -977,14 +978,18 @@ class Ventas extends Component
         }
 
         // Calcular stock total en bodega para esta unidad específica
-        $stockEnBodega = $this->calcularStockTotalPorUnidad($producto->id, $precioDefecto->unidad_medida_id);
+        $stockEnBodega = $this->calcularStockTotalPorUnidad(
+            $producto->id, 
+            $precioDefecto->unidad_medida_id,
+            $precioDefecto->precio_id  // precio_venta_id
+        );
 
-        // Calcular cuánto ya está en el carrito para esta combinación producto+unidad
+        // Calcular cuánto ya está en el carrito para esta combinación producto+precio_id
         $cantidadEnCarrito = 0;
         foreach ($this->productosFactura as $itemCarrito) {
             if ($itemCarrito['id'] == $producto->id &&
-                isset($itemCarrito['unidad_medida_id']) &&
-                $itemCarrito['unidad_medida_id'] == $precioDefecto->unidad_medida_id) {
+                isset($itemCarrito['precio_id']) &&
+                $itemCarrito['precio_id'] == $precioDefecto->precio_id) {
                 $cantidadEnCarrito += (int)($itemCarrito['cantidad'] ?? 0);
             }
         }
@@ -996,13 +1001,17 @@ class Ventas extends Component
         if ($stockDisponibleReal <= 0) {
             // Buscar otra unidad del mismo producto que tenga stock
             foreach ($preciosDisponibles as $precioAlternativo) {
-                $stockAlternativo = $this->calcularStockTotalPorUnidad($producto->id, $precioAlternativo->unidad_medida_id);
+                $stockAlternativo = $this->calcularStockTotalPorUnidad(
+                    $producto->id, 
+                    $precioAlternativo->unidad_medida_id,
+                    $precioAlternativo->precio_id  // precio_venta_id
+                );
                 
                 $cantidadEnCarritoAlternativo = 0;
                 foreach ($this->productosFactura as $itemCarrito) {
                     if ($itemCarrito['id'] == $producto->id &&
-                        isset($itemCarrito['unidad_medida_id']) &&
-                        $itemCarrito['unidad_medida_id'] == $precioAlternativo->unidad_medida_id) {
+                        isset($itemCarrito['precio_id']) &&
+                        $itemCarrito['precio_id'] == $precioAlternativo->precio_id) {
                         $cantidadEnCarritoAlternativo += (int)($itemCarrito['cantidad'] ?? 0);
                     }
                 }
@@ -1187,15 +1196,19 @@ class Ventas extends Component
             $this->productosFactura[$index]['tipo_precio'] = 'precio_has_venta';
 
             // NUEVO: Calcular stock total disponible para esta unidad de medida específica
-            $stockEnBodega = $this->calcularStockTotalPorUnidad($producto['id'], $precioSeleccionado->unidad_medida_id);
+            $stockEnBodega = $this->calcularStockTotalPorUnidad(
+                $producto['id'], 
+                $precioSeleccionado->unidad_medida_id,
+                $precioSeleccionado->precio_id  // precio_venta_id
+            );
 
-            // Calcular cuánto hay en el carrito de este producto+unidad EXCLUYENDO esta línea
+            // Calcular cuánto hay en el carrito de este producto+precio_id EXCLUYENDO esta línea
             $cantidadEnCarritoOtrasLineas = 0;
             foreach ($this->productosFactura as $i => $itemCarrito) {
                 if ($i != $index &&
                     $itemCarrito['id'] == $producto['id'] &&
-                    isset($itemCarrito['unidad_medida_id']) &&
-                    $itemCarrito['unidad_medida_id'] == $precioSeleccionado->unidad_medida_id) {
+                    isset($itemCarrito['precio_id']) &&
+                    $itemCarrito['precio_id'] == $precioSeleccionado->precio_id) {
                     $cantidadEnCarritoOtrasLineas += (int)($itemCarrito['cantidad'] ?? 0);
                 }
             }
@@ -1430,18 +1443,22 @@ class Ventas extends Component
 
         if (!$esServicio) {
             // Si tiene stock_total_unidad, validar contra ese valor
-            if (isset($item['stock_total_unidad']) && isset($item['unidad_medida_id'])) {
+            if (isset($item['stock_total_unidad']) && isset($item['precio_id'])) {
                 // NUEVO: Calcular stock en bodega
-                $stockEnBodega = $this->calcularStockTotalPorUnidad($item['id'], $item['unidad_medida_id']);
+                $stockEnBodega = $this->calcularStockTotalPorUnidad(
+                    $item['id'], 
+                    $item['unidad_medida_id'],
+                    $item['precio_id']  // precio_venta_id
+                );
 
                 // Calcular cuánto hay en el carrito EXCLUYENDO este item
                 $cantidadEnCarritoOtrasLineas = 0;
                 foreach ($this->productosFactura as $i => $itemCarrito) {
-                    // Si es otra línea del mismo producto y misma unidad
+                    // Si es otra línea del mismo producto y mismo precio_id
                     if ($i != $index &&
                         $itemCarrito['id'] == $item['id'] &&
-                        isset($itemCarrito['unidad_medida_id']) &&
-                        $itemCarrito['unidad_medida_id'] == $item['unidad_medida_id']) {
+                        isset($itemCarrito['precio_id']) &&
+                        $itemCarrito['precio_id'] == $item['precio_id']) {
                         $cantidadEnCarritoOtrasLineas += (int)($itemCarrito['cantidad'] ?? 0);
                     }
                 }
@@ -4038,15 +4055,15 @@ class Ventas extends Component
      * Obtener stock disponible considerando la unidad de medida seleccionada
      * Ejemplo: 100 unidades - (2 paquetes × 13 unidades) = 74 unidades disponibles
      */
-    public function obtenerStockDisponibleConUnidad($productoId, $cantidadPorUnidad, $cantidadActual, $indiceActual)
+    public function obtenerStockDisponibleConUnidad($productoId, $cantidadPorUnidad, $cantidadActual, $indiceActual, $precioVentaId = null)
     {
         if (!$this->tiendaUsuario) {
             return 0;
         }
 
         try {
-            // Obtener stock total disponible en UNIDADES
-            $stockTotal = DB::table('recibido_bodega as rb')
+            // Obtener stock total disponible en UNIDADES para esta presentación específica
+            $query = DB::table('recibido_bodega as rb')
                 ->join('seccion as s', 'rb.seccion_id', '=', 's.id')
                 ->join('segmento as seg', 's.segmento_id', '=', 'seg.id')
                 ->join('bodega as b', 'seg.bodega_id', '=', 'b.id')
@@ -4055,8 +4072,14 @@ class Ventas extends Component
                 ->where('b.estado_id', 1)
                 ->where('b.id', '!=', 2)
                 ->where('rb.producto_id', $productoId)
-                ->where('rb.estado_id', 1)
-                ->sum('rb.cantidad_disponible');
+                ->where('rb.estado_id', 1);
+
+            // Si tenemos precio_venta_id, filtrar por él
+            if ($precioVentaId) {
+                $query->where('rb.precio_venta_id', $precioVentaId);
+            }
+
+            $stockTotal = $query->sum('rb.cantidad_disponible');
 
             $stockTotal = $stockTotal ?? 0;
 
@@ -4088,15 +4111,15 @@ class Ventas extends Component
      * Calcular el stock total disponible para una unidad de medida específica de un producto
      * Suma TODOS los registros de recibido_bodega que coincidan con producto_id y unidad_medida_id
      */
-    public function calcularStockTotalPorUnidad($productoId, $unidadMedidaId)
+    public function calcularStockTotalPorUnidad($productoId, $unidadMedidaId, $precioVentaId = null)
     {
         if (!$this->tiendaUsuario) {
             return 0;
         }
 
         try {
-            // Obtener la suma total de cantidad_disponible para esta unidad de medida específica
-            $stockTotal = DB::table('recibido_bodega as rb')
+            // Obtener la suma total de cantidad_disponible para esta presentación específica
+            $query = DB::table('recibido_bodega as rb')
                 ->join('seccion as s', 'rb.seccion_id', '=', 's.id')
                 ->join('segmento as seg', 's.segmento_id', '=', 'seg.id')
                 ->join('bodega as b', 'seg.bodega_id', '=', 'b.id')
@@ -4105,10 +4128,18 @@ class Ventas extends Component
                 ->where('b.estado_id', 1)
                 ->where('b.id', '!=', 2)
                 ->where('rb.producto_id', $productoId)
-                ->where('rb.unidad_medida_id', $unidadMedidaId)
                 ->where('rb.estado_id', 1)
-                ->where('rb.cantidad_disponible', '>', 0)
-                ->sum('rb.cantidad_disponible');
+                ->where('rb.cantidad_disponible', '>', 0);
+
+            // Si tenemos precio_venta_id, usarlo para filtrar (más específico)
+            if ($precioVentaId) {
+                $query->where('rb.precio_venta_id', $precioVentaId);
+            } else {
+                // Fallback: usar unidad_medida_id
+                $query->where('rb.unidad_medida_id', $unidadMedidaId);
+            }
+
+            $stockTotal = $query->sum('rb.cantidad_disponible');
 
             return $stockTotal ?? 0;
         } catch (\Exception $e) {
@@ -4328,14 +4359,18 @@ class Ventas extends Component
 
                 if ($precioDefecto) {
                     // Calcular stock para esta unidad específica
-                    $stockEnBodega = $this->calcularStockTotalPorUnidad($producto->id, $precioDefecto->unidad_medida_id);
+                    $stockEnBodega = $this->calcularStockTotalPorUnidad(
+                        $producto->id, 
+                        $precioDefecto->unidad_medida_id,
+                        $precioDefecto->precio_id  // precio_venta_id
+                    );
 
                     // Calcular cuánto ya está en el carrito para esta combinación
                     $cantidadEnCarrito = 0;
                     foreach ($this->productosFactura as $itemCarrito) {
                         if ($itemCarrito['id'] == $producto->id &&
-                            isset($itemCarrito['unidad_medida_id']) &&
-                            $itemCarrito['unidad_medida_id'] == $precioDefecto->unidad_medida_id) {
+                            isset($itemCarrito['precio_id']) &&
+                            $itemCarrito['precio_id'] == $precioDefecto->precio_id) {
                             $cantidadEnCarrito += (int)($itemCarrito['cantidad'] ?? 0);
                         }
                     }
@@ -4354,13 +4389,17 @@ class Ventas extends Component
             // Si no se encontró el precio específico, buscar el primero con stock
             if (!$precioDefecto) {
                 foreach ($preciosDisponibles as $precio) {
-                    $stockEnBodega = $this->calcularStockTotalPorUnidad($producto->id, $precio->unidad_medida_id);
+                    $stockEnBodega = $this->calcularStockTotalPorUnidad(
+                        $producto->id, 
+                        $precio->unidad_medida_id,
+                        $precio->precio_id  // precio_venta_id
+                    );
 
                     $cantidadEnCarrito = 0;
                     foreach ($this->productosFactura as $itemCarrito) {
                         if ($itemCarrito['id'] == $producto->id &&
-                            isset($itemCarrito['unidad_medida_id']) &&
-                            $itemCarrito['unidad_medida_id'] == $precio->unidad_medida_id) {
+                            isset($itemCarrito['precio_id']) &&
+                            $itemCarrito['precio_id'] == $precio->precio_id) {
                             $cantidadEnCarrito += (int)($itemCarrito['cantidad'] ?? 0);
                         }
                     }

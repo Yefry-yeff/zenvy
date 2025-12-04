@@ -282,6 +282,7 @@ class ListaDeProductos extends Component
                 ->leftJoin('marca as m', 'p.marca_id', '=', 'm.id')
                 ->leftJoin('unidad_medida as um', 'rb.unidad_medida_id', '=', 'um.id')
                 ->leftJoin('unidad_medida as umv', 'p.unidad_medida_venta_id', '=', 'umv.id')
+                ->leftJoin('precio_has_venta as phv', 'rb.precio_venta_id', '=', 'phv.id')
                 ->select(
                     'rb.id',
                     'rb.cantidad_disponible',
@@ -289,10 +290,12 @@ class ListaDeProductos extends Component
                     'rb.fecha_expiracion',
                     'rb.comentario',
                     'rb.unidad_medida_id',
+                    'rb.precio_venta_id',
                     'p.id as producto_id',
                     'p.nombre as producto_nombre',
                     'p.descripcion as producto_descripcion',
                     DB::raw('COALESCE(
+                        phv.codigo_barra,
                         (SELECT phv2.codigo_barra 
                          FROM precio_has_venta phv2 
                          WHERE phv2.producto_id = p.id 
@@ -311,6 +314,7 @@ class ListaDeProductos extends Component
                          AND phv4.estado_id = 1 
                          LIMIT 1)
                     ) as codigo_barra'),
+                    DB::raw('COALESCE(phv.descripcion, "") as presentacion_descripcion'),
                     'm.nombre as marca_nombre',
                     'm.id as marca_id',
                     'b.nombre as bodega_nombre',

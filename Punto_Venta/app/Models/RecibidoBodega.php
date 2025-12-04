@@ -27,6 +27,7 @@ class RecibidoBodega extends Model
         'unidades_compra',
         'unidad_medida',
         'unidad_medida_id',
+        'precio_venta_id',
         'users_registro_id',
         'usuario_registro',
         'estado_id',
