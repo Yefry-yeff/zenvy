@@ -203,30 +203,12 @@
                             <h6><i class="fas fa-box me-2"></i>Producto a Distribuir</h6>
                             <p class="mb-1"><strong>Producto:</strong> {{ $detalleSeleccionado['nombre_producto'] }}</p>
                             <p class="mb-1"><strong>Código:</strong> {{ $detalleSeleccionado['codigo_producto'] }}</p>
-                            <p class="mb-1"><strong>Cantidad Disponible:</strong> {{ $detalleSeleccionado['cantidad_sin_asignar'] }} {{ $detalleSeleccionado['unidad_medida'] }}</p>
+                            <p class="mb-1"><strong>Cantidad de la Compra:</strong> {{ $detalleSeleccionado['cantidad_sin_asignar'] }} {{ $detalleSeleccionado['unidad_medida'] }}</p>
                             <p class="mb-0"><strong>Marca:</strong> {{ $detalleSeleccionado['marca'] }}</p>
                         </div>
 
                         <!-- Formulario de distribución -->
                         <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="cantidadDistribuir" class="form-label">Cantidad a Distribuir <span class="text-red-600">*</span></label>
-                                    <input type="number"
-                                           id="cantidadDistribuir"
-                                           class="form-control @if($cantidadDistribuir > $detalleSeleccionado['cantidad_sin_asignar']) is-invalid @endif"
-                                           wire:model.live="cantidadDistribuir"
-                                           min="1"
-                                           max="{{ $detalleSeleccionado['cantidad_sin_asignar'] }}"
-                                           placeholder="Cantidad a distribuir">
-                                    <small class="text-muted">Máximo: {{ $detalleSeleccionado['cantidad_sin_asignar'] }} {{ $detalleSeleccionado['unidad_medida'] }}</small>
-                                    @if($cantidadDistribuir > $detalleSeleccionado['cantidad_sin_asignar'])
-                                        <div class="invalid-feedback">
-                                            ⚠️ No puede exceder la cantidad disponible ({{ $detalleSeleccionado['cantidad_sin_asignar'] }} {{ $detalleSeleccionado['unidad_medida'] }})
-                                        </div>
-                                    @endif
-                                </div>
-                            </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="fechaDistribucion" class="form-label">Fecha de Distribución <span class="text-red-600">*</span></label>
@@ -238,35 +220,35 @@
                             </div>
                         </div>
 
-                        <!-- Unidad de Medida y Cantidad en Stock (para todos los productos) -->
+                        <!-- Unidad de Medida y Cantidad en Stock -->
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label for="unidadMedidaProducto" class="form-label">Unidad de Medida del Producto <span class="text-red-600">*</span></label>
+                                    <label for="unidadMedidaProducto" class="form-label">Presentación del Producto <span class="text-red-600">*</span></label>
                                     <select id="unidadMedidaProducto"
                                             class="form-select"
                                             wire:model.live="unidadMedidaProducto">
-                                        <option value="">Seleccionar unidad</option>
+                                        <option value="">Seleccionar presentación</option>
                                         @foreach($unidadesMedida as $unidad)
-                                            <option value="{{ $unidad->id }}">
+                                            <option value="{{ $unidad->precio_venta_id }}">
                                                 {{ $unidad->nombre }} ({{ $unidad->simbolo }})@if(!empty($unidad->codigo_barra)) - Código: {{ $unidad->codigo_barra }}@endif@if(!empty($unidad->descripcion_precio)) - {{ $unidad->descripcion_precio }}@endif
                                             </option>
                                         @endforeach
                                     </select>
-                                    <small class="text-muted">Unidad de medida de venta del producto</small>
+                                    <small class="text-muted">Seleccione la presentación/código de barras</small>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label for="cantidadAsignarStock" class="form-label">Cantidad a Asignar en Stock <span class="text-red-600">*</span></label>
+                                    <label for="cantidadAsignarStock" class="form-label">Cantidad en Stock (Unidades) <span class="text-red-600">*</span></label>
                                     <input type="number"
                                            id="cantidadAsignarStock"
                                            class="form-control"
                                            wire:model.live="cantidadAsignarStock"
                                            min="0.01"
                                            step="0.01"
-                                           placeholder="Cantidad en stock">
-                                    <small class="text-muted">Cantidad que se agregará al inventario de la sección</small>
+                                           placeholder="Ej: 50, 30, etc.">
+                                    <small class="text-muted">Cantidad de unidades para esta presentación</small>
                                 </div>
                             </div>
                         </div>
@@ -342,7 +324,7 @@
                             <button type="button" 
                                     class="btn btn-success w-100"
                                     wire:click="agregarDistribucion"
-                                    @if(!$cantidadDistribuir || !$cantidadAsignarStock || !$unidadMedidaProducto || !$bodegaDistribucion || !$segmentoDistribucion || !$seccionDistribucion) disabled @endif>
+                                    @if(!$cantidadAsignarStock || !$unidadMedidaProducto || !$bodegaDistribucion || !$segmentoDistribucion || !$seccionDistribucion) disabled @endif>
                                 <i class="fas fa-plus me-2"></i>Agregar Distribución
                             </button>
                         </div>
@@ -350,15 +332,15 @@
                         <!-- Tabla de distribuciones agregadas -->
                         @if(count($distribucionesMultiples) > 0)
                             <div class="mb-3">
-                                <h6><i class="fas fa-list me-2"></i>Distribuciones Agregadas</h6>
+                                <h6><i class="fas fa-list me-2"></i>Distribuciones Agregadas ({{ count($distribucionesMultiples) }})</h6>
                                 <div class="table-responsive">
                                     <table class="table table-sm table-striped">
                                         <thead>
                                             <tr>
-                                                <th>Unidad</th>
+                                                <th>Presentación</th>
                                                 <th>Código</th>
-                                                <th>Cant. Dist.</th>
-                                                <th>Cant. Stock</th>
+                                                <th>Descripción</th>
+                                                <th>Stock</th>
                                                 <th>Ubicación</th>
                                                 <th>Acción</th>
                                             </tr>
@@ -369,13 +351,19 @@
                                                     <td>{{ $dist['unidad_nombre'] }} ({{ $dist['unidad_simbolo'] }})</td>
                                                     <td>
                                                         @if(!empty($dist['codigo_barra']))
-                                                            {{ $dist['codigo_barra'] }}
+                                                            <span class="badge bg-secondary">{{ $dist['codigo_barra'] }}</span>
                                                         @else
                                                             <span class="text-muted">N/A</span>
                                                         @endif
                                                     </td>
-                                                    <td>{{ $dist['cantidad_distribuir'] }}</td>
-                                                    <td>{{ $dist['cantidad_stock'] }}</td>
+                                                    <td>
+                                                        @if(!empty($dist['descripcion']))
+                                                            <small>{{ $dist['descripcion'] }}</small>
+                                                        @else
+                                                            <span class="text-muted">-</span>
+                                                        @endif
+                                                    </td>
+                                                    <td><strong>{{ $dist['cantidad_stock'] }}</strong> unidades</td>
                                                     <td>
                                                         <small>{{ $dist['bodega_nombre'] }} > {{ $dist['segmento_nombre'] }} > {{ $dist['seccion_nombre'] }}</small>
                                                     </td>
@@ -389,25 +377,15 @@
                                                 </tr>
                                             @endforeach
                                         </tbody>
-                                        <tfoot>
-                                            <tr class="fw-bold">
-                                                <td colspan="2">Total:</td>
-                                                <td>{{ $this->calcularTotalDistribuido() }}</td>
-                                                <td colspan="3">
-                                                    Restante: {{ $this->calcularCantidadRestante() }} {{ $detalleSeleccionado['unidad_medida'] }}
-                                                </td>
-                                            </tr>
-                                        </tfoot>
                                     </table>
                                 </div>
                             </div>
                         @endif
 
-                        @if($bodegaDistribucion && $segmentoDistribucion && $seccionDistribucion)
+                        @if($bodegaDistribucion && $segmentoDistribucion && $seccionDistribucion && $unidadMedidaProducto && $cantidadAsignarStock)
                             <div class="alert alert-success">
-                                <h6><i class="fas fa-check-circle me-2"></i>Resumen de Distribución</h6>
-                                <p class="mb-1"><strong>Cantidad a Distribuir:</strong> {{ $cantidadDistribuir }} {{ $detalleSeleccionado['unidad_medida'] }}</p>
-                                <p class="mb-1"><strong>Cantidad en Stock:</strong> {{ $cantidadAsignarStock ?? 0 }} {{ $nombreUnidadMedidaProducto ?? 'N/A' }}</p>
+                                <h6><i class="fas fa-check-circle me-2"></i>Listo para agregar</h6>
+                                <p class="mb-1"><strong>Cantidad en Stock:</strong> {{ $cantidadAsignarStock }} unidades</p>
                                 <p class="mb-1"><strong>Ubicación:</strong> {{ $nombreBodegaDistribucion }} > {{ $nombreSegmentoDistribucion }} > {{ $nombreSeccionDistribucion }}</p>
                                 <p class="mb-0"><strong>Fecha:</strong> {{ $fechaDistribucion ? \Carbon\Carbon::parse($fechaDistribucion)->format('d/m/Y') : '' }}</p>
                             </div>

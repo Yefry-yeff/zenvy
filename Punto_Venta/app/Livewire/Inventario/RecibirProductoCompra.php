@@ -404,14 +404,9 @@ class RecibirProductoCompra extends Component
     public function agregarDistribucion()
     {
         // Validar campos obligatorios
-        if (!$this->cantidadDistribuir || !$this->cantidadAsignarStock || !$this->unidadMedidaProducto || 
+        if (!$this->cantidadAsignarStock || !$this->unidadMedidaProducto || 
             !$this->bodegaDistribucion || !$this->segmentoDistribucion || !$this->seccionDistribucion) {
             $this->mostrarError('Complete todos los campos antes de agregar la distribución.');
-            return;
-        }
-        
-        if (!is_numeric($this->cantidadDistribuir) || $this->cantidadDistribuir <= 0) {
-            $this->mostrarError('La cantidad a distribuir debe ser mayor a cero.');
             return;
         }
         
@@ -420,26 +415,25 @@ class RecibirProductoCompra extends Component
             return;
         }
         
-        // Calcular total ya distribuido
-        $totalDistribuido = collect($this->distribucionesMultiples)->sum('cantidad_distribuir');
+        // Obtener datos de la unidad seleccionada
+        $unidadSeleccionada = collect($this->unidadesMedida)->firstWhere('precio_venta_id', $this->unidadMedidaProducto);
         
-        if (($totalDistribuido + $this->cantidadDistribuir) > $this->detalleSeleccionado['cantidad_sin_asignar']) {
-            $this->mostrarError('La cantidad total a distribuir excede la cantidad disponible.');
+        if (!$unidadSeleccionada) {
+            $this->mostrarError('No se encontró la presentación seleccionada.');
             return;
         }
         
-        // Obtener datos de la unidad seleccionada
-        $unidadSeleccionada = collect($this->unidadesMedida)->firstWhere('id', $this->unidadMedidaProducto);
-        
         // Agregar distribución al array
         $this->distribucionesMultiples[] = [
-            'cantidad_distribuir' => $this->cantidadDistribuir,
             'cantidad_stock' => $this->cantidadAsignarStock,
-            'unidad_medida_id' => $this->unidadMedidaProducto,
+            'unidad_medida_id' => $unidadSeleccionada->id,
+            'precio_venta_id' => $unidadSeleccionada->precio_venta_id,
             'unidad_nombre' => $unidadSeleccionada->nombre ?? '',
             'unidad_simbolo' => $unidadSeleccionada->simbolo ?? '',
             'codigo_barra' => $unidadSeleccionada->codigo_barra ?? '',
             'descripcion' => $unidadSeleccionada->descripcion_precio ?? '',
+            'cantidad' => $unidadSeleccionada->cantidad ?? 1,
+            'precio' => $unidadSeleccionada->precio ?? 0,
             'bodega_id' => $this->bodegaDistribucion,
             'bodega_nombre' => $this->nombreBodegaDistribucion,
             'segmento_id' => $this->segmentoDistribucion,
@@ -449,7 +443,6 @@ class RecibirProductoCompra extends Component
         ];
         
         // Limpiar campos del formulario
-        $this->cantidadDistribuir = '';
         $this->cantidadAsignarStock = '';
         $this->unidadMedidaProducto = '';
         $this->nombreUnidadMedidaProducto = '';
@@ -468,7 +461,9 @@ class RecibirProductoCompra extends Component
     
     public function calcularTotalDistribuido()
     {
-        return collect($this->distribucionesMultiples)->sum('cantidad_distribuir');
+        // El total no se calcula aquí porque cada unidad puede tener distinta conversión
+        // Retornamos el conteo de distribuciones
+        return count($this->distribucionesMultiples);
     }
     
     public function calcularCantidadRestante()
@@ -477,8 +472,9 @@ class RecibirProductoCompra extends Component
             return 0;
         }
         
-        $totalDistribuido = $this->calcularTotalDistribuido();
-        return $this->detalleSeleccionado['cantidad_sin_asignar'] - $totalDistribuido;
+        // La cantidad restante es la cantidad sin asignar de la compra
+        // porque aún no se ha confirmado la distribución
+        return $this->detalleSeleccionado['cantidad_sin_asignar'];
     }
 
     public function puedeConfirmarDistribucion()
@@ -516,30 +512,29 @@ class RecibirProductoCompra extends Component
                 throw new \Exception('No se encontró el detalle de compra.');
             }
 
-            // Calcular cantidad total a distribuir
-            $cantidadTotalDistribuir = collect($this->distribucionesMultiples)->sum('cantidad_distribuir');
+            // La cantidad total a distribuir es toda la cantidad sin asignar
+            $cantidadTotalDistribuir = $detalleCompra->cantidad_sin_asignar;
 
-            // Verificar que la cantidad total aún esté disponible
-            if ($detalleCompra->cantidad_sin_asignar < $cantidadTotalDistribuir) {
-                throw new \Exception("La cantidad disponible ha cambiado. Solo quedan {$detalleCompra->cantidad_sin_asignar} unidades disponibles.");
+            // Verificar que aún esté disponible
+            if ($cantidadTotalDistribuir <= 0) {
+                throw new \Exception("No hay cantidad disponible para distribuir.");
             }
 
             // Procesar cada distribución
             foreach ($this->distribucionesMultiples as $distribucion) {
-                $cantidadDistribuir = floatval($distribucion['cantidad_distribuir']);
                 $cantidadParaStock = floatval($distribucion['cantidad_stock']);
 
                 // Crear registro en recibido_bodega
                 $recibidoBodega = RecibidoBodega::create([
                     'producto_id' => $this->detalleSeleccionado['producto_id'],
                     'seccion_id' => $distribucion['seccion_id'],
-                    'cantidad_compra_lote' => $cantidadDistribuir,
-                    'cantidad_inicial_seccion' => $cantidadParaStock,
+                    'cantidad_compra_lote' => $cantidadTotalDistribuir, // Cantidad de la compra
+                    'cantidad_inicial_seccion' => $cantidadParaStock, // Cantidad en stock (unidades)
                     'cantidad_disponible' => $cantidadParaStock,
                     'fecha_recibido' => $this->fechaDistribucion,
                     'fecha_expiracion' => $detalleCompra->fecha_expiracion,
                     'comentario' => $this->comentarioDistribucion,
-                    'unidades_compra' => $cantidadDistribuir,
+                    'unidades_compra' => $cantidadTotalDistribuir,
                     'unidad_medida_id' => $distribucion['unidad_medida_id'],
                     'users_registro_id' => Auth::id(),
                     'estado_id' => 1
@@ -550,14 +545,14 @@ class RecibirProductoCompra extends Component
                     Auth::id(),
                     'Inventario - Recepción Múltiple',
                     'Crear recibido_bodega',
-                    "Producto '{$this->detalleSeleccionado['nombre_producto']}' distribuido. Cantidad: {$cantidadDistribuir}, Stock: {$cantidadParaStock}, Unidad: {$distribucion['unidad_nombre']}, Código: {$distribucion['codigo_barra']}, Sección: {$distribucion['seccion_nombre']}",
+                    "Producto '{$this->detalleSeleccionado['nombre_producto']}' distribuido. Compra: {$cantidadTotalDistribuir} {$this->detalleSeleccionado['unidad_medida']}, Stock: {$cantidadParaStock} {$distribucion['unidad_nombre']}, Código: {$distribucion['codigo_barra']}, Sección: {$distribucion['seccion_nombre']}",
                     $recibidoBodega->id,
                     'recibido_bodega',
                     null,
                     [
                         'producto_id' => $this->detalleSeleccionado['producto_id'],
                         'seccion_id' => $distribucion['seccion_id'],
-                        'cantidad_compra_lote' => $cantidadDistribuir,
+                        'cantidad_compra_lote' => $cantidadTotalDistribuir,
                         'cantidad_inicial_seccion' => $cantidadParaStock,
                         'unidad_medida_id' => $distribucion['unidad_medida_id'],
                         'codigo_barra' => $distribucion['codigo_barra']
@@ -566,7 +561,7 @@ class RecibirProductoCompra extends Component
 
                 Log::info('Distribución individual procesada', [
                     'recibido_bodega_id' => $recibidoBodega->id,
-                    'cantidad_distribuir' => $cantidadDistribuir,
+                    'cantidad_compra' => $cantidadTotalDistribuir,
                     'cantidad_stock' => $cantidadParaStock,
                     'unidad_medida_id' => $distribucion['unidad_medida_id'],
                     'codigo_barra' => $distribucion['codigo_barra']
@@ -576,8 +571,8 @@ class RecibirProductoCompra extends Component
             // Guardar cantidad anterior para bitácora
             $cantidadSinAsignarAnterior = $detalleCompra->cantidad_sin_asignar;
 
-            // Actualizar la cantidad sin asignar en el detalle de compra
-            $detalleCompra->cantidad_sin_asignar -= $cantidadTotalDistribuir;
+            // Actualizar la cantidad sin asignar en el detalle de compra (ahora queda en 0)
+            $detalleCompra->cantidad_sin_asignar = 0;
             $detalleCompra->save();
 
             // Registrar en bitácora: Actualización de compra_has_producto
@@ -585,11 +580,11 @@ class RecibirProductoCompra extends Component
                 Auth::id(),
                 'Inventario - Recepción Múltiple',
                 'Actualizar cantidad_sin_asignar',
-                "Cantidad sin asignar del producto '{$this->detalleSeleccionado['nombre_producto']}' actualizada de {$cantidadSinAsignarAnterior} a {$detalleCompra->cantidad_sin_asignar}",
+                "Cantidad sin asignar del producto '{$this->detalleSeleccionado['nombre_producto']}' actualizada de {$cantidadSinAsignarAnterior} a 0. Distribuido en " . count($this->distribucionesMultiples) . " presentaciones.",
                 $detalleCompra->id,
                 'compra_has_producto',
                 ['cantidad_sin_asignar' => $cantidadSinAsignarAnterior],
-                ['cantidad_sin_asignar' => $detalleCompra->cantidad_sin_asignar]
+                ['cantidad_sin_asignar' => 0]
             );
 
             // Verificar si todos los productos de la compra están completamente distribuidos
@@ -693,24 +688,21 @@ class RecibirProductoCompra extends Component
             DB::commit();
 
             // Preparar mensaje de éxito detallado
-            $cantidadTotalDistribuir = collect($this->distribucionesMultiples)->sum('cantidad_distribuir');
             $mensaje = "✅ Distribución múltiple exitosa:\n\n";
             $mensaje .= "📦 Producto: {$this->detalleSeleccionado['nombre_producto']}\n";
-            $mensaje .= "🔢 Total distribuido: {$cantidadTotalDistribuir} {$this->detalleSeleccionado['unidad_medida']}\n";
-            $mensaje .= "📋 Cantidad de distribuciones: " . count($this->distribucionesMultiples) . "\n\n";
+            $mensaje .= "🔢 Cantidad comprada: {$cantidadTotalDistribuir} {$this->detalleSeleccionado['unidad_medida']}\n";
+            $mensaje .= "📋 Distribuido en " . count($this->distribucionesMultiples) . " presentaciones:\n\n";
             
             foreach ($this->distribucionesMultiples as $index => $dist) {
-                $mensaje .= "Distribución " . ($index + 1) . ":\n";
-                $mensaje .= "  • Unidad: {$dist['unidad_nombre']} ({$dist['unidad_simbolo']})\n";
+                $mensaje .= ($index + 1) . ". {$dist['unidad_nombre']} ({$dist['unidad_simbolo']})";
                 if (!empty($dist['codigo_barra'])) {
-                    $mensaje .= "  • Código: {$dist['codigo_barra']}\n";
+                    $mensaje .= " - Código: {$dist['codigo_barra']}";
                 }
                 if (!empty($dist['descripcion'])) {
-                    $mensaje .= "  • Descripción: {$dist['descripcion']}\n";
+                    $mensaje .= " - {$dist['descripcion']}";
                 }
-                $mensaje .= "  • Cantidad: {$dist['cantidad_distribuir']}\n";
-                $mensaje .= "  • Stock: {$dist['cantidad_stock']}\n";
-                $mensaje .= "  • Ubicación: {$dist['bodega_nombre']} > {$dist['segmento_nombre']} > {$dist['seccion_nombre']}\n\n";
+                $mensaje .= "\n   Stock: {$dist['cantidad_stock']} unidades";
+                $mensaje .= "\n   Ubicación: {$dist['bodega_nombre']} > {$dist['segmento_nombre']} > {$dist['seccion_nombre']}\n\n";
             }
 
             // Si la compra se completó, agregar información adicional
