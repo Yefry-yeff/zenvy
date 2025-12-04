@@ -336,6 +336,72 @@
                                       rows="3"
                                       placeholder="Comentarios adicionales sobre la distribución"></textarea>
                         </div>
+                        
+                        <!-- Botón para agregar distribución -->
+                        <div class="mb-3">
+                            <button type="button" 
+                                    class="btn btn-success w-100"
+                                    wire:click="agregarDistribucion"
+                                    @if(!$cantidadDistribuir || !$cantidadAsignarStock || !$unidadMedidaProducto || !$bodegaDistribucion || !$segmentoDistribucion || !$seccionDistribucion) disabled @endif>
+                                <i class="fas fa-plus me-2"></i>Agregar Distribución
+                            </button>
+                        </div>
+                        
+                        <!-- Tabla de distribuciones agregadas -->
+                        @if(count($distribucionesMultiples) > 0)
+                            <div class="mb-3">
+                                <h6><i class="fas fa-list me-2"></i>Distribuciones Agregadas</h6>
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-striped">
+                                        <thead>
+                                            <tr>
+                                                <th>Unidad</th>
+                                                <th>Código</th>
+                                                <th>Cant. Dist.</th>
+                                                <th>Cant. Stock</th>
+                                                <th>Ubicación</th>
+                                                <th>Acción</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach($distribucionesMultiples as $index => $dist)
+                                                <tr>
+                                                    <td>{{ $dist['unidad_nombre'] }} ({{ $dist['unidad_simbolo'] }})</td>
+                                                    <td>
+                                                        @if(!empty($dist['codigo_barra']))
+                                                            {{ $dist['codigo_barra'] }}
+                                                        @else
+                                                            <span class="text-muted">N/A</span>
+                                                        @endif
+                                                    </td>
+                                                    <td>{{ $dist['cantidad_distribuir'] }}</td>
+                                                    <td>{{ $dist['cantidad_stock'] }}</td>
+                                                    <td>
+                                                        <small>{{ $dist['bodega_nombre'] }} > {{ $dist['segmento_nombre'] }} > {{ $dist['seccion_nombre'] }}</small>
+                                                    </td>
+                                                    <td>
+                                                        <button type="button" 
+                                                                class="btn btn-sm btn-danger"
+                                                                wire:click="eliminarDistribucion({{ $index }})">
+                                                            <i class="fas fa-trash"></i>
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            @endforeach
+                                        </tbody>
+                                        <tfoot>
+                                            <tr class="fw-bold">
+                                                <td colspan="2">Total:</td>
+                                                <td>{{ $this->calcularTotalDistribuido() }}</td>
+                                                <td colspan="3">
+                                                    Restante: {{ $this->calcularCantidadRestante() }} {{ $detalleSeleccionado['unidad_medida'] }}
+                                                </td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
+                            </div>
+                        @endif
 
                         @if($bodegaDistribucion && $segmentoDistribucion && $seccionDistribucion)
                             <div class="alert alert-success">
@@ -354,8 +420,8 @@
                         <button type="button"
                                 wire:click="confirmarDistribucion"
                                 class="btn btn-primary"
-                                @if(!$this->puedeConfirmarDistribucion() || $cantidadDistribuir > $detalleSeleccionado['cantidad_sin_asignar']) disabled @endif>
-                            <i class="fas fa-check me-2"></i>Confirmar Distribución
+                                @if(!$this->puedeConfirmarDistribucion()) disabled @endif>
+                            <i class="fas fa-check me-2"></i>Confirmar Distribuciones ({{ count($distribucionesMultiples) }})
                         </button>
                     </div>
                 </div>

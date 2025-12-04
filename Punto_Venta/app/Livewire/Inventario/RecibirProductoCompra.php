@@ -37,6 +37,9 @@ class RecibirProductoCompra extends Component
     public $segmentoDistribucion = '';
     public $seccionDistribucion = '';
     public $comentarioDistribucion = '';
+    
+    // Array para múltiples distribuciones del mismo producto
+    public $distribucionesMultiples = [];
 
     // Datos de ubicación
     public $bodegas = [];
@@ -360,6 +363,9 @@ class RecibirProductoCompra extends Component
             $this->segmentoDistribucion = '';
             $this->seccionDistribucion = '';
             $this->comentarioDistribucion = '';
+            
+            // Inicializar array de distribuciones múltiples vacío
+            $this->distribucionesMultiples = [];
 
             // Cargar las unidades de medida específicas de este producto desde precio_has_venta
             $this->cargarUnidadesMedidaProducto($detalle['producto_id']);
@@ -390,61 +396,113 @@ class RecibirProductoCompra extends Component
         $this->segmentoDistribucion = '';
         $this->seccionDistribucion = '';
         $this->comentarioDistribucion = '';
+        $this->distribucionesMultiples = [];
         $this->segmentos = [];
         $this->secciones = [];
+    }
+    
+    public function agregarDistribucion()
+    {
+        // Validar campos obligatorios
+        if (!$this->cantidadDistribuir || !$this->cantidadAsignarStock || !$this->unidadMedidaProducto || 
+            !$this->bodegaDistribucion || !$this->segmentoDistribucion || !$this->seccionDistribucion) {
+            $this->mostrarError('Complete todos los campos antes de agregar la distribución.');
+            return;
+        }
+        
+        if (!is_numeric($this->cantidadDistribuir) || $this->cantidadDistribuir <= 0) {
+            $this->mostrarError('La cantidad a distribuir debe ser mayor a cero.');
+            return;
+        }
+        
+        if (!is_numeric($this->cantidadAsignarStock) || $this->cantidadAsignarStock <= 0) {
+            $this->mostrarError('La cantidad en stock debe ser mayor a cero.');
+            return;
+        }
+        
+        // Calcular total ya distribuido
+        $totalDistribuido = collect($this->distribucionesMultiples)->sum('cantidad_distribuir');
+        
+        if (($totalDistribuido + $this->cantidadDistribuir) > $this->detalleSeleccionado['cantidad_sin_asignar']) {
+            $this->mostrarError('La cantidad total a distribuir excede la cantidad disponible.');
+            return;
+        }
+        
+        // Obtener datos de la unidad seleccionada
+        $unidadSeleccionada = collect($this->unidadesMedida)->firstWhere('id', $this->unidadMedidaProducto);
+        
+        // Agregar distribución al array
+        $this->distribucionesMultiples[] = [
+            'cantidad_distribuir' => $this->cantidadDistribuir,
+            'cantidad_stock' => $this->cantidadAsignarStock,
+            'unidad_medida_id' => $this->unidadMedidaProducto,
+            'unidad_nombre' => $unidadSeleccionada->nombre ?? '',
+            'unidad_simbolo' => $unidadSeleccionada->simbolo ?? '',
+            'codigo_barra' => $unidadSeleccionada->codigo_barra ?? '',
+            'descripcion' => $unidadSeleccionada->descripcion_precio ?? '',
+            'bodega_id' => $this->bodegaDistribucion,
+            'bodega_nombre' => $this->nombreBodegaDistribucion,
+            'segmento_id' => $this->segmentoDistribucion,
+            'segmento_nombre' => $this->nombreSegmentoDistribucion,
+            'seccion_id' => $this->seccionDistribucion,
+            'seccion_nombre' => $this->nombreSeccionDistribucion,
+        ];
+        
+        // Limpiar campos del formulario
+        $this->cantidadDistribuir = '';
+        $this->cantidadAsignarStock = '';
+        $this->unidadMedidaProducto = '';
+        $this->nombreUnidadMedidaProducto = '';
+        
+        session()->flash('success', 'Distribución agregada correctamente.');
+    }
+    
+    public function eliminarDistribucion($index)
+    {
+        if (isset($this->distribucionesMultiples[$index])) {
+            unset($this->distribucionesMultiples[$index]);
+            $this->distribucionesMultiples = array_values($this->distribucionesMultiples);
+            session()->flash('success', 'Distribución eliminada.');
+        }
+    }
+    
+    public function calcularTotalDistribuido()
+    {
+        return collect($this->distribucionesMultiples)->sum('cantidad_distribuir');
+    }
+    
+    public function calcularCantidadRestante()
+    {
+        if (!$this->detalleSeleccionado) {
+            return 0;
+        }
+        
+        $totalDistribuido = $this->calcularTotalDistribuido();
+        return $this->detalleSeleccionado['cantidad_sin_asignar'] - $totalDistribuido;
     }
 
     public function puedeConfirmarDistribucion()
     {
-        return $this->cantidadDistribuir &&
+        return count($this->distribucionesMultiples) > 0 &&
                $this->fechaDistribucion &&
-               $this->bodegaDistribucion &&
-               $this->segmentoDistribucion &&
-               $this->seccionDistribucion &&
-               $this->unidadMedidaProducto &&
-               is_numeric($this->cantidadDistribuir) &&
-               $this->cantidadDistribuir > 0 &&
-               $this->cantidadAsignarStock &&
-               is_numeric($this->cantidadAsignarStock) &&
-               $this->cantidadAsignarStock > 0 &&
-               $this->detalleSeleccionado &&
-               $this->cantidadDistribuir <= $this->detalleSeleccionado['cantidad_sin_asignar'];
+               $this->detalleSeleccionado;
     }
 
     public function confirmarDistribucion()
     {
-        // Validaciones
-        if (!$this->cantidadDistribuir || !$this->fechaDistribucion || !$this->seccionDistribucion) {
-            $this->mostrarError('Todos los campos obligatorios deben estar completos.');
+        // Validar que haya distribuciones agregadas
+        if (empty($this->distribucionesMultiples)) {
+            $this->mostrarError('Debe agregar al menos una distribución antes de confirmar.');
             return;
         }
 
-        if (!is_numeric($this->cantidadDistribuir) || $this->cantidadDistribuir <= 0) {
-            $this->mostrarError('La cantidad a distribuir debe ser un número mayor a cero.');
-            return;
-        }
-
-        // Validación de cantidad en stock y unidad de medida (ahora para todos los productos)
-        if (!$this->cantidadAsignarStock || !is_numeric($this->cantidadAsignarStock) || $this->cantidadAsignarStock <= 0) {
-            $this->mostrarError('La cantidad a asignar en stock debe ser un número mayor a cero.');
-            return;
-        }
-
-        if (!$this->unidadMedidaProducto) {
-            $this->mostrarError('Debe seleccionar una unidad de medida para el producto.');
+        if (!$this->fechaDistribucion) {
+            $this->mostrarError('Debe seleccionar una fecha de distribución.');
             return;
         }
 
         if (!$this->detalleSeleccionado) {
             $this->mostrarError('No hay producto seleccionado para distribuir.');
-            return;
-        }
-
-        $cantidadDistribuir = floatval($this->cantidadDistribuir);
-        $cantidadPendiente = floatval($this->detalleSeleccionado['cantidad_sin_asignar']);
-
-        if ($cantidadDistribuir > $cantidadPendiente) {
-            $this->mostrarError("La cantidad a distribuir ({$cantidadDistribuir}) no puede ser mayor a la cantidad pendiente ({$cantidadPendiente}).");
             return;
         }
 
@@ -458,90 +516,74 @@ class RecibirProductoCompra extends Component
                 throw new \Exception('No se encontró el detalle de compra.');
             }
 
-            // Verificar que la cantidad aún esté disponible
-            if ($detalleCompra->cantidad_sin_asignar < $cantidadDistribuir) {
+            // Calcular cantidad total a distribuir
+            $cantidadTotalDistribuir = collect($this->distribucionesMultiples)->sum('cantidad_distribuir');
+
+            // Verificar que la cantidad total aún esté disponible
+            if ($detalleCompra->cantidad_sin_asignar < $cantidadTotalDistribuir) {
                 throw new \Exception("La cantidad disponible ha cambiado. Solo quedan {$detalleCompra->cantidad_sin_asignar} unidades disponibles.");
             }
 
-            // Actualizar la unidad de medida de venta del producto si cambió
-            if ($this->unidadMedidaProducto != $this->detalleSeleccionado['unidad_medida_venta_id']) {
-                $producto = Producto::find($this->detalleSeleccionado['producto_id']);
-                if ($producto) {
-                    $unidadAnterior = $this->detalleSeleccionado['unidad_medida_venta_id'];
-                    $producto->unidad_medida_venta_id = $this->unidadMedidaProducto;
-                    $producto->save();
+            // Procesar cada distribución
+            foreach ($this->distribucionesMultiples as $distribucion) {
+                $cantidadDistribuir = floatval($distribucion['cantidad_distribuir']);
+                $cantidadParaStock = floatval($distribucion['cantidad_stock']);
 
-                    // Registrar en bitácora: Actualización de unidad de medida (individual)
-                    Bitacora::registrar(
-                        Auth::id(),
-                        'Inventario - Recepción Individual',
-                        'Actualizar unidad_medida_venta',
-                        "Unidad de medida de venta del producto '{$this->detalleSeleccionado['nombre_producto']}' actualizada de {$unidadAnterior} a {$this->unidadMedidaProducto}",
-                        $producto->id,
-                        'producto',
-                        ['unidad_medida_venta_id' => $unidadAnterior],
-                        ['unidad_medida_venta_id' => $this->unidadMedidaProducto]
-                    );
-
-                    Log::info('Unidad de medida de venta actualizada', [
-                        'producto_id' => $producto->id,
-                        'unidad_anterior' => $unidadAnterior,
-                        'unidad_nueva' => $this->unidadMedidaProducto
-                    ]);
-                }
-            }
-
-            // Usar cantidadAsignarStock para el inventario
-            $cantidadParaStock = floatval($this->cantidadAsignarStock);
-
-            // Crear registro en recibido_bodega
-            $recibidoBodega = RecibidoBodega::create([
-                'producto_id' => $this->detalleSeleccionado['producto_id'],
-                'seccion_id' => $this->seccionDistribucion,
-                'cantidad_compra_lote' => $cantidadDistribuir,
-                'cantidad_inicial_seccion' => $cantidadParaStock,
-                'cantidad_disponible' => $cantidadParaStock,
-                'fecha_recibido' => $this->fechaDistribucion,
-                'fecha_expiracion' => $detalleCompra->fecha_expiracion,
-                'comentario' => $this->comentarioDistribucion,
-                'unidades_compra' => $cantidadDistribuir,
-                'unidad_medida_id' => $this->unidadMedidaProducto, // Usar la unidad seleccionada en el modal
-                'users_registro_id' => Auth::id(),
-                'estado_id' => 1 // Estado activo
-            ]);
-
-            // Guardar cantidad anterior para bitácora
-            $cantidadSinAsignarAnterior = $detalleCompra->cantidad_sin_asignar;
-
-            // Registrar en bitácora: Creación de recibido_bodega
-            Bitacora::registrar(
-                Auth::id(),
-                'Inventario - Recepción Individual',
-                'Crear recibido_bodega',
-                "Producto '{$this->detalleSeleccionado['nombre_producto']}' distribuido a bodega. Cantidad: {$cantidadDistribuir} {$this->detalleSeleccionado['unidad_medida']}, Stock: {$cantidadParaStock}",
-                $recibidoBodega->id,
-                'recibido_bodega',
-                null, // No hay datos anteriores (es inserción)
-                [
+                // Crear registro en recibido_bodega
+                $recibidoBodega = RecibidoBodega::create([
                     'producto_id' => $this->detalleSeleccionado['producto_id'],
-                    'seccion_id' => $this->seccionDistribucion,
+                    'seccion_id' => $distribucion['seccion_id'],
                     'cantidad_compra_lote' => $cantidadDistribuir,
                     'cantidad_inicial_seccion' => $cantidadParaStock,
                     'cantidad_disponible' => $cantidadParaStock,
                     'fecha_recibido' => $this->fechaDistribucion,
+                    'fecha_expiracion' => $detalleCompra->fecha_expiracion,
                     'comentario' => $this->comentarioDistribucion,
-                    'compra_id' => $this->compraId
-                ]
-            );
+                    'unidades_compra' => $cantidadDistribuir,
+                    'unidad_medida_id' => $distribucion['unidad_medida_id'],
+                    'users_registro_id' => Auth::id(),
+                    'estado_id' => 1
+                ]);
+
+                // Registrar en bitácora
+                Bitacora::registrar(
+                    Auth::id(),
+                    'Inventario - Recepción Múltiple',
+                    'Crear recibido_bodega',
+                    "Producto '{$this->detalleSeleccionado['nombre_producto']}' distribuido. Cantidad: {$cantidadDistribuir}, Stock: {$cantidadParaStock}, Unidad: {$distribucion['unidad_nombre']}, Código: {$distribucion['codigo_barra']}, Sección: {$distribucion['seccion_nombre']}",
+                    $recibidoBodega->id,
+                    'recibido_bodega',
+                    null,
+                    [
+                        'producto_id' => $this->detalleSeleccionado['producto_id'],
+                        'seccion_id' => $distribucion['seccion_id'],
+                        'cantidad_compra_lote' => $cantidadDistribuir,
+                        'cantidad_inicial_seccion' => $cantidadParaStock,
+                        'unidad_medida_id' => $distribucion['unidad_medida_id'],
+                        'codigo_barra' => $distribucion['codigo_barra']
+                    ]
+                );
+
+                Log::info('Distribución individual procesada', [
+                    'recibido_bodega_id' => $recibidoBodega->id,
+                    'cantidad_distribuir' => $cantidadDistribuir,
+                    'cantidad_stock' => $cantidadParaStock,
+                    'unidad_medida_id' => $distribucion['unidad_medida_id'],
+                    'codigo_barra' => $distribucion['codigo_barra']
+                ]);
+            }
+
+            // Guardar cantidad anterior para bitácora
+            $cantidadSinAsignarAnterior = $detalleCompra->cantidad_sin_asignar;
 
             // Actualizar la cantidad sin asignar en el detalle de compra
-            $detalleCompra->cantidad_sin_asignar -= $cantidadDistribuir;
+            $detalleCompra->cantidad_sin_asignar -= $cantidadTotalDistribuir;
             $detalleCompra->save();
 
             // Registrar en bitácora: Actualización de compra_has_producto
             Bitacora::registrar(
                 Auth::id(),
-                'Inventario - Recepción Individual',
+                'Inventario - Recepción Múltiple',
                 'Actualizar cantidad_sin_asignar',
                 "Cantidad sin asignar del producto '{$this->detalleSeleccionado['nombre_producto']}' actualizada de {$cantidadSinAsignarAnterior} a {$detalleCompra->cantidad_sin_asignar}",
                 $detalleCompra->id,
@@ -651,16 +693,30 @@ class RecibirProductoCompra extends Component
             DB::commit();
 
             // Preparar mensaje de éxito detallado
-            $mensaje = "✅ Distribución exitosa:\n\n";
+            $cantidadTotalDistribuir = collect($this->distribucionesMultiples)->sum('cantidad_distribuir');
+            $mensaje = "✅ Distribución múltiple exitosa:\n\n";
             $mensaje .= "📦 Producto: {$this->detalleSeleccionado['nombre_producto']}\n";
-            $mensaje .= "🔢 Cantidad distribuida: {$cantidadDistribuir} {$this->detalleSeleccionado['unidad_medida']}\n";
-            $mensaje .= "📊 Cantidad en stock: {$cantidadParaStock} {$this->nombreUnidadMedidaProducto}\n";
-            $mensaje .= "🏢 Bodega: {$this->nombreBodegaDistribucion}\n";
-            $mensaje .= "📍 Ubicación: {$this->nombreSegmentoDistribucion} > {$this->nombreSeccionDistribucion}";
+            $mensaje .= "🔢 Total distribuido: {$cantidadTotalDistribuir} {$this->detalleSeleccionado['unidad_medida']}\n";
+            $mensaje .= "📋 Cantidad de distribuciones: " . count($this->distribucionesMultiples) . "\n\n";
+            
+            foreach ($this->distribucionesMultiples as $index => $dist) {
+                $mensaje .= "Distribución " . ($index + 1) . ":\n";
+                $mensaje .= "  • Unidad: {$dist['unidad_nombre']} ({$dist['unidad_simbolo']})\n";
+                if (!empty($dist['codigo_barra'])) {
+                    $mensaje .= "  • Código: {$dist['codigo_barra']}\n";
+                }
+                if (!empty($dist['descripcion'])) {
+                    $mensaje .= "  • Descripción: {$dist['descripcion']}\n";
+                }
+                $mensaje .= "  • Cantidad: {$dist['cantidad_distribuir']}\n";
+                $mensaje .= "  • Stock: {$dist['cantidad_stock']}\n";
+                $mensaje .= "  • Ubicación: {$dist['bodega_nombre']} > {$dist['segmento_nombre']} > {$dist['seccion_nombre']}\n\n";
+            }
 
             // Si la compra se completó, agregar información adicional
             if ($productosConCantidadPendiente == 0) {
-                $mensaje .= "\n\n🎉 ¡La factura {$compra->numero_factura} ha sido completamente distribuida!";
+                $compra = $detalleCompra->compra;
+                $mensaje .= "🎉 ¡La factura {$compra->numero_factura} ha sido completamente distribuida!";
             }
 
             $this->mostrarExito($mensaje);
@@ -672,8 +728,7 @@ class RecibirProductoCompra extends Component
 
             Log::error('Error al distribuir producto', [
                 'detalle_compra_id' => $this->detalleSeleccionado['id'] ?? null,
-                'cantidad' => $cantidadDistribuir,
-                'seccion_id' => $this->seccionDistribucion,
+                'distribuciones' => $this->distribucionesMultiples,
                 'mensaje' => $e->getMessage()
             ]);
             $this->mostrarError('Error al distribuir el producto: ' . $e->getMessage());
