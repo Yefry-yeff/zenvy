@@ -1,7 +1,7 @@
 -- =============================================
 -- Script: Migrar precio_venta_id en recibido_bodega
 -- Descripción: Actualiza los registros de recibido_bodega que no tienen precio_venta_id
---              asignándoles el precio_venta_id correcto basándose en producto_id y unidad_compra_id
+--              asignándoles el precio_venta_id correcto basándose en producto_id y unidad_medida_id
 -- Problema: Los productos aparecen en lista de productos pero no están disponibles para venta
 -- Fecha: 2025-12-04
 -- =============================================
@@ -19,14 +19,14 @@ SELECT
     rb.id,
     rb.producto_id,
     p.nombre as producto_nombre,
-    rb.unidad_compra_id,
-    um.nombre as unidad_compra,
+    rb.unidad_medida_id,
+    um.nombre as unidad_medida,
     rb.cantidad as stock,
     rb.precio_venta_id as precio_venta_id_actual,
     rb.codigo_barra as codigo_barra_recibido
 FROM recibido_bodega rb
 LEFT JOIN producto p ON rb.producto_id = p.id
-LEFT JOIN unidad_medida um ON rb.unidad_compra_id = um.id
+LEFT JOIN unidad_medida um ON rb.unidad_medida_id = um.id
 WHERE rb.precio_venta_id IS NULL
   AND rb.cantidad > 0
 ORDER BY rb.id DESC
@@ -37,7 +37,7 @@ SELECT
     rb.id as recibido_bodega_id,
     rb.producto_id,
     p.nombre as producto_nombre,
-    rb.unidad_compra_id,
+    rb.unidad_medida_id,
     um.nombre as unidad_medida,
     rb.cantidad as stock,
     phv.id as precio_venta_id_encontrado,
@@ -45,10 +45,10 @@ SELECT
     phv.codigo_barra as codigo_barra_precio_venta
 FROM recibido_bodega rb
 INNER JOIN producto p ON rb.producto_id = p.id
-INNER JOIN unidad_medida um ON rb.unidad_compra_id = um.id
+INNER JOIN unidad_medida um ON rb.unidad_medida_id = um.id
 INNER JOIN precio_has_venta phv ON (
     phv.producto_id = rb.producto_id 
-    AND phv.unidad_medida_id = rb.unidad_compra_id
+    AND phv.unidad_medida_id = rb.unidad_medida_id
 )
 WHERE rb.precio_venta_id IS NULL
   AND rb.cantidad > 0
@@ -58,11 +58,11 @@ LIMIT 20;
 -- MIGRACIÓN AUTOMÁTICA
 -- =============================================
 -- Actualizar registros sin precio_venta_id
--- Busca el precio_venta_id correspondiente usando producto_id y unidad_compra_id
+-- Busca el precio_venta_id correspondiente usando producto_id y unidad_medida_id
 UPDATE recibido_bodega rb
 INNER JOIN precio_has_venta phv ON (
     phv.producto_id = rb.producto_id 
-    AND phv.unidad_medida_id = rb.unidad_compra_id
+    AND phv.unidad_medida_id = rb.unidad_medida_id
 )
 SET rb.precio_venta_id = phv.id
 WHERE rb.precio_venta_id IS NULL;
@@ -91,14 +91,14 @@ SELECT
     rb.id,
     rb.producto_id,
     p.nombre as producto_nombre,
-    rb.unidad_compra_id,
-    um.nombre as unidad_compra,
+    rb.unidad_medida_id,
+    um.nombre as unidad_medida,
     rb.cantidad as stock,
     rb.precio_venta_id,
     rb.codigo_barra
 FROM recibido_bodega rb
 LEFT JOIN producto p ON rb.producto_id = p.id
-LEFT JOIN unidad_medida um ON rb.unidad_compra_id = um.id
+LEFT JOIN unidad_medida um ON rb.unidad_medida_id = um.id
 WHERE rb.precio_venta_id IS NULL
   AND rb.cantidad > 0;
 
@@ -118,7 +118,7 @@ INNER JOIN unidad_medida um ON phv.unidad_medida_id = um.id
 WHERE EXISTS (
     SELECT 1 FROM recibido_bodega rb 
     WHERE rb.producto_id = phv.producto_id 
-    AND rb.unidad_compra_id = phv.unidad_medida_id
+    AND rb.unidad_medida_id = phv.unidad_medida_id
     AND rb.cantidad > 0
 )
 GROUP BY phv.producto_id, phv.unidad_medida_id

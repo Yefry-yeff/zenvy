@@ -1998,8 +1998,8 @@ class Ventas extends Component
             return;
         }
 
-        // Validar jornada y caja antes de permitir procesar pago
-        if (!$this->validarJornadaYCaja()) {
+        // Validar que el usuario tenga tienda asignada
+        if (!$this->validarUsuarioTienda()) {
             return;
         }
 
@@ -2016,55 +2016,18 @@ class Ventas extends Component
     }
 
     /**
-     * Validar que la jornada esté abierta y la caja esté abierta
+     * Validar que el usuario tenga tienda asignada
+     * NUEVO SISTEMA: Sin validación de jornada ni caja
      */
-    private function validarJornadaYCaja()
+    private function validarUsuarioTienda()
     {
         $user = Auth::user();
-        $tiendaId = $user->tienda_id;
-
-        // 1. Verificar jornada (apertura = 1 y cierre = 0)
-        $jornadaAbierta = DB::table('jornada')
-            ->where('tienda_id', $tiendaId)
-            ->where('apertura', 1)
-            ->where('cierre', 0)
-            ->whereDate('fecha', now()->toDateString())
-            ->exists();
-
-        if (!$jornadaAbierta) {
-            session()->flash('error', '❌ No se puede procesar la venta: La jornada debe estar abierta para realizar ventas.');
+        
+        if (!$user || !$user->tienda_id) {
+            session()->flash('error', '❌ Usuario sin tienda asignada. No se pueden procesar ventas.');
             return false;
         }
-
-        // 2. Verificar caja del usuario (que esté abierta Y tenga apertura para el día de la jornada)
-        $cajaAbierta = DB::table('caja')
-            ->where('users_id', $user->id)
-            ->where('tienda_id', $tiendaId)
-            ->where('estado_caja', 1) // 1 = abierta
-            ->first();
-
-        if (!$cajaAbierta) {
-            session()->flash('error', '❌ No se puede procesar la venta: Su caja debe estar abierta para realizar ventas.');
-            return false;
-        }
-
-        // 3. Verificar que la caja tenga apertura para la fecha de la jornada abierta
-        $fechaJornadaAbierta = DB::table('jornada')
-            ->where('tienda_id', $tiendaId)
-            ->where('apertura', 1)
-            ->where('cierre', 0)
-            ->value('fecha');
-
-        $tieneAperturaCaja = DB::table('apertura_caja')
-            ->where('caja_id', $cajaAbierta->id)
-            ->whereDate('fecha_apertura', $fechaJornadaAbierta)
-            ->exists();
-
-        if (!$tieneAperturaCaja) {
-            session()->flash('error', '❌ No se puede procesar la venta: Su caja debe tener apertura para la fecha de la jornada activa (' . \Carbon\Carbon::parse($fechaJornadaAbierta)->format('d/m/Y') . ').');
-            return false;
-        }
-
+        
         return true;
     }
 

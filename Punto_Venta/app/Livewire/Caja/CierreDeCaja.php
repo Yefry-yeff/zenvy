@@ -11,8 +11,6 @@ use Carbon\Carbon;
 class CierreDeCaja extends Component
 {
     public $cajaActual = null;
-    public $jornadaAbierta = null;
-    public $jornada = null;
     public $resumenTransacciones = [];
     public $desglose_entradas = [];
     public $desgloseTarjetas = [];
@@ -38,53 +36,37 @@ class CierreDeCaja extends Component
     public $monedas_0_02 = 0;
     public $monedas_0_01 = 0;
 
+    // Otros métodos de pago - Conteo manual
+    public $totalTarjetaContado = 0;
+    public $totalTransferenciaContado = 0;
+    public $totalChequeContado = 0;
+
     // Cálculos
     public $totalContado = 0;
     public $diferenciaEfectivo = 0;
+    public $diferenciaTarjeta = 0;
+    public $diferenciaTransferencia = 0;
+    public $diferenciaCheque = 0;
     public $totalSistema = 0;
+    public $observaciones = '';
 
     // Mensajes
     public $mensajeExito = '';
     public $mensajeError = '';
     public $cierreProcesado = false;
 
+    const SALDO_INICIAL = 2000.00;
+
     public function mount()
     {
-        $this->validarJornadaAbierta();
         $this->cargarDatosCaja();
         $this->calcularResumen();
-    }
-
-    public function validarJornadaAbierta()
-    {
-        $usuario = Auth::user();
-
-        if (!$usuario->tienda_id) {
-            return false;
-        }
-
-        // Buscar jornada aperturada (puede ser de cualquier fecha)
-        $this->jornadaAbierta = DB::table('jornada')
-            ->where('tienda_id', $usuario->tienda_id)
-            ->where('apertura', 1)
-            ->where('cierre', 0)
-            ->first();
-
-        // Asignar también a la propiedad $jornada para los métodos de desglose
-        $this->jornada = $this->jornadaAbierta;
-
-        if (!$this->jornadaAbierta) {
-            return false;
-        }
-
-        return true;
     }
 
     public function cargarDatosCaja()
     {
         $usuario = Auth::user();
 
-        // Verificar que el usuario tenga tienda asignada
         if (!$usuario || !$usuario->tienda_id) {
             $this->cajaActual = null;
             return;
@@ -93,375 +75,270 @@ class CierreDeCaja extends Component
         $this->cajaActual = DB::table('caja')
             ->where('users_id', $usuario->id)
             ->where('tienda_id', $usuario->tienda_id)
-            ->where('estado_caja', 1) // 1 = abierta
-            ->orderBy('created_at', 'desc')
             ->first();
     }
 
     public function calcularResumen()
     {
-        if (!$this->cajaActual || !$this->jornadaAbierta) return;
+        $usuario = Auth::user();
 
-        // Usar la fecha de la jornada aperturada
-        $fechaJornada = Carbon::parse($this->jornadaAbierta->fecha);
+        if (!$usuario || !$usuario->tienda_id) {
+            return;
+        }
 
-        // Obtener el último saldo inicial del día desde apertura_caja
-        $ultimaApertura = DB::table('apertura_caja')
-            ->where('caja_id', $this->cajaActual->id)
-            ->whereDate('fecha_apertura', $fechaJornada)
-            ->orderBy('fecha_apertura', 'desc')
+        // Obtener último cierre
+        $ultimoCierre = DB::table('cierre_caja_historico')
+            ->where('user_id', $usuario->id)
+            ->where('tienda_id', $usuario->tienda_id)
+            ->orderBy('fecha_cierre', 'desc')
             ->first();
 
-        $saldoInicial = $ultimaApertura ? $ultimaApertura->balance_apertura : 0;
+        $fechaInicio = $ultimoCierre ? $ultimoCierre->fecha_cierre : null;
 
-        // Calcular totales por tipo - EXCLUIR transacciones de apertura_caja usando la fecha de la jornada
-        $resumen = DB::table('transaccion')
-            ->where('caja_id', $this->cajaActual->id)
-            ->whereDate('created_at', $fechaJornada)
-            ->where('transaccion', '!=', 'apertura_caja') // Excluir apertura_caja
-            ->selectRaw('
-                SUM(CASE WHEN efectivo > 0 THEN efectivo ELSE 0 END) as total_efectivo_entrada,
-                SUM(CASE WHEN efectivo < 0 THEN ABS(efectivo) ELSE 0 END) as total_efectivo_salida,
-                SUM(efectivo) as total_efectivo_neto,
-                SUM(tarjeta) as total_tarjeta,
-                SUM(cheque) as total_cheque,
-                SUM(transferencia) as total_transferencia,
-                COUNT(*) as total_transacciones
-            ')
-            ->first();
+        // Resumen de transacciones desde el último cierre usando factura_has_pago
+        $queryBase = DB::table('factura as f')
+            ->join('factura_has_pago as fhp', 'f.id', '=', 'fhp.factura_id')
+            ->join('tipo_pago as tp', 'fhp.tipo_pago_id', '=', 'tp.id')
+            ->where('f.users_id', $usuario->id);
 
-        $this->resumenTransacciones = [
-            'saldo_inicial' => $saldoInicial,
-            'efectivo_entrada' => $resumen->total_efectivo_entrada ?? 0,
-            'efectivo_salida' => $resumen->total_efectivo_salida ?? 0,
-            'efectivo_neto' => $resumen->total_efectivo_neto ?? 0,
-            'tarjeta' => $resumen->total_tarjeta ?? 0,
-            'cheque' => $resumen->total_cheque ?? 0,
-            'transferencia' => $resumen->total_transferencia ?? 0,
-            'transacciones' => $resumen->total_transacciones ?? 0,
-            'fecha_jornada' => $fechaJornada->format('d/m/Y') // Agregar fecha de la jornada
-        ];
+        if ($fechaInicio) {
+            $queryBase->where('f.created_at', '>', $fechaInicio);
+        }
 
-        // Calcular el total del sistema: saldo inicial + efectivo neto de transacciones
-        $this->totalSistema = $saldoInicial + ($resumen->total_efectivo_neto ?? 0);
-
-        // Calcular todos los desgloses
-        $this->calcularDesgloseEntradas();
-        $this->calcularDesgloseTarjetas();
-        $this->calcularDesgloseTransferencias();
-        $this->calcularDesgloseCheques();
-    }
-
-    public function calcularDesgloseEntradas()
-    {
-        if (!$this->cajaActual || !$this->jornada) return;
-
-        $fecha = $this->jornada->fecha;
-
-        // Obtener desglose por tipo de transacción con efectivo positivo
-        $desglose = DB::table('transaccion')
-            ->where('caja_id', $this->cajaActual->id)
-            ->whereDate('created_at', $fecha)
-            ->where('transaccion', '!=', 'apertura_caja')
-            ->where('efectivo', '>', 0)
-            ->selectRaw('
-                transaccion as tipo,
-                SUM(efectivo) as total,
-                COUNT(*) as cantidad
-            ')
-            ->groupBy('transaccion')
-            ->orderBy('total', 'desc')
+        $this->resumenTransacciones = $queryBase
+            ->select(
+                'tp.nombre as forma_pago',
+                DB::raw('COUNT(DISTINCT f.id) as cantidad'),
+                DB::raw('SUM(fhp.pago_recibido) as total')
+            )
+            ->groupBy('tp.id', 'tp.nombre')
             ->get();
 
-        $this->desglose_entradas = $desglose->map(function($item) {
-            return [
-                'tipo' => $this->formatearTipoTransaccion($item->tipo),
-                'total' => $item->total,
-                'cantidad' => $item->cantidad,
-                'tipo_original' => $item->tipo
-            ];
-        })->toArray();
+        // Calcular total del sistema
+        $this->totalSistema = $this->resumenTransacciones->sum('total');
+
+        // Desgloses específicos
+        $this->cargarDesgloseEntradas($fechaInicio);
+        $this->cargarDesgloseTarjetas($fechaInicio);
+        $this->cargarDesgloseTransferencias($fechaInicio);
+        $this->cargarDesgloseCheques($fechaInicio);
     }
 
-    private function formatearTipoTransaccion($tipo)
+    private function cargarDesgloseEntradas($fechaInicio)
     {
-        $formatos = [
-            'venta' => '🛒 Ventas',
-            'deposito' => '💰 Depósitos',
-            'ingreso_otro' => '📈 Otros Ingresos',
-            'devolucion' => '↩️ Devoluciones',
-            'ajuste_positivo' => '➕ Ajustes (+)',
-            'entrada_efectivo' => '💵 Entrada Efectivo',
-            'pago_recibido' => '💳 Pagos Recibidos',
-            'default' => '📋 ' . ucfirst(str_replace('_', ' ', $tipo))
-        ];
-
-        return $formatos[$tipo] ?? $formatos['default'];
+        // Tabla entradas_caja no existe, dejar vacío
+        $this->desglose_entradas = collect();
     }
 
-    /**
-     * Calcula el desglose de pagos con tarjeta
-     */
-    private function calcularDesgloseTarjetas()
+    private function cargarDesgloseTarjetas($fechaInicio)
     {
-        try {
-            if (!$this->jornada) {
-                $this->desgloseTarjetas = collect();
-                return;
-            }
-
-            $fecha = $this->jornada->fecha;
-            
-            // Buscar en tabla transaccion para pagos con tarjeta de la jornada específica
-            $this->desgloseTarjetas = DB::table('transaccion')
-                ->where('caja_id', $this->cajaActual->id)
-                ->whereDate('created_at', $fecha)
-                ->where('tarjeta', '>', 0)
-                ->selectRaw('
-                    transaccion as metodo_pago,
-                    COUNT(*) as cantidad_transacciones,
-                    SUM(tarjeta) as total_pagado
-                ')
-                ->groupBy('transaccion')
-                ->orderBy('total_pagado', 'desc')
-                ->get();
-            
-        } catch (\Exception $e) {
-            Log::error('Error al calcular desglose de tarjetas: ' . $e->getMessage());
-            $this->desgloseTarjetas = collect();
-        }
+        // Tabla pago_con_tarjeta no existe, dejar vacío
+        $this->desgloseTarjetas = collect();
     }
 
-    /**
-     * Calcula el desglose de transferencias
-     */
-    private function calcularDesgloseTransferencias()
+    private function cargarDesgloseTransferencias($fechaInicio)
     {
-        try {
-            if (!$this->jornada) {
-                $this->desgloseTransferencias = collect();
-                return;
-            }
-
-            $fecha = $this->jornada->fecha;
-            
-            // Buscar en tabla transaccion para pagos con transferencia de la jornada específica
-            $this->desgloseTransferencias = DB::table('transaccion')
-                ->where('caja_id', $this->cajaActual->id)
-                ->whereDate('created_at', $fecha)
-                ->where('transferencia', '>', 0)
-                ->selectRaw('
-                    transaccion as metodo_pago,
-                    COUNT(*) as cantidad_transacciones,
-                    SUM(transferencia) as total_pagado
-                ')
-                ->groupBy('transaccion')
-                ->orderBy('total_pagado', 'desc')
-                ->get();
-            
-        } catch (\Exception $e) {
-            Log::error('Error al calcular desglose de transferencias: ' . $e->getMessage());
-            $this->desgloseTransferencias = collect();
-        }
+        // Tabla pago_con_transferencia no existe, dejar vacío
+        $this->desgloseTransferencias = collect();
     }
 
-    /**
-     * Calcula el desglose de pagos con cheque
-     */
-    private function calcularDesgloseCheques()
+    private function cargarDesgloseCheques($fechaInicio)
     {
-        try {
-            if (!$this->jornada) {
-                $this->desgloseCheques = collect();
-                return;
-            }
-
-            $fecha = $this->jornada->fecha;
-            
-            // Buscar en tabla transaccion para pagos con cheque de la jornada específica
-            $this->desgloseCheques = DB::table('transaccion')
-                ->where('caja_id', $this->cajaActual->id)
-                ->whereDate('created_at', $fecha)
-                ->where('cheque', '>', 0)
-                ->selectRaw('
-                    transaccion as metodo_pago,
-                    COUNT(*) as cantidad_transacciones,
-                    SUM(cheque) as total_pagado
-                ')
-                ->groupBy('transaccion')
-                ->orderBy('total_pagado', 'desc')
-                ->get();
-            
-        } catch (\Exception $e) {
-            Log::error('Error al calcular desglose de cheques: ' . $e->getMessage());
-            $this->desgloseCheques = collect();
-        }
+        // Tabla pago_con_cheque no existe, dejar vacío
+        $this->desgloseCheques = collect();
     }
+
+    public function updatedBilletes500() { $this->calcularTotalContado(); }
+    public function updatedBilletes200() { $this->calcularTotalContado(); }
+    public function updatedBilletes100() { $this->calcularTotalContado(); }
+    public function updatedBilletes50() { $this->calcularTotalContado(); }
+    public function updatedBilletes20() { $this->calcularTotalContado(); }
+    public function updatedBilletes10() { $this->calcularTotalContado(); }
+    public function updatedBilletes5() { $this->calcularTotalContado(); }
+    public function updatedBilletes2() { $this->calcularTotalContado(); }
+    public function updatedBilletes1() { $this->calcularTotalContado(); }
+    public function updatedMonedas050() { $this->calcularTotalContado(); }
+    public function updatedMonedas020() { $this->calcularTotalContado(); }
+    public function updatedMonedas010() { $this->calcularTotalContado(); }
+    public function updatedMonedas005() { $this->calcularTotalContado(); }
+    public function updatedMonedas002() { $this->calcularTotalContado(); }
+    public function updatedMonedas001() { $this->calcularTotalContado(); }
+
+    public function updatedTotalTarjetaContado() { $this->calcularDiferencias(); }
+    public function updatedTotalTransferenciaContado() { $this->calcularDiferencias(); }
+    public function updatedTotalChequeContado() { $this->calcularDiferencias(); }
 
     public function calcularTotalContado()
     {
-        $totalBilletes =
-            ($this->safeFloat($this->billetes_500) * 500) +
-            ($this->safeFloat($this->billetes_200) * 200) +
-            ($this->safeFloat($this->billetes_100) * 100) +
-            ($this->safeFloat($this->billetes_50) * 50) +
-            ($this->safeFloat($this->billetes_20) * 20) +
-            ($this->safeFloat($this->billetes_10) * 10) +
-            ($this->safeFloat($this->billetes_5) * 5) +
-            ($this->safeFloat($this->billetes_2) * 2) +
-            ($this->safeFloat($this->billetes_1) * 1);
+        $this->totalContado = (
+            ($this->billetes_500 * 500) +
+            ($this->billetes_200 * 200) +
+            ($this->billetes_100 * 100) +
+            ($this->billetes_50 * 50) +
+            ($this->billetes_20 * 20) +
+            ($this->billetes_10 * 10) +
+            ($this->billetes_5 * 5) +
+            ($this->billetes_2 * 2) +
+            ($this->billetes_1 * 1) +
+            ($this->monedas_0_50 * 0.50) +
+            ($this->monedas_0_20 * 0.20) +
+            ($this->monedas_0_10 * 0.10) +
+            ($this->monedas_0_05 * 0.05) +
+            ($this->monedas_0_02 * 0.02) +
+            ($this->monedas_0_01 * 0.01)
+        );
 
-        $totalMonedas =
-            ($this->safeFloat($this->monedas_0_50) * 0.50) +
-            ($this->safeFloat($this->monedas_0_20) * 0.20) +
-            ($this->safeFloat($this->monedas_0_10) * 0.10) +
-            ($this->safeFloat($this->monedas_0_05) * 0.05) +
-            ($this->safeFloat($this->monedas_0_02) * 0.02) +
-            ($this->safeFloat($this->monedas_0_01) * 0.01);
+        // Calcular diferencia (contado menos el efectivo que debería haber según el sistema)
+        $efectivoSistema = $this->resumenTransacciones
+            ->where('forma_pago', 'Efectivo')
+            ->first()->total ?? 0;
 
-        $this->totalContado = $totalBilletes + $totalMonedas;
-        $this->diferenciaEfectivo = $this->totalContado - $this->totalSistema;
+        $this->diferenciaEfectivo = $this->totalContado - $efectivoSistema;
+
+        // Calcular diferencias para otros métodos de pago
+        $this->calcularDiferencias();
     }
 
-    /**
-     * Helper method para convertir valores de forma segura a float
-     */
-    private function safeFloat($value)
+    public function calcularDiferencias()
     {
-        if (is_numeric($value)) {
-            return floatval($value);
-        }
-        return 0.0;
-    }
+        // Buscar tarjeta (puede ser "Tarjeta", "Tarjeta(POS)", etc.)
+        $tarjetaSistema = $this->resumenTransacciones
+            ->filter(function($item) {
+                return stripos($item->forma_pago, 'Tarjeta') !== false;
+            })
+            ->sum('total');
 
-    public function updated($propertyName)
-    {
-        // Validar y limpiar valores de billetes y monedas
-        if (str_contains($propertyName, 'billetes_') || str_contains($propertyName, 'monedas_')) {
-            // Asegurar que el valor sea numérico válido
-            $value = $this->$propertyName;
-            if (!is_numeric($value) || $value < 0) {
-                $this->$propertyName = 0;
-            } else {
-                $this->$propertyName = intval($value); // Para billetes/monedas debe ser entero
-            }
+        // Buscar cheque
+        $chequeSistema = $this->resumenTransacciones
+            ->filter(function($item) {
+                return stripos($item->forma_pago, 'Cheque') !== false;
+            })
+            ->sum('total');
 
-            $this->calcularTotalContado();
-        }
+        // Buscar transferencia
+        $transferenciaSistema = $this->resumenTransacciones
+            ->filter(function($item) {
+                return stripos($item->forma_pago, 'Transferencia') !== false;
+            })
+            ->sum('total');
+
+        $this->diferenciaTarjeta = $this->totalTarjetaContado - $tarjetaSistema;
+        $this->diferenciaTransferencia = $this->totalTransferenciaContado - $transferenciaSistema;
+        $this->diferenciaCheque = $this->totalChequeContado - $chequeSistema;
     }
 
     public function procesarCierre()
     {
-        // Validar que la jornada esté abierta antes de proceder
-        if (!$this->validarJornadaAbierta()) {
-            $this->mensajeError = 'No se pueden realizar operaciones de caja porque la jornada no está aperturada para hoy. Debe aperturar la jornada primero.';
-            return;
-        }
-
-        if (!$this->cajaActual) {
-            $this->mensajeError = 'No hay una caja abierta para cerrar.';
-            return;
-        }
-
         try {
             DB::beginTransaction();
 
-            // Insertar registro de cierre usando insert con nombres de columnas explícitos
-            $datosInsert = [
-                'caja_id' => $this->cajaActual->id,
-                'balance_cierre' => $this->safeFloat($this->cajaActual->balance), // Balance al momento del cierre
-                'total_efectivo' => $this->safeFloat($this->resumenTransacciones['efectivo_neto']),
-                'total_tarjeta' => $this->safeFloat($this->resumenTransacciones['tarjeta']),
-                'total_cheque' => $this->safeFloat($this->resumenTransacciones['cheque']),
-                'total_transferencia' => $this->safeFloat($this->resumenTransacciones['transferencia']),
-                'conteo_efectivo' => $this->safeFloat($this->totalContado),
-                'conteo_tarjeta' => $this->safeFloat($this->resumenTransacciones['tarjeta']), // Mismo valor
-                'conteo_cheque' => $this->safeFloat($this->resumenTransacciones['cheque']), // Mismo valor
-                'diferencia_efectivo' => $this->safeFloat($this->diferenciaEfectivo),
-                'tipo_cierre' => 1, // 1 = Cierre de Caja manual
-                'diferencia_tarjeta' => 0, // No hay diferencia en tarjetas
-                'diferencia_cheque' => 0, // No hay diferencia en cheques
-                'fecha_cierre' => $this->jornada->fecha, // Fecha de la jornada que se está cerrando
+            $usuario = Auth::user();
+
+            // Obtener período
+            $ultimoCierre = DB::table('cierre_caja_historico')
+                ->where('user_id', $usuario->id)
+                ->where('tienda_id', $usuario->tienda_id)
+                ->orderBy('fecha_cierre', 'desc')
+                ->first();
+
+            $periodoInicio = $ultimoCierre ? $ultimoCierre->fecha_cierre : null;
+            $periodoFin = now();
+
+            // Contar facturas del período
+            $queryFacturas = DB::table('factura')
+                ->where('users_id', $usuario->id);
+
+            if ($periodoInicio) {
+                $queryFacturas->where('created_at', '>', $periodoInicio);
+            }
+
+            $cantidadFacturas = $queryFacturas->count();
+
+            // Calcular totales por tipo de pago
+            $efectivoSistema = $this->resumenTransacciones
+                ->filter(fn($item) => stripos($item->forma_pago, 'Efectivo') !== false)
+                ->sum('total');
+
+            $tarjetaSistema = $this->resumenTransacciones
+                ->filter(fn($item) => stripos($item->forma_pago, 'Tarjeta') !== false)
+                ->sum('total');
+
+            $transferenciaSistema = $this->resumenTransacciones
+                ->filter(fn($item) => stripos($item->forma_pago, 'Transferencia') !== false)
+                ->sum('total');
+
+            $chequeSistema = $this->resumenTransacciones
+                ->filter(fn($item) => stripos($item->forma_pago, 'Cheque') !== false)
+                ->sum('total');
+
+            // Guardar cierre en histórico
+            DB::table('cierre_caja_historico')->insert([
+                'user_id' => $usuario->id,
+                'tienda_id' => $usuario->tienda_id,
+                'fecha_cierre' => $periodoFin,
+                'periodo_inicio' => $periodoInicio,
+                'periodo_fin' => $periodoFin,
+                'total_efectivo_sistema' => $efectivoSistema,
+                'total_efectivo_contado' => $this->totalContado,
+                'diferencia' => $this->diferenciaEfectivo,
+                'total_tarjeta' => $tarjetaSistema,
+                'total_tarjeta_contado' => $this->totalTarjetaContado,
+                'diferencia_tarjeta' => $this->diferenciaTarjeta,
+                'total_transferencia' => $transferenciaSistema,
+                'total_transferencia_contado' => $this->totalTransferenciaContado,
+                'diferencia_transferencia' => $this->diferenciaTransferencia,
+                'total_cheque' => $chequeSistema,
+                'total_cheque_contado' => $this->totalChequeContado,
+                'diferencia_cheque' => $this->diferenciaCheque,
+                'total_general' => $this->totalSistema,
+                'cantidad_facturas' => $cantidadFacturas,
+                'observaciones' => $this->observaciones,
+                'desglose_billetes' => json_encode([
+                    'billetes' => [
+                        '500' => $this->billetes_500,
+                        '200' => $this->billetes_200,
+                        '100' => $this->billetes_100,
+                        '50' => $this->billetes_50,
+                        '20' => $this->billetes_20,
+                        '10' => $this->billetes_10,
+                        '5' => $this->billetes_5,
+                        '2' => $this->billetes_2,
+                        '1' => $this->billetes_1,
+                    ],
+                    'monedas' => [
+                        '0.50' => $this->monedas_0_50,
+                        '0.20' => $this->monedas_0_20,
+                        '0.10' => $this->monedas_0_10,
+                        '0.05' => $this->monedas_0_05,
+                        '0.02' => $this->monedas_0_02,
+                        '0.01' => $this->monedas_0_01,
+                    ]
+                ]),
                 'created_at' => now(),
                 'updated_at' => now()
-            ];
+            ]);
 
-            // Agregar billetes
-            $datosInsert['500'] = $this->safeFloat($this->billetes_500);
-            $datosInsert['200'] = $this->safeFloat($this->billetes_200);
-            $datosInsert['100'] = $this->safeFloat($this->billetes_100);
-            $datosInsert['50'] = $this->safeFloat($this->billetes_50);
-            $datosInsert['20'] = $this->safeFloat($this->billetes_20);
-            $datosInsert['10'] = $this->safeFloat($this->billetes_10);
-            $datosInsert['5'] = $this->safeFloat($this->billetes_5);
-            $datosInsert['2'] = $this->safeFloat($this->billetes_2);
-            $datosInsert['1'] = $this->safeFloat($this->billetes_1);
-
-            // Agregar monedas usando los nombres exactos de las columnas en la BD
-            $datosInsert['050'] = $this->safeFloat($this->monedas_0_50);
-            $datosInsert['020'] = $this->safeFloat($this->monedas_0_20);
-            $datosInsert['010'] = $this->safeFloat($this->monedas_0_10);
-            $datosInsert['005'] = $this->safeFloat($this->monedas_0_05);
-            $datosInsert['002'] = $this->safeFloat($this->monedas_0_02);
-            $datosInsert['001'] = $this->safeFloat($this->monedas_0_01);
-
-            // PRIMERO: Insertar transacción de cierre y obtener su ID
-            $fechaAhora = now();
-            $transaccionCierre = [
-                'caja_id' => $this->cajaActual->id,
-                'transaccion' => 'cierre',
-                'efectivo' => 0.00,
-                'tarjeta' => 0.00,
-                'cheque' => 0.00,
-                'transferencia' => 0.00,
-                'descripcion' => 'Cierre de caja - Totales de la jornada',
-                'created_at' => $fechaAhora,
-                'update_at' => $fechaAhora
-            ];
-
-            // Insertar la transacción y obtener su ID
-            $idTransaccion = DB::table('transaccion')->insertGetId($transaccionCierre);
-
-            // SEGUNDO: Agregar el ID de transacción al cierre de caja
-            $datosInsert['transaccion_id'] = $idTransaccion;
-
-            DB::table('cierre_de_caja')->insert($datosInsert);
-
-            // Cerrar la caja - Solo cambiar estado a cerrado (2)
+            // Resetear caja al saldo inicial
             DB::table('caja')
-                ->where('id', $this->cajaActual->id)
+                ->where('users_id', $usuario->id)
+                ->where('tienda_id', $usuario->tienda_id)
                 ->update([
-                    'estado_caja' => 2, // 2 = cerrada
+                    'balance' => self::SALDO_INICIAL,
                     'updated_at' => now()
                 ]);
 
             DB::commit();
 
-            // Recargar datos de caja para mostrar el nuevo estado
-            $this->cargarDatosCaja();
-
             $this->cierreProcesado = true;
-            $this->mensajeExito = 'Cierre de caja procesado correctamente. Caja cerrada exitosamente. ' .
-                                 'Total contado: L.' . number_format($this->totalContado, 2) .
-                                 '. Diferencia: L.' . number_format($this->diferenciaEfectivo, 2) .
-                                 '. Balance preserved: L.' . number_format($this->cajaActual->balance, 2);
+            $this->mensajeExito = '✅ Cierre de caja procesado exitosamente. La caja se ha restablecido a L. ' . number_format(self::SALDO_INICIAL, 2);
+
+            Log::info("Cierre de caja procesado - Usuario: {$usuario->id}, Tienda: {$usuario->tienda_id}");
 
         } catch (\Exception $e) {
             DB::rollBack();
-            $this->mensajeError = 'Error al procesar el cierre de caja: ' . $e->getMessage();
+            $this->mensajeError = '❌ Error al procesar cierre: ' . $e->getMessage();
+            Log::error("Error en cierre de caja: " . $e->getMessage());
         }
-    }
-
-    public function limpiarMensajes()
-    {
-        $this->mensajeExito = '';
-        $this->mensajeError = '';
-    }
-
-    public function volverDashboard()
-    {
-        // Emitir evento al componente padre
-        $this->dispatch('cambiarVista', ['vista' => 'dashboard']);
     }
 
     public function render()
