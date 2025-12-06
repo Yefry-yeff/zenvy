@@ -88,6 +88,10 @@ Route::middleware('auth')->group(function () {
     // Ruta para ver detalle de factura
     Route::get('factura/{id}/detalle', [App\Http\Controllers\FacturaController::class, 'detalle'])->name('factura.detalle');
 
+    // Rutas para cierre de caja PDF
+    Route::get('cierre-caja/{id}/pdf', [App\Http\Controllers\CierreCajaPDFController::class, 'generarPDF'])->name('cierre-caja.pdf');
+    Route::get('cierre-caja/{id}/pdf/preview', [App\Http\Controllers\CierreCajaPDFController::class, 'previsualizarPDF'])->name('cierre-caja.pdf.preview');
+
     // Ruta para descargar archivos generados por Livewire
     Route::get('/download', [App\Http\Controllers\DownloadController::class, 'downloadFile'])->name('download.file');
 });

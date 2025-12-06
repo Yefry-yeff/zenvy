@@ -136,15 +136,16 @@
 
                         <div class="pt-4 border-t border-gray-200">
                             <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
-                                <div class="p-4 rounded-lg bg-blue-50">
-                                    <div class="text-sm text-blue-700">Total Contado</div>
-                                    <div class="text-2xl font-bold text-blue-900">L. {{ number_format($totalContado, 2) }}</div>
-                                </div>
                                 <div class="p-4 rounded-lg bg-gray-50">
                                     <div class="text-sm text-gray-700">Efectivo Sistema</div>
                                     <div class="text-2xl font-bold text-gray-900">
-                                        L. {{ number_format($resumenTransacciones->where('forma_pago', 'EFECTIVO')->first()->total ?? 0, 2) }}
+                                        L. {{ number_format($resumenTransacciones->filter(fn($item) => stripos($item->forma_pago, 'Efectivo') !== false)->sum('total') + 2000.00, 2) }}
                                     </div>
+                                    <div class="text-xs text-gray-500 mt-1">Incluye saldo inicial L. 2,000.00</div>
+                                </div>
+                                <div class="p-4 rounded-lg bg-blue-50">
+                                    <div class="text-sm text-blue-700">Total Contado</div>
+                                    <div class="text-2xl font-bold text-blue-900">L. {{ number_format($totalContado, 2) }}</div>
                                 </div>
                                 <div class="p-4 rounded-lg {{ $diferenciaEfectivo >= 0 ? 'bg-green-50' : 'bg-red-50' }}">
                                     <div class="text-sm {{ $diferenciaEfectivo >= 0 ? 'text-green-700' : 'text-red-700' }}">Diferencia</div>
@@ -267,3 +268,15 @@
         </div>
     </div>
 </div>
+
+@push('scripts')
+<script>
+    document.addEventListener('livewire:init', () => {
+        Livewire.on('abrirReciboCierre', (event) => {
+            const cierreId = event.cierreId;
+            // Abrir el PDF en una nueva ventana
+            window.open(`/cierre-caja/${cierreId}/pdf/preview`, '_blank', 'width=800,height=900');
+        });
+    });
+</script>
+@endpush

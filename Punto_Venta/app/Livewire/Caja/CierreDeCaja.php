@@ -109,7 +109,7 @@ class CierreDeCaja extends Component
             ->select(
                 'tp.nombre as forma_pago',
                 DB::raw('COUNT(DISTINCT f.id) as cantidad'),
-                DB::raw('SUM(fhp.pago_recibido) as total')
+                DB::raw('SUM(fhp.total_factura) as total')
             )
             ->groupBy('tp.id', 'tp.nombre')
             ->get();
@@ -189,11 +189,17 @@ class CierreDeCaja extends Component
         );
 
         // Calcular diferencia (contado menos el efectivo que debería haber según el sistema)
+        // El efectivo del sistema incluye el saldo inicial de la caja (L. 2,000.00)
         $efectivoSistema = $this->resumenTransacciones
-            ->where('forma_pago', 'Efectivo')
-            ->first()->total ?? 0;
+            ->filter(function($item) {
+                return stripos($item->forma_pago, 'Efectivo') !== false;
+            })
+            ->sum('total');
+        
+        // Sumar el saldo inicial de la caja
+        $efectivoSistemaConCaja = $efectivoSistema + self::SALDO_INICIAL;
 
-        $this->diferenciaEfectivo = $this->totalContado - $efectivoSistema;
+        $this->diferenciaEfectivo = $this->totalContado - $efectivoSistemaConCaja;
 
         // Calcular diferencias para otros métodos de pago
         $this->calcularDiferencias();
@@ -271,14 +277,14 @@ class CierreDeCaja extends Component
                 ->filter(fn($item) => stripos($item->forma_pago, 'Cheque') !== false)
                 ->sum('total');
 
-            // Guardar cierre en histórico
-            DB::table('cierre_caja_historico')->insert([
+            // Guardar cierre en histórico y obtener el ID insertado
+            $cierreId = DB::table('cierre_caja_historico')->insertGetId([
                 'user_id' => $usuario->id,
                 'tienda_id' => $usuario->tienda_id,
                 'fecha_cierre' => $periodoFin,
                 'periodo_inicio' => $periodoInicio,
                 'periodo_fin' => $periodoFin,
-                'total_efectivo_sistema' => $efectivoSistema,
+                'total_efectivo_sistema' => $efectivoSistema + self::SALDO_INICIAL,
                 'total_efectivo_contado' => $this->totalContado,
                 'diferencia' => $this->diferenciaEfectivo,
                 'total_tarjeta' => $tarjetaSistema,
@@ -293,27 +299,20 @@ class CierreDeCaja extends Component
                 'total_general' => $this->totalSistema,
                 'cantidad_facturas' => $cantidadFacturas,
                 'observaciones' => $this->observaciones,
-                'desglose_billetes' => json_encode([
-                    'billetes' => [
-                        '500' => $this->billetes_500,
-                        '200' => $this->billetes_200,
-                        '100' => $this->billetes_100,
-                        '50' => $this->billetes_50,
-                        '20' => $this->billetes_20,
-                        '10' => $this->billetes_10,
-                        '5' => $this->billetes_5,
-                        '2' => $this->billetes_2,
-                        '1' => $this->billetes_1,
-                    ],
-                    'monedas' => [
-                        '0.50' => $this->monedas_0_50,
-                        '0.20' => $this->monedas_0_20,
-                        '0.10' => $this->monedas_0_10,
-                        '0.05' => $this->monedas_0_05,
-                        '0.02' => $this->monedas_0_02,
-                        '0.01' => $this->monedas_0_01,
-                    ]
-                ]),
+                // Guardar denominaciones en columnas individuales
+                'billetes_500' => $this->billetes_500,
+                'billetes_200' => $this->billetes_200,
+                'billetes_100' => $this->billetes_100,
+                'billetes_50' => $this->billetes_50,
+                'billetes_20' => $this->billetes_20,
+                'billetes_10' => $this->billetes_10,
+                'billetes_5' => $this->billetes_5,
+                'billetes_2' => $this->billetes_2,
+                'billetes_1' => $this->billetes_1,
+                'monedas_0_50' => $this->monedas_0_50,
+                'monedas_0_20' => $this->monedas_0_20,
+                'monedas_0_10' => $this->monedas_0_10,
+                'monedas_0_05' => $this->monedas_0_05,
                 'created_at' => now(),
                 'updated_at' => now()
             ]);
@@ -333,6 +332,9 @@ class CierreDeCaja extends Component
             $this->mensajeExito = '✅ Cierre de caja procesado exitosamente. La caja se ha restablecido a L. ' . number_format(self::SALDO_INICIAL, 2);
 
             Log::info("Cierre de caja procesado - Usuario: {$usuario->id}, Tienda: {$usuario->tienda_id}");
+
+            // Disparar evento para abrir el PDF del recibo
+            $this->dispatch('abrirReciboCierre', cierreId: $cierreId);
 
         } catch (\Exception $e) {
             DB::rollBack();

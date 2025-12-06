@@ -4670,16 +4670,37 @@ class Ventas extends Component
         // Aplicar filtros de búsqueda de texto
         if ($this->busquedaProductosServicios) {
             $busqueda = $this->busquedaProductosServicios;
-            $query->where(function($q) use ($busqueda) {
-                $q->where('nombre', 'like', '%' . $busqueda . '%')
-                  ->orWhere('descripcion', 'like', '%' . $busqueda . '%')
-                  ->orWhereExists(function($subQuery) use ($busqueda) {
-                      $subQuery->select(DB::raw(1))
-                          ->from('precio_has_venta')
-                          ->whereColumn('precio_has_venta.producto_id', 'producto.id')
-                          ->where('precio_has_venta.codigo_barra', 'like', '%' . $busqueda . '%')
-                          ->where('precio_has_venta.estado_id', 1);
-                  });
+            
+            // Dividir la búsqueda en palabras individuales
+            $palabras = array_filter(explode(' ', $busqueda));
+            
+            $query->where(function($q) use ($palabras, $busqueda) {
+                // Si hay múltiples palabras, buscar que TODAS estén presentes
+                if (count($palabras) > 1) {
+                    $q->where(function($subQ) use ($palabras) {
+                        foreach ($palabras as $palabra) {
+                            $subQ->where('nombre', 'like', '%' . $palabra . '%');
+                        }
+                    })
+                    ->orWhere(function($subQ) use ($palabras) {
+                        foreach ($palabras as $palabra) {
+                            $subQ->where('descripcion', 'like', '%' . $palabra . '%');
+                        }
+                    });
+                } else {
+                    // Si es una sola palabra, búsqueda normal
+                    $q->where('nombre', 'like', '%' . $busqueda . '%')
+                      ->orWhere('descripcion', 'like', '%' . $busqueda . '%');
+                }
+                
+                // Siempre buscar en códigos de barras con el texto completo
+                $q->orWhereExists(function($subQuery) use ($busqueda) {
+                    $subQuery->select(DB::raw(1))
+                        ->from('precio_has_venta')
+                        ->whereColumn('precio_has_venta.producto_id', 'producto.id')
+                        ->where('precio_has_venta.codigo_barra', 'like', '%' . $busqueda . '%')
+                        ->where('precio_has_venta.estado_id', 1);
+                });
             });
         }
 
@@ -4698,9 +4719,8 @@ class Ventas extends Component
             });
         }
 
-        // Obtener TODOS los productos (con o sin stock) - igual que lista-de-productos.blade.php
+        // Obtener TODOS los productos (con o sin stock) - sin limit inicial
         $productos = $query->orderBy('nombre')
-                          ->limit(100) // Aumentar límite para mostrar más productos
                           ->get();
 
         // Expandir cada producto con sus unidades de precio_has_venta
@@ -4802,6 +4822,7 @@ class Ventas extends Component
                     'id' => $producto->id,
                     'nombre' => $producto->nombre ?? '',
                     'descripcion' => $producto->descripcion ?? '',
+                    'presentacion_descripcion' => null,
                     'codigo_barra' => '',
                     'imagen_base64' => $imagenBase64,
                     'tiene_imagen' => $imagenBase64 !== null,
@@ -4851,7 +4872,8 @@ class Ventas extends Component
             }
         ])->values(); // values() para reindexar la colección
 
-        $this->resultadosBusqueda = $resultadosExpandidos->take(100); // Limitar resultados finales
+        // Aplicar límite de 100 después de ordenar (priorizando productos con stock)
+        $this->resultadosBusqueda = $resultadosExpandidos->take(100);
     }
 
     public function updatedCategoriaSeleccionada($value)
