@@ -2,22 +2,9 @@
     <!-- Encabezado -->
     <div class="row mb-4">
         <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center">
-                <h1 class="h3 mb-0 text-gray-800">
-                    <i class="fas fa-ban text-danger"></i> Reporte de Facturas Anuladas
-                </h1>
-                <button wire:click="exportarExcel" 
-                        class="btn btn-success btn-sm"
-                        wire:loading.attr="disabled"
-                        wire:target="exportarExcel">
-                    <span wire:loading.remove wire:target="exportarExcel">
-                        <i class="fas fa-file-excel"></i> Exportar Excel
-                    </span>
-                    <span wire:loading wire:target="exportarExcel">
-                        <i class="fas fa-spinner fa-spin"></i> Generando...
-                    </span>
-                </button>
-            </div>
+            <h1 class="h3 mb-0 text-gray-800">
+                <i class="fas fa-ban text-danger"></i> Reporte de Facturas Anuladas
+            </h1>
         </div>
     </div>
 
@@ -51,7 +38,7 @@
                             <div class="h5 mb-0 font-weight-bold text-gray-800">L. {{ number_format($totalMonto, 2) }}</div>
                         </div>
                         <div class="col-auto">
-                            <i class="fas fa-dollar-sign fa-2x text-gray-300"></i>
+                            <i class="fas fa-coins fa-2x text-gray-300"></i>
                         </div>
                     </div>
                 </div>
@@ -155,9 +142,22 @@
     <!-- Tabla -->
     <div class="card shadow mb-4">
         <div class="card-header py-3 bg-gradient-danger">
-            <h6 class="m-0 font-weight-bold text-white">
-                <i class="fas fa-table"></i> Listado de Facturas Anuladas
-            </h6>
+            <div class="d-flex justify-content-between align-items-center">
+                <h6 class="m-0 font-weight-bold text-white">
+                    <i class="fas fa-table"></i> Listado de Facturas Anuladas
+                </h6>
+                <button wire:click="exportarExcel" 
+                        class="btn btn-success btn-sm"
+                        wire:loading.attr="disabled"
+                        wire:target="exportarExcel">
+                    <span wire:loading.remove wire:target="exportarExcel">
+                        <i class="fas fa-file-excel"></i> Exportar Excel
+                    </span>
+                    <span wire:loading wire:target="exportarExcel">
+                        <i class="fas fa-spinner fa-spin"></i> Generando...
+                    </span>
+                </button>
+            </div>
         </div>
         <div class="card-body">
             @if($facturasAnuladas->count() > 0)
@@ -310,35 +310,6 @@
                                                         <div class="col-12">
                                                             <h6 class="border-bottom pb-2"><i class="fas fa-sticky-note"></i> Observaciones</h6>
                                                             <p class="bg-light p-3 rounded">{{ $anulacion->observaciones }}</p>
-                                                        </div>
-                                                    </div>
-                                                @endif
-                                                @if($anulacion->productos_devueltos)
-                                                    <div class="row mt-2">
-                                                        <div class="col-12">
-                                                            <h6 class="border-bottom pb-2"><i class="fas fa-boxes"></i> Productos Devueltos</h6>
-                                                            <div class="table-responsive">
-                                                                <table class="table table-sm table-bordered">
-                                                                    <thead class="bg-light">
-                                                                        <tr>
-                                                                            <th>Producto ID</th>
-                                                                            <th>Cantidad</th>
-                                                                            <th>Precio Unit.</th>
-                                                                            <th>Subtotal</th>
-                                                                        </tr>
-                                                                    </thead>
-                                                                    <tbody>
-                                                                        @foreach(json_decode($anulacion->productos_devueltos, true) ?? [] as $producto)
-                                                                            <tr>
-                                                                                <td>{{ $producto['producto_id'] ?? 'N/A' }}</td>
-                                                                                <td>{{ $producto['cantidad'] ?? 0 }}</td>
-                                                                                <td>L. {{ number_format($producto['precio_unidad'] ?? 0, 2) }}</td>
-                                                                                <td>L. {{ number_format($producto['subtotal'] ?? 0, 2) }}</td>
-                                                                            </tr>
-                                                                        @endforeach
-                                                                    </tbody>
-                                                                </table>
-                                                            </div>
                                                         </div>
                                                     </div>
                                                 @endif

@@ -123,9 +123,43 @@ class FacturasAnuladas extends Component
     {
         $facturasAnuladas = $this->obtenerFacturasAnuladas();
 
-        // Calcular totales
-        $totalMonto = $facturasAnuladas->sum('total');
-        $totalRegistros = $facturasAnuladas->total();
+        // Calcular totales de TODAS las facturas (no solo la página actual)
+        $queryTotales = FacturaAnulada::query()
+            ->join('users as u_anulo', 'facturas_anuladas.users_id_anulo', '=', 'u_anulo.id')
+            ->join('users as u_vendedor', 'facturas_anuladas.users_id_vendedor', '=', 'u_vendedor.id')
+            ->select('facturas_anuladas.*');
+
+        // Aplicar los mismos filtros
+        if (!empty($this->filtroNumeroFactura)) {
+            $queryTotales->where('facturas_anuladas.numero_factura', 'like', '%' . $this->filtroNumeroFactura . '%');
+        }
+        if (!empty($this->filtroCliente)) {
+            $queryTotales->where('facturas_anuladas.nombre_cliente', 'like', '%' . $this->filtroCliente . '%');
+        }
+        if (!empty($this->filtroUsuarioAnulo)) {
+            $queryTotales->where('u_anulo.name', 'like', '%' . $this->filtroUsuarioAnulo . '%');
+        }
+        if (!empty($this->filtroVendedor)) {
+            $queryTotales->where('u_vendedor.name', 'like', '%' . $this->filtroVendedor . '%');
+        }
+        if (!empty($this->filtroFechaAnulacionInicio)) {
+            $queryTotales->whereDate('facturas_anuladas.fecha_anulacion', '>=', $this->filtroFechaAnulacionInicio);
+        }
+        if (!empty($this->filtroFechaAnulacionFin)) {
+            $queryTotales->whereDate('facturas_anuladas.fecha_anulacion', '<=', $this->filtroFechaAnulacionFin);
+        }
+        if (!empty($this->filtroFechaEmisionInicio)) {
+            $queryTotales->whereDate('facturas_anuladas.fecha_emision_factura', '>=', $this->filtroFechaEmisionInicio);
+        }
+        if (!empty($this->filtroFechaEmisionFin)) {
+            $queryTotales->whereDate('facturas_anuladas.fecha_emision_factura', '<=', $this->filtroFechaEmisionFin);
+        }
+        if (!empty($this->filtroMotivo)) {
+            $queryTotales->where('facturas_anuladas.motivo_anulacion', 'like', '%' . $this->filtroMotivo . '%');
+        }
+
+        $totalMonto = $queryTotales->sum('facturas_anuladas.total');
+        $totalRegistros = $queryTotales->count();
 
         return view('livewire.reporte.facturas-anuladas', [
             'facturasAnuladas' => $facturasAnuladas,
