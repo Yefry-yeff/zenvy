@@ -1007,6 +1007,23 @@ class ListaDeProductos extends Component
                 throw new \Exception('No se pudo actualizar el registro de stock.');
             }
 
+            // Insertar en tabla ajuste_inventario
+            DB::table('ajuste_inventario')->insert([
+                'recibido_bodega_id' => $this->stockParaAjuste->id,
+                'producto_id' => $this->stockParaAjuste->producto_id,
+                'bodega_id' => $this->stockParaAjuste->bodega_id,
+                'seccion_id' => $this->stockParaAjuste->seccion_id,
+                'tipo_ajuste' => $this->tipoAjuste,
+                'cantidad_anterior' => $cantidadAnterior,
+                'cantidad_ajustada' => floatval($this->cantidadAjuste),
+                'cantidad_nueva' => $cantidadNueva,
+                'unidad_medida_id' => $this->stockParaAjuste->unidad_medida_id,
+                'motivo' => $this->motivoAjuste,
+                'users_id' => Auth::id(),
+                'created_at' => now(),
+                'updated_at' => now()
+            ]);
+
             // Registrar en bitácora
             $this->registrarEnBitacora([
                 'tabla_afectada' => 'recibido_bodega',
