@@ -1,4 +1,4 @@
-<div>
+<div wire:key="productos-component-main">
     <!-- MENSAJES DE SESIÓN -->
     @if (session()->has('message'))
         <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -130,9 +130,9 @@
         </div>
 
         <!-- TABLA OPTIMIZADA -->
-        <div class="px-2 py-2">
+        <div class="px-2 py-2" wire:key="productos-table-container">
             <div class="overflow-x-auto max-h-[calc(100vh-280px)]">
-                <table class="min-w-full text-xs border border-gray-200 table-fixed">
+                <table class="min-w-full text-xs border border-gray-200 table-fixed" wire:key="productos-table">
                         <thead class="sticky top-0 z-10 bg-gray-100">
                             <!-- Encabezados con ordenamiento -->
                             <tr>
@@ -246,16 +246,15 @@
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-200">
-                            @if($productos->count() > 0)
-                                @foreach($productos as $producto)
-                                    @php
-                                        $numPresentaciones = !empty($producto->presentaciones) ? count($producto->presentaciones) : 1;
-                                    @endphp
+                            @forelse($productos as $producto)
+                                @php
+                                    $numPresentaciones = !empty($producto->presentaciones) ? count($producto->presentaciones) : 1;
+                                @endphp
 
-                                    @if(!empty($producto->presentaciones) && count($producto->presentaciones) > 0)
-                                        @foreach($producto->presentaciones as $index => $presentacion)
-                                        <tr class="transition-colors duration-150 cursor-pointer hover:bg-gray-50"
-                                            wire:key="p-{{ $producto->id }}-i-{{ $index }}">
+                                @if(!empty($producto->presentaciones) && count($producto->presentaciones) > 0)
+                                    @foreach($producto->presentaciones as $index => $presentacion)
+                                    <tr class="transition-colors duration-150 cursor-pointer hover:bg-gray-50"
+                                        wire:key="p-{{ $producto->id }}-i-{{ $index }}">
                                             @if($index === 0)
                                                 <!-- Código del Producto (ID Valencia o Zenvy) - solo en primera fila -->
                                                 <td class="px-2 py-1 text-xs font-semibold border-r"
@@ -432,29 +431,28 @@
                                             </td>
                                         </tr>
                                     @endif
-                                @endforeach
-                            @else
-                            <!-- Mensaje cuando no hay productos -->
-                            <tr>
-                                <td colspan="8" class="px-4 py-12 text-center">
-                                    <div class="mb-4 text-6xl text-gray-400">📦</div>
-                                    <h3 class="mb-2 text-lg font-medium text-gray-900">No se encontraron productos</h3>
-                                    <p class="mb-4 text-gray-500">
+                            @empty
+                                <!-- Mensaje cuando no hay productos -->
+                                <tr>
+                                    <td colspan="8" class="px-4 py-12 text-center">
+                                        <div class="mb-4 text-6xl text-gray-400">📦</div>
+                                        <h3 class="mb-2 text-lg font-medium text-gray-900">No se encontraron productos</h3>
+                                        <p class="mb-4 text-gray-500">
+                                            @if($buscar || $filtroOrigen !== 'todos' || $filtroNombre || $filtroCodigo || $filtroCategoria || $filtroMarca || $filtroPrecio)
+                                                No hay productos que coincidan con los filtros aplicados
+                                            @else
+                                                No hay productos registrados en el sistema
+                                            @endif
+                                        </p>
                                         @if($buscar || $filtroOrigen !== 'todos' || $filtroNombre || $filtroCodigo || $filtroCategoria || $filtroMarca || $filtroPrecio)
-                                            No hay productos que coincidan con los filtros aplicados
-                                        @else
-                                            No hay productos registrados en el sistema
+                                            <button wire:click="limpiarFiltros"
+                                                    class="px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600">
+                                                Limpiar filtros
+                                            </button>
                                         @endif
-                                    </p>
-                                    @if($buscar || $filtroOrigen !== 'todos' || $filtroNombre || $filtroCodigo || $filtroCategoria || $filtroMarca || $filtroPrecio)
-                                        <button wire:click="limpiarFiltros"
-                                                class="px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600">
-                                            Limpiar filtros
-                                        </button>
-                                    @endif
-                                </td>
-                            </tr>
-                        @endif
+                                    </td>
+                                </tr>
+                            @endforelse
                         </tbody>
                     </table>
                 </div>
