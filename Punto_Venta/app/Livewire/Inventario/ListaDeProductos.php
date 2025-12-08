@@ -823,14 +823,41 @@ class ListaDeProductos extends Component
                 'unidades_compra' => $this->cantidadAConvertir
             ]);
 
-            // Registrar cada cambio en la tabla Cambio_unidades
+            // Obtener IDs de unidades de medida y bodega
+            $unidadMedidaOriginalId = $this->obtenerUnidadMedidaId($unidadMedidaOriginal);
+            $unidadMedidaNuevaId = $this->obtenerUnidadMedidaId($this->nuevaUnidadMedida);
+            
+            // Obtener bodega_id desde la sección
+            $seccion = DB::table('seccion')
+                ->join('segmento', 'seccion.segmento_id', '=', 'segmento.id')
+                ->where('seccion.id', $this->stockSeleccionado->seccion_id)
+                ->select('segmento.bodega_id')
+                ->first();
+            
+            $bodegaId = $seccion ? $seccion->bodega_id : null;
+
+            // Calcular factor de conversión
+            $factorConversion = $this->cantidadVerificacion > 0 
+                ? round($this->cantidadAConvertir / $this->cantidadVerificacion, 4) 
+                : null;
+
+            // Registrar cada cambio en la tabla cambio_unidad
             foreach ($registrosAfectados as $registroInfo) {
-                CambioUnidad::create([
-                    'cantidad_rebajada' => $registroInfo['cantidad_rebajada'],
-                    'cantidad_convertir' => $this->cantidadAConvertir,
+                DB::table('cambio_unidad')->insert([
                     'recibido_bodega_id_original' => $registroInfo['id'],
-                    'recibido_bodega_id_cambio' => $nuevoRecibidoBodega->id,
-                    'users_id' => Auth::id()
+                    'recibido_bodega_id_nuevo' => $nuevoRecibidoBodega->id,
+                    'producto_id' => $this->stockSeleccionado->producto_id,
+                    'bodega_id' => $bodegaId,
+                    'seccion_id' => $this->stockSeleccionado->seccion_id,
+                    'unidad_medida_id_original' => $unidadMedidaOriginalId,
+                    'unidad_medida_id_nueva' => $unidadMedidaNuevaId,
+                    'cantidad_rebajada' => $registroInfo['cantidad_rebajada'],
+                    'cantidad_convertida' => $this->cantidadAConvertir,
+                    'factor_conversion' => $factorConversion,
+                    'motivo' => 'Conversión de ' . $this->cantidadVerificacion . ' ' . $unidadMedidaOriginal . ' a ' . $this->cantidadAConvertir . ' ' . $this->nuevaUnidadMedida,
+                    'users_id' => Auth::id(),
+                    'created_at' => now(),
+                    'updated_at' => now()
                 ]);
             }
 
