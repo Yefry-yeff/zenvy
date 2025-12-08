@@ -23,12 +23,16 @@ class CierreCajaPDFController extends Controller
             // Cargar usuario
             $usuario = DB::table('users')->where('id', $cierre->user_id)->first();
 
+            // Determinar rango de fechas del cierre
+            $fechaInicio = $cierre->periodo_inicio ? \Carbon\Carbon::parse($cierre->periodo_inicio) : \Carbon\Carbon::parse($cierre->fecha_cierre)->startOfDay();
+            $fechaFin = \Carbon\Carbon::parse($cierre->fecha_cierre);
+
             // Cargar resumen de transacciones desde factura_has_pago
             $resumenTransacciones = DB::table('factura as f')
                 ->join('factura_has_pago as fhp', 'f.id', '=', 'fhp.factura_id')
                 ->join('tipo_pago as tp', 'fhp.tipo_pago_id', '=', 'tp.id')
                 ->where('f.users_id', $cierre->user_id)
-                ->where(DB::raw('DATE(f.created_at)'), '=', DB::raw('DATE("' . $cierre->fecha_cierre . '")'))
+                ->whereBetween('f.created_at', [$fechaInicio, $fechaFin])
                 ->select(
                     'tp.nombre as forma_pago',
                     DB::raw('SUM(fhp.total_factura) as total')
@@ -67,6 +71,42 @@ class CierreCajaPDFController extends Controller
                 }
             }
 
+            // Obtener detalles de tarjetas (facturas individuales)
+            $detallesTarjeta = DB::table('factura as f')
+                ->join('factura_has_pago as fhp', 'f.id', '=', 'fhp.factura_id')
+                ->join('tipo_pago as tp', 'fhp.tipo_pago_id', '=', 'tp.id')
+                ->where('f.users_id', $cierre->user_id)
+                ->whereBetween('f.created_at', [$fechaInicio, $fechaFin])
+                ->where('tp.nombre', 'like', '%tarjeta%')
+                ->select('f.numero_factura', 'fhp.total_factura as monto', 'f.created_at')
+                ->orderBy('f.created_at')
+                ->get();
+
+            // Obtener detalles de transferencias
+            $detallesTransferencia = DB::table('factura as f')
+                ->join('factura_has_pago as fhp', 'f.id', '=', 'fhp.factura_id')
+                ->join('tipo_pago as tp', 'fhp.tipo_pago_id', '=', 'tp.id')
+                ->where('f.users_id', $cierre->user_id)
+                ->whereBetween('f.created_at', [$fechaInicio, $fechaFin])
+                ->where('tp.nombre', 'like', '%transferencia%')
+                ->select('f.numero_factura', 'fhp.total_factura as monto', 'f.created_at')
+                ->orderBy('f.created_at')
+                ->get();
+
+            // Obtener detalles de cheques
+            $detallesCheque = DB::table('factura as f')
+                ->join('factura_has_pago as fhp', 'f.id', '=', 'fhp.factura_id')
+                ->join('tipo_pago as tp', 'fhp.tipo_pago_id', '=', 'tp.id')
+                ->where('f.users_id', $cierre->user_id)
+                ->whereBetween('f.created_at', [$fechaInicio, $fechaFin])
+                ->where('tp.nombre', 'like', '%cheque%')
+                ->select('f.numero_factura', 'fhp.total_factura as monto', 'f.created_at')
+                ->orderBy('f.created_at')
+                ->get();
+
+            // Calcular depósito (diferencia de L.2000)
+            $montoDeposito = $cierre->total_efectivo_contado - 2000;
+
             // Cargar datos de empresa
             $empresa = DB::table('empresa')->first();
 
@@ -84,7 +124,11 @@ class CierreCajaPDFController extends Controller
                 'resumenTransacciones',
                 'denominaciones',
                 'empresa',
-                'tienda'
+                'tienda',
+                'detallesTarjeta',
+                'detallesTransferencia',
+                'detallesCheque',
+                'montoDeposito'
             ))
             ->setPaper([0, 0, 204.4, 992.1], 'portrait') // 72.1mm x 350mm
             ->setOptions([
@@ -124,12 +168,16 @@ class CierreCajaPDFController extends Controller
             // Cargar usuario
             $usuario = DB::table('users')->where('id', $cierre->user_id)->first();
 
+            // Determinar rango de fechas del cierre
+            $fechaInicio = $cierre->periodo_inicio ? \Carbon\Carbon::parse($cierre->periodo_inicio) : \Carbon\Carbon::parse($cierre->fecha_cierre)->startOfDay();
+            $fechaFin = \Carbon\Carbon::parse($cierre->fecha_cierre);
+
             // Cargar resumen de transacciones desde factura_has_pago
             $resumenTransacciones = DB::table('factura as f')
                 ->join('factura_has_pago as fhp', 'f.id', '=', 'fhp.factura_id')
                 ->join('tipo_pago as tp', 'fhp.tipo_pago_id', '=', 'tp.id')
                 ->where('f.users_id', $cierre->user_id)
-                ->where(DB::raw('DATE(f.created_at)'), '=', DB::raw('DATE("' . $cierre->fecha_cierre . '")'))
+                ->whereBetween('f.created_at', [$fechaInicio, $fechaFin])
                 ->select(
                     'tp.nombre as forma_pago',
                     DB::raw('SUM(fhp.total_factura) as total')
@@ -168,6 +216,40 @@ class CierreCajaPDFController extends Controller
                 }
             }
 
+            // Obtener detalles de tarjetas, transferencias y cheques
+            $detallesTarjeta = DB::table('factura as f')
+                ->join('factura_has_pago as fhp', 'f.id', '=', 'fhp.factura_id')
+                ->join('tipo_pago as tp', 'fhp.tipo_pago_id', '=', 'tp.id')
+                ->where('f.users_id', $cierre->user_id)
+                ->whereBetween('f.created_at', [$fechaInicio, $fechaFin])
+                ->where('tp.nombre', 'like', '%tarjeta%')
+                ->select('f.numero_factura', 'fhp.total_factura as monto', 'f.created_at')
+                ->orderBy('f.created_at')
+                ->get();
+
+            $detallesTransferencia = DB::table('factura as f')
+                ->join('factura_has_pago as fhp', 'f.id', '=', 'fhp.factura_id')
+                ->join('tipo_pago as tp', 'fhp.tipo_pago_id', '=', 'tp.id')
+                ->where('f.users_id', $cierre->user_id)
+                ->whereBetween('f.created_at', [$fechaInicio, $fechaFin])
+                ->where('tp.nombre', 'like', '%transferencia%')
+                ->select('f.numero_factura', 'fhp.total_factura as monto', 'f.created_at')
+                ->orderBy('f.created_at')
+                ->get();
+
+            $detallesCheque = DB::table('factura as f')
+                ->join('factura_has_pago as fhp', 'f.id', '=', 'fhp.factura_id')
+                ->join('tipo_pago as tp', 'fhp.tipo_pago_id', '=', 'tp.id')
+                ->where('f.users_id', $cierre->user_id)
+                ->whereBetween('f.created_at', [$fechaInicio, $fechaFin])
+                ->where('tp.nombre', 'like', '%cheque%')
+                ->select('f.numero_factura', 'fhp.total_factura as monto', 'f.created_at')
+                ->orderBy('f.created_at')
+                ->get();
+
+            // Calcular depósito (diferencia de L.2000)
+            $montoDeposito = $cierre->total_efectivo_contado - 2000;
+
             // Cargar datos de empresa
             $empresa = DB::table('empresa')->first();
 
@@ -185,7 +267,11 @@ class CierreCajaPDFController extends Controller
                 'resumenTransacciones',
                 'denominaciones',
                 'empresa',
-                'tienda'
+                'tienda',
+                'detallesTarjeta',
+                'detallesTransferencia',
+                'detallesCheque',
+                'montoDeposito'
             ))
             ->setPaper([0, 0, 204.4, 992.1], 'portrait')
             ->setOptions([

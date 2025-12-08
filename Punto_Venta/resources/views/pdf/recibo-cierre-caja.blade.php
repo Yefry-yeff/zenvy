@@ -179,10 +179,16 @@
 
         <!-- INFORMACIÓN DEL CIERRE -->
         <div class="info-row">
-            <strong>Usuario:</strong> {{ $usuario->name }}
+            <strong>Cajero:</strong> {{ $usuario->name }}
         </div>
         <div class="info-row">
-            <strong>Fecha:</strong> {{ \Carbon\Carbon::parse($cierre->fecha_cierre)->format('d/m/Y H:i:s') }}
+            <strong>Fecha:</strong> {{ \Carbon\Carbon::parse($cierre->fecha_cierre)->format('d/m/Y') }}
+        </div>
+        <div class="info-row">
+            <strong>Hora:</strong> {{ \Carbon\Carbon::parse($cierre->fecha_cierre)->format('H:i:s') }}
+        </div>
+        <div class="info-row">
+            <strong>Total Transacciones:</strong> {{ $cierre->cantidad_facturas ?? 0 }}
         </div>
 
         <div class="separator"></div>
@@ -242,73 +248,74 @@
         <div class="double-separator"></div>
 
         <!-- TARJETA -->
-        <div class="section-title">
-            TARJETA (POS)
-        </div>
+        @if($detallesTarjeta->count() > 0)
+            <div class="section-title">
+                DETALLE TARJETAS (POS)
+            </div>
 
-        <div class="table-row">
-            <div class="col-left">Sistema:</div>
-            <div class="col-right">L. {{ number_format($cierre->total_tarjeta, 2) }}</div>
-        </div>
-        <div class="table-row">
-            <div class="col-left">Contado:</div>
-            <div class="col-right">L. {{ number_format($cierre->total_tarjeta_contado, 2) }}</div>
-        </div>
-        <div class="table-row total-row {{ $cierre->diferencia_tarjeta >= 0 ? 'diferencia-positiva' : 'diferencia-negativa' }}">
-            <div class="col-left">Diferencia:</div>
-            <div class="col-right">L. {{ number_format($cierre->diferencia_tarjeta, 2) }}</div>
-        </div>
+            @foreach($detallesTarjeta as $tarjeta)
+                <div class="table-row denominacion-row">
+                    <div class="col-left">Fact. {{ $tarjeta->numero_factura }}</div>
+                    <div class="col-right">L. {{ number_format($tarjeta->monto, 2) }}</div>
+                </div>
+            @endforeach
 
-        <div class="separator"></div>
+            <div class="separator"></div>
+            <div class="table-row total-row">
+                <div class="col-left">Total Tarjetas:</div>
+                <div class="col-right">L. {{ number_format($cierre->total_tarjeta, 2) }}</div>
+            </div>
+
+            <div class="double-separator"></div>
+        @endif
 
         <!-- TRANSFERENCIA -->
-        <div class="section-title">
-            TRANSFERENCIA
-        </div>
+        @if($detallesTransferencia->count() > 0)
+            <div class="section-title">
+                DETALLE TRANSFERENCIAS
+            </div>
 
-        <div class="table-row">
-            <div class="col-left">Sistema:</div>
-            <div class="col-right">L. {{ number_format($cierre->total_transferencia, 2) }}</div>
-        </div>
-        <div class="table-row">
-            <div class="col-left">Contado:</div>
-            <div class="col-right">L. {{ number_format($cierre->total_transferencia_contado, 2) }}</div>
-        </div>
-        <div class="table-row total-row {{ $cierre->diferencia_transferencia >= 0 ? 'diferencia-positiva' : 'diferencia-negativa' }}">
-            <div class="col-left">Diferencia:</div>
-            <div class="col-right">L. {{ number_format($cierre->diferencia_transferencia, 2) }}</div>
-        </div>
+            @foreach($detallesTransferencia as $transfer)
+                <div class="table-row denominacion-row">
+                    <div class="col-left">Fact. {{ $transfer->numero_factura }}</div>
+                    <div class="col-right">L. {{ number_format($transfer->monto, 2) }}</div>
+                </div>
+            @endforeach
 
-        <div class="separator"></div>
+            <div class="separator"></div>
+            <div class="table-row total-row">
+                <div class="col-left">Total Transferencias:</div>
+                <div class="col-right">L. {{ number_format($cierre->total_transferencia, 2) }}</div>
+            </div>
+
+            <div class="double-separator"></div>
+        @endif
 
         <!-- CHEQUE -->
-        <div class="section-title">
-            CHEQUE
-        </div>
+        @if($detallesCheque->count() > 0)
+            <div class="section-title">
+                DETALLE CHEQUES
+            </div>
 
-        <div class="table-row">
-            <div class="col-left">Sistema:</div>
-            <div class="col-right">L. {{ number_format($cierre->total_cheque, 2) }}</div>
-        </div>
-        <div class="table-row">
-            <div class="col-left">Contado:</div>
-            <div class="col-right">L. {{ number_format($cierre->total_cheque_contado, 2) }}</div>
-        </div>
-        <div class="table-row total-row {{ $cierre->diferencia_cheque >= 0 ? 'diferencia-positiva' : 'diferencia-negativa' }}">
-            <div class="col-left">Diferencia:</div>
-            <div class="col-right">L. {{ number_format($cierre->diferencia_cheque, 2) }}</div>
-        </div>
+            @foreach($detallesCheque as $cheque)
+                <div class="table-row denominacion-row">
+                    <div class="col-left">Fact. {{ $cheque->numero_factura }}</div>
+                    <div class="col-right">L. {{ number_format($cheque->monto, 2) }}</div>
+                </div>
+            @endforeach
 
-        <div class="double-separator"></div>
+            <div class="separator"></div>
+            <div class="table-row total-row">
+                <div class="col-left">Total Cheques:</div>
+                <div class="col-right">L. {{ number_format($cierre->total_cheque, 2) }}</div>
+            </div>
 
-        <!-- EFECTIVO A ENTREGAR -->
-        @php
-            // Calcular el efectivo a entregar = Total contado - Saldo inicial
-            $efectivoAEntregar = $cierre->total_efectivo_contado - 2000.00;
-        @endphp
+            <div class="double-separator"></div>
+        @endif
 
+        <!-- DEPÓSITO (DIFERENCIA DE L.2000) -->
         <div class="section-title" style="font-size: 20px;">
-            EFECTIVO A ENTREGAR
+            DEPÓSITO
         </div>
 
         <div class="info-row">
@@ -318,15 +325,15 @@
             </div>
             <div class="table-row">
                 <div class="col-left">Menos saldo inicial:</div>
-                <div class="col-right">L. 2,000.00</div>
+                <div class="col-right">- L. 2,000.00</div>
             </div>
         </div>
 
-        <div class="double-separator"></div>
+        <div class="separator"></div>
 
         <div class="table-row" style="font-weight: bold; font-size: 22px;">
-            <div class="col-left">TOTAL A ENTREGAR:</div>
-            <div class="col-right">L. {{ number_format($efectivoAEntregar, 2) }}</div>
+            <div class="col-left">MONTO A DEPOSITAR:</div>
+            <div class="col-right">L. {{ number_format($montoDeposito, 2) }}</div>
         </div>
 
         <div class="separator"></div>

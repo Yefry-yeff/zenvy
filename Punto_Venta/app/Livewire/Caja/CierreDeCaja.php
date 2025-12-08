@@ -54,6 +54,8 @@ class CierreDeCaja extends Component
     public $mensajeExito = '';
     public $mensajeError = '';
     public $cierreProcesado = false;
+    public $cierreIdParaImprimir = null;
+    public $mostrarVistaImpresion = false;
 
     const SALDO_INICIAL = 2000.00;
 
@@ -329,18 +331,28 @@ class CierreDeCaja extends Component
             DB::commit();
 
             $this->cierreProcesado = true;
+            $this->cierreIdParaImprimir = $cierreId;
+            $this->mostrarVistaImpresion = true;
             $this->mensajeExito = '✅ Cierre de caja procesado exitosamente. La caja se ha restablecido a L. ' . number_format(self::SALDO_INICIAL, 2);
 
-            Log::info("Cierre de caja procesado - Usuario: {$usuario->id}, Tienda: {$usuario->tienda_id}");
-
-            // Disparar evento para abrir el PDF del recibo
-            $this->dispatch('abrirReciboCierre', cierreId: $cierreId);
+            Log::info("Cierre de caja procesado - Usuario: {$usuario->id}, Tienda: {$usuario->tienda_id}, Cierre ID: {$cierreId}");
 
         } catch (\Exception $e) {
             DB::rollBack();
             $this->mensajeError = '❌ Error al procesar cierre: ' . $e->getMessage();
             Log::error("Error en cierre de caja: " . $e->getMessage());
         }
+    }
+
+    public function cerrarVistaImpresion()
+    {
+        $this->mostrarVistaImpresion = false;
+        $this->cierreIdParaImprimir = null;
+        $this->cierreProcesado = false;
+        
+        // Recargar datos para nueva jornada
+        $this->cargarDatosCaja();
+        $this->calcularResumen();
     }
 
     public function render()

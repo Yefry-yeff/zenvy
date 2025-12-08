@@ -267,16 +267,38 @@
             @endif
         </div>
     </div>
-</div>
 
-@push('scripts')
-<script>
-    document.addEventListener('livewire:init', () => {
-        Livewire.on('abrirReciboCierre', (event) => {
-            const cierreId = event.cierreId;
-            // Abrir el PDF en una nueva ventana
-            window.open(`/cierre-caja/${cierreId}/pdf/preview`, '_blank', 'width=800,height=900');
-        });
-    });
-</script>
-@endpush
+    {{-- Modal de Vista Previa del Recibo --}}
+    @if($mostrarVistaImpresion && $cierreIdParaImprimir)
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+            <div class="w-full h-full bg-white">
+                {{-- Encabezado --}}
+                <div class="flex items-center justify-between p-4 text-white bg-red-600">
+                    <h2 class="text-xl font-bold">
+                        <i class="mr-2 fas fa-receipt"></i>
+                        Recibo de Cierre de Caja
+                    </h2>
+                    <div class="space-x-2">
+                        <a href="/cierre-caja/{{ $cierreIdParaImprimir }}/pdf" 
+                           target="_blank"
+                           class="inline-flex items-center px-4 py-2 text-white transition-colors bg-green-600 rounded hover:bg-green-700">
+                            <i class="mr-2 fas fa-download"></i>
+                            Descargar PDF
+                        </a>
+                        <button wire:click="cerrarVistaImpresion" 
+                                class="inline-flex items-center px-4 py-2 text-white transition-colors bg-gray-600 rounded hover:bg-gray-700">
+                            <i class="mr-2 fas fa-times"></i>
+                            Cerrar
+                        </button>
+                    </div>
+                </div>
+
+                {{-- Iframe del PDF --}}
+                <iframe src="/cierre-caja/{{ $cierreIdParaImprimir }}/pdf/preview" 
+                        class="w-full"
+                        style="height: calc(100vh - 70px);">
+                </iframe>
+            </div>
+        </div>
+    @endif
+</div>
