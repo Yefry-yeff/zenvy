@@ -5,6 +5,7 @@ namespace App\Services;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Models\IdZenvyValencia;
+use App\Models\ProductoValenciaZenvy;
 use App\Services\SincronizacionSubcategoriasService;
 
 class SincronizacionProductosService
@@ -226,6 +227,14 @@ class SincronizacionProductosService
                         ->where('id', $idProductoZenvy)
                         ->update($datosActualizacion);
 
+                    // Actualizar mapeo en tabla producto_valencia_zenvy
+                    ProductoValenciaZenvy::crearOActualizar(
+                        $idProductoZenvy,
+                        $idProductoValencia,
+                        $productoValencia->codigo_estatal ?? null,
+                        $codigoBarraValencia
+                    );
+
                     // Actualizar codigo_barra en precio_has_venta para la unidad de medida correspondiente
                     if ($codigoBarraValencia && $unidadIdZenvy) {
                         $this->conexionZenvy
@@ -245,6 +254,14 @@ class SincronizacionProductosService
                         ->table('producto')
                         ->where('id', $idProductoZenvy)
                         ->update($datosProductoZenvy);
+
+                    // Actualizar mapeo en tabla producto_valencia_zenvy
+                    ProductoValenciaZenvy::crearOActualizar(
+                        $idProductoZenvy,
+                        $idProductoValencia,
+                        $productoValencia->codigo_estatal ?? null,
+                        $codigoBarraValencia
+                    );
 
                     // Actualizar codigo_barra en precio_has_venta para la unidad de medida correspondiente
                     if ($codigoBarraValencia && $unidadIdZenvy) {
@@ -279,6 +296,14 @@ class SincronizacionProductosService
                     'created_at' => now(),
                     'updated_at' => now()
                 ]);
+
+                // Crear mapeo específico en tabla producto_valencia_zenvy
+                ProductoValenciaZenvy::crearOActualizar(
+                    $idProductoZenvy,
+                    $idProductoValencia,
+                    $productoValencia->codigo_estatal ?? null,
+                    $codigoBarraValencia
+                );
 
                 // Actualizar codigo_barra en precio_has_venta para la unidad de medida correspondiente
                 if ($codigoBarraValencia && $unidadIdZenvy) {
@@ -529,5 +554,107 @@ class SincronizacionProductosService
             Log::error("Error al actualizar producto de Valencia: " . $e->getMessage());
             throw $e;
         }
+    }
+
+    /**
+     * MÉTODOS DE CONSULTA RÁPIDA USANDO TABLA producto_valencia_zenvy
+     */
+
+    /**
+     * Obtiene ID de Zenvy desde ID de Valencia (consulta ultra-rápida)
+     */
+    public function obtenerIdZenvyRapido($idValencia)
+    {
+        return ProductoValenciaZenvy::obtenerIdZenvy($idValencia);
+    }
+
+    /**
+     * Obtiene ID de Valencia desde ID de Zenvy (consulta ultra-rápida)
+     */
+    public function obtenerIdValenciaRapido($idZenvy)
+    {
+        return ProductoValenciaZenvy::obtenerIdValencia($idZenvy);
+    }
+
+    /**
+     * Busca producto por código de Valencia (consulta indexada)
+     */
+    public function buscarPorCodigoValencia($codigo)
+    {
+        $mapeo = ProductoValenciaZenvy::buscarPorCodigoValencia($codigo);
+        
+        if (!$mapeo) {
+            return null;
+        }
+
+        return $this->conexionZenvy
+            ->table('producto')
+            ->where('id', $mapeo->producto_id_zenvy)
+            ->first();
+    }
+
+    /**
+     * Busca producto por código de barras (consulta indexada)
+     */
+    public function buscarPorCodigoBarra($codigoBarra)
+    {
+        $mapeo = ProductoValenciaZenvy::buscarPorCodigoBarra($codigoBarra);
+        
+        if (!$mapeo) {
+            return null;
+        }
+
+        return $this->conexionZenvy
+            ->table('producto')
+            ->where('id', $mapeo->producto_id_zenvy)
+            ->first();
+    }
+
+    /**
+     * Verifica si un producto está sincronizado (consulta rápida)
+     */
+    public function estaProductoSincronizadoRapido($idValencia)
+    {
+        return ProductoValenciaZenvy::estaSincronizado($idValencia);
+    }
+
+    /**
+     * Obtiene estadísticas de sincronización de productos
+     */
+    public function obtenerEstadisticasSincronizacionProductos()
+    {
+        try {
+            $stats = ProductoValenciaZenvy::estadisticas();
+            $totalValencia = $this->conexionProfac->table('producto')->count();
+
+            return [
+                'total_valencia' => $totalValencia,
+                'total_sincronizados' => $stats['total_sincronizados'],
+                'total_registros_mapeo' => $stats['total_registros'],
+                'pendientes' => $totalValencia - $stats['total_sincronizados'],
+                'porcentaje_sincronizado' => $totalValencia > 0 
+                    ? round(($stats['total_sincronizados'] / $totalValencia) * 100, 2) 
+                    : 0,
+                'ultima_sincronizacion' => $stats['ultima_sincronizacion']
+            ];
+        } catch (\Exception $e) {
+            Log::error('Error al obtener estadísticas de productos: ' . $e->getMessage());
+            return [
+                'total_valencia' => 0,
+                'total_sincronizados' => 0,
+                'total_registros_mapeo' => 0,
+                'pendientes' => 0,
+                'porcentaje_sincronizado' => 0,
+                'ultima_sincronizacion' => null
+            ];
+        }
+    }
+
+    /**
+     * Obtiene el mapeo completo de un producto
+     */
+    public function obtenerMapeoProducto($idValencia)
+    {
+        return ProductoValenciaZenvy::buscarPorIdValencia($idValencia);
     }
 }
