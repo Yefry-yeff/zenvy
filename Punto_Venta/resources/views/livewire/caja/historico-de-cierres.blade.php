@@ -177,37 +177,18 @@
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 text-center">
-                                    <div class="relative inline-block text-left" x-data="{ open: false }">
-                                        <button @click="open = !open" 
-                                                type="button" 
-                                                class="inline-flex items-center justify-center w-full px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                                            <i class="fas fa-ellipsis-v"></i>
-                                        </button>
-
-                                        <div x-show="open" 
-                                             @click.away="open = false"
-                                             x-transition:enter="transition ease-out duration-100"
-                                             x-transition:enter-start="transform opacity-0 scale-95"
-                                             x-transition:enter-end="transform opacity-100 scale-100"
-                                             x-transition:leave="transition ease-in duration-75"
-                                             x-transition:leave-start="transform opacity-100 scale-100"
-                                             x-transition:leave-end="transform opacity-0 scale-95"
-                                             class="absolute right-0 z-10 w-56 mt-2 origin-top-right bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5"
-                                             style="display: none;">
-                                            <div class="py-1">
-                                                <a href="{{ route('cierre-caja.pdf.preview', $cierre->id) }}" 
-                                                   target="_blank"
-                                                   class="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                                                    <i class="fas fa-print text-blue-600"></i>
-                                                    <span>Imprimir Recibo de Cierre</span>
-                                                </a>
-                                                <a href="{{ route('cierre-caja.reporte-transacciones', $cierre->id) }}" 
-                                                   class="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                                                    <i class="fas fa-file-excel text-green-600"></i>
-                                                    <span>Descargar Detalle de Transacciones</span>
-                                                </a>
-                                            </div>
-                                        </div>
+                                    <div class="flex gap-2 justify-center">
+                                        <a href="{{ route('cierre-caja.pdf.preview', $cierre->id) }}" 
+                                           target="_blank"
+                                           class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-white bg-blue-600 rounded hover:bg-blue-700"
+                                           title="Imprimir Recibo">
+                                            <i class="fas fa-print"></i>
+                                        </a>
+                                        <a href="{{ route('cierre-caja.reporte-transacciones', $cierre->id) }}" 
+                                           class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-white bg-green-600 rounded hover:bg-green-700"
+                                           title="Descargar Excel">
+                                            <i class="fas fa-file-excel"></i>
+                                        </a>
                                     </div>
                                 </td>
                             </tr>

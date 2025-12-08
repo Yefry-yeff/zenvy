@@ -56,9 +56,16 @@ class HistoricoDeCierres extends Component
     public function render()
     {
         $query = DB::table('cierre_caja_historico as cch')
-            ->join('users as u', 'cch.user_id', '=', 'u.id')
+            ->leftJoin('users as u', 'cch.user_id', '=', 'u.id')
             ->select(
-                'cch.*',
+                'cch.id',
+                'cch.user_id',
+                'cch.fecha_cierre',
+                'cch.periodo_inicio',
+                'cch.total_efectivo_contado',
+                'cch.total_tarjeta',
+                'cch.total_transferencia',
+                'cch.total_cheque',
                 'u.name as nombre_usuario'
             );
 
