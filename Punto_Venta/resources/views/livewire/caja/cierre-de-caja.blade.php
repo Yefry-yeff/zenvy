@@ -268,37 +268,45 @@
         </div>
     </div>
 
-    {{-- Modal de Vista Previa del Recibo --}}
+    {{-- Vista de Impresión del Recibo (Inline) --}}
     @if($mostrarVistaImpresion && $cierreIdParaImprimir)
-        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-            <div class="w-full h-full bg-white">
-                {{-- Encabezado --}}
-                <div class="flex items-center justify-between p-4 text-white bg-red-600">
+        <div class="mt-4 bg-white rounded-lg shadow-lg">
+            <div class="p-4 text-white rounded-t-lg bg-gradient-to-r from-green-600 to-green-700">
+                <div class="flex items-center justify-between">
                     <h2 class="text-xl font-bold">
                         <i class="mr-2 fas fa-receipt"></i>
                         Recibo de Cierre de Caja
                     </h2>
-                    <div class="space-x-2">
+                    <div class="flex gap-2">
                         <a href="/cierre-caja/{{ $cierreIdParaImprimir }}/pdf" 
                            target="_blank"
-                           class="inline-flex items-center px-4 py-2 text-white transition-colors bg-green-600 rounded hover:bg-green-700">
+                           class="inline-flex items-center px-4 py-2 text-white transition-colors bg-blue-600 rounded hover:bg-blue-700">
                             <i class="mr-2 fas fa-download"></i>
                             Descargar PDF
                         </a>
                         <button wire:click="cerrarVistaImpresion" 
                                 class="inline-flex items-center px-4 py-2 text-white transition-colors bg-gray-600 rounded hover:bg-gray-700">
-                            <i class="mr-2 fas fa-times"></i>
-                            Cerrar
+                            <i class="mr-2 fas fa-arrow-left"></i>
+                            Nueva Jornada
                         </button>
                     </div>
                 </div>
+            </div>
 
-                {{-- Iframe del PDF --}}
+            <div class="p-0">
                 <iframe src="/cierre-caja/{{ $cierreIdParaImprimir }}/pdf/preview" 
-                        class="w-full"
-                        style="height: calc(100vh - 70px);">
+                        class="w-full border-none"
+                        style="min-height: 85vh; height: 700px;"
+                        id="pdfViewerCierre">
                 </iframe>
             </div>
         </div>
+
+        <style>
+            #pdfViewerCierre {
+                background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="20" fill="none" stroke="%23dc2626" stroke-width="4" stroke-dasharray="31.416" stroke-dashoffset="31.416"><animate attributeName="stroke-dasharray" dur="2s" values="0 31.416;15.708 15.708;0 31.416" repeatCount="indefinite"/><animate attributeName="stroke-dashoffset" dur="2s" values="0;-15.708;-31.416" repeatCount="indefinite"/></circle></svg>') center center no-repeat;
+                background-size: 50px 50px;
+            }
+        </style>
     @endif
 </div>

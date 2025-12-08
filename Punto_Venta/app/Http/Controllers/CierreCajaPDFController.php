@@ -104,8 +104,8 @@ class CierreCajaPDFController extends Controller
                 ->orderBy('f.created_at')
                 ->get();
 
-            // Calcular depósito (diferencia de L.2000)
-            $montoDeposito = $cierre->total_efectivo_contado - 2000;
+            // Calcular depósito (diferencia de L.2000, nunca negativo)
+            $montoDeposito = max(0, $cierre->total_efectivo_contado - 2000);
 
             // Cargar datos de empresa
             $empresa = DB::table('empresa')->first();
@@ -247,8 +247,8 @@ class CierreCajaPDFController extends Controller
                 ->orderBy('f.created_at')
                 ->get();
 
-            // Calcular depósito (diferencia de L.2000)
-            $montoDeposito = $cierre->total_efectivo_contado - 2000;
+            // Calcular depósito (diferencia de L.2000, nunca negativo)
+            $montoDeposito = max(0, $cierre->total_efectivo_contado - 2000);
 
             // Cargar datos de empresa
             $empresa = DB::table('empresa')->first();
