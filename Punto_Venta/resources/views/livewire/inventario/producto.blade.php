@@ -130,16 +130,16 @@
         </div>
 
         <!-- TABLA OPTIMIZADA -->
-        <div class="px-4 py-3">
-            <div class="overflow-x-auto">
-                <table class="min-w-full border border-gray-200 table-auto">
-                        <thead class="bg-gray-50">
+        <div class="px-2 py-2">
+            <div class="overflow-x-auto max-h-[calc(100vh-280px)]">
+                <table class="min-w-full text-xs border border-gray-200 table-fixed">
+                        <thead class="sticky top-0 z-10 bg-gray-100">
                             <!-- Encabezados con ordenamiento -->
                             <tr>
-                                <th class="px-4 py-3 text-left border-b cursor-pointer hover:bg-gray-100"
+                                <th class="px-2 py-1.5 text-left border-b cursor-pointer hover:bg-gray-200 w-16"
                                     wire:click="ordenar('id')">
                                     <div class="flex items-center space-x-1">
-                                        <span>Código Producto</span>
+                                        <span class="text-xs font-semibold">Cód</span>
                                         @if($ordenarPor === 'id')
                                             <span class="text-blue-500">
                                                 @if($direccionOrden === 'asc') ↑ @else ↓ @endif
@@ -147,10 +147,10 @@
                                         @endif
                                     </div>
                                 </th>
-                                <th class="px-4 py-3 text-left border-b cursor-pointer hover:bg-gray-100"
+                                <th class="px-2 py-1.5 text-left border-b cursor-pointer hover:bg-gray-200 w-56"
                                     wire:click="ordenar('nombre')">
                                     <div class="flex items-center space-x-1">
-                                        <span>Producto</span>
+                                        <span class="text-xs font-semibold">Producto</span>
                                         @if($ordenarPor === 'nombre')
                                             <span class="text-blue-500">
                                                 @if($direccionOrden === 'asc') ↑ @else ↓ @endif
@@ -158,20 +158,20 @@
                                         @endif
                                     </div>
                                 </th>
-                                <th class="px-4 py-3 text-left border-b">
+                                <th class="px-2 py-1.5 text-left border-b w-28">
                                     <div class="flex items-center space-x-1">
-                                        <span>Código de Barras</span>
+                                        <span class="text-xs font-semibold">Cód. Barras</span>
                                     </div>
                                 </th>
-                                <th class="px-4 py-3 text-left border-b">
+                                <th class="px-2 py-1.5 text-left border-b w-24">
                                     <div class="flex items-center space-x-1">
-                                        <span>Unidad de Medida</span>
+                                        <span class="text-xs font-semibold">Unidad</span>
                                     </div>
                                 </th>
-                                <th class="px-4 py-3 text-left border-b cursor-pointer hover:bg-gray-100"
+                                <th class="px-2 py-1.5 text-left border-b cursor-pointer hover:bg-gray-200 w-40"
                                     wire:click="ordenar('subcategoria_id')">
                                     <div class="flex items-center space-x-1">
-                                        <span>Categoría</span>
+                                        <span class="text-xs font-semibold">Categoría</span>
                                         @if($ordenarPor === 'subcategoria_id')
                                             <span class="text-blue-500">
                                                 @if($direccionOrden === 'asc') ↑ @else ↓ @endif
@@ -179,10 +179,10 @@
                                         @endif
                                     </div>
                                 </th>
-                                <th class="px-4 py-3 text-left border-b cursor-pointer hover:bg-gray-100"
+                                <th class="px-2 py-1.5 text-left border-b cursor-pointer hover:bg-gray-200 w-32"
                                     wire:click="ordenar('marca_id')">
                                     <div class="flex items-center space-x-1">
-                                        <span>Marca</span>
+                                        <span class="text-xs font-semibold">Marca</span>
                                         @if($ordenarPor === 'marca_id')
                                             <span class="text-blue-500">
                                                 @if($direccionOrden === 'asc') ↑ @else ↓ @endif
@@ -190,10 +190,10 @@
                                         @endif
                                     </div>
                                 </th>
-                                <th class="px-4 py-3 text-center border-b cursor-pointer hover:bg-gray-100"
+                                <th class="px-2 py-1.5 text-center border-b cursor-pointer hover:bg-gray-200 w-20"
                                     wire:click="ordenar('producto_valencia')">
                                     <div class="flex items-center justify-center space-x-1">
-                                        <span>Origen</span>
+                                        <span class="text-xs font-semibold">Origen</span>
                                         @if($ordenarPor === 'producto_valencia')
                                             <span class="text-blue-500">
                                                 @if($direccionOrden === 'asc') ↑ @else ↓ @endif
@@ -201,52 +201,48 @@
                                         @endif
                                     </div>
                                 </th>
-                                <th class="px-4 py-3 text-center border-b">Acciones</th>
+                                <th class="px-2 py-1.5 text-center border-b w-16"><span class="text-xs font-semibold">Acc.</span></th>
                             </tr>
                             <!-- Fila de filtros -->
-                            <tr class="bg-gray-100">
-                                <th class="px-4 py-2 border-b">
+                            <tr class="bg-white">
+                                <th class="px-2 py-1 border-b">
                                     <input type="text"
                                            wire:model.live.debounce.300ms="filtroId"
-                                           placeholder="Filtrar ID..."
-                                           class="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500">
+                                           placeholder="..."
+                                           class="w-full px-1.5 py-0.5 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500">
                                 </th>
-                                <th class="px-4 py-2 border-b">
+                                <th class="px-2 py-1 border-b">
                                     <input type="text"
                                            wire:model.live.debounce.300ms="filtroNombre"
-                                           placeholder="Filtrar Producto..."
-                                           class="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500">
+                                           placeholder="..."
+                                           class="w-full px-1.5 py-0.5 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500">
                                 </th>
-                                <th class="px-4 py-2 border-b">
+                                <th class="px-2 py-1 border-b">
                                     <input type="text"
                                            wire:model.live.debounce.300ms="filtroCodigoBarras"
-                                           placeholder="Filtrar código..."
-                                           class="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500">
+                                           placeholder="..."
+                                           class="w-full px-1.5 py-0.5 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500">
                                 </th>
-                                <th class="px-4 py-2 border-b">
+                                <th class="px-2 py-1 border-b">
                                     <input type="text"
                                            wire:model.live.debounce.300ms="filtroUnidadMedida"
-                                           placeholder="Filtrar unidad..."
-                                           class="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500">
+                                           placeholder="..."
+                                           class="w-full px-1.5 py-0.5 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500">
                                 </th>
-                                <th class="px-4 py-2 border-b">
+                                <th class="px-2 py-1 border-b">
                                     <input type="text"
                                            wire:model.live.debounce.300ms="filtroCategoria"
-                                           placeholder="Filtrar categoría..."
-                                           class="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500">
+                                           placeholder="..."
+                                           class="w-full px-1.5 py-0.5 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500">
                                 </th>
-                                <th class="px-4 py-2 border-b">
+                                <th class="px-2 py-1 border-b">
                                     <input type="text"
                                            wire:model.live.debounce.300ms="filtroMarca"
-                                           placeholder="Filtrar Marca..."
-                                           class="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500">
+                                           placeholder="..."
+                                           class="w-full px-1.5 py-0.5 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500">
                                 </th>
-                                <th class="px-4 py-2 border-b">
-                                    <!-- Sin filtro para origen -->
-                                </th>
-                                <th class="px-4 py-2 border-b">
-                                    <!-- Sin filtro para acciones -->
-                                </th>
+                                <th class="px-2 py-1 border-b"></th>
+                                <th class="px-2 py-1 border-b"></th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-200">
@@ -263,35 +259,35 @@
                                             wire:key="producto-{{ $producto->id }}-presentacion-{{ $index }}">
                                             @if($index === 0)
                                                 <!-- Código del Producto (ID) - solo en primera fila -->
-                                                <td class="px-4 py-3 text-sm font-semibold text-gray-900 border-r"
+                                                <td class="px-2 py-1 text-xs font-semibold text-gray-900 border-r"
                                                     rowspan="{{ $numPresentaciones }}"
                                                     wire:click="editar({{ $producto->id }})">
-                                                    #{{ $producto->id }}
+                                                    {{ $producto->id }}
                                                 </td>
                                                 <!-- Producto - solo en primera fila -->
-                                                <td class="px-4 py-3 border-r"
+                                                <td class="px-2 py-1 border-r"
                                                     rowspan="{{ $numPresentaciones }}"
                                                     wire:click="editar({{ $producto->id }})">
                                                     <div>
-                                                        <div class="font-medium text-gray-900">{{ $producto->nombre }}</div>
+                                                        <div class="text-xs font-semibold text-gray-900 truncate" title="{{ $producto->nombre }}">{{ Str::limit($producto->nombre, 40) }}</div>
                                                         @if($producto->descripcion)
-                                                            <div class="max-w-xs text-sm text-gray-500 truncate">
-                                                                {{ Str::limit($producto->descripcion, 60) }}
+                                                            <div class="max-w-xs text-xs text-gray-500 truncate" title="{{ $producto->descripcion }}">
+                                                                {{ Str::limit($producto->descripcion, 35) }}
                                                             </div>
                                                         @endif
                                                     </div>
                                                 </td>
                                             @endif
                                             <!-- Código de Barras -->
-                                            <td class="px-4 py-3 text-sm text-gray-700" wire:click="editar({{ $producto->id }})">
-                                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono bg-blue-100 text-blue-800">
+                                            <td class="px-2 py-1 text-xs text-gray-700 truncate" wire:click="editar({{ $producto->id }})">
+                                                <span class="text-xs font-mono text-blue-800">
                                                     {{ $presentacion->codigo_barra }}
                                                 </span>
                                             </td>
                                             <!-- Unidad de Medida -->
-                                            <td class="px-4 py-3 text-sm text-gray-700" wire:click="editar({{ $producto->id }})">
+                                            <td class="px-2 py-1 text-xs text-gray-700 truncate" wire:click="editar({{ $producto->id }})">
                                                 @if($presentacion->unidad_medida)
-                                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                                    <span class="text-xs font-medium text-green-800">
                                                         {{ $presentacion->unidad_medida }}
                                                         @if($presentacion->unidad_simbolo)
                                                             ({{ $presentacion->unidad_simbolo }})
@@ -303,43 +299,44 @@
                                             </td>
                                             @if($index === 0)
                                                 <!-- Categoría - solo en primera fila -->
-                                                <td class="px-4 py-3 text-sm text-gray-700 border-l"
+                                                <td class="px-2 py-1 text-xs text-gray-700 border-l"
                                                     rowspan="{{ $numPresentaciones }}"
                                                     wire:click="editar({{ $producto->id }})">
                                                     <div>
-                                                        <div class="font-medium">{{ $producto->subcategoria->categoria->nombre ?? 'N/A' }}</div>
-                                                        <div class="text-xs text-gray-500">{{ $producto->subcategoria->nombre ?? '' }}</div>
+                                                        <div class="font-semibold truncate" title="{{ $producto->subcategoria->categoria->nombre ?? 'N/A' }}">{{ Str::limit($producto->subcategoria->categoria->nombre ?? 'N/A', 20) }}</div>
+                                                        <div class="text-xs text-gray-500 truncate" title="{{ $producto->subcategoria->nombre ?? '' }}">{{ Str::limit($producto->subcategoria->nombre ?? '', 18) }}</div>
                                                     </div>
                                                 </td>
                                                 <!-- Marca - solo en primera fila -->
-                                                <td class="px-4 py-3 text-sm text-gray-700"
+                                                <td class="px-2 py-1 text-xs text-gray-700 truncate"
                                                     rowspan="{{ $numPresentaciones }}"
-                                                    wire:click="editar({{ $producto->id }})">
-                                                    {{ $producto->marca->nombre ?? 'Sin marca' }}
+                                                    wire:click="editar({{ $producto->id }})"
+                                                    title="{{ $producto->marca->nombre ?? 'Sin marca' }}">
+                                                    {{ Str::limit($producto->marca->nombre ?? 'Sin marca', 18) }}
                                                 </td>
                                                 <!-- Origen - solo en primera fila -->
-                                                <td class="px-4 py-3 text-center"
+                                                <td class="px-2 py-1 text-center"
                                                     rowspan="{{ $numPresentaciones }}"
                                                     wire:click="editar({{ $producto->id }})">
                                                     @if($producto->producto_valencia)
-                                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
-                                                            🏢 Valencia
+                                                        <span class="text-xs font-medium text-orange-800">
+                                                            🏢
                                                         </span>
                                                     @else
-                                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                                            🏠 Paperland
+                                                        <span class="text-xs font-medium text-green-800">
+                                                            🏠
                                                         </span>
                                                     @endif
                                                 </td>
                                                 <!-- Acciones - solo en primera fila -->
-                                                <td class="px-4 py-3 text-center" rowspan="{{ $numPresentaciones }}">
+                                                <td class="px-2 py-1 text-center" rowspan="{{ $numPresentaciones }}">
                                                     @if(!$producto->producto_valencia)
                                                         <button type="button"
-                                                                class="p-1 text-red-600 transition-colors hover:text-red-800"
+                                                                class="p-0.5 text-red-600 transition-colors hover:text-red-800"
                                                                 wire:click="confirmarEliminar({{ $producto->id }})"
                                                                 onclick="event.stopPropagation();"
                                                                 title="Eliminar producto">
-                                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                                                             </svg>
                                                         </button>

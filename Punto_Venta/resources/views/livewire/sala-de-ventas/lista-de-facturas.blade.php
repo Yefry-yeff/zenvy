@@ -1,4 +1,23 @@
 <div class="px-4 container-fluid">
+    <!-- Mensajes de éxito/error -->
+    @if (session()->has('success'))
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle"></i> {{ session('success') }}
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+    @endif
+
+    @if (session()->has('error'))
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-circle"></i> {{ session('error') }}
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+    @endif
+
     <!-- Encabezado -->
     <div class="mb-4 row">
         <div class="col-12">
@@ -88,23 +107,23 @@
                 </div>
 
                 <!-- Tabla optimizada -->
-                <div class="px-4 py-3">
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full border border-gray-200 table-auto">
-                            <thead class="bg-gray-50">
+                <div class="px-2 py-2">
+                    <div class="overflow-x-auto max-h-[calc(100vh-320px)]">
+                        <table class="min-w-full text-xs border border-gray-200 table-fixed">
+                            <thead class="sticky top-0 z-10 bg-gray-100">
                                 <!-- Encabezados con ordenamiento -->
                                 <tr>
-                                    <th class="px-4 py-3 text-left border-b cursor-pointer hover:bg-gray-100" wire:click="ordenar('id')">
+                                    <th class="px-2 py-1.5 text-left border-b cursor-pointer hover:bg-gray-200 w-14" wire:click="ordenar('id')">
                                         <div class="flex items-center space-x-1">
-                                            <span>ID</span>
+                                            <span class="text-xs font-semibold">ID</span>
                                             @if($ordenarPor === 'id')
                                                 <span class="text-blue-500">@if($direccionOrden === 'asc') ↑ @else ↓ @endif</span>
                                             @endif
                                         </div>
                                     </th>
-                                    <th class="px-4 py-3 text-left border-b cursor-pointer hover:bg-gray-100" wire:click="ordenar('numero_factura')">
+                                    <th class="px-2 py-1.5 text-left border-b cursor-pointer hover:bg-gray-200 w-24" wire:click="ordenar('numero_factura')">
                                         <div class="flex items-center space-x-1">
-                                            <span>No. Fac</span>
+                                            <span class="text-xs font-semibold">N° Fact.</span>
                                             @if($ordenarPor === 'numero_factura')
                                                 <span class="text-blue-500">@if($direccionOrden === 'asc') ↑ @else ↓ @endif</span>
                                             @endif
@@ -206,32 +225,78 @@
                                 @if($facturas->count() > 0)
                                     @foreach($facturas as $factura)
                                     <tr class="transition-colors duration-150 cursor-pointer hover:bg-gray-50" wire:key="factura-{{ $factura->id }}" wire:click="verDetalle({{ $factura->id }})">
-                                        <td class="px-4 py-3">{{ $factura->id }}</td>
-                                        <td class="px-4 py-3"><strong>{{ $factura->numero_factura ?? 'N/A' }}</strong></td>
-                                        <td class="px-4 py-3">{{ $factura->nombre_cliente ?? 'Cliente General' }}</td>
-                                        <td class="px-4 py-3">{{ $factura->rtn ?? 'N/A' }}</td>
-                                        <td class="px-4 py-3">{{ \Carbon\Carbon::parse($factura->fecha_emision)->format('d/m/Y') }}</td>
-                                        <td class="px-4 py-3 text-end">L. {{ number_format($factura->sub_total, 2) }}</td>
-                                        <td class="px-4 py-3 text-end">L. {{ number_format($factura->isv, 2) }}</td>
-                                        <td class="px-4 py-3 text-end"><strong>L. {{ number_format($factura->total, 2) }}</strong></td>
-                                        <td class="px-4 py-3">
+                                        <td class="px-2 py-1 text-xs">{{ $factura->id }}</td>
+                                        <td class="px-2 py-1 text-xs font-semibold">{{ $factura->numero_factura ?? 'N/A' }}</td>
+                                        <td class="px-2 py-1 text-xs truncate" title="{{ $factura->nombre_cliente ?? 'Cliente General' }}">{{ Str::limit($factura->nombre_cliente ?? 'Cliente General', 25) }}</td>
+                                        <td class="px-2 py-1 text-xs">{{ $factura->rtn ?? 'N/A' }}</td>
+                                        <td class="px-2 py-1 text-xs">{{ \Carbon\Carbon::parse($factura->fecha_emision)->format('d/m/y') }}</td>
+                                        <td class="px-2 py-1 text-xs text-end">{{ number_format($factura->sub_total, 2) }}</td>
+                                        <td class="px-2 py-1 text-xs text-end">{{ number_format($factura->isv, 2) }}</td>
+                                        <td class="px-2 py-1 text-xs font-semibold text-end">{{ number_format($factura->total, 2) }}</td>
+                                        <td class="px-2 py-1 text-center">
                                             @if($factura->estado_factura_id == 1)
-                                                <span class="badge bg-success">Pagada</span>
+                                                <span class="badge bg-success" style="font-size: 0.65rem; padding: 0.15rem 0.4rem;">✓</span>
                                             @elseif($factura->estado_factura_id == 2)
-                                                <span class="badge bg-warning">Pendiente</span>
-                                            @elseif($factura->estado_factura_id == 3)
-                                                <span class="badge bg-danger">Anulada</span>
+                                                <span class="badge bg-danger" style="font-size: 0.65rem; padding: 0.15rem 0.4rem;">✗</span>
                                             @else
-                                                <span class="badge bg-secondary">Desconocido</span>
+                                                <span class="badge bg-secondary" style="font-size: 0.65rem; padding: 0.15rem 0.4rem;">?</span>
                                             @endif
                                         </td>
-                                        <td class="px-4 py-3 text-center" onclick="event.stopPropagation()">
-                                            <a href="{{ route('factura.pdf.preview', $factura->id) }}" target="_blank" class="btn btn-sm btn-success" title="Imprimir Factura">
-                                                <i class="fas fa-print"></i>
-                                            </a>
-                                            <button class="btn btn-sm btn-danger" wire:click="generarPDF({{ $factura->id }})" title="Descargar PDF">
-                                                <i class="fas fa-file-pdf"></i>
-                                            </button>
+                                        <td class="px-2 py-1 text-center" onclick="event.stopPropagation()">
+                                            <!-- Dropdown de acciones con Alpine.js -->
+                                            <div class="position-relative" x-data="{ open: false }">
+                                                <button @click="open = !open"
+                                                        class="inline-flex items-center px-2 py-1 text-xs font-medium text-white bg-blue-600 border rounded hover:bg-blue-700"
+                                                        title="Acciones">
+                                                    <span>⚙️</span>
+                                                </button>
+
+                                                <div x-show="open"
+                                                     @click.away="open = false"
+                                                     x-transition:enter="transition ease-out duration-200"
+                                                     x-transition:enter-start="opacity-0 transform scale-95"
+                                                     x-transition:enter-end="opacity-100 transform scale-100"
+                                                     x-transition:leave="transition ease-in duration-150"
+                                                     x-transition:leave-start="opacity-100 transform scale-100"
+                                                     x-transition:leave-end="opacity-0 transform scale-95"
+                                                     class="bg-white border rounded shadow-lg position-absolute"
+                                                     style="top: 100%; right: 0; z-index: 1050; min-width: 180px; margin-top: 0.25rem;">
+
+                                                    <div class="p-1">
+                                                        <!-- Imprimir -->
+                                                        <a href="{{ route('factura.pdf.preview', $factura->id) }}" 
+                                                           target="_blank"
+                                                           class="flex items-center w-full px-2 py-1.5 text-xs text-left text-green-600 border-0 rounded hover:bg-green-50"
+                                                           @click="open = false">
+                                                            <i class="mr-2 fas fa-print"></i> Imprimir
+                                                        </a>
+
+                                                        <!-- Descargar PDF -->
+                                                        <button type="button"
+                                                                class="flex items-center w-full px-2 py-1.5 text-xs text-left text-red-600 border-0 rounded hover:bg-red-50"
+                                                                wire:click="generarPDF({{ $factura->id }})"
+                                                                @click="open = false">
+                                                            <i class="mr-2 fas fa-file-pdf"></i> PDF
+                                                        </button>
+
+                                                        <!-- Anular Factura (solo si NO está anulada) -->
+                                                        @if($factura->estado_factura_id != 2)
+                                                            <hr class="my-1">
+                                                            <button type="button"
+                                                                    class="flex items-center w-full px-2 py-1.5 text-xs font-semibold text-left text-orange-600 border-0 rounded hover:bg-orange-50"
+                                                                    wire:click="abrirModalAnular({{ $factura->id }})"
+                                                                    @click="open = false">
+                                                                <i class="mr-2 fas fa-ban"></i> Anular
+                                                            </button>
+                                                        @else
+                                                            <hr class="my-1">
+                                                            <div class="px-2 py-1 text-xs text-gray-500">
+                                                                <i class="mr-1 fas fa-info-circle"></i> Anulada
+                                                            </div>
+                                                        @endif
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </td>
                                     </tr>
                                     @endforeach
@@ -515,6 +580,140 @@
                                 <i class="fas fa-eye"></i> Visualizar Factura
                             </a>
                         @endif
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    <!-- MODAL DE ANULACIÓN DE FACTURA -->
+    @if($mostrarModalAnular && $facturaAAnular)
+        <div class="modal fade show" style="display: block; background: rgba(0,0,0,0.5);" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-dialog-scrollable" role="document" style="max-width: 600px;">
+                <div class="modal-content" style="max-height: 90vh;">
+                    <div class="modal-header bg-danger text-white">
+                        <h5 class="modal-title">
+                            <i class="fas fa-ban"></i> Anular Factura #{{ $facturaAAnular->numero_factura }}
+                        </h5>
+                        <button type="button" class="close text-white" wire:click="cerrarModalAnular" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body" style="max-height: calc(90vh - 180px); overflow-y: auto;">
+                        <!-- Información de la factura -->
+                        <div class="alert alert-warning py-2 mb-3">
+                            <div class="row">
+                                <div class="col-6">
+                                    <small class="d-block mb-1"><strong>N° Fact:</strong> {{ $facturaAAnular->numero_factura }}</small>
+                                    <small class="d-block mb-1"><strong>Cliente:</strong> {{ Str::limit($facturaAAnular->nombre_cliente ?? 'N/A', 20) }}</small>
+                                </div>
+                                <div class="col-6">
+                                    <small class="d-block mb-1"><strong>Total:</strong> L. {{ number_format($facturaAAnular->total, 2) }}</small>
+                                    <small class="d-block mb-0"><strong>ISV:</strong> L. {{ number_format($facturaAAnular->isv, 2) }}</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Formulario de anulación -->
+                        <div>
+                            <div class="form-group mb-2">
+                                <label for="motivoAnulacion" class="font-weight-bold mb-1">
+                                    <small>Motivo <span class="text-danger">*</span></small>
+                                </label>
+                                <textarea 
+                                    wire:model="motivoAnulacion" 
+                                    id="motivoAnulacion" 
+                                    class="form-control form-control-sm @error('motivoAnulacion') is-invalid @enderror" 
+                                    rows="2" 
+                                    placeholder="Mínimo 10 caracteres"
+                                    required></textarea>
+                                @error('motivoAnulacion')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                                <small class="text-muted">{{ strlen($motivoAnulacion) }}/500</small>
+                            </div>
+
+                            <div class="form-group mb-2">
+                                <label for="metodoDevolucion" class="font-weight-bold mb-1">
+                                    <small>Método Devolución <span class="text-danger">*</span></small>
+                                </label>
+                                <select 
+                                    wire:model="metodoDevolucion" 
+                                    id="metodoDevolucion" 
+                                    class="form-control form-control-sm @error('metodoDevolucion') is-invalid @enderror"
+                                    required>
+                                    <option value="efectivo">Efectivo</option>
+                                    <option value="transferencia">Transferencia</option>
+                                    <option value="nota_credito">Nota Crédito</option>
+                                    <option value="no_aplica">No Aplica</option>
+                                </select>
+                                @error('metodoDevolucion')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+
+                            <div class="form-group mb-2">
+                                <label for="observacionesAnulacion" class="font-weight-bold mb-1">
+                                    <small>Observaciones (Opcional)</small>
+                                </label>
+                                <textarea 
+                                    wire:model="observacionesAnulacion" 
+                                    id="observacionesAnulacion" 
+                                    class="form-control form-control-sm" 
+                                    rows="1" 
+                                    placeholder="Info adicional..."></textarea>
+                            </div>
+
+                            <!-- Opciones de impacto -->
+                            <div class="border rounded p-2 mb-2 bg-light">
+                                <small class="font-weight-bold d-block mb-1">Impactos:</small>
+                                
+                                <div class="custom-control custom-checkbox custom-control-inline">
+                                    <input 
+                                        type="checkbox" 
+                                        class="custom-control-input" 
+                                        id="afectarInventario" 
+                                        wire:model="afectarInventario">
+                                    <label class="custom-control-label" for="afectarInventario">
+                                        <small>📦 Inventario</small>
+                                    </label>
+                                </div>
+
+                                <div class="custom-control custom-checkbox custom-control-inline">
+                                    <input 
+                                        type="checkbox" 
+                                        class="custom-control-input" 
+                                        id="afectarFlujoCaja" 
+                                        wire:model="afectarFlujoCaja">
+                                    <label class="custom-control-label" for="afectarFlujoCaja">
+                                        <small>💰 Flujo Caja</small>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Advertencia final -->
+                            <div class="alert alert-danger py-2 mb-0">
+                                <small><i class="fas fa-exclamation-circle"></i> <strong>Advertencia:</strong> Acción irreversible.</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer py-2">
+                        <button type="button" class="btn btn-sm btn-secondary" wire:click="cerrarModalAnular">
+                            <i class="fas fa-times"></i> Cancelar
+                        </button>
+                        <button type="button" 
+                                class="btn btn-sm btn-danger" 
+                                wire:click="anularFactura" 
+                                wire:loading.attr="disabled"
+                                wire:target="anularFactura"
+                                onclick="console.log('Botón presionado')">
+                            <span wire:loading.remove wire:target="anularFactura">
+                                <i class="fas fa-ban"></i> Confirmar
+                            </span>
+                            <span wire:loading wire:target="anularFactura">
+                                <i class="fas fa-spinner fa-spin"></i> Procesando...
+                            </span>
+                        </button>
                     </div>
                 </div>
             </div>

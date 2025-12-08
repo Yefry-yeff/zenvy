@@ -174,17 +174,17 @@
                 </div>
 
                 <!-- TABLA DE COMPRAS -->
-                <div class="px-4 py-3">
+                <div class="px-2 py-2">
                     @if($compras->count() > 0)
-                        <div class="overflow-x-auto">
-                            <table class="min-w-full border border-gray-200 table-auto">
-                                <thead class="bg-gray-50">
+                        <div class="overflow-x-auto max-h-[calc(100vh-280px)]">
+                            <table class="min-w-full text-xs border border-gray-200 table-fixed">
+                                <thead class="sticky top-0 z-10 bg-gray-100">
                                     <!-- Encabezados con ordenamiento -->
                                     <tr>
-                                        <th class="px-4 py-3 text-left border-b cursor-pointer hover:bg-gray-100"
+                                        <th class="px-2 py-1.5 text-left border-b cursor-pointer hover:bg-gray-200 w-14"
                                             wire:click="ordenar('id')">
                                             <div class="flex items-center space-x-1">
-                                                <span>ID</span>
+                                                <span class="text-xs font-semibold">ID</span>
                                                 @if($ordenarPor === 'id')
                                                     <span class="text-blue-500">
                                                         @if($direccionOrden === 'desc') ↓ @else ↑ @endif
@@ -193,10 +193,10 @@
                                                 <small class="d-block text-muted" style="font-size: 0.7rem;">(DESC)</small>
                                             </div>
                                         </th>
-                                        <th class="px-4 py-3 text-left border-b cursor-pointer hover:bg-gray-100"
+                                        <th class="px-2 py-1.5 text-left border-b cursor-pointer hover:bg-gray-200 w-28"
                                             wire:click="ordenar('numero_factura')">
                                             <div class="flex items-center space-x-1">
-                                                <span>N° Factura</span>
+                                                <span class="text-xs font-semibold">N° Fact.</span>
                                                 @if($ordenarPor === 'numero_factura')
                                                     <span class="text-blue-500">
                                                         @if($direccionOrden === 'asc') ↑ @else ↓ @endif
@@ -204,10 +204,10 @@
                                                 @endif
                                             </div>
                                         </th>
-                                        <th class="px-4 py-3 text-left border-b cursor-pointer hover:bg-gray-100"
+                                        <th class="px-2 py-1.5 text-left border-b cursor-pointer hover:bg-gray-200 w-48"
                                             wire:click="ordenar('proveedor')">
                                             <div class="flex items-center space-x-1">
-                                                <span>Proveedor</span>
+                                                <span class="text-xs font-semibold">Proveedor</span>
                                                 @if($ordenarPor === 'proveedor')
                                                     <span class="text-blue-500">
                                                         @if($direccionOrden === 'asc') ↑ @else ↓ @endif
@@ -215,10 +215,10 @@
                                                 @endif
                                             </div>
                                         </th>
-                                        <th class="px-4 py-3 text-center border-b cursor-pointer hover:bg-gray-100"
+                                        <th class="px-2 py-1.5 text-center border-b cursor-pointer hover:bg-gray-200 w-24"
                                             wire:click="ordenar('fecha_emision')">
                                             <div class="flex items-center justify-center space-x-1">
-                                                <span>Fecha Emisión</span>
+                                                <span class="text-xs font-semibold">F. Emisión</span>
                                                 @if($ordenarPor === 'fecha_emision')
                                                     <span class="text-blue-500">
                                                         @if($direccionOrden === 'asc') ↑ @else ↓ @endif
@@ -226,10 +226,10 @@
                                                 @endif
                                             </div>
                                         </th>
-                                        <th class="px-4 py-3 text-center border-b cursor-pointer hover:bg-gray-100"
+                                        <th class="px-2 py-1.5 text-center border-b cursor-pointer hover:bg-gray-200 w-24"
                                             wire:click="ordenar('fecha_recepcion')">
                                             <div class="flex items-center justify-center space-x-1">
-                                                <span>Fecha Recepción</span>
+                                                <span class="text-xs font-semibold">F. Recepción</span>
                                                 @if($ordenarPor === 'fecha_recepcion')
                                                     <span class="text-blue-500">
                                                         @if($direccionOrden === 'asc') ↑ @else ↓ @endif
@@ -237,10 +237,10 @@
                                                 @endif
                                             </div>
                                         </th>
-                                        <th class="px-4 py-3 text-center border-b cursor-pointer hover:bg-gray-100"
+                                        <th class="px-2 py-1.5 text-center border-b cursor-pointer hover:bg-gray-200 w-24"
                                             wire:click="ordenar('estado')">
                                             <div class="flex items-center justify-center space-x-1">
-                                                <span>Estado</span>
+                                                <span class="text-xs font-semibold">Estado</span>
                                                 @if($ordenarPor === 'estado')
                                                     <span class="text-blue-500">
                                                         @if($direccionOrden === 'asc') ↑ @else ↓ @endif
@@ -248,10 +248,10 @@
                                                 @endif
                                             </div>
                                         </th>
-                                        <th class="px-4 py-3 text-center border-b cursor-pointer hover:bg-gray-100"
+                                        <th class="px-2 py-1.5 text-center border-b cursor-pointer hover:bg-gray-200 w-16"
                                             wire:click="ordenar('productos')">
                                             <div class="flex items-center justify-center space-x-1">
-                                                <span>Productos</span>
+                                                <span class="text-xs font-semibold">Prods.</span>
                                                 @if($ordenarPor === 'productos')
                                                     <span class="text-blue-500">
                                                         @if($direccionOrden === 'asc') ↑ @else ↓ @endif
@@ -259,10 +259,10 @@
                                                 @endif
                                             </div>
                                         </th>
-                                        <th class="px-4 py-3 text-center border-b cursor-pointer hover:bg-gray-100"
+                                        <th class="px-2 py-1.5 text-center border-b cursor-pointer hover:bg-gray-200 w-28"
                                             wire:click="ordenar('total')">
                                             <div class="flex items-center justify-center space-x-1">
-                                                <span>Total</span>
+                                                <span class="text-xs font-semibold">Total</span>
                                                 @if($ordenarPor === 'total')
                                                     <span class="text-blue-500">
                                                         @if($direccionOrden === 'asc') ↑ @else ↓ @endif
@@ -270,7 +270,7 @@
                                                 @endif
                                             </div>
                                         </th>
-                                        <th class="px-4 py-3 text-center border-b">Acciones</th>
+                                        <th class="px-2 py-1.5 text-center border-b w-16"><span class="text-xs font-semibold">Acc.</span></th>
                                     </tr>
                                 </thead>
                                 <tbody class="bg-white divide-y divide-gray-200">
@@ -280,73 +280,70 @@
                                             title="Clic para ver detalles">
 
                                             <!-- ID -->
-                                            <td class="px-4 py-3 border-b">
-                                                <div class="flex flex-col">
-                                                    <span class="px-2 py-1 font-semibold text-center text-gray-900 bg-blue-100 rounded">{{ $compra->id }}</span>
-                                                </div>
+                                            <td class="px-2 py-1 border-b">
+                                                <span class="px-1.5 py-0.5 text-xs font-semibold text-gray-900 bg-blue-100 rounded">{{ $compra->id }}</span>
                                             </td>
 
                                             <!-- N° Factura -->
-                                            <td class="px-4 py-3 border-b">
-                                                <div class="flex flex-col">
-                                                    <span class="font-semibold text-gray-900">{{ $compra->numero_factura }}</span>
-                                                </div>
+                                            <td class="px-2 py-1 border-b">
+                                                <span class="text-xs font-semibold text-gray-900 truncate" title="{{ $compra->numero_factura }}">{{ Str::limit($compra->numero_factura, 18) }}</span>
                                             </td>
 
                                             <!-- Proveedor -->
-                                            <td class="px-4 py-3 text-gray-700 border-b">
-                                                {{ $compra->proveedor->nombre ?? 'N/A' }}
+                                            <td class="px-2 py-1 text-xs text-gray-700 border-b truncate" title="{{ $compra->proveedor->nombre ?? 'N/A' }}">
+                                                {{ Str::limit($compra->proveedor->nombre ?? 'N/A', 35) }}
                                             </td>
 
                                             <!-- Fecha Emisión -->
-                                            <td class="px-4 py-3 text-sm text-center text-gray-600 border-b">
-                                                {{ \Carbon\Carbon::parse($compra->fecha_emision)->format('d/m/Y') }}
+                                            <td class="px-2 py-1 text-xs text-center text-gray-600 border-b">
+                                                {{ \Carbon\Carbon::parse($compra->fecha_emision)->format('d/m/y') }}
                                             </td>
 
                                             <!-- Fecha Recepción -->
-                                            <td class="px-4 py-3 text-sm text-center text-gray-600 border-b">
-                                                {{ \Carbon\Carbon::parse($compra->fecha_recepcion)->format('d/m/Y') }}
+                                            <td class="px-2 py-1 text-xs text-center text-gray-600 border-b">
+                                                {{ \Carbon\Carbon::parse($compra->fecha_recepcion)->format('d/m/y') }}
                                             </td>
 
                                             <!-- Estado -->
-                                            <td class="px-4 py-3 text-center border-b">
+                                            <td class="px-2 py-1 text-center border-b">
                                                 @if($compra->estado)
                                                     @if(strtolower($compra->estado->nombre) === 'activo')
-                                                        <span class="inline-flex px-2 py-1 text-xs font-semibold text-white bg-green-500 rounded-full">Activo</span>
+                                                        <span class="inline-flex px-1.5 py-0.5 text-xs font-semibold text-white bg-green-500 rounded">✓</span>
                                                     @elseif(strtolower($compra->estado->nombre) === 'distribuido')
-                                                        <span class="inline-flex px-2 py-1 text-xs font-semibold text-white bg-yellow-500 rounded-full">Distribuido</span>
+                                                        <span class="inline-flex px-1.5 py-0.5 text-xs font-semibold text-white bg-yellow-500 rounded">D</span>
                                                     @elseif(strtolower($compra->estado->nombre) === 'anulado')
-                                                        <span class="inline-flex px-2 py-1 text-xs font-semibold text-white bg-red-500 rounded-full">Anulado</span>
+                                                        <span class="inline-flex px-1.5 py-0.5 text-xs font-semibold text-white bg-red-500 rounded">X</span>
                                                     @elseif(strtolower($compra->estado->nombre) === 'pendiente' || $compra->estado_id == 5)
-                                                        <span class="inline-flex px-2 py-1 text-xs font-semibold text-white bg-blue-500 rounded-full">Pendiente</span>
+                                                        <span class="inline-flex px-1.5 py-0.5 text-xs font-semibold text-white bg-blue-500 rounded">P</span>
                                                     @else
-                                                        <span class="inline-flex px-2 py-1 text-xs font-semibold text-white bg-gray-500 rounded-full">{{ ucfirst($compra->estado->nombre) }}</span>
+                                                        <span class="inline-flex px-1.5 py-0.5 text-xs font-semibold text-white bg-gray-500 rounded" title="{{ $compra->estado->nombre }}">?</span>
                                                     @endif
                                                 @else
-                                                    <span class="inline-flex px-2 py-1 text-xs font-semibold text-white bg-gray-500 rounded-full">Sin Estado</span>
+                                                    <span class="inline-flex px-1.5 py-0.5 text-xs font-semibold text-white bg-gray-500 rounded">-</span>
                                                 @endif
                                             </td>
 
                                             <!-- Productos -->
-                                            <td class="px-4 py-3 text-center border-b">
+                                            <td class="px-2 py-1 text-xs text-center border-b">
                                                 <span class="font-bold text-blue-600">
                                                     {{ $compra->detallesCompra->count() }}
                                                 </span>
                                             </td>
 
                                             <!-- Total -->
-                                            <td class="px-4 py-3 text-center border-b">
+                                            <td class="px-2 py-1 text-xs text-center border-b">
                                                 <span class="font-bold text-green-600">
-                                                    L. {{ number_format($compra->detallesCompra->sum('precio_total'), 2) }}
+                                                    {{ number_format($compra->detallesCompra->sum('precio_total'), 0) }}
                                                 </span>
                                             </td>
 
                                             <!-- Acciones -->
-                                            <td class="px-4 py-3 text-center border-b" onclick="event.stopPropagation()">
+                                            <td class="px-2 py-1 text-center border-b" onclick="event.stopPropagation()">
                                                 @if($compra->estado && (strtolower($compra->estado->nombre) === 'activo' || strtolower($compra->estado->nombre) === 'pendiente' || $compra->estado_id == 5))
                                                     <div class="position-relative" x-data="{ open: false }">
                                                         <button @click="open = !open"
-                                                                class="inline-flex items-center px-2 py-1 text-xs font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded hover:bg-gray-200">
+                                                                class="inline-flex items-center p-0.5 text-xs font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded hover:bg-gray-200"
+                                                                title="Acciones">
                                                             <span>⚙️</span>
                                                         </button>
 
@@ -364,24 +361,24 @@
                                                             <div class="p-1">
                                                                 @if($compra->estado_id != 5)
                                                                     <button type="button"
-                                                                            class="w-full px-3 py-2 text-sm text-left text-red-600 border-0 rounded hover:bg-red-50"
+                                                                            class="w-full px-2 py-1 text-xs text-left text-red-600 border-0 rounded hover:bg-red-50"
                                                                             wire:click="abrirModalAnular({{ $compra->id }})"
                                                                             @click="open = false">
-                                                                        ❌ Anular Compra
+                                                                        ❌ Anular
                                                                     </button>
                                                                 @endif
 
                                                                 <button type="button"
-                                                                        class="w-full px-3 py-2 text-sm text-left text-blue-600 border-0 rounded hover:bg-blue-50"
+                                                                        class="w-full px-2 py-1 text-xs text-left text-blue-600 border-0 rounded hover:bg-blue-50"
                                                                         wire:click="irARecibirProducto({{ $compra->id }})"
                                                                         @click="open = false">
-                                                                    📦 Recibir Producto
+                                                                    📦 Recibir
                                                                 </button>
                                                             </div>
                                                         </div>
                                                     </div>
                                                 @else
-                                                    <span class="inline-flex px-2 py-1 text-xs text-gray-500 bg-gray-100 rounded">Sin acciones</span>
+                                                    <span class="inline-flex px-1 py-0.5 text-xs text-gray-500 bg-gray-100 rounded">-</span>
                                                 @endif
                                             </td>
                                         </tr>
