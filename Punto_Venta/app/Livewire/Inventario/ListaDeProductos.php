@@ -295,6 +295,7 @@ class ListaDeProductos extends Component
                 ->leftJoin('unidad_medida as um', 'rb.unidad_medida_id', '=', 'um.id')
                 ->leftJoin('unidad_medida as umv', 'p.unidad_medida_venta_id', '=', 'umv.id')
                 ->leftJoin('precio_has_venta as phv', 'rb.precio_venta_id', '=', 'phv.id')
+                ->leftJoin('producto_valencia_zenvy as pvz', 'p.id', '=', 'pvz.producto_id_zenvy')
                 ->select(
                     'rb.id',
                     'rb.cantidad_disponible',
@@ -306,6 +307,8 @@ class ListaDeProductos extends Component
                     'p.id as producto_id',
                     'p.nombre as producto_nombre',
                     'p.descripcion as producto_descripcion',
+                    DB::raw('COALESCE(pvz.producto_id_valencia, p.id) as id_mostrar'),
+                    DB::raw('CASE WHEN pvz.producto_id_valencia IS NOT NULL THEN 1 ELSE 0 END as es_id_valencia'),
                     DB::raw('COALESCE(
                         phv.codigo_barra,
                         (SELECT phv2.codigo_barra 

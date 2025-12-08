@@ -250,19 +250,27 @@
                                 @foreach($productos as $producto)
                                     @php
                                         $numPresentaciones = !empty($producto->presentaciones) ? count($producto->presentaciones) : 1;
-                                        $primeraPresentacion = true;
                                     @endphp
 
                                     @if(!empty($producto->presentaciones) && count($producto->presentaciones) > 0)
                                         @foreach($producto->presentaciones as $index => $presentacion)
                                         <tr class="transition-colors duration-150 cursor-pointer hover:bg-gray-50"
-                                            wire:key="producto-{{ $producto->id }}-presentacion-{{ $index }}">
+                                            wire:key="p-{{ $producto->id }}-i-{{ $index }}">
                                             @if($index === 0)
-                                                <!-- Código del Producto (ID) - solo en primera fila -->
-                                                <td class="px-2 py-1 text-xs font-semibold text-gray-900 border-r"
+                                                <!-- Código del Producto (ID Valencia o Zenvy) - solo en primera fila -->
+                                                <td class="px-2 py-1 text-xs font-semibold border-r"
                                                     rowspan="{{ $numPresentaciones }}"
                                                     wire:click="editar({{ $producto->id }})">
-                                                    {{ $producto->id }}
+                                                    @if($producto->es_id_valencia)
+                                                        <span class="inline-flex items-center gap-1 px-1.5 py-0.5 text-xs font-mono text-orange-800 bg-orange-50 border border-orange-200 rounded" title="ID Valencia">
+                                                            <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                                                <path d="M10 2a8 8 0 100 16 8 8 0 000-16zM9 9a1 1 0 112 0v4a1 1 0 11-2 0V9zm1-4a1 1 0 100 2 1 1 0 000-2z"/>
+                                                            </svg>
+                                                            {{ $producto->id_mostrar }}
+                                                        </span>
+                                                    @else
+                                                        <span class="text-gray-900">{{ $producto->id_mostrar }}</span>
+                                                    @endif
                                                 </td>
                                                 <!-- Producto - solo en primera fila -->
                                                 <td class="px-2 py-1 border-r"
@@ -350,10 +358,19 @@
                                     @else
                                         <!-- Producto sin presentaciones -->
                                         <tr class="transition-colors duration-150 cursor-pointer hover:bg-gray-50"
-                                            wire:key="producto-{{ $producto->id }}-sin-presentacion">
-                                            <!-- Código del Producto (ID) -->
-                                            <td class="px-4 py-3 text-sm font-semibold text-gray-900" wire:click="editar({{ $producto->id }})">
-                                                #{{ $producto->id }}
+                                            wire:key="p-{{ $producto->id }}-sin-pres">
+                                            <!-- Código del Producto (ID Valencia o Zenvy) -->
+                                            <td class="px-4 py-3 text-sm font-semibold" wire:click="editar({{ $producto->id }})">
+                                                @if($producto->es_id_valencia)
+                                                    <span class="inline-flex items-center gap-1 px-2 py-1 text-xs font-mono text-orange-800 bg-orange-50 border border-orange-200 rounded" title="ID Valencia">
+                                                        <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                                            <path d="M10 2a8 8 0 100 16 8 8 0 000-16zM9 9a1 1 0 112 0v4a1 1 0 11-2 0V9zm1-4a1 1 0 100 2 1 1 0 000-2z"/>
+                                                        </svg>
+                                                        {{ $producto->id_mostrar }}
+                                                    </span>
+                                                @else
+                                                    #{{ $producto->id_mostrar }}
+                                                @endif
                                             </td>
                                             <!-- Producto -->
                                             <td class="px-4 py-3" wire:click="editar({{ $producto->id }})">
@@ -416,7 +433,7 @@
                                         </tr>
                                     @endif
                                 @endforeach
-                        @else
+                            @else
                             <!-- Mensaje cuando no hay productos -->
                             <tr>
                                 <td colspan="8" class="px-4 py-12 text-center">

@@ -1347,6 +1347,29 @@ class ProductoForm extends Component
 
     public function render()
     {
-        return view('livewire.inventario.producto-form');
+        // Cargar producto con mapeo Valencia si estamos editando
+        $producto = null;
+        $id_mostrar = null;
+        $es_id_valencia = false;
+        
+        if ($this->isEditing && $this->productoId) {
+            $producto = ProductoModel::with('mapeoValencia')->find($this->productoId);
+            
+            if ($producto) {
+                // Determinar qué ID mostrar: producto_id_valencia si existe, sino producto_id (Zenvy)
+                if ($producto->mapeoValencia && $producto->mapeoValencia->producto_id_valencia) {
+                    $id_mostrar = $producto->mapeoValencia->producto_id_valencia;
+                    $es_id_valencia = true;
+                } else {
+                    $id_mostrar = $producto->id;
+                    $es_id_valencia = false;
+                }
+            }
+        }
+        
+        return view('livewire.inventario.producto-form', [
+            'id_mostrar' => $id_mostrar,
+            'es_id_valencia' => $es_id_valencia
+        ]);
     }
 }

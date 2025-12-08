@@ -207,7 +207,8 @@ class Producto extends Component
             ->with([
                 'subcategoria:id,nombre,categoria_id',
                 'subcategoria.categoria:id,nombre',
-                'marca:id,nombre'
+                'marca:id,nombre',
+                'mapeoValencia:producto_id_zenvy,producto_id_valencia'
             ])
             ->where('producto.estado_id', 1);
 
@@ -296,6 +297,16 @@ class Producto extends Component
                 ->select('phv.codigo_barra', 'um.nombre as unidad_medida', 'um.simbolo as unidad_simbolo')
                 ->get()
                 ->toArray();
+            
+            // Calcular ID a mostrar: producto_id_valencia si existe, sino producto_id (Zenvy)
+            if ($producto->mapeoValencia && $producto->mapeoValencia->producto_id_valencia) {
+                $producto->id_mostrar = $producto->mapeoValencia->producto_id_valencia;
+                $producto->es_id_valencia = true;
+            } else {
+                $producto->id_mostrar = $producto->id;
+                $producto->es_id_valencia = false;
+            }
+            
             return $producto;
         });
 

@@ -114,6 +114,11 @@ class Producto extends Model
                     ->orderBy('cantidad', 'asc');
     }
 
+    public function mapeoValencia()
+    {
+        return $this->hasOne(ProductoValenciaZenvy::class, 'producto_id_zenvy');
+    }
+
     // Static methods for SP operations
     public static function crearProducto($datos)
     {
