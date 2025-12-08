@@ -213,18 +213,40 @@
 
         <div class="double-separator"></div>
 
+        <!-- CONTABILIZACIÓN DE MÉTODOS DE PAGO -->
+        <div class="section-title">
+            CONTABILIZACIÓN
+        </div>
+
+        @if(($cierre->total_tarjeta ?? 0) > 0)
+        <div class="table-row">
+            <div class="col-left">Tarjeta:</div>
+            <div class="col-right">L. {{ number_format($cierre->total_tarjeta, 2) }}</div>
+        </div>
+        @endif
+
+        @if(($cierre->total_transferencia ?? 0) > 0)
+        <div class="table-row">
+            <div class="col-left">Transferencia:</div>
+            <div class="col-right">L. {{ number_format($cierre->total_transferencia, 2) }}</div>
+        </div>
+        @endif
+
+        @if(($cierre->total_cheque ?? 0) > 0)
+        <div class="table-row">
+            <div class="col-left">Cheque:</div>
+            <div class="col-right">L. {{ number_format($cierre->total_cheque, 2) }}</div>
+        </div>
+        @endif
+
+        <div class="separator"></div>
+
         <!-- EFECTIVO -->
         <div class="section-title">
             EFECTIVO
         </div>
 
-        <div class="table-row">
-            <div class="col-left">Sistema (incluye L. 2,000 inicial):</div>
-            <div class="col-right">L. {{ number_format($cierre->total_efectivo_sistema, 2) }}</div>
-        </div>
-
         @if(count($denominaciones) > 0)
-            <div class="separator"></div>
             <div class="subtitle"><strong>Denominaciones Contadas:</strong></div>
             @foreach($denominaciones as $denom)
                 <div class="table-row denominacion-row">
@@ -247,16 +269,22 @@
 
         <div class="double-separator"></div>
 
-        <!-- DEPÓSITO (DIFERENCIA DE L.2000) -->
+        <!-- DEPÓSITO -->
         <div class="section-title" style="font-size: 20px;">
             DEPÓSITO
         </div>
 
         <div class="info-row">
             <div class="table-row">
-                <div class="col-left">Efectivo contado:</div>
-                <div class="col-right">L. {{ number_format($cierre->total_efectivo_contado, 2) }}</div>
+                <div class="col-left">Efectivo:</div>
+                <div class="col-right">L. {{ number_format($cierre->total_efectivo_sistema, 2) }}</div>
             </div>
+            @if($cierre->diferencia > 0)
+            <div class="table-row">
+                <div class="col-left">Sobrante de conteo:</div>
+                <div class="col-right">L. {{ number_format($cierre->diferencia, 2) }}</div>
+            </div>
+            @endif
             <div class="table-row">
                 <div class="col-left">Menos saldo inicial:</div>
                 <div class="col-right">- L. 2,000.00</div>

@@ -35,7 +35,7 @@ class CierreCajaPDFController extends Controller
                 ->whereBetween('f.created_at', [$fechaInicio, $fechaFin])
                 ->select(
                     'tp.nombre as forma_pago',
-                    DB::raw('SUM(fhp.pago_recibido) as total')
+                    DB::raw('SUM(fhp.pago_recibido - fhp.cambio) as total')
                 )
                 ->groupBy('tp.id', 'tp.nombre')
                 ->get();
@@ -71,8 +71,17 @@ class CierreCajaPDFController extends Controller
                 }
             }
 
-            // Calcular depósito (diferencia de L.2000, nunca negativo)
-            $montoDeposito = max(0, $cierre->total_efectivo_contado - 2000);
+            // Calcular depósito: (efectivo_sistema - 2000) + sobrante si es positivo
+            $diferencia = $cierre->diferencia ?? 0;
+            $efectivoSistema = $cierre->total_efectivo_sistema ?? 0;
+            
+            if ($diferencia > 0) {
+                // Hay sobrante: depositar (efectivo sistema - 2000) + sobrante
+                $montoDeposito = max(0, ($efectivoSistema - 2000) + $diferencia);
+            } else {
+                // No hay sobrante: depositar solo (efectivo sistema - 2000)
+                $montoDeposito = max(0, $efectivoSistema - 2000);
+            }
 
             // Cargar datos de empresa
             $empresa = DB::table('empresa')->first();
@@ -144,7 +153,7 @@ class CierreCajaPDFController extends Controller
                 ->whereBetween('f.created_at', [$fechaInicio, $fechaFin])
                 ->select(
                     'tp.nombre as forma_pago',
-                    DB::raw('SUM(fhp.pago_recibido) as total')
+                    DB::raw('SUM(fhp.pago_recibido - fhp.cambio) as total')
                 )
                 ->groupBy('tp.id', 'tp.nombre')
                 ->get();
@@ -180,8 +189,17 @@ class CierreCajaPDFController extends Controller
                 }
             }
 
-            // Calcular depósito (diferencia de L.2000, nunca negativo)
-            $montoDeposito = max(0, $cierre->total_efectivo_contado - 2000);
+            // Calcular depósito: (efectivo_sistema - 2000) + sobrante si es positivo
+            $diferencia = $cierre->diferencia ?? 0;
+            $efectivoSistema = $cierre->total_efectivo_sistema ?? 0;
+            
+            if ($diferencia > 0) {
+                // Hay sobrante: depositar (efectivo sistema - 2000) + sobrante
+                $montoDeposito = max(0, ($efectivoSistema - 2000) + $diferencia);
+            } else {
+                // No hay sobrante: depositar solo (efectivo sistema - 2000)
+                $montoDeposito = max(0, $efectivoSistema - 2000);
+            }
 
             // Cargar datos de empresa
             $empresa = DB::table('empresa')->first();
@@ -374,7 +392,7 @@ class CierreCajaPDFController extends Controller
             
             $row++;
             $sheet->setCellValue('E' . $row, 'TOTAL GENERAL:');
-            $sheet->setCellValue('F' . $row, 'L. ' . number_format($totalGeneral, 2));
+            $sheet->setCellValue('F' . $row, 'L. ' . number_format($totalGeneral + 2000, 2));
             $sheet->getStyle('E' . $row . ':F' . $row)->getFont()->setBold(true)->setSize(12);
             $sheet->getStyle('F' . $row)->getFill()
                 ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)

@@ -111,7 +111,7 @@ class CierreDeCaja extends Component
             ->select(
                 'tp.nombre as forma_pago',
                 DB::raw('COUNT(DISTINCT f.id) as cantidad'),
-                DB::raw('SUM(fhp.total_factura) as total')
+                DB::raw('SUM(fhp.pago_recibido - fhp.cambio) as total')
             )
             ->groupBy('tp.id', 'tp.nombre')
             ->get();

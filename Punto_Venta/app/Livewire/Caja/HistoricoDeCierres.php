@@ -85,7 +85,7 @@ class HistoricoDeCierres extends Component
                 'cch.user_id',
                 'cch.fecha_cierre',
                 'cch.periodo_inicio',
-                'cch.total_efectivo_contado',
+                'cch.total_efectivo_sistema',
                 'cch.total_tarjeta',
                 'cch.total_transferencia',
                 'cch.total_cheque',

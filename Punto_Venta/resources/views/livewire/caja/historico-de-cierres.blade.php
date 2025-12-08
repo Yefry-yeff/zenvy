@@ -97,85 +97,73 @@
         <!-- TABLA DE CIERRES -->
         <div class="overflow-x-auto">
             @if($cierres->count() > 0)
-                <table class="w-full text-sm text-left text-gray-700">
+                <table class="w-full text-xs text-left text-gray-700">
                     <thead class="text-xs text-white uppercase bg-gray-800">
                         <tr>
-                            <th scope="col" class="px-6 py-3 text-center">#</th>
+                            <th scope="col" class="px-2 py-2 text-center">#</th>
                             @if($esAdmin)
-                                <th scope="col" class="px-6 py-3">Usuario</th>
+                                <th scope="col" class="px-3 py-2">Usuario</th>
                             @endif
-                            <th scope="col" class="px-6 py-3">Fecha Cierre</th>
-                            <th scope="col" class="px-6 py-3">Periodo</th>
-                            <th scope="col" class="px-6 py-3 text-right">Efectivo</th>
-                            <th scope="col" class="px-6 py-3 text-right">Tarjeta</th>
-                            <th scope="col" class="px-6 py-3 text-right">Transferencia</th>
-                            <th scope="col" class="px-6 py-3 text-right">Cheque</th>
-                            <th scope="col" class="px-6 py-3 text-right">Total General</th>
-                            <th scope="col" class="px-6 py-3 text-center">Acciones</th>
+                            <th scope="col" class="px-3 py-2">Fecha</th>
+                            <th scope="col" class="px-2 py-2 text-right">Efectivo</th>
+                            <th scope="col" class="px-2 py-2 text-right">Tarjeta</th>
+                            <th scope="col" class="px-2 py-2 text-right">Transfer.</th>
+                            <th scope="col" class="px-2 py-2 text-right">Cheque</th>
+                            <th scope="col" class="px-2 py-2 text-right">Total</th>
+                            <th scope="col" class="px-2 py-2 text-center">Acciones</th>
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
                         @foreach($cierres as $cierre)
                             <tr class="hover:bg-gray-50 transition-colors">
-                                <td class="px-6 py-4 text-center font-medium text-gray-900">{{ $cierre->id }}</td>
+                                <td class="px-2 py-2 text-center font-medium text-gray-900">{{ $cierre->id }}</td>
                                 @if($esAdmin)
-                                    <td class="px-6 py-4">
+                                    <td class="px-3 py-2">
                                         @php
                                             $nombreUsuario = $cierre->nombre_usuario ?? null;
                                         @endphp
                                         @if($nombreUsuario)
-                                            <div class="flex items-center gap-3">
-                                                <div class="flex items-center justify-center w-10 h-10 text-sm font-bold text-white rounded-full bg-gradient-to-r from-blue-500 to-purple-600 shadow-md">
+                                            <div class="flex items-center gap-2">
+                                                <div class="flex items-center justify-center w-7 h-7 text-xs font-bold text-white rounded-full bg-gradient-to-r from-blue-500 to-purple-600">
                                                     {{ strtoupper(substr($nombreUsuario, 0, 1)) }}
                                                 </div>
-                                                <span class="font-medium text-gray-900">{{ $nombreUsuario }}</span>
+                                                <span class="font-medium text-gray-900 text-xs">{{ $nombreUsuario }}</span>
                                             </div>
                                         @else
-                                            <span class="text-gray-400 italic">Sin usuario</span>
+                                            <span class="text-gray-400 italic text-xs">N/A</span>
                                         @endif
                                     </td>
                                 @endif
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="flex items-center gap-2">
-                                        <i class="fas fa-calendar-alt text-blue-500"></i>
-                                        <span class="font-medium text-gray-900">{{ \Carbon\Carbon::parse($cierre->fecha_cierre)->format('d/m/Y H:i') }}</span>
+                                <td class="px-3 py-2 whitespace-nowrap">
+                                    <div class="text-xs">
+                                        <div class="font-semibold text-gray-900">{{ \Carbon\Carbon::parse($cierre->fecha_cierre)->format('d/m/Y') }}</div>
+                                        <div class="text-gray-500">{{ \Carbon\Carbon::parse($cierre->fecha_cierre)->format('H:i') }}</div>
                                     </div>
                                 </td>
-                                <td class="px-6 py-4 text-xs text-gray-600">
-                                    @if($cierre->periodo_inicio)
-                                        <div class="space-y-1">
-                                            <div>{{ \Carbon\Carbon::parse($cierre->periodo_inicio)->format('d/m/Y H:i') }}</div>
-                                            <div class="text-center"><i class="fas fa-arrow-down text-gray-400"></i></div>
-                                            <div>{{ \Carbon\Carbon::parse($cierre->fecha_cierre)->format('d/m/Y H:i') }}</div>
-                                        </div>
-                                    @else
-                                        <span class="text-gray-400 italic">N/A</span>
-                                    @endif
-                                </td>
-                                <td class="px-6 py-4 text-right">
-                                    <span class="inline-flex items-center px-2.5 py-1 text-xs font-semibold text-green-800 bg-green-100 rounded-full">
-                                        L. {{ number_format($cierre->total_efectivo_contado ?? 0, 2) }}
+                                <td class="px-2 py-2 text-right whitespace-nowrap">
+                                    <span class="text-xs font-semibold text-green-700">
+                                        {{ number_format($cierre->total_efectivo_sistema ?? 0, 2) }}
                                     </span>
                                 </td>
-                                <td class="px-6 py-4 text-right">
-                                    <span class="inline-flex items-center px-2.5 py-1 text-xs font-semibold text-blue-800 bg-blue-100 rounded-full">
-                                        L. {{ number_format($cierre->total_tarjeta ?? 0, 2) }}
+                                <td class="px-2 py-2 text-right whitespace-nowrap">
+                                    <span class="text-xs font-semibold text-blue-700">
+                                        {{ number_format($cierre->total_tarjeta ?? 0, 2) }}
                                     </span>
                                 </td>
-                                <td class="px-6 py-4 text-right">
-                                    <span class="inline-flex items-center px-2.5 py-1 text-xs font-semibold text-yellow-800 bg-yellow-100 rounded-full">
-                                        L. {{ number_format($cierre->total_transferencia ?? 0, 2) }}
+                                <td class="px-2 py-2 text-right whitespace-nowrap">
+                                    <span class="text-xs font-semibold text-yellow-700">
+                                        {{ number_format($cierre->total_transferencia ?? 0, 2) }}
                                     </span>
                                 </td>
-                                <td class="px-6 py-4 text-right">
-                                    <span class="inline-flex items-center px-2.5 py-1 text-xs font-semibold text-gray-800 bg-gray-100 rounded-full">
-                                        L. {{ number_format($cierre->total_cheque ?? 0, 2) }}
+                                <td class="px-2 py-2 text-right whitespace-nowrap">
+                                    <span class="text-xs font-semibold text-gray-700">
+                                        {{ number_format($cierre->total_cheque ?? 0, 2) }}
                                     </span>
                                 </td>
-                                <td class="px-6 py-4 text-right">
-                                    <span class="text-base font-bold text-purple-600">
-                                        L. {{ number_format(
-                                            ($cierre->total_efectivo_contado ?? 0) + 
+                                <td class="px-2 py-2 text-right whitespace-nowrap">
+                                    <span class="text-sm font-bold text-purple-600">
+                                        {{ number_format(
+                                            ($cierre->total_efectivo_sistema ?? 0) + 
                                             ($cierre->total_tarjeta ?? 0) + 
                                             ($cierre->total_transferencia ?? 0) + 
                                             ($cierre->total_cheque ?? 0), 
@@ -183,17 +171,17 @@
                                         ) }}
                                     </span>
                                 </td>
-                                <td class="px-6 py-4 text-center">
-                                    <div class="flex justify-center gap-2">
+                                <td class="px-2 py-2 text-center">
+                                    <div class="flex justify-center gap-1">
                                         <button type="button"
                                            onclick="event.preventDefault(); event.stopPropagation(); window.open('{{ route('cierre-caja.pdf.preview', $cierre->id) }}', '_blank');" 
-                                           class="inline-flex items-center px-3 py-2 text-xs font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                           class="inline-flex items-center px-2 py-1 text-xs font-medium text-white bg-blue-600 rounded hover:bg-blue-700"
                                            title="Ver PDF">
                                             <i class="fas fa-file-pdf"></i>
                                         </button>
                                         <button type="button"
                                            onclick="event.preventDefault(); event.stopPropagation(); window.location.href='{{ route('cierre-caja.reporte-transacciones', $cierre->id) }}';" 
-                                           class="inline-flex items-center px-3 py-2 text-xs font-medium text-white bg-green-600 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
+                                           class="inline-flex items-center px-2 py-1 text-xs font-medium text-white bg-green-600 rounded hover:bg-green-700"
                                            title="Descargar Excel">
                                             <i class="fas fa-file-excel"></i>
                                         </button>
