@@ -151,17 +151,17 @@
             </div>
         </div>
 
-        <!-- TABLA OPTIMIZADA -->
-        <div class="px-4 py-3">
-            <div class="overflow-x-auto">
-                <table class="min-w-full border border-gray-200 table-auto">
-                    <thead class="bg-gray-50">
+        <!-- TABLA COMPACTA -->
+        <div class="px-2 py-2">
+            <div class="overflow-x-auto max-h-[calc(100vh-280px)]">
+                <table class="min-w-full text-xs border border-gray-200 table-fixed">
+                    <thead class="sticky top-0 z-10 bg-gray-100">
                         <!-- Encabezados con ordenamiento -->
                         <tr>
-                            <th class="px-4 py-3 text-left border-b cursor-pointer hover:bg-gray-100"
+                            <th class="px-2 py-1.5 text-left border-b cursor-pointer hover:bg-gray-200 w-20"
                                 wire:click="ordenar('producto_id')">
                                 <div class="flex items-center space-x-1">
-                                    <span>Código de Producto</span>
+                                    <span class="text-xs font-semibold">Cód</span>
                                     @if($ordenarPor === 'producto_id')
                                         <span class="text-blue-500">
                                             @if($direccionOrden === 'asc') ↑ @else ↓ @endif
@@ -169,10 +169,10 @@
                                     @endif
                                 </div>
                             </th>
-                            <th class="px-4 py-3 text-left border-b cursor-pointer hover:bg-gray-100"
+                            <th class="px-2 py-1.5 text-left border-b cursor-pointer hover:bg-gray-200 w-48"
                                 wire:click="ordenar('producto_nombre')">
                                 <div class="flex items-center space-x-1">
-                                    <span>Producto</span>
+                                    <span class="text-xs font-semibold">Producto</span>
                                     @if($ordenarPor === 'producto_nombre')
                                         <span class="text-blue-500">
                                             @if($direccionOrden === 'asc') ↑ @else ↓ @endif
@@ -180,10 +180,10 @@
                                     @endif
                                 </div>
                             </th>
-                            <th class="px-4 py-3 text-left border-b cursor-pointer hover:bg-gray-100"
+                            <th class="px-2 py-1.5 text-left border-b cursor-pointer hover:bg-gray-200 w-28"
                                 wire:click="ordenar('codigo_barra')">
                                 <div class="flex items-center space-x-1">
-                                    <span>Código de Barras</span>
+                                    <span class="text-xs font-semibold">Código Barra</span>
                                     @if($ordenarPor === 'codigo_barra')
                                         <span class="text-blue-500">
                                             @if($direccionOrden === 'asc') ↑ @else ↓ @endif
@@ -191,241 +191,224 @@
                                     @endif
                                 </div>
                             </th>
-                            <th class="px-4 py-3 text-left border-b cursor-pointer hover:bg-gray-100"
+                            <th class="px-2 py-1.5 text-left border-b cursor-pointer hover:bg-gray-200 w-24"
                                 wire:click="ordenar('marca_nombre')">
                                 <div class="flex items-center space-x-1">
-                                    <span>Marca</span>
+                                    <span class="text-xs font-semibold">Marca</span>
                                     @if($ordenarPor === 'marca_nombre')
-                                        <span class="text-blue-500">
+                                        <span class="text-blue-500 text-xs">
                                             @if($direccionOrden === 'asc') ↑ @else ↓ @endif
                                         </span>
                                     @endif
                                 </div>
                             </th>
-                            <th class="px-4 py-3 text-left border-b cursor-pointer hover:bg-gray-100"
+                            <th class="px-2 py-1.5 text-left border-b cursor-pointer hover:bg-gray-200 w-32"
                                 wire:click="ordenar('bodega_nombre')">
                                 <div class="flex items-center space-x-1">
-                                    <span>Bodega</span>
+                                    <span class="text-xs font-semibold">Bodega</span>
                                     @if($ordenarPor === 'bodega_nombre')
-                                        <span class="text-blue-500">
+                                        <span class="text-blue-500 text-xs">
                                             @if($direccionOrden === 'asc') ↑ @else ↓ @endif
                                         </span>
                                     @endif
                                 </div>
                             </th>
-                            <th class="px-4 py-3 text-left border-b">Segmento</th>
-                            <th class="px-4 py-3 text-left border-b">Sección</th>
-                            <th class="px-4 py-3 text-center border-b cursor-pointer hover:bg-gray-100"
+                            <th class="px-2 py-1.5 text-left border-b w-28"><span class="text-xs font-semibold">Segmento</span></th>
+                            <th class="px-2 py-1.5 text-left border-b w-28"><span class="text-xs font-semibold">Sección</span></th>
+                            <th class="px-2 py-1.5 text-center border-b cursor-pointer hover:bg-gray-200 w-16"
                                 wire:click="ordenar('cantidad_disponible')">
                                 <div class="flex items-center justify-center space-x-1">
-                                    <span>Stock</span>
+                                    <span class="text-xs font-semibold">Stock</span>
                                     @if($ordenarPor === 'cantidad_disponible')
-                                        <span class="text-blue-500">
+                                        <span class="text-blue-500 text-xs">
                                             @if($direccionOrden === 'asc') ↑ @else ↓ @endif
                                         </span>
                                     @endif
                                 </div>
                             </th>
-                            <th class="px-4 py-3 text-center border-b cursor-pointer hover:bg-gray-100"
+                            <th class="px-2 py-1.5 text-center border-b cursor-pointer hover:bg-gray-200 w-20"
                                 wire:click="ordenar('fecha_recibido')">
                                 <div class="flex items-center justify-center space-x-1">
-                                    <span>Fecha Recibido</span>
+                                    <span class="text-xs font-semibold">F. Recibido</span>
                                     @if($ordenarPor === 'fecha_recibido')
-                                        <span class="text-blue-500">
+                                        <span class="text-blue-500 text-xs">
                                             @if($direccionOrden === 'asc') ↑ @else ↓ @endif
                                         </span>
                                     @endif
                                 </div>
                             </th>
-                            <th class="px-4 py-3 text-center border-b">Fecha Expiración</th>
-                            <th class="px-4 py-3 text-center border-b">Estado</th>
-                            <th class="px-4 py-3 text-center border-b">Comentario</th>
-                            <th class="px-4 py-3 text-center border-b">Acciones</th>
+                            <th class="px-2 py-1.5 text-center border-b w-20"><span class="text-xs font-semibold">F. Exp.</span></th>
+                            <th class="px-2 py-1.5 text-center border-b w-20"><span class="text-xs font-semibold">Estado</span></th>
+                            <th class="px-2 py-1.5 text-center border-b w-24"><span class="text-xs font-semibold">Comentario</span></th>
+                            <th class="px-2 py-1.5 text-center border-b w-16"><span class="text-xs font-semibold">Acciones</span></th>
                         </tr>
                         <!-- Fila de filtros -->
                             <tr class="bg-white">
-                                <th class="px-2 py-2 border-b">
+                                <th class="px-2 py-1 border-b">
                                     <input type="text" 
                                            wire:model.live.debounce.300ms="filtroCodigoProducto"
                                            placeholder="Filtrar..."
-                                           class="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-transparent">
+                                           class="w-full px-1.5 py-0.5 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-transparent">
                                 </th>
-                                <th class="px-2 py-2 border-b">
+                                <th class="px-2 py-1 border-b">
                                     <input type="text" 
                                            wire:model.live.debounce.300ms="filtroProducto"
                                            placeholder="Filtrar..."
-                                           class="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-transparent">
+                                           class="w-full px-1.5 py-0.5 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-transparent">
                                 </th>
-                                <th class="px-2 py-2 border-b">
+                                <th class="px-2 py-1 border-b">
                                     <input type="text" 
                                            wire:model.live.debounce.300ms="filtroCodigoBarra"
                                            placeholder="Filtrar..."
-                                           class="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-transparent">
+                                           class="w-full px-1.5 py-0.5 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-transparent">
                                 </th>
-                                <th class="px-2 py-2 border-b">
+                                <th class="px-2 py-1 border-b">
                                     <select wire:model.live="filtroMarca" 
-                                            class="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500">
+                                            class="w-full px-1.5 py-0.5 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500">
                                         <option value="">Todas</option>
                                         @foreach($marcas as $marca)
                                             <option value="{{ $marca->id }}">{{ $marca->nombre }}</option>
                                         @endforeach
                                     </select>
                                 </th>
-                                <th class="px-2 py-2 border-b">
+                                <th class="px-2 py-1 border-b">
                                     <select wire:model.live="filtroBodega" 
-                                            class="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500">
+                                            class="w-full px-1.5 py-0.5 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500">
                                         <option value="">Todas</option>
                                         @foreach($bodegas as $bodega)
                                             <option value="{{ $bodega->id }}">{{ $bodega->nombre }}</option>
                                         @endforeach
                                     </select>
                                 </th>
-                                <th class="px-2 py-2 border-b">
+                                <th class="px-2 py-1 border-b">
                                     <input type="text" 
                                            wire:model.live.debounce.300ms="filtroSegmento"
                                            placeholder="Filtrar..."
-                                           class="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-transparent">
+                                           class="w-full px-1.5 py-0.5 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-transparent">
                                 </th>
-                                <th class="px-2 py-2 border-b">
+                                <th class="px-2 py-1 border-b">
                                     <input type="text" 
                                            wire:model.live.debounce.300ms="filtroSeccion"
                                            placeholder="Filtrar..."
-                                           class="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-transparent">
+                                           class="w-full px-1.5 py-0.5 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-transparent">
                                 </th>
-                                <th class="px-2 py-2 border-b">
+                                <th class="px-2 py-1 border-b">
                                     <select wire:model.live="filtroEstado" 
-                                            class="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500">
+                                            class="w-full px-1.5 py-0.5 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500">
                                         <option value="">Todos</option>
-                                        <option value="disponible">Disponible (&gt; 10)</option>
-                                        <option value="poco_stock">Poco Stock (1-10)</option>
-                                        <option value="agotado">Agotado (0)</option>
+                                        <option value="disponible">OK</option>
+                                        <option value="poco_stock">Bajo</option>
+                                        <option value="agotado">0</option>
                                     </select>
                                 </th>
-                                <th class="px-2 py-2 border-b">
+                                <th class="px-2 py-1 border-b">
                                     <input type="date" 
                                            wire:model.live="filtroFechaRecibido"
-                                           class="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-transparent">
+                                           class="w-full px-1.5 py-0.5 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-transparent">
                                 </th>
-                                <th class="px-2 py-2 border-b">
+                                <th class="px-2 py-1 border-b">
                                     <input type="date" 
                                            wire:model.live="filtroFechaExpiracion"
-                                           class="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-transparent">
+                                           class="w-full px-1.5 py-0.5 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-transparent">
                                 </th>
-                                <th class="px-2 py-2 border-b"></th>
-                                <th class="px-2 py-2 border-b"></th>
-                                <th class="px-2 py-2 border-b"></th>
+                                <th class="px-2 py-1 border-b"></th>
+                                <th class="px-2 py-1 border-b"></th>
+                                <th class="px-2 py-1 border-b"></th>
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-200">
                             @if($productosRecibidos->count() > 0)
                                 @foreach($productosRecibidos as $item)
-                                    <tr class="hover:bg-gray-50 {{ $item->cantidad_disponible > 10 ? 'bg-green-50' : ($item->cantidad_disponible > 0 ? 'bg-yellow-50' : 'bg-red-50') }}">
+                                    <tr class="hover:bg-gray-50">
 
                                         <!-- Código de Producto -->
-                                        <td class="px-4 py-3 border-b">
-                                            <code class="px-2 py-1 text-sm font-semibold text-blue-700 bg-blue-100 rounded">{{ $item->producto_id ?? 'N/A' }}</code>
+                                        <td class="px-2 py-1 text-xs border-b">
+                                            <span class="font-semibold text-blue-700">{{ $item->producto_id ?? 'N/A' }}</span>
                                     </td>
 
                                     <!-- Producto -->
-                                    <td class="px-4 py-3 border-b">
-                                        <div class="flex flex-col">
-                                            <span class="font-semibold text-gray-900">{{ $item->producto_nombre }}</span>
-                                            @if($item->presentacion_descripcion)
-                                                <small class="text-blue-600"><i class="mr-1 fas fa-tag"></i>{{ $item->presentacion_descripcion }}</small>
-                                            @endif
-                                            @if($item->producto_descripcion)
-                                                <small class="text-gray-500">{{ Str::limit($item->producto_descripcion, 30) }}</small>
-                                            @endif
+                                    <td class="px-2 py-1 text-xs border-b">
+                                        <div class="truncate" title="{{ $item->producto_nombre }}">
+                                            <span class="font-semibold text-gray-900">{{ Str::limit($item->producto_nombre, 35) }}</span>
                                         </div>
                                     </td>
 
                                     <!-- Código de Barras -->
-                                    <td class="px-4 py-3 border-b">
-                                        <code class="px-2 py-1 text-sm bg-gray-100 rounded">{{ $item->codigo_barra ?? 'N/A' }}</code>
+                                    <td class="px-2 py-1 text-xs border-b truncate">
+                                        <span class="text-gray-700">{{ $item->codigo_barra ?? 'N/A' }}</span>
                                     </td>
 
                                     <!-- Marca -->
-                                    <td class="px-4 py-3 text-gray-700 border-b">
-                                        {{ $item->marca_nombre ?? 'Sin marca' }}
+                                    <td class="px-2 py-1 text-xs text-gray-700 border-b truncate" title="{{ $item->marca_nombre ?? 'Sin marca' }}">
+                                        {{ Str::limit($item->marca_nombre ?? 'Sin marca', 15) }}
                                     </td>
 
                                     <!-- Bodega -->
-                                    <td class="px-4 py-3 border-b">
-                                        <div class="flex flex-col">
-                                            <span class="font-semibold text-gray-900">{{ $item->bodega_nombre }}</span>
-                                            <small class="text-gray-500">{{ $item->tienda_nombre }}</small>
-                                        </div>
+                                    <td class="px-2 py-1 text-xs border-b truncate" title="{{ $item->bodega_nombre }}">
+                                        <span class="font-semibold text-gray-900">{{ Str::limit($item->bodega_nombre, 18) }}</span>
                                     </td>
 
                                     <!-- Segmento -->
-                                    <td class="px-4 py-3 text-gray-700 border-b">
-                                        {{ $item->segmento_descripcion ?? 'N/A' }}
+                                    <td class="px-2 py-1 text-xs text-gray-700 border-b truncate" title="{{ $item->segmento_descripcion ?? 'N/A' }}">
+                                        {{ Str::limit($item->segmento_descripcion ?? 'N/A', 15) }}
                                     </td>
 
                                     <!-- Sección -->
-                                    <td class="px-4 py-3 text-gray-700 border-b">
-                                        {{ $item->seccion_descripcion ?? 'N/A' }}
+                                    <td class="px-2 py-1 text-xs text-gray-700 border-b truncate" title="{{ $item->seccion_descripcion ?? 'N/A' }}">
+                                        {{ Str::limit($item->seccion_descripcion ?? 'N/A', 15) }}
                                     </td>
 
                                     <!-- Stock -->
-                                    <td class="px-4 py-3 text-center border-b">
-                                        <span class="font-bold {{ $item->cantidad_disponible > 10 ? 'text-green-600' : ($item->cantidad_disponible > 0 ? 'text-yellow-600' : 'text-red-600') }}">
+                                    <td class="px-2 py-1 text-center border-b">
+                                        <span class="text-xs font-bold {{ $item->cantidad_disponible > 10 ? 'text-green-600' : ($item->cantidad_disponible > 0 ? 'text-yellow-600' : 'text-red-600') }}">
                                             {{ number_format($item->cantidad_disponible, 0) }}
                                         </span>
-                                        <div class="text-xs text-gray-500">{{ $item->unidad_medida ?? 'Unidad' }}</div>
                                     </td>
 
                                     <!-- Fecha Recibido -->
-                                    <td class="px-4 py-3 text-sm text-center text-gray-600 border-b">
-                                        {{ \Carbon\Carbon::parse($item->fecha_recibido)->format('d/m/Y') }}
+                                    <td class="px-2 py-1 text-xs text-center text-gray-600 border-b">
+                                        {{ \Carbon\Carbon::parse($item->fecha_recibido)->format('d/m/y') }}
                                     </td>
 
                                     <!-- Fecha Expiración -->
-                                    <td class="px-4 py-3 text-sm text-center border-b">
+                                    <td class="px-2 py-1 text-xs text-center border-b">
                                         @if($item->fecha_expiracion)
-                                            @php
-                                                $fechaExpiracion = \Carbon\Carbon::parse($item->fecha_expiracion);
-                                                $diasRestantes = $fechaExpiracion->diffInDays(now(), false);
-                                            @endphp
-                                            <span class="{{ $diasRestantes > 30 ? 'text-green-600' : ($diasRestantes > 7 ? 'text-yellow-600' : 'text-red-600') }}">
-                                                {{ $fechaExpiracion->format('d/m/Y') }}
-                                                @if($diasRestantes <= 30)
-                                                    <div class="text-xs">({{ abs($diasRestantes) }} días)</div>
-                                                @endif
+                                            <span class="text-gray-600">
+                                                {{ \Carbon\Carbon::parse($item->fecha_expiracion)->format('d/m/y') }}
                                             </span>
                                         @else
-                                            <span class="text-gray-400">N/A</span>
+                                            <span class="text-gray-400">-</span>
                                         @endif
                                     </td>
 
                                     <!-- Estado -->
-                                    <td class="px-4 py-3 text-center border-b">
+                                    <td class="px-2 py-1 text-center border-b">
                                         @if($item->cantidad_disponible > 10)
-                                            <span class="inline-flex px-2 py-1 text-xs font-semibold text-white bg-green-500 rounded-full">Disponible</span>
+                                            <span class="inline-flex px-1.5 py-0.5 text-xs font-semibold text-white bg-green-500 rounded">OK</span>
                                         @elseif($item->cantidad_disponible > 0)
-                                            <span class="inline-flex px-2 py-1 text-xs font-semibold text-white bg-yellow-500 rounded-full">Poco Stock</span>
+                                            <span class="inline-flex px-1.5 py-0.5 text-xs font-semibold text-white bg-yellow-500 rounded">Bajo</span>
                                         @else
-                                            <span class="inline-flex px-2 py-1 text-xs font-semibold text-white bg-red-500 rounded-full">Agotado</span>
+                                            <span class="inline-flex px-1.5 py-0.5 text-xs font-semibold text-white bg-red-500 rounded">0</span>
                                         @endif
                                     </td>
 
                                     <!-- Comentario -->
-                                    <td class="px-4 py-3 text-sm border-b">
+                                    <td class="px-2 py-1 text-xs border-b truncate">
                                         @if($item->comentario)
-                                            <span title="{{ $item->comentario }}" class="text-gray-700">{{ Str::limit($item->comentario, 20) }}</span>
+                                            <span title="{{ $item->comentario }}" class="text-gray-700">{{ Str::limit($item->comentario, 15) }}</span>
                                         @else
                                             <span class="text-gray-400">-</span>
                                         @endif
                                     </td>
 
                                     <!-- Acciones -->
-                                    <td class="px-4 py-3 text-center border-b" x-data="{ menuOpen: false }">
+                                    <td class="px-2 py-1 text-center border-b" x-data="{ menuOpen: false }">
                                         <div class="relative inline-block text-left">
                                             <button @click="menuOpen = !menuOpen"
                                                     @click.away="menuOpen = false"
                                                     type="button"
-                                                    class="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    class="inline-flex items-center p-1 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path>
                                                 </svg>
                                             </button>
