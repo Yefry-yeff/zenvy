@@ -120,12 +120,19 @@
                                 <td class="px-6 py-4 text-center font-medium text-gray-900">{{ $cierre->id }}</td>
                                 @if($esAdmin)
                                     <td class="px-6 py-4">
-                                        <div class="flex items-center gap-3">
-                                            <div class="flex items-center justify-center w-10 h-10 text-sm font-bold text-white rounded-full bg-gradient-to-r from-blue-500 to-purple-600 shadow-md">
-                                                {{ substr($cierre->nombre_usuario ?? 'U', 0, 1) }}
+                                        @php
+                                            $nombreUsuario = $cierre->nombre_usuario ?? null;
+                                        @endphp
+                                        @if($nombreUsuario)
+                                            <div class="flex items-center gap-3">
+                                                <div class="flex items-center justify-center w-10 h-10 text-sm font-bold text-white rounded-full bg-gradient-to-r from-blue-500 to-purple-600 shadow-md">
+                                                    {{ strtoupper(substr($nombreUsuario, 0, 1)) }}
+                                                </div>
+                                                <span class="font-medium text-gray-900">{{ $nombreUsuario }}</span>
                                             </div>
-                                            <span class="font-medium text-gray-900">{{ $cierre->nombre_usuario ?? 'Usuario desconocido' }}</span>
-                                        </div>
+                                        @else
+                                            <span class="text-gray-400 italic">Sin usuario</span>
+                                        @endif
                                     </td>
                                 @endif
                                 <td class="px-6 py-4 whitespace-nowrap">
@@ -177,18 +184,19 @@
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 text-center">
-                                    <div class="flex gap-2 justify-center">
-                                        <a href="{{ route('cierre-caja.pdf.preview', $cierre->id) }}" 
-                                           target="_blank"
-                                           class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-white bg-blue-600 rounded hover:bg-blue-700"
-                                           title="Imprimir Recibo">
-                                            <i class="fas fa-print"></i>
-                                        </a>
-                                        <a href="{{ route('cierre-caja.reporte-transacciones', $cierre->id) }}" 
-                                           class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-white bg-green-600 rounded hover:bg-green-700"
+                                    <div class="flex justify-center gap-2">
+                                        <button type="button"
+                                           onclick="event.preventDefault(); event.stopPropagation(); window.open('{{ route('cierre-caja.pdf.preview', $cierre->id) }}', '_blank');" 
+                                           class="inline-flex items-center px-3 py-2 text-xs font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                           title="Ver PDF">
+                                            <i class="fas fa-file-pdf"></i>
+                                        </button>
+                                        <button type="button"
+                                           onclick="event.preventDefault(); event.stopPropagation(); window.location.href='{{ route('cierre-caja.reporte-transacciones', $cierre->id) }}';" 
+                                           class="inline-flex items-center px-3 py-2 text-xs font-medium text-white bg-green-600 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
                                            title="Descargar Excel">
                                             <i class="fas fa-file-excel"></i>
-                                        </a>
+                                        </button>
                                     </div>
                                 </td>
                             </tr>

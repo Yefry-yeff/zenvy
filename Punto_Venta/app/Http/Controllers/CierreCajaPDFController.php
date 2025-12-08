@@ -35,7 +35,7 @@ class CierreCajaPDFController extends Controller
                 ->whereBetween('f.created_at', [$fechaInicio, $fechaFin])
                 ->select(
                     'tp.nombre as forma_pago',
-                    DB::raw('SUM(fhp.monto) as total')
+                    DB::raw('SUM(fhp.pago_recibido) as total')
                 )
                 ->groupBy('tp.id', 'tp.nombre')
                 ->get();
@@ -144,7 +144,7 @@ class CierreCajaPDFController extends Controller
                 ->whereBetween('f.created_at', [$fechaInicio, $fechaFin])
                 ->select(
                     'tp.nombre as forma_pago',
-                    DB::raw('SUM(fhp.monto) as total')
+                    DB::raw('SUM(fhp.pago_recibido) as total')
                 )
                 ->groupBy('tp.id', 'tp.nombre')
                 ->get();
@@ -253,10 +253,10 @@ class CierreCajaPDFController extends Controller
                 ->select(
                     'f.numero_factura',
                     'f.created_at as fecha_hora',
-                    DB::raw("CONCAT(c.nombre, ' ', COALESCE(c.apellido, '')) as cliente"),
+                    'c.nombre as cliente',
                     'c.rtn',
                     'tp.nombre as forma_pago',
-                    'fhp.monto as monto_pago',
+                    'fhp.pago_recibido as monto_pago',
                     'f.sub_total',
                     'f.isv',
                     'f.total',

@@ -6,6 +6,7 @@ use Livewire\Component;
 use Livewire\WithPagination;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class HistoricoDeCierres extends Component
 {
@@ -20,11 +21,29 @@ class HistoricoDeCierres extends Component
 
     public function mount()
     {
-        // Verificar si el usuario es Admin o Administrador
+        // Verificar si el usuario es Admin (roles_id = 2 según la BD)
         $usuario = Auth::user();
-        $rolNombre = $usuario->rol->nombre ?? '';
         
-        $this->esAdmin = in_array(strtolower($rolNombre), ['admin', 'administrador']);
+        // Verificar por roles_id o por nombre de rol
+        $this->esAdmin = false;
+        
+        if ($usuario->roles_id == 2) {
+            $this->esAdmin = true;
+        } else {
+            // Intentar verificar por nombre de rol si existe la relación
+            try {
+                $rolNombre = DB::table('roles')->where('id', $usuario->roles_id)->value('txt_nombre');
+                $this->esAdmin = in_array(strtolower($rolNombre ?? ''), ['admin', 'administrador']);
+            } catch (\Exception $e) {
+                $this->esAdmin = false;
+            }
+        }
+        
+        Log::info('HistoricoDeCierres - Usuario actual:', [
+            'user_id' => $usuario->id,
+            'roles_id' => $usuario->roles_id,
+            'esAdmin' => $this->esAdmin
+        ]);
         
         // Si no es admin, solo mostrar sus propios cierres
         if (!$this->esAdmin) {
@@ -51,6 +70,16 @@ class HistoricoDeCierres extends Component
         }
         
         $this->resetPage();
+    }
+
+    public function descargarPDF($cierreId)
+    {
+        return redirect()->route('cierre-caja.pdf.preview', $cierreId);
+    }
+
+    public function descargarExcel($cierreId)
+    {
+        return redirect()->route('cierre-caja.reporte-transacciones', $cierreId);
     }
 
     public function render()
