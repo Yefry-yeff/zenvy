@@ -246,20 +246,17 @@ class CierreCajaPDFController extends Controller
             $transacciones = DB::table('factura as f')
                 ->join('factura_has_pago as fhp', 'f.id', '=', 'fhp.factura_id')
                 ->join('tipo_pago as tp', 'fhp.tipo_pago_id', '=', 'tp.id')
-                ->join('cliente as c', 'f.cliente_id', '=', 'c.id')
                 ->leftJoin('estado_factura as ef', 'f.estado_factura_id', '=', 'ef.id')
                 ->where('f.users_id', $cierre->user_id)
                 ->whereBetween('f.created_at', [$fechaInicio, $fechaFin])
                 ->select(
                     'f.numero_factura',
                     'f.created_at as fecha_hora',
-                    'c.nombre as cliente',
-                    'c.rtn',
+                    'f.nombre_cliente as cliente',
                     'tp.nombre as forma_pago',
-                    'fhp.pago_recibido as monto_pago',
-                    'f.sub_total',
-                    'f.isv',
-                    'f.total',
+                    'fhp.pago_recibido',
+                    'fhp.cambio',
+                    DB::raw('(fhp.pago_recibido - fhp.cambio) as total'),
                     'ef.nombre as estado'
                 )
                 ->orderBy('f.created_at')
@@ -271,7 +268,7 @@ class CierreCajaPDFController extends Controller
 
             // Configurar encabezado del documento
             $sheet->setCellValue('A1', 'REPORTE DE TRANSACCIONES - CIERRE DE CAJA');
-            $sheet->mergeCells('A1:J1');
+            $sheet->mergeCells('A1:G1');
             $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
             $sheet->getStyle('A1')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
 
@@ -287,7 +284,7 @@ class CierreCajaPDFController extends Controller
 
             // Encabezados de la tabla
             $row = 8;
-            $headers = ['#', 'Factura', 'Fecha/Hora', 'Cliente', 'RTN', 'Forma Pago', 'Monto Pago', 'Sub Total', 'ISV', 'Total', 'Estado'];
+            $headers = ['#', 'Factura', 'Fecha/Hora', 'Cliente', 'Forma Pago', 'Total', 'Estado'];
             $col = 'A';
             foreach ($headers as $header) {
                 $sheet->setCellValue($col . $row, $header);
@@ -307,51 +304,84 @@ class CierreCajaPDFController extends Controller
                 $sheet->setCellValue('B' . $row, $transaccion->numero_factura);
                 $sheet->setCellValue('C' . $row, \Carbon\Carbon::parse($transaccion->fecha_hora)->format('d/m/Y H:i:s'));
                 $sheet->setCellValue('D' . $row, $transaccion->cliente);
-                $sheet->setCellValue('E' . $row, $transaccion->rtn ?? 'N/A');
-                $sheet->setCellValue('F' . $row, $transaccion->forma_pago);
-                $sheet->setCellValue('G' . $row, number_format($transaccion->monto_pago, 2));
-                $sheet->setCellValue('H' . $row, number_format($transaccion->sub_total, 2));
-                $sheet->setCellValue('I' . $row, number_format($transaccion->isv, 2));
-                $sheet->setCellValue('J' . $row, number_format($transaccion->total, 2));
-                $sheet->setCellValue('K' . $row, $transaccion->estado ?? 'Procesada');
+                $sheet->setCellValue('E' . $row, $transaccion->forma_pago);
+                $sheet->setCellValue('F' . $row, number_format($transaccion->total, 2));
+                $sheet->setCellValue('G' . $row, $transaccion->estado ?? 'Procesada');
                 
                 $row++;
                 $contador++;
             }
 
+            // Calcular totales por forma de pago desde las transacciones
+            $totalesPorFormaPago = DB::table('factura as f')
+                ->join('factura_has_pago as fhp', 'f.id', '=', 'fhp.factura_id')
+                ->join('tipo_pago as tp', 'fhp.tipo_pago_id', '=', 'tp.id')
+                ->where('f.users_id', $cierre->user_id)
+                ->whereBetween('f.created_at', [$fechaInicio, $fechaFin])
+                ->select(
+                    'tp.nombre as forma_pago',
+                    DB::raw('SUM(fhp.pago_recibido - fhp.cambio) as total')
+                )
+                ->groupBy('tp.id', 'tp.nombre')
+                ->get();
+
             // Totales
             $row++;
-            $sheet->setCellValue('F' . $row, 'TOTALES:');
-            $sheet->getStyle('F' . $row)->getFont()->setBold(true);
+            $sheet->setCellValue('E' . $row, 'TOTALES POR FORMA DE PAGO:');
+            $sheet->getStyle('E' . $row)->getFont()->setBold(true);
+            $sheet->mergeCells('E' . $row . ':F' . $row);
             
-            $totalEfectivo = $cierre->total_efectivo_contado ?? 0;
-            $totalTarjeta = $cierre->total_tarjeta ?? 0;
-            $totalTransferencia = $cierre->total_transferencia ?? 0;
-            $totalCheque = $cierre->total_cheque ?? 0;
-            $totalGeneral = $totalEfectivo + $totalTarjeta + $totalTransferencia + $totalCheque;
+            $totalGeneral = 0;
+            $totalEfectivo = 0;
+            
+            foreach ($totalesPorFormaPago as $totalPago) {
+                $row++;
+                
+                // Si es efectivo, mostrar separado
+                if (strtolower($totalPago->forma_pago) === 'efectivo') {
+                    $totalEfectivo = $totalPago->total;
+                    
+                    // Mostrar efectivo de ventas
+                    $sheet->setCellValue('E' . $row, 'Efectivo (Ventas):');
+                    $sheet->setCellValue('F' . $row, 'L. ' . number_format($totalEfectivo, 2));
+                    $sheet->getStyle('F' . $row)->getFont()->setBold(true);
+                    
+                    $row++;
+                    // Mostrar caja inicial
+                    $sheet->setCellValue('E' . $row, 'Caja Inicial:');
+                    $sheet->setCellValue('F' . $row, 'L. 2,000.00');
+                    $sheet->getStyle('F' . $row)->getFont()->setBold(true);
+                    
+                    $row++;
+                    // Total efectivo
+                    $totalEfectivoConCaja = $totalEfectivo + 2000;
+                    $sheet->setCellValue('E' . $row, 'Total Efectivo:');
+                    $sheet->setCellValue('F' . $row, 'L. ' . number_format($totalEfectivoConCaja, 2));
+                    $sheet->getStyle('E' . $row . ':F' . $row)->getFont()->setBold(true);
+                    $sheet->getStyle('F' . $row)->getFill()
+                        ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+                        ->getStartColor()->setARGB('FFD9EAD3');
+                    
+                    $totalGeneral += $totalEfectivo;
+                } else {
+                    // Otras formas de pago
+                    $sheet->setCellValue('E' . $row, $totalPago->forma_pago . ':');
+                    $sheet->setCellValue('F' . $row, 'L. ' . number_format($totalPago->total, 2));
+                    $sheet->getStyle('F' . $row)->getFont()->setBold(true);
+                    $totalGeneral += $totalPago->total;
+                }
+            }
             
             $row++;
-            $sheet->setCellValue('F' . $row, 'Efectivo:');
-            $sheet->setCellValue('G' . $row, 'L. ' . number_format($totalEfectivo, 2));
-            $row++;
-            $sheet->setCellValue('F' . $row, 'Tarjeta:');
-            $sheet->setCellValue('G' . $row, 'L. ' . number_format($totalTarjeta, 2));
-            $row++;
-            $sheet->setCellValue('F' . $row, 'Transferencia:');
-            $sheet->setCellValue('G' . $row, 'L. ' . number_format($totalTransferencia, 2));
-            $row++;
-            $sheet->setCellValue('F' . $row, 'Cheque:');
-            $sheet->setCellValue('G' . $row, 'L. ' . number_format($totalCheque, 2));
-            $row++;
-            $sheet->setCellValue('F' . $row, 'TOTAL GENERAL:');
-            $sheet->setCellValue('G' . $row, 'L. ' . number_format($totalGeneral, 2));
-            $sheet->getStyle('F' . $row . ':G' . $row)->getFont()->setBold(true)->setSize(12);
-            $sheet->getStyle('G' . $row)->getFill()
+            $sheet->setCellValue('E' . $row, 'TOTAL GENERAL:');
+            $sheet->setCellValue('F' . $row, 'L. ' . number_format($totalGeneral, 2));
+            $sheet->getStyle('E' . $row . ':F' . $row)->getFont()->setBold(true)->setSize(12);
+            $sheet->getStyle('F' . $row)->getFill()
                 ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
                 ->getStartColor()->setARGB('FFFFE599');
 
             // Ajustar anchos de columna
-            foreach (range('A', 'K') as $columnID) {
+            foreach (range('A', 'G') as $columnID) {
                 $sheet->getColumnDimension($columnID)->setAutoSize(true);
             }
 

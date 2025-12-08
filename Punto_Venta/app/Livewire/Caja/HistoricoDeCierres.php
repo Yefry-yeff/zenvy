@@ -39,12 +39,6 @@ class HistoricoDeCierres extends Component
             }
         }
         
-        Log::info('HistoricoDeCierres - Usuario actual:', [
-            'user_id' => $usuario->id,
-            'roles_id' => $usuario->roles_id,
-            'esAdmin' => $this->esAdmin
-        ]);
-        
         // Si no es admin, solo mostrar sus propios cierres
         if (!$this->esAdmin) {
             $this->usuarioId = $usuario->id;
