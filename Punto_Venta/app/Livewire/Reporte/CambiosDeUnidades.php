@@ -31,17 +31,7 @@ class CambiosDeUnidades extends Component
     public $bodegas = [];
     public $unidadesMedida = [];
 
-    protected $queryString = [
-        'filtroProducto' => ['except' => ''],
-        'filtroUsuario' => ['except' => ''],
-        'filtroFechaInicio' => ['except' => ''],
-        'filtroFechaFin' => ['except' => ''],
-        'filtroBodega' => ['except' => ''],
-        'filtroUnidadOriginal' => ['except' => ''],
-        'filtroUnidadNueva' => ['except' => ''],
-        'ordenarPor' => ['except' => 'created_at'],
-        'direccionOrden' => ['except' => 'desc'],
-    ];
+    protected $paginationTheme = 'bootstrap';
 
     public function mount()
     {

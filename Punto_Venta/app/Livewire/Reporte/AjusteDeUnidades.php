@@ -29,16 +29,7 @@ class AjusteDeUnidades extends Component
     public $usuarios = [];
     public $bodegas = [];
 
-    protected $queryString = [
-        'filtroProducto' => ['except' => ''],
-        'filtroUsuario' => ['except' => ''],
-        'filtroTipoAjuste' => ['except' => ''],
-        'filtroFechaInicio' => ['except' => ''],
-        'filtroFechaFin' => ['except' => ''],
-        'filtroBodega' => ['except' => ''],
-        'ordenarPor' => ['except' => 'created_at'],
-        'direccionOrden' => ['except' => 'desc'],
-    ];
+    protected $paginationTheme = 'bootstrap';
 
     public function mount()
     {
