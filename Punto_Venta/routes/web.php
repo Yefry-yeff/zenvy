@@ -91,6 +91,7 @@ Route::middleware('auth')->group(function () {
     // Rutas para cierre de caja PDF
     Route::get('cierre-caja/{id}/pdf', [App\Http\Controllers\CierreCajaPDFController::class, 'generarPDF'])->name('cierre-caja.pdf');
     Route::get('cierre-caja/{id}/pdf/preview', [App\Http\Controllers\CierreCajaPDFController::class, 'previsualizarPDF'])->name('cierre-caja.pdf.preview');
+    Route::get('cierre-caja/{id}/reporte-transacciones', [App\Http\Controllers\CierreCajaPDFController::class, 'reporteTransacciones'])->name('cierre-caja.reporte-transacciones');
 
     // Ruta para descargar archivos generados por Livewire
     Route::get('/download', [App\Http\Controllers\DownloadController::class, 'downloadFile'])->name('download.file');
