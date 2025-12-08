@@ -6,91 +6,40 @@
         <div class="px-6 py-4">
             <div class="flex items-center justify-between">
                 <div class="flex-1">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <h1 class="text-2xl font-bold text-gray-900">
-                                👋 ¡Bienvenido, {{ $datosUsuario['nombre'] }}!
-                            </h1>
-                            <p class="mt-1 text-sm text-gray-600">
-                                Rol: <span class="font-medium text-indigo-600">{{ $datosUsuario['rol'] }}</span> |
-                                Tienda: <span class="font-medium">{{ $datosUsuario['tienda'] }}</span> |
-                                Último acceso: {{ $datosUsuario['ultimo_acceso'] }}
-                            </p>
-                        </div>
-
-                        <!-- Botón de actualización -->
-                        <button
-                            wire:click="actualizarDatos"
-                            x-bind:disabled="refreshing"
-                            x-bind:class="{ 'opacity-50 cursor-not-allowed': refreshing }"
-                            class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white transition-all duration-200 bg-indigo-600 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
-                            <svg x-show="!refreshing" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-                            </svg>
-                            <svg x-show="refreshing" class="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                            <span x-text="refreshing ? 'Actualizando...' : 'Actualizar'"></span>
-                        </button>
+                    <div>
+                        <h1 class="text-2xl font-bold text-gray-900">
+                            👋 ¡Bienvenido, {{ $datosUsuario['nombre'] }}!
+                        </h1>
+                        <p class="mt-1 text-sm text-gray-600">
+                            Rol: <span class="font-medium text-indigo-600">{{ $datosUsuario['rol'] }}</span> |
+                            Tienda: <span class="font-medium">{{ $datosUsuario['tienda'] }}</span> |
+                            Último acceso: {{ $datosUsuario['ultimo_acceso'] }}
+                        </p>
                     </div>
 
                     <!-- Estado de la Caja -->
-                    @if($estadoCaja && is_array($estadoCaja))
+                    @if($estadoCaja && is_array($estadoCaja) && isset($estadoCaja['estado']) && $estadoCaja['estado'] == 1)
                     <div class="flex items-center mt-2 space-x-4">
                         <div class="flex items-center space-x-2">
                             <i class="text-blue-500 fas fa-cash-register"></i>
                             <span class="text-sm text-gray-600">Estado de Caja:</span>
-                            @if(isset($estadoCaja['estado']) && $estadoCaja['estado'] == 1)
-                                <span class="px-2 py-1 text-xs font-medium text-green-800 bg-green-100 rounded-full">
-                                    ✅ {{ $estadoCaja['estado_texto'] ?? 'Abierta' }}
-                                </span>
-                            @elseif(isset($estadoCaja['estado']) && $estadoCaja['estado'] == 2)
-                                <span class="px-2 py-1 text-xs font-medium text-red-800 bg-red-100 rounded-full">
-                                    🔒 {{ $estadoCaja['estado_texto'] ?? 'Cerrada' }}
-                                </span>
-                            @else
-                                <span class="px-2 py-1 text-xs font-medium text-yellow-800 bg-yellow-100 rounded-full">
-                                    ⚠️ {{ $estadoCaja['estado_texto'] ?? 'Sin usar' }}
-                                </span>
-                            @endif
-
-                            <!-- Fecha de apertura de la caja -->
-                            @if(isset($estadoCaja['fecha_apertura']) && $estadoCaja['fecha_apertura'])
-                                <span class="text-xs text-gray-500">
-                                    ({{ \Carbon\Carbon::parse($estadoCaja['fecha_apertura'])->format('d/m/Y') }})
-                                </span>
-                            @endif
-
-                            <!-- Advertencia si no es caja de hoy -->
-                            @if(isset($estadoCaja['es_caja_hoy']) && !$estadoCaja['es_caja_hoy'])
-                                <span class="px-1 py-0.5 text-xs font-medium text-orange-700 bg-orange-200 rounded">
-                                    ⚠️ Anterior
-                                </span>
-                            @endif
-
-                            <!-- Mensaje si no tiene caja hoy -->
-                            @if(isset($estadoCaja['tiene_caja_hoy']) && !$estadoCaja['tiene_caja_hoy'])
-                                <span class="px-1 py-0.5 text-xs font-medium text-red-700 bg-red-200 rounded">
-                                    ❌ Sin caja hoy
-                                </span>
-                            @endif
+                            <span class="px-2 py-1 text-xs font-medium text-green-800 bg-green-100 rounded-full">
+                                ✅ {{ $estadoCaja['estado_texto'] ?? 'Abierta' }}
+                            </span>
                         </div>
 
                         @if(isset($estadoCaja['balance']))
                         <div x-data="{ mostrarDetalle: false }" class="space-y-2">
-                            <!-- Botón para mostrar/ocultar detalle -->
+                            <!-- Información de Flujo de Caja -->
                             <button @click="mostrarDetalle = !mostrarDetalle"
                                     class="flex items-center justify-between w-full p-2 text-left transition-colors duration-200 rounded-md bg-gray-50 hover:bg-gray-100">
                                 <div class="flex items-center space-x-2">
                                     <i class="text-sm text-blue-500 fas fa-chart-line"></i>
-                                    <span class="text-sm font-medium text-gray-700">Flujo de Caja</span>
-                                </div>
-                                <div class="flex items-center space-x-2">
+                                    <span class="text-sm font-medium text-gray-700">Flujo de Caja:</span>
                                     <span class="text-sm font-bold text-gray-900">L. {{ number_format($estadoCaja['balance_total_calculado'] ?? 0, 2) }}</span>
-                                    <i class="text-xs text-gray-400 transition-transform duration-200 transform fas fa-chevron-down"
-                                       :class="{ 'rotate-180': mostrarDetalle }"></i>
                                 </div>
+                                <i class="text-xs text-gray-400 transition-transform duration-200 transform fas fa-chevron-down"
+                                   :class="{ 'rotate-180': mostrarDetalle }"></i>
                             </button>
 
                             <!-- Contenido colapsable del detalle -->
@@ -151,14 +100,6 @@
                                 </div>
                             </div>
                         </div>
-                        @endif
-
-                        <!-- Información adicional de última actualización -->
-                        @if(isset($estadoCaja['fecha_actualizacion']) && $estadoCaja['fecha_actualizacion'])
-                            <div class="flex items-center space-x-1 text-xs text-gray-500">
-                                <i class="fas fa-clock"></i>
-                                <span>Última actualización: {{ \Carbon\Carbon::parse($estadoCaja['fecha_actualizacion'])->format('d/m/Y H:i') }}</span>
-                            </div>
                         @endif
                     </div>
                     @endif

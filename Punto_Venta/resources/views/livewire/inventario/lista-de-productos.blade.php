@@ -465,6 +465,14 @@
                                                         </svg>
                                                         Cambiar unidad
                                                     </button>
+                                                    <button wire:click="abrirModalAjusteCantidades({{ $item->id }})"
+                                                            @click="menuOpen = false"
+                                                            class="flex items-center w-full px-4 py-2 text-sm text-left text-gray-700 hover:bg-gray-100 hover:text-gray-900">
+                                                        <svg class="w-4 h-4 mr-3 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path>
+                                                        </svg>
+                                                        Ajustar Cantidades
+                                                    </button>
                                                 </div>
                                             </div>
                                         </div>
@@ -706,6 +714,221 @@
                                 wire:target="procesarCambioUnidad"
                                 class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed">
                             Cancelar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    {{-- MODAL DE AJUSTE DE CANTIDADES - VERSIÓN COMPACTA --}}
+    @if($mostrarModalAjusteCantidades)
+        <div class="fixed inset-0 z-50 overflow-y-auto" 
+             x-data="{ mostrar: @entangle('mostrarModalAjusteCantidades') }"
+             x-show="mostrar"
+             x-transition:enter="transition ease-out duration-300"
+             x-transition:enter-start="opacity-0"
+             x-transition:enter-end="opacity-100"
+             x-transition:leave="transition ease-in duration-200"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0"
+             aria-labelledby="modal-title" 
+             role="dialog" 
+             aria-modal="true">
+            <div class="flex items-center justify-center min-h-screen p-4">
+                {{-- Overlay --}}
+                <div class="fixed inset-0 transition-all bg-gray-900 bg-opacity-50 backdrop-blur-sm" 
+                     aria-hidden="true" 
+                     wire:click="cerrarModalAjusteCantidades"></div>
+                
+                {{-- Modal Content - Más compacto --}}
+                <div class="relative w-full max-w-lg overflow-hidden text-left transition-all transform bg-white shadow-2xl rounded-xl"
+                     x-transition:enter="ease-out duration-300"
+                     x-transition:enter-start="opacity-0 scale-95"
+                     x-transition:enter-end="opacity-100 scale-100"
+                     x-transition:leave="ease-in duration-200"
+                     x-transition:leave-start="opacity-100 scale-100"
+                     x-transition:leave-end="opacity-0 scale-95">
+                    
+                    {{-- Header compacto --}}
+                    <div class="px-4 py-3 bg-gradient-to-r from-amber-500 to-orange-500">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-2">
+                                <div class="flex items-center justify-center w-8 h-8 bg-white rounded-lg">
+                                    <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 class="text-base font-bold text-white">Ajuste de Inventario</h3>
+                                </div>
+                            </div>
+                            <button wire:click="cerrarModalAjusteCantidades" 
+                                    class="text-white transition-colors hover:text-amber-100">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    {{-- Body compacto --}}
+                    <div class="px-4 py-3 space-y-3 max-h-[70vh] overflow-y-auto">
+                        {{-- Info del Producto - Compacta --}}
+                        <div class="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                            <div class="flex items-start justify-between mb-2">
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-sm font-bold text-gray-900 truncate">{{ $productoNombreAjuste }}</p>
+                                    <p class="text-xs text-gray-600">{{ $bodegaNombreAjuste }} • {{ $seccionNombreAjuste }}</p>
+                                </div>
+                                <div class="ml-2 text-right">
+                                    <p class="text-xs text-gray-500">Stock</p>
+                                    <p class="text-lg font-bold text-blue-600">{{ number_format($cantidadDisponibleActual, 2) }}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- Tipo de Ajuste - Compacto --}}
+                        <div class="grid grid-cols-2 gap-2">
+                            <button type="button"
+                                    wire:click="$set('tipoAjuste', 'aumentar')"
+                                    class="flex items-center justify-center px-3 py-2 text-sm font-bold transition-all border-2 rounded-lg"
+                                    :class="{
+                                        'border-green-500 bg-green-50 text-green-700 shadow-md': @js($tipoAjuste === 'aumentar'),
+                                        'border-gray-300 bg-white text-gray-600 hover:border-green-400': @js($tipoAjuste !== 'aumentar')
+                                    }">
+                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                                </svg>
+                                Aumentar
+                            </button>
+                            <button type="button"
+                                    wire:click="$set('tipoAjuste', 'disminuir')"
+                                    class="flex items-center justify-center px-3 py-2 text-sm font-bold transition-all border-2 rounded-lg"
+                                    :class="{
+                                        'border-red-500 bg-red-50 text-red-700 shadow-md': @js($tipoAjuste === 'disminuir'),
+                                        'border-gray-300 bg-white text-gray-600 hover:border-red-400': @js($tipoAjuste !== 'disminuir')
+                                    }">
+                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path>
+                                </svg>
+                                Disminuir
+                            </button>
+                        </div>
+
+                        {{-- Cantidad --}}
+                        <div>
+                            <label class="block mb-1 text-xs font-semibold text-gray-700">
+                                Cantidad <span class="text-red-500">*</span>
+                            </label>
+                            <div class="relative">
+                                <input type="number"
+                                       wire:model.live.debounce.150ms="cantidadAjuste"
+                                       step="0.01"
+                                       min="0.01"
+                                       class="w-full px-3 py-2 text-base font-semibold transition-all border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-500"
+                                       placeholder="0.00"
+                                       autofocus>
+                                <span class="absolute inset-y-0 right-0 flex items-center pr-3 text-xs font-medium text-gray-400 pointer-events-none">
+                                    {{ $unidadMedidaAjuste }}
+                                </span>
+                            </div>
+                            @error('cantidadAjuste')
+                                <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                            @enderror
+                            @if($tipoAjuste === 'disminuir' && $cantidadAjuste && floatval($cantidadAjuste) > $cantidadDisponibleActual)
+                                <p class="flex items-center mt-1 text-xs text-red-600">
+                                    <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    Excede el stock disponible
+                                </p>
+                            @endif
+                        </div>
+
+                        {{-- Motivo --}}
+                        <div>
+                            <label class="block mb-1 text-xs font-semibold text-gray-700">
+                                Motivo <span class="text-red-500">*</span>
+                            </label>
+                            <textarea wire:model.live.debounce.300ms="motivoAjuste"
+                                      rows="2"
+                                      class="w-full px-3 py-2 text-sm transition-all border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-500 resize-none"
+                                      placeholder="Describa el motivo..."></textarea>
+                            @error('motivoAjuste')
+                                <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        {{-- Vista Previa Compacta --}}
+                        @if($cantidadAjuste && is_numeric($cantidadAjuste) && $cantidadAjuste > 0)
+                            <div class="overflow-hidden border-2 rounded-lg"
+                                 :class="{
+                                     'border-green-400 bg-green-50': @js($tipoAjuste === 'aumentar'),
+                                     'border-red-400 bg-red-50': @js($tipoAjuste === 'disminuir')
+                                 }">
+                                <div class="px-3 py-2">
+                                    <div class="flex items-center justify-between text-xs">
+                                        <span class="text-gray-600">Actual:</span>
+                                        <span class="font-semibold">{{ number_format($cantidadDisponibleActual, 2) }}</span>
+                                    </div>
+                                    <div class="flex items-center justify-between my-1 text-xs">
+                                        <span class="text-gray-600">{{ $tipoAjuste === 'aumentar' ? 'Aumentar:' : 'Disminuir:' }}</span>
+                                        <span class="font-semibold"
+                                              :class="{
+                                                  'text-green-600': @js($tipoAjuste === 'aumentar'),
+                                                  'text-red-600': @js($tipoAjuste === 'disminuir')
+                                              }">
+                                            {{ $tipoAjuste === 'aumentar' ? '+' : '-' }} {{ number_format(floatval($cantidadAjuste), 2) }}
+                                        </span>
+                                    </div>
+                                    <div class="pt-2 mt-2 border-t-2"
+                                         :class="{
+                                             'border-green-300': @js($tipoAjuste === 'aumentar'),
+                                             'border-red-300': @js($tipoAjuste === 'disminuir')
+                                         }">
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-sm font-bold text-gray-800">Nuevo Stock:</span>
+                                            <span class="text-xl font-black"
+                                                  :class="{
+                                                      'text-green-600': @js($tipoAjuste === 'aumentar'),
+                                                      'text-red-600': @js($tipoAjuste === 'disminuir')
+                                                  }">
+                                                @if($tipoAjuste === 'aumentar')
+                                                    {{ number_format($cantidadDisponibleActual + floatval($cantidadAjuste), 2) }}
+                                                @else
+                                                    {{ number_format(max(0, $cantidadDisponibleActual - floatval($cantidadAjuste)), 2) }}
+                                                @endif
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
+                    </div>
+
+                    {{-- Footer compacto --}}
+                    <div class="flex gap-2 px-4 py-3 bg-gray-50 border-t border-gray-200">
+                        <button type="button"
+                                wire:click="cerrarModalAjusteCantidades"
+                                wire:loading.attr="disabled"
+                                wire:target="procesarAjusteCantidades"
+                                class="flex-1 px-4 py-2 text-sm font-semibold text-gray-700 transition-all bg-white border-2 border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 disabled:opacity-50">
+                            Cancelar
+                        </button>
+                        <button type="button"
+                                wire:click="procesarAjusteCantidades"
+                                wire:loading.attr="disabled"
+                                wire:target="procesarAjusteCantidades"
+                                class="flex items-center justify-center flex-1 px-4 py-2 text-sm font-bold text-white transition-all shadow-lg rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 disabled:opacity-50">
+                            <span wire:loading.remove wire:target="procesarAjusteCantidades">Confirmar</span>
+                            <span wire:loading wire:target="procesarAjusteCantidades" class="flex items-center">
+                                <svg class="w-4 h-4 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                Procesando...
+                            </span>
                         </button>
                     </div>
                 </div>

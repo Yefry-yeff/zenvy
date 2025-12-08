@@ -323,13 +323,11 @@ class DashboardDinamico extends Component
 
     private function obtenerTextoEstadoCaja($estado, $esCajaHoy = true)
     {
-        $suffix = $esCajaHoy ? '' : ' (anterior)';
-
         return match($estado) {
-            1 => 'Abierta' . $suffix,
-            2 => 'Cerrada' . $suffix,
-            0 => 'Sin usar' . $suffix,
-            default => 'Desconocido' . $suffix
+            1 => 'Abierta',
+            2 => 'Cerrada',
+            0 => 'Sin usar',
+            default => 'Desconocido'
         };
     }
 

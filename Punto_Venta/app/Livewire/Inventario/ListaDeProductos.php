@@ -50,6 +50,18 @@ class ListaDeProductos extends Component
     public $cantidadTotalDisponible = 0;
     public $procesandoConversion = false;
 
+    // Modal de ajuste de cantidades
+    public $mostrarModalAjusteCantidades = false;
+    public $stockParaAjuste = null;
+    public $tipoAjuste = 'aumentar'; // 'aumentar' o 'disminuir'
+    public $cantidadAjuste = '';
+    public $motivoAjuste = '';
+    public $cantidadDisponibleActual = 0;
+    public $productoNombreAjuste = '';
+    public $bodegaNombreAjuste = '';
+    public $seccionNombreAjuste = '';
+    public $unidadMedidaAjuste = '';
+
     // Alerta de validación
     public $mostrarAlerta = false;
     public $mensajeAlerta = '';
@@ -878,6 +890,165 @@ class ListaDeProductos extends Component
             ->first();
 
         return $unidadMedida ? $unidadMedida->id : null;
+    }
+
+    // ===== MÉTODOS PARA AJUSTE DE CANTIDADES =====
+    
+    public function abrirModalAjusteCantidades($recibidoBodegaId)
+    {
+        try {
+            $stock = DB::table('recibido_bodega as rb')
+                ->join('producto as p', 'rb.producto_id', '=', 'p.id')
+                ->join('seccion as sec', 'rb.seccion_id', '=', 'sec.id')
+                ->join('segmento as seg', 'sec.segmento_id', '=', 'seg.id')
+                ->join('bodega as b', 'seg.bodega_id', '=', 'b.id')
+                ->join('unidad_medida as um', 'rb.unidad_medida_id', '=', 'um.id')
+                ->select(
+                    'rb.id',
+                    'rb.cantidad_disponible',
+                    'rb.producto_id',
+                    'rb.seccion_id',
+                    'rb.unidad_medida_id',
+                    'p.nombre as producto_nombre',
+                    'b.nombre as bodega_nombre',
+                    'b.id as bodega_id',
+                    'sec.descripcion as seccion_nombre',
+                    'um.nombre as unidad_medida_nombre'
+                )
+                ->where('rb.id', $recibidoBodegaId)
+                ->first();
+
+            if (!$stock) {
+                session()->flash('error', 'No se encontró el registro de stock.');
+                return;
+            }
+
+            $this->stockParaAjuste = $stock;
+            $this->cantidadDisponibleActual = $stock->cantidad_disponible;
+            $this->productoNombreAjuste = $stock->producto_nombre;
+            $this->bodegaNombreAjuste = $stock->bodega_nombre;
+            $this->seccionNombreAjuste = $stock->seccion_nombre;
+            $this->unidadMedidaAjuste = $stock->unidad_medida_nombre;
+            $this->tipoAjuste = 'aumentar';
+            $this->cantidadAjuste = '';
+            $this->motivoAjuste = '';
+            $this->mostrarModalAjusteCantidades = true;
+
+        } catch (\Exception $e) {
+            Log::error('Error al abrir modal de ajuste: ' . $e->getMessage());
+            session()->flash('error', 'Error al cargar los datos del producto.');
+        }
+    }
+
+    public function cerrarModalAjusteCantidades()
+    {
+        $this->mostrarModalAjusteCantidades = false;
+        $this->stockParaAjuste = null;
+        $this->tipoAjuste = 'aumentar';
+        $this->cantidadAjuste = '';
+        $this->motivoAjuste = '';
+        $this->cantidadDisponibleActual = 0;
+        $this->productoNombreAjuste = '';
+        $this->bodegaNombreAjuste = '';
+        $this->seccionNombreAjuste = '';
+        $this->unidadMedidaAjuste = '';
+    }
+
+    public function procesarAjusteCantidades()
+    {
+        // Validar que el stock esté cargado
+        if (!$this->stockParaAjuste) {
+            session()->flash('error', 'No se ha seleccionado ningún producto para ajustar.');
+            $this->cerrarModalAjusteCantidades();
+            return;
+        }
+
+        // Validaciones de campos
+        $this->validate([
+            'cantidadAjuste' => 'required|numeric|min:0.01',
+            'motivoAjuste' => 'required|string|min:5|max:500',
+        ], [
+            'cantidadAjuste.required' => 'Debe ingresar una cantidad.',
+            'cantidadAjuste.numeric' => 'La cantidad debe ser un número.',
+            'cantidadAjuste.min' => 'La cantidad debe ser mayor a 0.',
+            'motivoAjuste.required' => 'Debe ingresar un motivo para el ajuste.',
+            'motivoAjuste.min' => 'El motivo debe tener al menos 5 caracteres.',
+            'motivoAjuste.max' => 'El motivo no puede exceder 500 caracteres.',
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            $cantidadAnterior = floatval($this->stockParaAjuste->cantidad_disponible);
+            $cantidadNueva = 0;
+
+            if ($this->tipoAjuste === 'aumentar') {
+                $cantidadNueva = $cantidadAnterior + floatval($this->cantidadAjuste);
+            } else {
+                // Disminuir
+                if (floatval($this->cantidadAjuste) > $cantidadAnterior) {
+                    $this->cerrarModalAjusteCantidades();
+                    session()->flash('error', 'No puede disminuir más de la cantidad disponible (' . number_format($cantidadAnterior, 2) . ').');
+                    DB::rollBack();
+                    return;
+                }
+                $cantidadNueva = $cantidadAnterior - floatval($this->cantidadAjuste);
+            }
+
+            // Actualizar cantidad en recibido_bodega
+            $actualizados = DB::table('recibido_bodega')
+                ->where('id', $this->stockParaAjuste->id)
+                ->update([
+                    'cantidad_disponible' => $cantidadNueva,
+                    'updated_at' => now()
+                ]);
+
+            if ($actualizados === 0) {
+                throw new \Exception('No se pudo actualizar el registro de stock.');
+            }
+
+            // Registrar en bitácora
+            $this->registrarEnBitacora([
+                'tabla_afectada' => 'recibido_bodega',
+                'operacion' => 'AJUSTE_CANTIDAD_' . strtoupper($this->tipoAjuste),
+                'registro_id' => $this->stockParaAjuste->id,
+                'datos_anteriores' => [
+                    'producto_id' => $this->stockParaAjuste->producto_id,
+                    'producto' => $this->productoNombreAjuste,
+                    'bodega' => $this->bodegaNombreAjuste,
+                    'seccion' => $this->seccionNombreAjuste,
+                    'unidad_medida' => $this->unidadMedidaAjuste,
+                    'cantidad_disponible' => $cantidadAnterior
+                ],
+                'datos_nuevos' => [
+                    'producto_id' => $this->stockParaAjuste->producto_id,
+                    'producto' => $this->productoNombreAjuste,
+                    'bodega' => $this->bodegaNombreAjuste,
+                    'seccion' => $this->seccionNombreAjuste,
+                    'unidad_medida' => $this->unidadMedidaAjuste,
+                    'cantidad_disponible' => $cantidadNueva,
+                    'tipo_ajuste' => $this->tipoAjuste,
+                    'cantidad_ajustada' => floatval($this->cantidadAjuste),
+                    'motivo' => $this->motivoAjuste
+                ]
+            ]);
+
+            DB::commit();
+
+            $mensaje = $this->tipoAjuste === 'aumentar' 
+                ? 'Se aumentaron ' . number_format(floatval($this->cantidadAjuste), 2) . ' unidades.'
+                : 'Se disminuyeron ' . number_format(floatval($this->cantidadAjuste), 2) . ' unidades.';
+            
+            $this->cerrarModalAjusteCantidades();
+            session()->flash('message', $mensaje . ' Nueva cantidad: ' . number_format($cantidadNueva, 2));
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error en ajuste de cantidades: ' . $e->getMessage());
+            Log::error('Stack trace: ' . $e->getTraceAsString());
+            $this->cerrarModalAjusteCantidades();
+            session()->flash('error', 'Error al procesar el ajuste: ' . $e->getMessage());
+        }
     }
 
     public function render()
