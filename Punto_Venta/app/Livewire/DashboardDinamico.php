@@ -78,15 +78,18 @@ class DashboardDinamico extends Component
         $this->estadisticas = [
             'facturas_hoy' => DB::table('factura')
                 ->whereDate('created_at', today())
+                ->where('estado_factura_id', '!=', 2) // Excluir facturas anuladas
                 ->count(),
 
             'ventas_hoy' => DB::table('factura')
                 ->whereDate('created_at', today())
+                ->where('estado_factura_id', '!=', 2) // Excluir facturas anuladas
                 ->sum('total'),
 
             'ventas_mes' => DB::table('factura')
                 ->whereMonth('created_at', now()->month)
                 ->whereYear('created_at', now()->year)
+                ->where('estado_factura_id', '!=', 2) // Excluir facturas anuladas
                 ->sum('total'),
 
             'productos_activos' => DB::table('producto')
@@ -159,6 +162,7 @@ class DashboardDinamico extends Component
                     'u.name as usuario',
                     'f.nombre_cliente'
                 )
+                ->where('f.estado_factura_id', '!=', 2) // Excluir facturas anuladas
                 ->orderBy('f.created_at', 'desc')
                 ->limit(5)
                 ->get();
@@ -421,6 +425,7 @@ class DashboardDinamico extends Component
             $ventasPorDia = DB::table('factura')
                 ->select(DB::raw('DATE(created_at) as fecha'), DB::raw('SUM(total) as total'))
                 ->where('created_at', '>=', Carbon::now()->subDays(6)->startOfDay())
+                ->where('estado_factura_id', '!=', 2) // Excluir facturas anuladas
                 ->groupBy(DB::raw('DATE(created_at)'))
                 ->orderBy('fecha', 'asc')
                 ->get()
@@ -451,6 +456,7 @@ class DashboardDinamico extends Component
                 ->select('p.nombre', DB::raw('SUM(fhp.cantidad) as total_vendido'))
                 ->whereMonth('f.created_at', now()->month)
                 ->whereYear('f.created_at', now()->year)
+                ->where('f.estado_factura_id', '!=', 2) // Excluir facturas anuladas
                 ->groupBy('p.id', 'p.nombre')
                 ->orderByDesc('total_vendido')
                 ->limit(5)
@@ -473,6 +479,7 @@ class DashboardDinamico extends Component
                 ->join('factura as f', 'fhp.factura_id', '=', 'f.id')
                 ->select('tp.nombre', DB::raw('SUM(fhp.pago_recibido) as total'))
                 ->whereDate('f.created_at', today())
+                ->where('f.estado_factura_id', '!=', 2) // Excluir facturas anuladas
                 ->groupBy('tp.id', 'tp.nombre')
                 ->orderByDesc('total')
                 ->limit(4)
@@ -500,6 +507,7 @@ class DashboardDinamico extends Component
                 )
                 ->whereMonth('f.created_at', now()->month)
                 ->whereYear('f.created_at', now()->year)
+                ->where('f.estado_factura_id', '!=', 2) // Excluir facturas anuladas
                 ->whereNotNull('f.nombre_cliente')
                 ->groupBy('cliente_nombre')
                 ->orderByDesc('total_gastado')

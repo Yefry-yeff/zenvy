@@ -187,9 +187,27 @@
             width: 30%;
             text-align: right;
         }
+
+        /* Marca de agua para facturas anuladas */
+        .watermark {
+            position: fixed;
+            top: 30%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-45deg);
+            font-size: 60px;
+            font-weight: bold;
+            color: rgba(255, 0, 0, 0.25);
+            z-index: 9999;
+            pointer-events: none;
+            white-space: nowrap;
+            letter-spacing: 5px;
+        }
     </style>
 </head>
 <body>
+    @if($factura->estado_factura_id == 2)
+        <div class="watermark">ANULADA</div>
+    @endif
     <div class="container">
         <!-- ENCABEZADO - DATOS DE LA EMPRESA -->
         <div class="text-center">

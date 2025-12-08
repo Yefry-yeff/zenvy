@@ -243,22 +243,27 @@
                                     <td class="text-center">
                                         <button type="button" 
                                                 class="btn btn-sm btn-info"
-                                                data-toggle="modal" 
-                                                data-target="#modalDetalle{{ $anulacion->id }}">
+                                                onclick="$('#modalDetalle{{ $anulacion->id }}').modal('show')">
                                             <i class="fas fa-eye"></i>
                                         </button>
                                     </td>
                                 </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
 
-                                <!-- Modal de Detalles -->
-                                <div class="modal fade" id="modalDetalle{{ $anulacion->id }}" tabindex="-1">
-                                    <div class="modal-dialog modal-lg">
-                                        <div class="modal-content">
+                <!-- Modales fuera del loop -->
+                @foreach($facturasAnuladas as $anulacion)
+                    <!-- Modal de Detalles -->
+                    <div class="modal fade" id="modalDetalle{{ $anulacion->id }}" tabindex="-1" wire:ignore.self>
+                        <div class="modal-dialog modal-lg">
+                            <div class="modal-content">
                                             <div class="modal-header bg-danger text-white">
                                                 <h5 class="modal-title">
                                                     <i class="fas fa-info-circle"></i> Detalles de Anulación - Factura {{ $anulacion->numero_factura }}
                                                 </h5>
-                                                <button type="button" class="close text-white" data-dismiss="modal">
+                                                <button type="button" class="close text-white" onclick="event.preventDefault(); event.stopPropagation(); var modal = $('#modalDetalle{{ $anulacion->id }}'); modal.find('*').blur(); modal.modal('hide'); return false;">
                                                     <span>&times;</span>
                                                 </button>
                                             </div>
@@ -315,15 +320,12 @@
                                                 @endif
                                             </div>
                                             <div class="modal-footer">
-                                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
+                                                <button type="button" class="btn btn-secondary" onclick="event.preventDefault(); event.stopPropagation(); var modal = $('#modalDetalle{{ $anulacion->id }}'); modal.find('*').blur(); modal.modal('hide'); return false;">Cerrar</button>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
+                @endforeach
 
                 <!-- Paginación -->
                 <div class="mt-3">
@@ -339,3 +341,42 @@
         </div>
     </div>
 </div>
+
+@push('scripts')
+<script>
+    document.addEventListener('livewire:load', function () {
+        // Reinicializar modales después de actualizaciones de Livewire
+        Livewire.hook('message.processed', (message, component) => {
+            // Asegurar que Bootstrap modal esté disponible
+            if (typeof $ !== 'undefined' && $.fn.modal) {
+                $('.modal').modal('dispose');
+            }
+        });
+
+        // Prevenir el error de aria-hidden
+        $(document).on('show.bs.modal', '.modal', function () {
+            $(this).removeAttr('aria-hidden');
+        });
+
+        $(document).on('shown.bs.modal', '.modal', function () {
+            $(this).removeAttr('aria-hidden');
+            // Asegurar que no haya focus en elementos cuando aria-hidden está presente
+            $(this).find('[aria-hidden="true"]').removeAttr('aria-hidden');
+        });
+
+        $(document).on('hide.bs.modal', '.modal', function () {
+            $(this).removeAttr('aria-hidden');
+            // Remover focus del modal antes de cerrarlo
+            $(this).find('*').blur();
+        });
+
+        $(document).on('hidden.bs.modal', '.modal', function () {
+            $(this).removeAttr('aria-hidden');
+            $(this).removeAttr('style');
+            $('.modal-backdrop').remove();
+            $('body').removeClass('modal-open');
+            $('body').css('padding-right', '');
+        });
+    });
+</script>
+@endpush
