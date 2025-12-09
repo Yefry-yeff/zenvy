@@ -67,8 +67,11 @@ class CierreDeCaja extends Component
 
     public function mount()
     {
-        $this->cargarDatosCaja();
-        $this->calcularResumen();
+        // Solo cargar datos si no estamos mostrando la vista de impresión
+        if (!$this->mostrarVistaImpresion && !$this->cierreProcesado) {
+            $this->cargarDatosCaja();
+            $this->calcularResumen();
+        }
     }
 
     public function cargarDatosCaja()
@@ -418,8 +421,6 @@ class CierreDeCaja extends Component
             $this->mostrarVistaImpresion = true;
             $this->mensajeExito = '✅ Cierre de caja procesado exitosamente. La caja se ha restablecido a L. ' . number_format(self::SALDO_INICIAL, 2);
 
-            Log::info("Cierre de caja procesado - Usuario: {$usuario->id}, Tienda: {$usuario->tienda_id}, Cierre ID: {$cierreId}");
-
         } catch (\Exception $e) {
             DB::rollBack();
             $this->mensajeError = '❌ Error al procesar cierre: ' . $e->getMessage();
@@ -440,6 +441,13 @@ class CierreDeCaja extends Component
 
     public function render()
     {
+        // Si mostrarVistaImpresion es true, mostrar la vista de impresión del PDF
+        if ($this->mostrarVistaImpresion && $this->cierreIdParaImprimir) {
+            return view('livewire.caja.cierre-caja-impresion', [
+                'cierreIdParaImprimir' => $this->cierreIdParaImprimir
+            ]);
+        }
+        
         return view('livewire.caja.cierre-de-caja');
     }
 }

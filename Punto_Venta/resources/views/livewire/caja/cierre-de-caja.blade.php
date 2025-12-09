@@ -317,20 +317,14 @@
 
     {{-- Vista de Impresión del Recibo (Inline) --}}
     @if($mostrarVistaImpresion && $cierreIdParaImprimir)
-        <div class="mt-4 bg-white rounded-lg shadow-lg">
+        <div class="mt-4 bg-white rounded-lg shadow-lg" wire:key="vista-impresion-{{ $cierreIdParaImprimir }}">
             <div class="p-4 text-white rounded-t-lg bg-gradient-to-r from-green-600 to-green-700">
                 <div class="flex items-center justify-between">
                     <h2 class="text-xl font-bold">
-                        <i class="mr-2 fas fa-receipt"></i>
-                        Recibo de Cierre de Caja
+                        <i class="mr-2 fas fa-check-circle"></i>
+                        Cierre de Caja Procesado #{{ $cierreIdParaImprimir }}
                     </h2>
                     <div class="flex gap-2">
-                        <a href="/cierre-caja/{{ $cierreIdParaImprimir }}/pdf" 
-                           target="_blank"
-                           class="inline-flex items-center px-4 py-2 text-white transition-colors bg-blue-600 rounded hover:bg-blue-700">
-                            <i class="mr-2 fas fa-download"></i>
-                            Descargar PDF
-                        </a>
                         <button wire:click="cerrarVistaImpresion" 
                                 class="inline-flex items-center px-4 py-2 text-white transition-colors bg-gray-600 rounded hover:bg-gray-700">
                             <i class="mr-2 fas fa-arrow-left"></i>
@@ -340,20 +334,55 @@
                 </div>
             </div>
 
-            <div class="p-0">
-                <iframe src="/cierre-caja/{{ $cierreIdParaImprimir }}/pdf/preview" 
-                        class="w-full border-none"
-                        style="min-height: 85vh; height: 700px;"
-                        id="pdfViewerCierre">
-                </iframe>
+            <div class="p-8">
+                <div class="max-w-2xl mx-auto text-center">
+                    <div class="mb-6">
+                        <i class="mb-4 text-6xl text-green-500 fas fa-check-circle"></i>
+                        <h3 class="mb-2 text-2xl font-bold text-gray-800">¡Cierre de Caja Completado!</h3>
+                        <p class="text-gray-600">El cierre de caja se ha procesado correctamente</p>
+                    </div>
+
+                    <div class="p-6 mb-6 bg-gray-50 rounded-lg">
+                        <p class="mb-4 text-lg text-gray-700">
+                            <strong>ID de Cierre:</strong> #{{ $cierreIdParaImprimir }}
+                        </p>
+                        <p class="text-gray-600">
+                            La caja se ha restablecido al saldo inicial de <strong class="text-green-600">L. 2,000.00</strong>
+                        </p>
+                    </div>
+
+                    <div class="grid gap-4 md:grid-cols-2">
+                        <a href="{{ route('cierre-caja.pdf', $cierreIdParaImprimir) }}" 
+                           target="_blank"
+                           class="inline-flex items-center justify-center px-6 py-3 text-white transition-colors bg-blue-600 rounded-lg hover:bg-blue-700">
+                            <i class="mr-2 fas fa-download"></i>
+                            Descargar PDF
+                        </a>
+                        <a href="{{ route('cierre-caja.pdf.preview', $cierreIdParaImprimir) }}" 
+                           target="_blank"
+                           class="inline-flex items-center justify-center px-6 py-3 text-white transition-colors bg-purple-600 rounded-lg hover:bg-purple-700">
+                            <i class="mr-2 fas fa-eye"></i>
+                            Ver en Nueva Pestaña
+                        </a>
+                    </div>
+
+                    <div class="mt-6">
+                        <button wire:click="cerrarVistaImpresion"
+                                class="inline-flex items-center px-6 py-3 text-white transition-colors bg-green-600 rounded-lg hover:bg-green-700">
+                            <i class="mr-2 fas fa-play"></i>
+                            Iniciar Nueva Jornada
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
-
-        <style>
-            #pdfViewerCierre {
-                background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="20" fill="none" stroke="%23dc2626" stroke-width="4" stroke-dasharray="31.416" stroke-dashoffset="31.416"><animate attributeName="stroke-dasharray" dur="2s" values="0 31.416;15.708 15.708;0 31.416" repeatCount="indefinite"/><animate attributeName="stroke-dashoffset" dur="2s" values="0;-15.708;-31.416" repeatCount="indefinite"/></circle></svg>') center center no-repeat;
-                background-size: 50px 50px;
-            }
-        </style>
+    @else
+        {{-- Debug: Mostrar estado de las variables --}}
+        <div class="p-4 mt-4 bg-yellow-100 border border-yellow-400 rounded">
+            <p><strong>Debug Info (Vista NO se muestra):</strong></p>
+            <p>mostrarVistaImpresion: <strong>{{ $mostrarVistaImpresion ? 'TRUE' : 'FALSE' }}</strong></p>
+            <p>cierreIdParaImprimir: <strong>{{ $cierreIdParaImprimir ?? 'NULL' }}</strong></p>
+            <p>cierreProcesado: <strong>{{ $cierreProcesado ? 'TRUE' : 'FALSE' }}</strong></p>
+        </div>
     @endif
 </div>
