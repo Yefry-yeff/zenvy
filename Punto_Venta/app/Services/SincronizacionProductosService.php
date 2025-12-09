@@ -235,18 +235,29 @@ class SincronizacionProductosService
                         $codigoBarraValencia
                     );
 
-                    // Actualizar codigo_barra en precio_has_venta para la unidad de medida correspondiente
-                    if ($codigoBarraValencia && $unidadIdZenvy) {
-                        $this->conexionZenvy
+                    // Crear registro en precio_has_venta solo si no existe
+                    if ($unidadIdZenvy) {
+                        $registroExistente = $this->conexionZenvy
                             ->table('precio_has_venta')
                             ->where('producto_id', $idProductoZenvy)
                             ->where('unidad_medida_id', $unidadIdZenvy)
                             ->where('estado_id', 1)
-                            ->update([
-                                'codigo_barra' => $codigoBarraValencia,
-                                'updated_at' => now()
-                            ]);
-                        Log::info("Código de barras actualizado en precio_has_venta para producto Zenvy ID: $idProductoZenvy, Unidad: $unidadIdZenvy");
+                            ->exists();
+
+                        if (!$registroExistente) {
+                            $this->conexionZenvy
+                                ->table('precio_has_venta')
+                                ->insert([
+                                    'producto_id' => $idProductoZenvy,
+                                    'unidad_medida_id' => $unidadIdZenvy,
+                                    'codigo_barra' => $codigoBarraValencia,
+                                    'precio' => $productoValencia->precio_base ?? 0,
+                                    'estado_id' => 1,
+                                    'created_at' => now(),
+                                    'updated_at' => now()
+                                ]);
+                            Log::info("Registro creado en precio_has_venta para producto Zenvy ID: $idProductoZenvy");
+                        }
                     }
                 } else {
                     // Si no existe el producto en Zenvy (caso raro), usar datos completos
@@ -263,18 +274,29 @@ class SincronizacionProductosService
                         $codigoBarraValencia
                     );
 
-                    // Actualizar codigo_barra en precio_has_venta para la unidad de medida correspondiente
-                    if ($codigoBarraValencia && $unidadIdZenvy) {
-                        $this->conexionZenvy
+                    // Crear registro en precio_has_venta solo si no existe
+                    if ($unidadIdZenvy) {
+                        $registroExistente = $this->conexionZenvy
                             ->table('precio_has_venta')
                             ->where('producto_id', $idProductoZenvy)
                             ->where('unidad_medida_id', $unidadIdZenvy)
                             ->where('estado_id', 1)
-                            ->update([
-                                'codigo_barra' => $codigoBarraValencia,
-                                'updated_at' => now()
-                            ]);
-                        Log::info("Código de barras actualizado en precio_has_venta para producto Zenvy ID: $idProductoZenvy, Unidad: $unidadIdZenvy");
+                            ->exists();
+
+                        if (!$registroExistente) {
+                            $this->conexionZenvy
+                                ->table('precio_has_venta')
+                                ->insert([
+                                    'producto_id' => $idProductoZenvy,
+                                    'unidad_medida_id' => $unidadIdZenvy,
+                                    'codigo_barra' => $codigoBarraValencia,
+                                    'precio' => $productoValencia->precio_base ?? 0,
+                                    'estado_id' => 1,
+                                    'created_at' => now(),
+                                    'updated_at' => now()
+                                ]);
+                            Log::info("Registro creado en precio_has_venta para producto Zenvy ID: $idProductoZenvy");
+                        }
                     }
                 }
 
@@ -305,18 +327,29 @@ class SincronizacionProductosService
                     $codigoBarraValencia
                 );
 
-                // Actualizar codigo_barra en precio_has_venta para la unidad de medida correspondiente
-                if ($codigoBarraValencia && $unidadIdZenvy) {
-                    $this->conexionZenvy
+                // Crear registro en precio_has_venta solo si no existe
+                if ($unidadIdZenvy) {
+                    $registroExistente = $this->conexionZenvy
                         ->table('precio_has_venta')
                         ->where('producto_id', $idProductoZenvy)
                         ->where('unidad_medida_id', $unidadIdZenvy)
                         ->where('estado_id', 1)
-                        ->update([
-                            'codigo_barra' => $codigoBarraValencia,
-                            'updated_at' => now()
-                        ]);
-                    Log::info("Código de barras establecido en precio_has_venta para nuevo producto Zenvy ID: $idProductoZenvy, Unidad: $unidadIdZenvy");
+                        ->exists();
+
+                    if (!$registroExistente) {
+                        $this->conexionZenvy
+                            ->table('precio_has_venta')
+                            ->insert([
+                                'producto_id' => $idProductoZenvy,
+                                'unidad_medida_id' => $unidadIdZenvy,
+                                'codigo_barra' => $codigoBarraValencia,
+                                'precio' => $productoValencia->precio_base ?? 0,
+                                'estado_id' => 1,
+                                'created_at' => now(),
+                                'updated_at' => now()
+                            ]);
+                        Log::info("Registro creado en precio_has_venta para nuevo producto Zenvy ID: $idProductoZenvy");
+                    }
                 }
 
                 $accion = 'creado';
@@ -527,18 +560,29 @@ class SincronizacionProductosService
                 ->where('id', $mapeo->id_valencia)
                 ->value('codigo_barra');
 
-            // Actualizar codigo_barra en precio_has_venta para la unidad de medida correspondiente
-            if ($codigoBarraValencia && $unidadIdZenvy) {
-                $this->conexionZenvy
+            // Crear registro en precio_has_venta solo si no existe
+            if ($unidadIdZenvy) {
+                $registroExistente = $this->conexionZenvy
                     ->table('precio_has_venta')
                     ->where('producto_id', $idProductoZenvy)
                     ->where('unidad_medida_id', $unidadIdZenvy)
                     ->where('estado_id', 1)
-                    ->update([
-                        'codigo_barra' => $codigoBarraValencia,
-                        'updated_at' => now()
-                    ]);
-                Log::info("Código de barras actualizado en precio_has_venta para producto Zenvy ID: $idProductoZenvy, Unidad: $unidadIdZenvy");
+                    ->exists();
+
+                if (!$registroExistente) {
+                    $this->conexionZenvy
+                        ->table('precio_has_venta')
+                        ->insert([
+                            'producto_id' => $idProductoZenvy,
+                            'unidad_medida_id' => $unidadIdZenvy,
+                            'codigo_barra' => $codigoBarraValencia,
+                            'precio' => $productoValencia->precio_base ?? 0,
+                            'estado_id' => 1,
+                            'created_at' => now(),
+                            'updated_at' => now()
+                        ]);
+                    Log::info("Registro creado en precio_has_venta para producto Zenvy ID: $idProductoZenvy");
+                }
             }
 
             Log::info("Producto de Valencia actualizado exitosamente. Zenvy ID: $idProductoZenvy");

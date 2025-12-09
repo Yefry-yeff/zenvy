@@ -116,6 +116,41 @@ class Producto extends Component
         $this->resetPage();
     }
 
+    public function updatingFiltroId()
+    {
+        $this->resetPage();
+    }
+
+    public function updatingFiltroNombre()
+    {
+        $this->resetPage();
+    }
+
+    public function updatingFiltroCodigoBarras()
+    {
+        $this->resetPage();
+    }
+
+    public function updatingFiltroCodigo()
+    {
+        $this->resetPage();
+    }
+
+    public function updatingFiltroCategoria()
+    {
+        $this->resetPage();
+    }
+
+    public function updatingFiltroMarca()
+    {
+        $this->resetPage();
+    }
+
+    public function updatingFiltroOrigen()
+    {
+        $this->resetPage();
+    }
+
 
     private function getSincronizacionService()
     {
@@ -226,7 +261,12 @@ class Producto extends Component
 
         // Aplicar filtros individuales
         if (!empty($this->filtroId)) {
-            $query->where('producto.id', '=', $this->filtroId);
+            $query->where(function($q) {
+                $q->where('producto.id', '=', $this->filtroId)
+                  ->orWhereHas('mapeoValencia', function($sq) {
+                      $sq->where('producto_id_valencia', '=', $this->filtroId);
+                  });
+            });
         }
 
         if (!empty($this->filtroNombre)) {

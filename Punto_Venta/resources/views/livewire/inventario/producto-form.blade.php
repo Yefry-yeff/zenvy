@@ -140,18 +140,9 @@
                                 <label for="id_producto" class="form-label">ID del Producto</label>
                                 <div class="p-3 rounded bg-gray-50">
                                     @if($isEditing && $id_mostrar)
-                                        @if($es_id_valencia)
-                                            <div class="inline-flex items-center gap-2 px-3 py-2 text-sm font-mono text-orange-800 bg-orange-50 border border-orange-200 rounded" title="ID Valencia">
-                                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                                    <path d="M10 2a8 8 0 100 16 8 8 0 000-16zM9 9a1 1 0 112 0v4a1 1 0 11-2 0V9zm1-4a1 1 0 100 2 1 1 0 000-2z"/>
-                                                </svg>
-                                                <span>{{ $id_mostrar }}</span>
-                                            </div>
-                                        @else
-                                            <span class="text-sm font-mono text-gray-700" title="ID Zenvy">
-                                                {{ $id_mostrar }}
-                                            </span>
-                                        @endif
+                                        <span class="text-sm font-mono text-gray-700">
+                                            {{ $id_mostrar }}
+                                        </span>
                                     @else
                                         <span class="text-sm text-gray-400">{{ $isEditing ? 'Sin ID' : 'Se asignará al guardar' }}</span>
                                     @endif

@@ -364,7 +364,10 @@ class ListaDeProductos extends Component
             }
 
             if (!empty($this->filtroCodigoProducto)) {
-                $query->where('p.id', 'like', '%' . $this->filtroCodigoProducto . '%');
+                $query->where(function($q) {
+                    $q->where('p.id', '=', $this->filtroCodigoProducto)
+                      ->orWhere('pvz.producto_id_valencia', '=', $this->filtroCodigoProducto);
+                });
             }
 
             if (!empty($this->filtroCodigoBarra)) {

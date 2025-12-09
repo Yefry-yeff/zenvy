@@ -324,16 +324,7 @@
                                         <!-- ID de Producto (Valencia o Zenvy) -->
                                         <td class="px-2 py-1 text-xs border-b">
                                             @if($item->id_mostrar)
-                                                @if($item->es_id_valencia)
-                                                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 text-xs font-mono text-orange-800 bg-orange-50 border border-orange-200 rounded" title="ID Valencia">
-                                                        <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                                                            <path d="M10 2a8 8 0 100 16 8 8 0 000-16zM9 9a1 1 0 112 0v4a1 1 0 11-2 0V9zm1-4a1 1 0 100 2 1 1 0 000-2z"/>
-                                                        </svg>
-                                                        {{ $item->id_mostrar }}
-                                                    </span>
-                                                @else
-                                                    <span class="font-semibold text-gray-700">{{ $item->id_mostrar }}</span>
-                                                @endif
+                                                <span class="font-semibold text-gray-700">{{ $item->id_mostrar }}</span>
                                             @else
                                                 <span class="text-gray-400">N/A</span>
                                             @endif
