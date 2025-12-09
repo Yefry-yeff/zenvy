@@ -800,6 +800,11 @@ class ProductoForm extends Component
 
     public function guardar()
     {
+        // Establecer valor por defecto para descuento_unitario si está vacío
+        if (empty($this->form['descuento_unitario']) || $this->form['descuento_unitario'] === '' || $this->form['descuento_unitario'] === null) {
+            $this->form['descuento_unitario'] = 0.00;
+        }
+
         // Verificar campos críticos antes de la validación completa
         $camposVacios = $this->verificarCamposCriticos();
 

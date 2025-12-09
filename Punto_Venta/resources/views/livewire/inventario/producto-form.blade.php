@@ -413,7 +413,9 @@
                                                wire:model="nuevoPrecioVenta.descripcion"
                                                placeholder="Descripción opcional">
                                     </div>
-                                    <div class="mb-3 col-md-2">
+                                </div>
+                                <div class="row">
+                                    <div class="col-12">
                                         <button type="button"
                                                 wire:click="agregarPrecioVenta"
                                                 class="w-100 btn"

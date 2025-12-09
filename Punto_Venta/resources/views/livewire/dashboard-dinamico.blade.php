@@ -145,7 +145,8 @@
                 </div>
             </div>
 
-            <!-- Ventas del Mes -->
+            <!-- Ventas del Mes (Solo Admin y Administrador) -->
+            @if($esAdmin)
             <div class="p-6 transition-all duration-300 bg-white border border-gray-100 shadow-lg rounded-xl hover:shadow-xl">
                 <div class="flex items-center justify-between">
                     <div>
@@ -158,6 +159,7 @@
                     </div>
                 </div>
             </div>
+            @endif
 
             <!-- Productos Activos -->
             <div class="p-6 transition-all duration-300 bg-white border border-gray-100 shadow-lg rounded-xl hover:shadow-xl">

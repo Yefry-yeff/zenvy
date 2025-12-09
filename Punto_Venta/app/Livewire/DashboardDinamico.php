@@ -16,6 +16,7 @@ class DashboardDinamico extends Component
     public $productosStockBajo = [];
     public $actividad = [];
     public $estadoCaja = null;
+    public $esAdmin = false;
 
     // Datos para gráficos
     public $ventasSemana = [];
@@ -68,6 +69,14 @@ class DashboardDinamico extends Component
             'tienda' => $usuario->tienda->denominacion_social ?? 'Sin tienda',
             'ultimo_acceso' => $usuario->updated_at->format('d/m/Y H:i')
         ];
+        
+        // Verificar si el usuario es Admin o Administrador
+        if ($usuario && $usuario->roles_id) {
+            $this->esAdmin = DB::table('roles')
+                ->where('id', $usuario->roles_id)
+                ->whereIn('txt_nombre', ['Admin', 'Administrador', 'admin', 'administrador'])
+                ->exists();
+        }
     }
 
     public function cargarEstadisticas()
