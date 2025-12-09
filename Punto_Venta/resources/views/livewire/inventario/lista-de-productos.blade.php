@@ -444,14 +444,15 @@
                                                         </svg>
                                                         Traslados o regalías
                                                     </button>
-                                                    <button wire:click="abrirModalCambiarUnidad({{ $item->id }})"
+                                                    {{-- Conversión de unidad de medida --}}
+                                                    {{-- <button wire:click="abrirModalCambiarUnidad({{ $item->id }})"
                                                             @click="menuOpen = false"
                                                             class="flex items-center w-full px-4 py-2 text-sm text-left text-gray-700 hover:bg-gray-100 hover:text-gray-900">
                                                         <svg class="w-4 h-4 mr-3 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
                                                         </svg>
                                                         Cambiar unidad
-                                                    </button>
+                                                    </button> --}}
                                                     <button wire:click="abrirModalAjusteCantidades({{ $item->id }})"
                                                             @click="menuOpen = false"
                                                             class="flex items-center w-full px-4 py-2 text-sm text-left text-gray-700 hover:bg-gray-100 hover:text-gray-900">

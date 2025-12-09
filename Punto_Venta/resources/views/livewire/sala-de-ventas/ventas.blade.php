@@ -586,8 +586,16 @@
                                     <tbody style="font-size: 0.65rem;" class="text-center">
                                         @forelse($productosFactura as $item)
                                         @php
-                                            // Cálculo base: cantidad × precio unitario
-                                            $subtotalOriginal = round($item['precio'] * $item['cantidad'], 2);
+                                            // Calcular precio unitario sin ISV (precio incluye ISV)
+                                            $tasaIsv = $item['isv'] ?? 0;
+                                            if ($tasaIsv > 0) {
+                                                $precioUnitarioSinIsv = round($item['precio'] / (1 + ($tasaIsv / 100)), 2);
+                                            } else {
+                                                $precioUnitarioSinIsv = $item['precio'];
+                                            }
+
+                                            // Subtotal inicial: precio unitario sin ISV × cantidad
+                                            $subtotalOriginal = round($precioUnitarioSinIsv * $item['cantidad'], 2);
 
                                             // Descuentos aplicados
                                             $descuentoAplicado = round($item['descuento_aplicado'] ?? 0, 2); // Descuento por edad (total)
@@ -597,14 +605,12 @@
                                             // El descuento unitario se aplica POR CADA CANTIDAD
                                             $descuentoUnitarioTotal = round($descuentoUnitarioBase * $item['cantidad'], 2);
 
-                                            // Subtotal después de todos los descuentos
-                                            $subtotalConDescuento = round($subtotalOriginal - $descuentoUnitarioTotal - $descuentoIndividual - $descuentoAplicado, 2);
+                                            // ISV y Subtotal YA CALCULADOS en el backend (precio incluye ISV)
+                                            $isv = round($item['isv_calculado'] ?? 0, 2);
+                                            $subtotalConDescuento = round($item['subtotal_con_descuento'] ?? 0, 2);
 
-                                            // ISV se calcula sobre el subtotal neto (después de descuentos)
-                                            $isv = round($subtotalConDescuento * ($item['isv']/100), 2);
-
-                                            // Total final: subtotal neto + ISV
-                                            $total = round($subtotalConDescuento + $isv, 2);
+                                            // Total final del producto
+                                            $total = round($item['total'] ?? 0, 2);
 
                                             // Determinar si es producto o servicio
                                             $esServicio = isset($item['servicio_id']) && $item['servicio_id'] !== null;
@@ -701,10 +707,19 @@
                                                 @endif
                                             </td>
                                             <td>
+                                                @php
+                                                    // Calcular precio unitario sin ISV (precio incluye ISV)
+                                                    $tasaIsv = $item['isv'] ?? 0;
+                                                    if ($tasaIsv > 0) {
+                                                        $precioUnitarioSinIsv = round($item['precio'] / (1 + ($tasaIsv / 100)), 2);
+                                                    } else {
+                                                        $precioUnitarioSinIsv = $item['precio'];
+                                                    }
+                                                @endphp
                                                 @if($esServicio)
-                                                    L. {{ number_format($item['precio'], 2) }}
+                                                    L. {{ number_format($precioUnitarioSinIsv, 2) }}
                                                 @elseif(isset($item['precios_disponibles']) && !empty($item['precios_disponibles']))
-                                                    L. {{ number_format($item['precio'], 2) }}
+                                                    L. {{ number_format($precioUnitarioSinIsv, 2) }}
                                                 @else
                                                     <!-- Sistema anterior: Dropdown para seleccionar precio (Valencia) -->
                                                     <select class="form-select form-select-sm"
@@ -732,6 +747,14 @@
                                                         @endphp
 
                                                         @foreach($precios as $tipo => $precio)
+                                                            @php
+                                                                // Calcular precio sin ISV para mostrar
+                                                                if ($tasaIsv > 0) {
+                                                                    $precioSinIsv = round($precio / (1 + ($tasaIsv / 100)), 2);
+                                                                } else {
+                                                                    $precioSinIsv = $precio;
+                                                                }
+                                                            @endphp
                                                             <option value="{{ $tipo }}"
                                                                     {{ $tipoPrecioActual == $tipo ? 'selected' : '' }}>
                                                                 @php
@@ -754,7 +777,7 @@
                                                                             break;
                                                                     }
                                                                 @endphp
-                                                                {{ $nombrePrecio }}: L. {{ number_format($precio, 2) }}
+                                                                {{ $nombrePrecio }}: L. {{ number_format($precioSinIsv, 2) }}
                                                             </option>
                                                         @endforeach
                                                     </select>
@@ -960,9 +983,9 @@
                                     <hr class="mt-2">
                                 </div>
 
-                                <!-- Subtotal bruto -->
+                                <!-- Subtotal (sin ISV, sin descuentos) -->
                                 <div class="flex justify-between mb-2">
-                                    <span class="font-medium text-gray-700">Subtotal bruto:</span>
+                                    <span class="font-medium text-gray-700">Subtotal:</span>
                                     <span class="font-medium" x-text="'L. ' + parseFloat(subtotalBruto).toFixed(2)">L. {{ number_format($subtotalBruto, 2) }}</span>
                                 </div>
 
