@@ -64,6 +64,53 @@
                     </div>
                 </div>
 
+                {{-- Facturas Anuladas por Método de Pago --}}
+                @if($facturasAnuladasEfectivo > 0 || $facturasAnuladasTarjeta > 0 || $facturasAnuladasTransferencia > 0 || $facturasAnuladasCheque > 0)
+                    <div class="mb-6">
+                        <h3 class="mb-4 text-lg font-semibold text-red-700">Facturas Anuladas (Se restan del total del sistema)</h3>
+                        <div class="overflow-hidden border border-red-200 rounded-lg bg-red-50">
+                            <table class="min-w-full divide-y divide-red-200">
+                                <thead class="bg-red-100">
+                                    <tr>
+                                        <th class="px-6 py-3 text-xs font-medium tracking-wider text-left text-red-700 uppercase">Método de Pago</th>
+                                        <th class="px-6 py-3 text-xs font-medium tracking-wider text-right text-red-700 uppercase">Total Anulado</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-red-200">
+                                    @if($facturasAnuladasEfectivo > 0)
+                                        <tr>
+                                            <td class="px-6 py-4 text-sm font-medium text-gray-900 whitespace-nowrap">Efectivo</td>
+                                            <td class="px-6 py-4 text-sm font-semibold text-right text-red-600 whitespace-nowrap">- L. {{ number_format($facturasAnuladasEfectivo, 2) }}</td>
+                                        </tr>
+                                    @endif
+                                    @if($facturasAnuladasTarjeta > 0)
+                                        <tr>
+                                            <td class="px-6 py-4 text-sm font-medium text-gray-900 whitespace-nowrap">Tarjeta</td>
+                                            <td class="px-6 py-4 text-sm font-semibold text-right text-red-600 whitespace-nowrap">- L. {{ number_format($facturasAnuladasTarjeta, 2) }}</td>
+                                        </tr>
+                                    @endif
+                                    @if($facturasAnuladasTransferencia > 0)
+                                        <tr>
+                                            <td class="px-6 py-4 text-sm font-medium text-gray-900 whitespace-nowrap">Transferencia</td>
+                                            <td class="px-6 py-4 text-sm font-semibold text-right text-red-600 whitespace-nowrap">- L. {{ number_format($facturasAnuladasTransferencia, 2) }}</td>
+                                        </tr>
+                                    @endif
+                                    @if($facturasAnuladasCheque > 0)
+                                        <tr>
+                                            <td class="px-6 py-4 text-sm font-medium text-gray-900 whitespace-nowrap">Cheque</td>
+                                            <td class="px-6 py-4 text-sm font-semibold text-right text-red-600 whitespace-nowrap">- L. {{ number_format($facturasAnuladasCheque, 2) }}</td>
+                                        </tr>
+                                    @endif
+                                    <tr class="bg-red-100">
+                                        <td class="px-6 py-4 text-sm font-bold text-red-900">TOTAL ANULADO</td>
+                                        <td class="px-6 py-4 text-sm font-bold text-right text-red-900">- L. {{ number_format($facturasAnuladasEfectivo + $facturasAnuladasTarjeta + $facturasAnuladasTransferencia + $facturasAnuladasCheque, 2) }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                @endif
+
                 {{-- Desglose de Efectivo --}}
                 <div class="mb-6">
                     <h3 class="mb-4 text-lg font-semibold">Conteo de Efectivo</h3>
@@ -139,7 +186,7 @@
                                 <div class="p-4 rounded-lg bg-gray-50">
                                     <div class="text-sm text-gray-700">Efectivo Sistema</div>
                                     <div class="text-2xl font-bold text-gray-900">
-                                        L. {{ number_format($resumenTransacciones->filter(fn($item) => stripos($item->forma_pago, 'Efectivo') !== false)->sum('total') + 2000.00, 2) }}
+                                        L. {{ number_format($resumenTransacciones->filter(fn($item) => stripos($item->forma_pago, 'Efectivo') !== false)->sum('total') - $facturasAnuladasEfectivo + 2000.00, 2) }}
                                     </div>
                                     <div class="text-xs text-gray-500 mt-1">Incluye saldo inicial L. 2,000.00</div>
                                 </div>
@@ -168,7 +215,7 @@
                             <div class="grid grid-cols-3 gap-2 mb-4 text-sm">
                                 <div class="p-3 rounded-lg bg-gray-50">
                                     <div class="text-xs text-gray-600">Sistema</div>
-                                    <div class="font-bold text-gray-900">L. {{ number_format($resumenTransacciones->filter(fn($item) => stripos($item->forma_pago, 'Tarjeta') !== false)->sum('total'), 2) }}</div>
+                                    <div class="font-bold text-gray-900">L. {{ number_format($resumenTransacciones->filter(fn($item) => stripos($item->forma_pago, 'Tarjeta') !== false)->sum('total') - $facturasAnuladasTarjeta, 2) }}</div>
                                 </div>
                                 <div class="p-3 rounded-lg bg-blue-50">
                                     <div class="text-xs text-blue-600">Contado</div>
@@ -191,7 +238,7 @@
                             <div class="grid grid-cols-3 gap-2 mb-4 text-sm">
                                 <div class="p-3 rounded-lg bg-gray-50">
                                     <div class="text-xs text-gray-600">Sistema</div>
-                                    <div class="font-bold text-gray-900">L. {{ number_format($resumenTransacciones->filter(fn($item) => stripos($item->forma_pago, 'Transferencia') !== false)->sum('total'), 2) }}</div>
+                                    <div class="font-bold text-gray-900">L. {{ number_format($resumenTransacciones->filter(fn($item) => stripos($item->forma_pago, 'Transferencia') !== false)->sum('total') - $facturasAnuladasTransferencia, 2) }}</div>
                                 </div>
                                 <div class="p-3 rounded-lg bg-blue-50">
                                     <div class="text-xs text-blue-600">Contado</div>
@@ -214,7 +261,7 @@
                             <div class="grid grid-cols-3 gap-2 mb-4 text-sm">
                                 <div class="p-3 rounded-lg bg-gray-50">
                                     <div class="text-xs text-gray-600">Sistema</div>
-                                    <div class="font-bold text-gray-900">L. {{ number_format($resumenTransacciones->filter(fn($item) => stripos($item->forma_pago, 'Cheque') !== false)->sum('total'), 2) }}</div>
+                                    <div class="font-bold text-gray-900">L. {{ number_format($resumenTransacciones->filter(fn($item) => stripos($item->forma_pago, 'Cheque') !== false)->sum('total') - $facturasAnuladasCheque, 2) }}</div>
                                 </div>
                                 <div class="p-3 rounded-lg bg-blue-50">
                                     <div class="text-xs text-blue-600">Contado</div>

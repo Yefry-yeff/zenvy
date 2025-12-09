@@ -211,6 +211,51 @@
             <div class="col-right">L. {{ number_format($resumenTransacciones->sum('total'), 2) }}</div>
         </div>
 
+        <!-- REVERSIÓN DE FACTURAS ANULADAS -->
+        @if($facturasAnuladas['efectivo'] > 0 || $facturasAnuladas['tarjeta'] > 0 || $facturasAnuladas['transferencia'] > 0 || $facturasAnuladas['cheque'] > 0)
+            <div class="double-separator"></div>
+            <div class="section-title" style="color: #dc2626;">
+                REVERSIÓN DE FACTURAS
+            </div>
+            <div style="font-size: 8px; text-align: center; margin-bottom: 5px; color: #6b7280;">
+                (Se restan del total del sistema)
+            </div>
+
+            @if($facturasAnuladas['efectivo'] > 0)
+            <div class="table-row">
+                <div class="col-left">Efectivo:</div>
+                <div class="col-right" style="color: #dc2626;">- L. {{ number_format($facturasAnuladas['efectivo'], 2) }}</div>
+            </div>
+            @endif
+
+            @if($facturasAnuladas['tarjeta'] > 0)
+            <div class="table-row">
+                <div class="col-left">Tarjeta:</div>
+                <div class="col-right" style="color: #dc2626;">- L. {{ number_format($facturasAnuladas['tarjeta'], 2) }}</div>
+            </div>
+            @endif
+
+            @if($facturasAnuladas['transferencia'] > 0)
+            <div class="table-row">
+                <div class="col-left">Transferencia:</div>
+                <div class="col-right" style="color: #dc2626;">- L. {{ number_format($facturasAnuladas['transferencia'], 2) }}</div>
+            </div>
+            @endif
+
+            @if($facturasAnuladas['cheque'] > 0)
+            <div class="table-row">
+                <div class="col-left">Cheque:</div>
+                <div class="col-right" style="color: #dc2626;">- L. {{ number_format($facturasAnuladas['cheque'], 2) }}</div>
+            </div>
+            @endif
+
+            <div class="separator"></div>
+            <div class="table-row total-row" style="color: #dc2626;">
+                <div class="col-left">TOTAL REVERSIONES:</div>
+                <div class="col-right">- L. {{ number_format($facturasAnuladas['efectivo'] + $facturasAnuladas['tarjeta'] + $facturasAnuladas['transferencia'] + $facturasAnuladas['cheque'], 2) }}</div>
+            </div>
+        @endif
+
         <div class="double-separator"></div>
 
         <!-- CONTABILIZACIÓN DE MÉTODOS DE PAGO -->

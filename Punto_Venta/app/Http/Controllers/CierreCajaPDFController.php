@@ -40,6 +40,40 @@ class CierreCajaPDFController extends Controller
                 ->groupBy('tp.id', 'tp.nombre')
                 ->get();
 
+            // Cargar facturas anuladas del período
+            $facturasAnuladasPeriodoActual = DB::table('factura as f')
+                ->join('factura_has_pago as fhp', 'f.id', '=', 'fhp.factura_id')
+                ->join('tipo_pago as tp', 'fhp.tipo_pago_id', '=', 'tp.id')
+                ->where('f.users_id', $cierre->user_id)
+                ->where('f.estado_factura_id', 2)
+                ->whereBetween('f.created_at', [$fechaInicio, $fechaFin])
+                ->select(
+                    'tp.nombre as forma_pago',
+                    DB::raw('SUM(fhp.pago_recibido - fhp.cambio) as total')
+                )
+                ->groupBy('tp.id', 'tp.nombre')
+                ->get();
+
+            $efectivoAnuladoPeriodoAnterior = DB::table('factura as f')
+                ->join('facturas_anuladas as fa', 'f.id', '=', 'fa.factura_id')
+                ->where('f.users_id', $cierre->user_id)
+                ->where('f.estado_factura_id', 2)
+                ->where('f.created_at', '<=', $fechaInicio)
+                ->where('fa.fecha_anulacion', '>', $fechaInicio)
+                ->where('fa.fecha_anulacion', '<=', $fechaFin)
+                ->where(function($query) {
+                    $query->where('fa.metodo_devolucion', 'LIKE', '%efectivo%')
+                          ->orWhere('fa.metodo_devolucion', 'LIKE', '%Efectivo%');
+                })
+                ->sum('fa.total') ?? 0;
+
+            $facturasAnuladas = [
+                'efectivo' => $facturasAnuladasPeriodoActual->filter(fn($item) => stripos($item->forma_pago, 'Efectivo') !== false)->sum('total') + $efectivoAnuladoPeriodoAnterior,
+                'tarjeta' => $facturasAnuladasPeriodoActual->filter(fn($item) => stripos($item->forma_pago, 'Tarjeta') !== false)->sum('total'),
+                'transferencia' => $facturasAnuladasPeriodoActual->filter(fn($item) => stripos($item->forma_pago, 'Transferencia') !== false)->sum('total'),
+                'cheque' => $facturasAnuladasPeriodoActual->filter(fn($item) => stripos($item->forma_pago, 'Cheque') !== false)->sum('total'),
+            ];
+
             // Preparar denominaciones (solo las que tienen cantidad > 0)
             $denominaciones = [];
             $denominacionesConfig = [
@@ -98,6 +132,7 @@ class CierreCajaPDFController extends Controller
                 'cierre',
                 'usuario',
                 'resumenTransacciones',
+                'facturasAnuladas',
                 'denominaciones',
                 'empresa',
                 'tienda',

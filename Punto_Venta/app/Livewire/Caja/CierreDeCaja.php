@@ -16,6 +16,12 @@ class CierreDeCaja extends Component
     public $desgloseTarjetas = [];
     public $desgloseTransferencias = [];
     public $desgloseCheques = [];
+    
+    // Facturas anuladas por método de pago
+    public $facturasAnuladasEfectivo = 0;
+    public $facturasAnuladasTarjeta = 0;
+    public $facturasAnuladasTransferencia = 0;
+    public $facturasAnuladasCheque = 0;
 
     // Billetes
     public $billetes_500 = 0;
@@ -116,6 +122,67 @@ class CierreDeCaja extends Component
             ->groupBy('tp.id', 'tp.nombre')
             ->get();
 
+        // ===== FACTURAS ANULADAS DEL PERÍODO ACTUAL =====
+        // Estas se restan con todos sus métodos de pago
+        $queryAnuladasPeriodoActual = DB::table('factura as f')
+            ->join('factura_has_pago as fhp', 'f.id', '=', 'fhp.factura_id')
+            ->join('tipo_pago as tp', 'fhp.tipo_pago_id', '=', 'tp.id')
+            ->where('f.users_id', $usuario->id)
+            ->where('f.estado_factura_id', 2); // Facturas anuladas
+
+        if ($fechaInicio) {
+            $queryAnuladasPeriodoActual->where('f.created_at', '>', $fechaInicio);
+        }
+
+        $facturasAnuladasPeriodoActual = $queryAnuladasPeriodoActual
+            ->select(
+                'tp.nombre as forma_pago',
+                DB::raw('SUM(fhp.pago_recibido - fhp.cambio) as total')
+            )
+            ->groupBy('tp.id', 'tp.nombre')
+            ->get();
+
+        // ===== FACTURAS ANULADAS DE PERÍODOS ANTERIORES =====
+        // Solo afectan el efectivo si la devolución fue en efectivo
+        $efectivoAnuladoPeriodoAnterior = 0;
+        
+        if ($fechaInicio) {
+            $efectivoAnuladoPeriodoAnterior = DB::table('factura as f')
+                ->join('facturas_anuladas as fa', 'f.id', '=', 'fa.factura_id')
+                ->where('f.users_id', $usuario->id)
+                ->where('f.estado_factura_id', 2) // Facturas anuladas
+                ->where('f.created_at', '<=', $fechaInicio) // Creada antes del período actual
+                ->where('fa.fecha_anulacion', '>', $fechaInicio) // Anulada durante el período actual
+                ->where(function($query) {
+                    // Solo si la devolución fue en efectivo
+                    $query->where('fa.metodo_devolucion', 'LIKE', '%efectivo%')
+                          ->orWhere('fa.metodo_devolucion', 'LIKE', '%Efectivo%')
+                          ->orWhere('fa.metodo_devolucion', 'LIKE', '%EFECTIVO%');
+                })
+                ->sum('fa.total') ?? 0;
+        }
+
+        // Asignar totales de facturas anuladas por método de pago
+        // Del período actual: todos los métodos de pago originales de la factura
+        $this->facturasAnuladasEfectivo = $facturasAnuladasPeriodoActual
+            ->filter(fn($item) => stripos($item->forma_pago, 'Efectivo') !== false)
+            ->sum('total');
+        
+        // Sumar efectivo de períodos anteriores (solo si devolución fue en efectivo)
+        $this->facturasAnuladasEfectivo += $efectivoAnuladoPeriodoAnterior;
+
+        $this->facturasAnuladasTarjeta = $facturasAnuladasPeriodoActual
+            ->filter(fn($item) => stripos($item->forma_pago, 'Tarjeta') !== false)
+            ->sum('total');
+
+        $this->facturasAnuladasTransferencia = $facturasAnuladasPeriodoActual
+            ->filter(fn($item) => stripos($item->forma_pago, 'Transferencia') !== false)
+            ->sum('total');
+
+        $this->facturasAnuladasCheque = $facturasAnuladasPeriodoActual
+            ->filter(fn($item) => stripos($item->forma_pago, 'Cheque') !== false)
+            ->sum('total');
+
         // Calcular total del sistema
         $this->totalSistema = $this->resumenTransacciones->sum('total');
 
@@ -173,21 +240,21 @@ class CierreDeCaja extends Component
     public function calcularTotalContado()
     {
         $this->totalContado = (
-            ($this->billetes_500 * 500) +
-            ($this->billetes_200 * 200) +
-            ($this->billetes_100 * 100) +
-            ($this->billetes_50 * 50) +
-            ($this->billetes_20 * 20) +
-            ($this->billetes_10 * 10) +
-            ($this->billetes_5 * 5) +
-            ($this->billetes_2 * 2) +
-            ($this->billetes_1 * 1) +
-            ($this->monedas_0_50 * 0.50) +
-            ($this->monedas_0_20 * 0.20) +
-            ($this->monedas_0_10 * 0.10) +
-            ($this->monedas_0_05 * 0.05) +
-            ($this->monedas_0_02 * 0.02) +
-            ($this->monedas_0_01 * 0.01)
+            (floatval($this->billetes_500) * 500) +
+            (floatval($this->billetes_200) * 200) +
+            (floatval($this->billetes_100) * 100) +
+            (floatval($this->billetes_50) * 50) +
+            (floatval($this->billetes_20) * 20) +
+            (floatval($this->billetes_10) * 10) +
+            (floatval($this->billetes_5) * 5) +
+            (floatval($this->billetes_2) * 2) +
+            (floatval($this->billetes_1) * 1) +
+            (floatval($this->monedas_0_50) * 0.50) +
+            (floatval($this->monedas_0_20) * 0.20) +
+            (floatval($this->monedas_0_10) * 0.10) +
+            (floatval($this->monedas_0_05) * 0.05) +
+            (floatval($this->monedas_0_02) * 0.02) +
+            (floatval($this->monedas_0_01) * 0.01)
         );
 
         // Calcular diferencia (contado menos el efectivo que debería haber según el sistema)
@@ -197,6 +264,9 @@ class CierreDeCaja extends Component
                 return stripos($item->forma_pago, 'Efectivo') !== false;
             })
             ->sum('total');
+        
+        // Restar las facturas anuladas en efectivo
+        $efectivoSistema -= $this->facturasAnuladasEfectivo;
         
         // Sumar el saldo inicial de la caja
         $efectivoSistemaConCaja = $efectivoSistema + self::SALDO_INICIAL;
@@ -215,6 +285,9 @@ class CierreDeCaja extends Component
                 return stripos($item->forma_pago, 'Tarjeta') !== false;
             })
             ->sum('total');
+        
+        // Restar facturas anuladas en tarjeta
+        $tarjetaSistema -= $this->facturasAnuladasTarjeta;
 
         // Buscar cheque
         $chequeSistema = $this->resumenTransacciones
@@ -222,6 +295,9 @@ class CierreDeCaja extends Component
                 return stripos($item->forma_pago, 'Cheque') !== false;
             })
             ->sum('total');
+        
+        // Restar facturas anuladas en cheque
+        $chequeSistema -= $this->facturasAnuladasCheque;
 
         // Buscar transferencia
         $transferenciaSistema = $this->resumenTransacciones
@@ -229,10 +305,13 @@ class CierreDeCaja extends Component
                 return stripos($item->forma_pago, 'Transferencia') !== false;
             })
             ->sum('total');
+        
+        // Restar facturas anuladas en transferencia
+        $transferenciaSistema -= $this->facturasAnuladasTransferencia;
 
-        $this->diferenciaTarjeta = $this->totalTarjetaContado - $tarjetaSistema;
-        $this->diferenciaTransferencia = $this->totalTransferenciaContado - $transferenciaSistema;
-        $this->diferenciaCheque = $this->totalChequeContado - $chequeSistema;
+        $this->diferenciaTarjeta = floatval($this->totalTarjetaContado) - $tarjetaSistema;
+        $this->diferenciaTransferencia = floatval($this->totalTransferenciaContado) - $transferenciaSistema;
+        $this->diferenciaCheque = floatval($this->totalChequeContado) - $chequeSistema;
     }
 
     public function procesarCierre()
@@ -262,22 +341,26 @@ class CierreDeCaja extends Component
 
             $cantidadFacturas = $queryFacturas->count();
 
-            // Calcular totales por tipo de pago
+            // Calcular totales por tipo de pago (restando las facturas anuladas)
             $efectivoSistema = $this->resumenTransacciones
                 ->filter(fn($item) => stripos($item->forma_pago, 'Efectivo') !== false)
                 ->sum('total');
+            $efectivoSistema -= $this->facturasAnuladasEfectivo;
 
             $tarjetaSistema = $this->resumenTransacciones
                 ->filter(fn($item) => stripos($item->forma_pago, 'Tarjeta') !== false)
                 ->sum('total');
+            $tarjetaSistema -= $this->facturasAnuladasTarjeta;
 
             $transferenciaSistema = $this->resumenTransacciones
                 ->filter(fn($item) => stripos($item->forma_pago, 'Transferencia') !== false)
                 ->sum('total');
+            $transferenciaSistema -= $this->facturasAnuladasTransferencia;
 
             $chequeSistema = $this->resumenTransacciones
                 ->filter(fn($item) => stripos($item->forma_pago, 'Cheque') !== false)
                 ->sum('total');
+            $chequeSistema -= $this->facturasAnuladasCheque;
 
             // Guardar cierre en histórico y obtener el ID insertado
             $cierreId = DB::table('cierre_caja_historico')->insertGetId([
