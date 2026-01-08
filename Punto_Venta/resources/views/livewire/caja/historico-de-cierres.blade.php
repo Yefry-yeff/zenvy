@@ -83,6 +83,11 @@
                 <button wire:click="limpiarFiltros" class="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
                     <i class="fas fa-eraser me-1"></i> Limpiar Filtros
                 </button>
+                @if($esAdmin)
+                    <button wire:click="generarReporteConsolidado" class="inline-flex items-center px-3 py-2 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700">
+                        <i class="fas fa-file-alt me-1"></i> Reporte Consolidado
+                    </button>
+                @endif
             </div>
         </div>
 

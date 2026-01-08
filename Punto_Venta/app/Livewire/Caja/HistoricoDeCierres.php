@@ -76,6 +76,27 @@ class HistoricoDeCierres extends Component
         return redirect()->route('cierre-caja.reporte-transacciones', $cierreId);
     }
 
+    public function generarReporteConsolidado()
+    {
+        if (!$this->esAdmin) {
+            session()->flash('error', 'No tienes permisos para generar el reporte consolidado');
+            return;
+        }
+
+        // Validar que se haya seleccionado una fecha
+        if (!$this->fechaInicio || !$this->fechaFin) {
+            session()->flash('error', 'Debes seleccionar un rango de fechas para generar el reporte');
+            return;
+        }
+
+        // Redirigir al controlador que generará el PDF
+        return redirect()->route('cierre-caja.reporte-consolidado', [
+            'fechaInicio' => $this->fechaInicio,
+            'fechaFin' => $this->fechaFin,
+            'usuarioId' => $this->usuarioId
+        ]);
+    }
+
     public function render()
     {
         $query = DB::table('cierre_caja_historico as cch')

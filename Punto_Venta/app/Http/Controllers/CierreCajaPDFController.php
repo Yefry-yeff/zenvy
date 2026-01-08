@@ -494,4 +494,145 @@ class CierreCajaPDFController extends Controller
             return back()->with('error', 'Error al generar el reporte: ' . $e->getMessage());
         }
     }
+
+    public function reporteConsolidado(Request $request)
+    {
+        try {
+            // Verificar permisos de administrador
+            $usuario = auth()->user();
+            $esAdmin = false;
+
+            if ($usuario->roles_id == 2) {
+                $esAdmin = true;
+            } else {
+                try {
+                    $rolNombre = DB::table('roles')->where('id', $usuario->roles_id)->value('txt_nombre');
+                    $esAdmin = in_array(strtolower($rolNombre ?? ''), ['admin', 'administrador']);
+                } catch (Exception $e) {
+                    $esAdmin = false;
+                }
+            }
+
+            if (!$esAdmin) {
+                return back()->with('error', 'No tienes permisos para generar este reporte');
+            }
+
+            // Obtener parámetros
+            $fechaInicio = $request->input('fechaInicio');
+            $fechaFin = $request->input('fechaFin');
+            $usuarioId = $request->input('usuarioId');
+
+            if (!$fechaInicio || !$fechaFin) {
+                return back()->with('error', 'Debes proporcionar un rango de fechas');
+            }
+
+            // Construir consulta base
+            $query = DB::table('cierre_caja_historico as cch')
+                ->leftJoin('users as u', 'cch.user_id', '=', 'u.id')
+                ->whereBetween('cch.fecha_cierre', [$fechaInicio . ' 00:00:00', $fechaFin . ' 23:59:59']);
+
+            if ($usuarioId) {
+                $query->where('cch.user_id', $usuarioId);
+            }
+
+            // Obtener todos los cierres del período
+            $cierres = $query->select(
+                'cch.*',
+                'u.name as nombre_usuario'
+            )->orderBy('u.name')->orderBy('cch.fecha_cierre')->get();
+
+            if ($cierres->isEmpty()) {
+                return back()->with('error', 'No se encontraron cierres en el rango de fechas seleccionado');
+            }
+
+            // Agrupar por usuario
+            $consolidadoPorUsuario = [];
+
+            foreach ($cierres as $cierre) {
+                $userId = $cierre->user_id;
+                $nombreUsuario = $cierre->nombre_usuario ?? 'Sin nombre';
+
+                if (!isset($consolidadoPorUsuario[$userId])) {
+                    $consolidadoPorUsuario[$userId] = [
+                        'nombre' => $nombreUsuario,
+                        'cantidad_cierres' => 0,
+                        'total_efectivo_sistema' => 0,
+                        'total_efectivo_contado' => 0,
+                        'total_tarjeta' => 0,
+                        'total_transferencia' => 0,
+                        'total_cheque' => 0,
+                        'total_ventas' => 0,
+                        'diferencia_efectivo' => 0,
+                        'cierres' => []
+                    ];
+                }
+
+                // Sumar totales
+                $consolidadoPorUsuario[$userId]['cantidad_cierres']++;
+                $consolidadoPorUsuario[$userId]['total_efectivo_sistema'] += $cierre->total_efectivo_sistema ?? 0;
+                $consolidadoPorUsuario[$userId]['total_efectivo_contado'] += $cierre->total_efectivo_contado ?? 0;
+                $consolidadoPorUsuario[$userId]['total_tarjeta'] += $cierre->total_tarjeta ?? 0;
+                $consolidadoPorUsuario[$userId]['total_transferencia'] += $cierre->total_transferencia ?? 0;
+                $consolidadoPorUsuario[$userId]['total_cheque'] += $cierre->total_cheque ?? 0;
+                
+                $totalCierre = ($cierre->total_efectivo_sistema ?? 0) + 
+                              ($cierre->total_tarjeta ?? 0) + 
+                              ($cierre->total_transferencia ?? 0) + 
+                              ($cierre->total_cheque ?? 0);
+                
+                $consolidadoPorUsuario[$userId]['total_ventas'] += $totalCierre;
+                $consolidadoPorUsuario[$userId]['diferencia_efectivo'] += ($cierre->total_efectivo_contado ?? 0) - ($cierre->total_efectivo_sistema ?? 0);
+
+                // Agregar detalle del cierre
+                $consolidadoPorUsuario[$userId]['cierres'][] = [
+                    'id' => $cierre->id,
+                    'fecha' => $cierre->fecha_cierre,
+                    'efectivo_sistema' => $cierre->total_efectivo_sistema ?? 0,
+                    'efectivo_contado' => $cierre->total_efectivo_contado ?? 0,
+                    'tarjeta' => $cierre->total_tarjeta ?? 0,
+                    'transferencia' => $cierre->total_transferencia ?? 0,
+                    'cheque' => $cierre->total_cheque ?? 0,
+                    'total' => $totalCierre
+                ];
+            }
+
+            // Calcular totales generales
+            $totalesGenerales = [
+                'cantidad_usuarios' => count($consolidadoPorUsuario),
+                'total_cierres' => array_sum(array_column($consolidadoPorUsuario, 'cantidad_cierres')),
+                'total_efectivo_sistema' => array_sum(array_column($consolidadoPorUsuario, 'total_efectivo_sistema')),
+                'total_efectivo_contado' => array_sum(array_column($consolidadoPorUsuario, 'total_efectivo_contado')),
+                'total_tarjeta' => array_sum(array_column($consolidadoPorUsuario, 'total_tarjeta')),
+                'total_transferencia' => array_sum(array_column($consolidadoPorUsuario, 'total_transferencia')),
+                'total_cheque' => array_sum(array_column($consolidadoPorUsuario, 'total_cheque')),
+                'total_ventas' => array_sum(array_column($consolidadoPorUsuario, 'total_ventas')),
+                'diferencia_efectivo' => array_sum(array_column($consolidadoPorUsuario, 'diferencia_efectivo'))
+            ];
+
+            // Generar PDF
+            $pdf = Pdf::loadView('pdf.reporte-consolidado-cierres', [
+                'fechaInicio' => \Carbon\Carbon::parse($fechaInicio),
+                'fechaFin' => \Carbon\Carbon::parse($fechaFin),
+                'consolidadoPorUsuario' => $consolidadoPorUsuario,
+                'totalesGenerales' => $totalesGenerales,
+                'usuarioFiltro' => $usuarioId ? DB::table('users')->where('id', $usuarioId)->value('name') : null
+            ])
+            ->setPaper('letter', 'portrait')
+            ->setOptions([
+                'isHtml5ParserEnabled' => true,
+                'isRemoteEnabled' => false,
+                'defaultFont' => 'sans-serif'
+            ]);
+
+            $nombreArchivo = 'reporte_consolidado_' . date('Ymd_His') . '.pdf';
+            return $pdf->stream($nombreArchivo);
+
+        } catch (Exception $e) {
+            Log::error("Error al generar reporte consolidado: " . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return back()->with('error', 'Error al generar el reporte consolidado: ' . $e->getMessage());
+        }
+    }
 }
