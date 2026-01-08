@@ -392,106 +392,90 @@
         <div class="totals-section">
             <div class="table-layout">
                 @php
-                    // Calcular subtotal como suma de importes SIN descuentos (cantidad × precio_unidad)
-                    $subtotalSinDescuentos = collect($productos)->sum(function($producto) {
-                        return ($producto['cantidad'] ?? 0) * ($producto['precio_unidad'] ?? 0);
-                    });
-
-                    // Calcular total de TODOS los descuentos desde la tabla descuentos agrupados
-                    $totalDescuentos = collect($productos)->sum(function($producto) {
+                    // Separar descuentos de productos de descuentos de factura
+                    $descuentosProductos = collect($productos)->sum(function($producto) {
                         return $producto['total_descuentos'] ?? 0;
                     });
                     
-                    // Agregar el descuento de factura al total de descuentos
-                    $totalDescuentos += ($factura->monto_descuento ?? 0);
+                    $descuentoFactura = $factura->monto_descuento ?? 0;
 
-                    // SUB-TOTAL = Total Importe - Descuentos
-                    $subtotalFinal = $subtotalSinDescuentos - $totalDescuentos;
+                    // Calcular importe gravado DESPUÉS de descuentos de productos
+                    $importeGravado = collect($productos)->filter(function($producto) {
+                        return ($producto['tasa_isv'] ?? 0) == 15;
+                    })->sum(function($producto) {
+                        $subtotal = ($producto['cantidad'] ?? 0) * ($producto['precio_unidad'] ?? 0);
+                        $descuento = $producto['total_descuentos'] ?? 0;
+                        return $subtotal - $descuento;
+                    });
 
-                    // Calcular importe exento SIN descuentos (productos sin ISV)
-                    $importeExentoSinDescuento = collect($productos)->filter(function($producto) {
+                    // Calcular importe exento DESPUÉS de descuentos de productos
+                    $importeExento = collect($productos)->filter(function($producto) {
                         return ($producto['tasa_isv'] ?? 0) == 0;
                     })->sum(function($producto) {
-                        return ($producto['cantidad'] ?? 0) * ($producto['precio_unidad'] ?? 0);
+                        $subtotal = ($producto['cantidad'] ?? 0) * ($producto['precio_unidad'] ?? 0);
+                        $descuento = $producto['total_descuentos'] ?? 0;
+                        return $subtotal - $descuento;
                     });
 
-                    // Calcular importes gravados SIN descuentos (cantidad × precio_unidad)
-                    $importe15SinDescuento = collect($productos)->filter(function($producto) {
-                        return ($producto['tasa_isv'] ?? 0) == 15;
-                    })->sum(function($producto) {
-                        return ($producto['cantidad'] ?? 0) * ($producto['precio_unidad'] ?? 0);
-                    });
+                    // Sub-Total = Importe Gravado + Importe Exento
+                    $subTotal = $importeGravado + $importeExento;
 
-                    $importe18SinDescuento = collect($productos)->filter(function($producto) {
-                        return ($producto['tasa_isv'] ?? 0) == 18;
-                    })->sum(function($producto) {
-                        return ($producto['cantidad'] ?? 0) * ($producto['precio_unidad'] ?? 0);
-                    });
+                    // Calcular ISV sobre el importe gravado (SIN considerar descuento de factura)
+                    // ISV = Importe Gravado * 0.15
+                    $impuestoVenta = $importeGravado * 0.15;
+
+                    // Total a Pagar = Sub-Total + Impuesto - Descuento Factura
+                    $totalAPagar = $subTotal + $impuestoVenta - $descuentoFactura;
                 @endphp
 
-               <!-- <div class="table-row">
-                    <div class="table-cell-left">IMPORTE GRAVADO</div>
-                    <div class="table-cell-right">L. {{ number_format($factura->sub_total, 2) }}</div>
-                </div>-->
-
-                @if($totalDescuentos > 0)
                 <div class="table-row">
-                    <div class="table-cell-left">DESCUENTOS Y REBAJAS</div>
-                    <div class="table-cell-right">-L. {{ number_format($totalDescuentos, 2) }}</div>
+                    <div class="table-cell-left">Importe Gravado</div>
+                    <div class="table-cell-right">L {{ number_format($importeGravado, 2) }}</div>
+                </div>
+
+                <div class="table-row">
+                    <div class="table-cell-left">Importe Exento</div>
+                    <div class="table-cell-right">L {{ number_format($importeExento, 2) }}</div>
+                </div>
+
+                <div class="table-row">
+                    <div class="table-cell-left">Sub-Total</div>
+                    <div class="table-cell-right">L {{ number_format($subTotal, 2) }}</div>
+                </div>
+
+                <div class="table-row">
+                    <div class="table-cell-left">Impuesto sobre venta (15%)</div>
+                    <div class="table-cell-right">L {{ number_format($impuestoVenta, 2) }}</div>
+                </div>
+
+                @if($descuentoFactura > 0)
+                <div class="table-row">
+                    <div class="table-cell-left">Descuentos y rebajas</div>
+                    <div class="table-cell-right">L {{ number_format($descuentoFactura, 2) }}</div>
                 </div>
                 @endif
-                <div class="table-row">
-                    <div class="table-cell-left">IMPORTE EXENTO</div>
-                    <div class="table-cell-right">L. {{ number_format($importeExentoSinDescuento, 2) }}</div>
-                </div>
-
-                @php
-                    // Calcular impuestos por tasa (usar campo 'isv' que siempre tiene el monto calculado)
-                    $impuesto15 = collect($productos)->filter(function($producto) {
-                        return ($producto['tasa_isv'] ?? 0) == 15;
-                    })->sum(function($producto) {
-                        return $producto['isv'] ?? 0;
-                    });
-
-                    $impuesto18 = collect($productos)->filter(function($producto) {
-                        return ($producto['tasa_isv'] ?? 0) == 18;
-                    })->sum(function($producto) {
-                        return $producto['isv'] ?? 0;
-                    });
-                @endphp
-
-                 <div class="table-row">
-                    <div class="table-cell-left">IMPORTE GRAVADO</div>
-                    <div class="table-cell-right">L. {{ number_format($importe15SinDescuento, 2) }}</div>
-                </div>
-
-                <div class="table-row">
-                    <div class="table-cell-left">SUB-TOTAL</div>
-                    <div class="table-cell-right">L. {{ number_format($subtotalFinal, 2) }}</div>
-                </div>
-                <div class="table-row">
-                    <div class="table-cell-left">IMPUESTO DEL 15%</div>
-                    <div class="table-cell-right">L. {{ number_format($impuesto15, 2) }}</div>
-                </div>
-                <!--<div class="table-row">
-                    <div class="table-cell-left">IMPUESTO DEL 18%</div>
-                    <div class="table-cell-right">L. {{ number_format($impuesto18, 2) }}</div>
-                </div>
-                <div class="table-row">
-                    <div class="table-cell-left">TOTAL IMPUESTOS</div>
-                    <div class="table-cell-right">L. {{ number_format($factura->isv, 2) }}</div>
-                </div>-->
 
             </div>
 
             <div class="total-final">
                 <div class="table-layout">
                     <div class="table-row">
-                        <div class="table-cell-left"><strong>TOTAL</strong></div>
-                        <div class="table-cell-right"><strong>L. {{ number_format($factura->total, 2) }}</strong></div>
+                        <div class="table-cell-left"><strong>Total a Pagar</strong></div>
+                        <div class="table-cell-right"><strong>L {{ number_format($totalAPagar, 2) }}</strong></div>
                     </div>
                 </div>
             </div>
+
+            @if($descuentosProductos > 0)
+            <div style="margin-top: 8px;">
+                <div class="table-layout">
+                    <div class="table-row" style="font-size: 16px;">
+                        <div class="table-cell-left">Ahorros</div>
+                        <div class="table-cell-right">L {{ number_format($descuentosProductos, 2) }}</div>
+                    </div>
+                </div>
+            </div>
+            @endif
         </div>
 
         <div class="separator"></div>

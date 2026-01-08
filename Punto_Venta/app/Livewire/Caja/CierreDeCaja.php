@@ -261,7 +261,6 @@ class CierreDeCaja extends Component
         );
 
         // Calcular diferencia (contado menos el efectivo que debería haber según el sistema)
-        // El efectivo del sistema incluye el saldo inicial de la caja (L. 2,000.00)
         $efectivoSistema = $this->resumenTransacciones
             ->filter(function($item) {
                 return stripos($item->forma_pago, 'Efectivo') !== false;
@@ -270,11 +269,8 @@ class CierreDeCaja extends Component
         
         // Restar las facturas anuladas en efectivo
         $efectivoSistema -= $this->facturasAnuladasEfectivo;
-        
-        // Sumar el saldo inicial de la caja
-        $efectivoSistemaConCaja = $efectivoSistema + self::SALDO_INICIAL;
 
-        $this->diferenciaEfectivo = $this->totalContado - $efectivoSistemaConCaja;
+        $this->diferenciaEfectivo = $this->totalContado - $efectivoSistema;
 
         // Calcular diferencias para otros métodos de pago
         $this->calcularDiferencias();
@@ -372,7 +368,7 @@ class CierreDeCaja extends Component
                 'fecha_cierre' => $periodoFin,
                 'periodo_inicio' => $periodoInicio,
                 'periodo_fin' => $periodoFin,
-                'total_efectivo_sistema' => $efectivoSistema + self::SALDO_INICIAL,
+                'total_efectivo_sistema' => $efectivoSistema,
                 'total_efectivo_contado' => $this->totalContado,
                 'diferencia' => $this->diferenciaEfectivo,
                 'total_tarjeta' => $tarjetaSistema,

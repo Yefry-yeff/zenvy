@@ -105,16 +105,16 @@ class CierreCajaPDFController extends Controller
                 }
             }
 
-            // Calcular depósito: (efectivo_sistema - 2000) + sobrante si es positivo
+            // Calcular depósito: efectivo_sistema + sobrante si es positivo
             $diferencia = $cierre->diferencia ?? 0;
             $efectivoSistema = $cierre->total_efectivo_sistema ?? 0;
             
             if ($diferencia > 0) {
-                // Hay sobrante: depositar (efectivo sistema - 2000) + sobrante
-                $montoDeposito = max(0, ($efectivoSistema - 2000) + $diferencia);
+                // Hay sobrante: depositar efectivo sistema + sobrante
+                $montoDeposito = max(0, $efectivoSistema + $diferencia);
             } else {
-                // No hay sobrante: depositar solo (efectivo sistema - 2000)
-                $montoDeposito = max(0, $efectivoSistema - 2000);
+                // No hay sobrante: depositar solo efectivo sistema
+                $montoDeposito = max(0, $efectivoSistema);
             }
 
             // Cargar datos de empresa
@@ -258,16 +258,16 @@ class CierreCajaPDFController extends Controller
                 }
             }
 
-            // Calcular depósito: (efectivo_sistema - 2000) + sobrante si es positivo
+            // Calcular depósito: efectivo_sistema + sobrante si es positivo
             $diferencia = $cierre->diferencia ?? 0;
             $efectivoSistema = $cierre->total_efectivo_sistema ?? 0;
             
             if ($diferencia > 0) {
-                // Hay sobrante: depositar (efectivo sistema - 2000) + sobrante
-                $montoDeposito = max(0, ($efectivoSistema - 2000) + $diferencia);
+                // Hay sobrante: depositar efectivo sistema + sobrante
+                $montoDeposito = max(0, $efectivoSistema + $diferencia);
             } else {
-                // No hay sobrante: depositar solo (efectivo sistema - 2000)
-                $montoDeposito = max(0, $efectivoSistema - 2000);
+                // No hay sobrante: depositar solo efectivo sistema
+                $montoDeposito = max(0, $efectivoSistema);
             }
 
             // Cargar datos de empresa

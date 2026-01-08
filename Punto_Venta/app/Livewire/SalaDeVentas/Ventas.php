@@ -1620,9 +1620,14 @@ class Ventas extends Component
             $this->productosFactura[$index]['descuento_aplicado'] = $descuentoProducto;
             $this->productosFactura[$index]['descuento_individual_aplicado'] = $descuentoIndividual;
 
-            // Calcular ISV que está INCLUIDO en el precio final
-            // Formula: ISV = Precio Total / (1 + Tasa ISV) * Tasa ISV
+            // NUEVA LÓGICA: Calcular ISV sobre el importe DESPUÉS de descuentos
+            // 1. Primero extraer el ISV que estaba incluido en el precio original
+            // 2. Luego calcular el subtotal sin ISV
+            // 3. Finalmente aplicar ISV sobre ese subtotal
+            
             if ($tasaIsv > 0) {
+                // El precio final ya tiene descuentos aplicados
+                // Extraer el ISV incluido: ISV = Precio / (1 + Tasa) * Tasa
                 $isvProducto = round($precioTotalFinal / (1 + ($tasaIsv / 100)) * ($tasaIsv / 100), 2);
                 $subtotalSinIsv = $precioTotalFinal - $isvProducto;
             } else {

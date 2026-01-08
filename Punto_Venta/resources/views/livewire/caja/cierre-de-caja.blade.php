@@ -56,7 +56,7 @@
                                 @if($resumenTransacciones->count() > 0)
                                     <tr class="bg-gray-50">
                                         <td colspan="2" class="px-6 py-4 text-sm font-bold text-gray-900">TOTAL GENERAL</td>
-                                        <td class="px-6 py-4 text-sm font-bold text-right text-gray-900">L. {{ number_format($totalSistema, 2) }}</td>
+                                        <td class="px-6 py-4 text-sm font-bold text-right text-gray-900">L. {{ number_format(floatval($totalSistema), 2) }}</td>
                                     </tr>
                                 @endif
                             </tbody>
@@ -186,18 +186,17 @@
                                 <div class="p-4 rounded-lg bg-gray-50">
                                     <div class="text-sm text-gray-700">Efectivo Sistema</div>
                                     <div class="text-2xl font-bold text-gray-900">
-                                        L. {{ number_format($resumenTransacciones->filter(fn($item) => stripos($item->forma_pago, 'Efectivo') !== false)->sum('total') - $facturasAnuladasEfectivo + 2000.00, 2) }}
+                                        L. {{ number_format($resumenTransacciones->filter(fn($item) => stripos($item->forma_pago, 'Efectivo') !== false)->sum('total') - $facturasAnuladasEfectivo, 2) }}
                                     </div>
-                                    <div class="text-xs text-gray-500 mt-1">Incluye saldo inicial L. 2,000.00</div>
                                 </div>
                                 <div class="p-4 rounded-lg bg-blue-50">
                                     <div class="text-sm text-blue-700">Total Contado</div>
-                                    <div class="text-2xl font-bold text-blue-900">L. {{ number_format($totalContado, 2) }}</div>
+                                    <div class="text-2xl font-bold text-blue-900">L. {{ number_format(floatval($totalContado), 2) }}</div>
                                 </div>
                                 <div class="p-4 rounded-lg {{ $diferenciaEfectivo >= 0 ? 'bg-green-50' : 'bg-red-50' }}">
                                     <div class="text-sm {{ $diferenciaEfectivo >= 0 ? 'text-green-700' : 'text-red-700' }}">Diferencia</div>
                                     <div class="text-2xl font-bold {{ $diferenciaEfectivo >= 0 ? 'text-green-900' : 'text-red-900' }}">
-                                        L. {{ number_format($diferenciaEfectivo, 2) }}
+                                        L. {{ number_format(floatval($diferenciaEfectivo), 2) }}
                                     </div>
                                 </div>
                             </div>
@@ -219,11 +218,11 @@
                                 </div>
                                 <div class="p-3 rounded-lg bg-blue-50">
                                     <div class="text-xs text-blue-600">Contado</div>
-                                    <div class="font-bold text-blue-900">L. {{ number_format($totalTarjetaContado, 2) }}</div>
+                                    <div class="font-bold text-blue-900">L. {{ number_format(floatval($totalTarjetaContado), 2) }}</div>
                                 </div>
                                 <div class="p-3 rounded-lg {{ $diferenciaTarjeta >= 0 ? 'bg-green-50' : 'bg-red-50' }}">
                                     <div class="text-xs {{ $diferenciaTarjeta >= 0 ? 'text-green-600' : 'text-red-600' }}">Diferencia</div>
-                                    <div class="font-bold {{ $diferenciaTarjeta >= 0 ? 'text-green-900' : 'text-red-900' }}">L. {{ number_format($diferenciaTarjeta, 2) }}</div>
+                                    <div class="font-bold {{ $diferenciaTarjeta >= 0 ? 'text-green-900' : 'text-red-900' }}">L. {{ number_format(floatval($diferenciaTarjeta), 2) }}</div>
                                 </div>
                             </div>
                             <div>
@@ -242,11 +241,11 @@
                                 </div>
                                 <div class="p-3 rounded-lg bg-blue-50">
                                     <div class="text-xs text-blue-600">Contado</div>
-                                    <div class="font-bold text-blue-900">L. {{ number_format($totalTransferenciaContado, 2) }}</div>
+                                    <div class="font-bold text-blue-900">L. {{ number_format(floatval($totalTransferenciaContado), 2) }}</div>
                                 </div>
                                 <div class="p-3 rounded-lg {{ $diferenciaTransferencia >= 0 ? 'bg-green-50' : 'bg-red-50' }}">
                                     <div class="text-xs {{ $diferenciaTransferencia >= 0 ? 'text-green-600' : 'text-red-600' }}">Diferencia</div>
-                                    <div class="font-bold {{ $diferenciaTransferencia >= 0 ? 'text-green-900' : 'text-red-900' }}">L. {{ number_format($diferenciaTransferencia, 2) }}</div>
+                                    <div class="font-bold {{ $diferenciaTransferencia >= 0 ? 'text-green-900' : 'text-red-900' }}">L. {{ number_format(floatval($diferenciaTransferencia), 2) }}</div>
                                 </div>
                             </div>
                             <div>
@@ -265,11 +264,11 @@
                                 </div>
                                 <div class="p-3 rounded-lg bg-blue-50">
                                     <div class="text-xs text-blue-600">Contado</div>
-                                    <div class="font-bold text-blue-900">L. {{ number_format($totalChequeContado, 2) }}</div>
+                                    <div class="font-bold text-blue-900">L. {{ number_format(floatval($totalChequeContado), 2) }}</div>
                                 </div>
                                 <div class="p-3 rounded-lg {{ $diferenciaCheque >= 0 ? 'bg-green-50' : 'bg-red-50' }}">
                                     <div class="text-xs {{ $diferenciaCheque >= 0 ? 'text-green-600' : 'text-red-600' }}">Diferencia</div>
-                                    <div class="font-bold {{ $diferenciaCheque >= 0 ? 'text-green-900' : 'text-red-900' }}">L. {{ number_format($diferenciaCheque, 2) }}</div>
+                                    <div class="font-bold {{ $diferenciaCheque >= 0 ? 'text-green-900' : 'text-red-900' }}">L. {{ number_format(floatval($diferenciaCheque), 2) }}</div>
                                 </div>
                             </div>
                             <div>
@@ -305,7 +304,7 @@
                 <div class="text-center">
                     <i class="mb-4 text-6xl text-green-500 fas fa-check-circle"></i>
                     <h2 class="mb-2 text-2xl font-bold text-gray-900">Cierre Procesado Exitosamente</h2>
-                    <p class="mb-6 text-gray-600">La caja se ha restablecido a L. 2,000.00</p>
+                    <p class="mb-6 text-gray-600">El cierre de caja se ha completado</p>
                     <a href="{{ route('dashboard') }}" class="inline-flex items-center px-6 py-3 font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700">
                         <i class="mr-2 fas fa-home"></i>
                         Volver al Dashboard
@@ -347,7 +346,7 @@
                             <strong>ID de Cierre:</strong> #{{ $cierreIdParaImprimir }}
                         </p>
                         <p class="text-gray-600">
-                            La caja se ha restablecido al saldo inicial de <strong class="text-green-600">L. 2,000.00</strong>
+                            El cierre ha sido procesado correctamente
                         </p>
                     </div>
 
@@ -375,14 +374,6 @@
                     </div>
                 </div>
             </div>
-        </div>
-    @else
-        {{-- Debug: Mostrar estado de las variables --}}
-        <div class="p-4 mt-4 bg-yellow-100 border border-yellow-400 rounded">
-            <p><strong>Debug Info (Vista NO se muestra):</strong></p>
-            <p>mostrarVistaImpresion: <strong>{{ $mostrarVistaImpresion ? 'TRUE' : 'FALSE' }}</strong></p>
-            <p>cierreIdParaImprimir: <strong>{{ $cierreIdParaImprimir ?? 'NULL' }}</strong></p>
-            <p>cierreProcesado: <strong>{{ $cierreProcesado ? 'TRUE' : 'FALSE' }}</strong></p>
         </div>
     @endif
 </div>

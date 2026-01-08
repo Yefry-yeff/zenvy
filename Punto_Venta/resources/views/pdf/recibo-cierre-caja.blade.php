@@ -263,24 +263,24 @@
             CONTABILIZACIÓN
         </div>
 
-        @if(($cierre->total_tarjeta ?? 0) > 0)
+        @if(($cierre->total_tarjeta_contado ?? 0) > 0)
         <div class="table-row">
             <div class="col-left">Tarjeta:</div>
-            <div class="col-right">L. {{ number_format($cierre->total_tarjeta, 2) }}</div>
+            <div class="col-right">L. {{ number_format($cierre->total_tarjeta_contado, 2) }}</div>
         </div>
         @endif
 
-        @if(($cierre->total_transferencia ?? 0) > 0)
+        @if(($cierre->total_transferencia_contado ?? 0) > 0)
         <div class="table-row">
             <div class="col-left">Transferencia:</div>
-            <div class="col-right">L. {{ number_format($cierre->total_transferencia, 2) }}</div>
+            <div class="col-right">L. {{ number_format($cierre->total_transferencia_contado, 2) }}</div>
         </div>
         @endif
 
-        @if(($cierre->total_cheque ?? 0) > 0)
+        @if(($cierre->total_cheque_contado ?? 0) > 0)
         <div class="table-row">
             <div class="col-left">Cheque:</div>
-            <div class="col-right">L. {{ number_format($cierre->total_cheque, 2) }}</div>
+            <div class="col-right">L. {{ number_format($cierre->total_cheque_contado, 2) }}</div>
         </div>
         @endif
 
@@ -330,10 +330,6 @@
                 <div class="col-right">L. {{ number_format($cierre->diferencia, 2) }}</div>
             </div>
             @endif
-            <div class="table-row">
-                <div class="col-left">Menos saldo inicial:</div>
-                <div class="col-right">- L. 2,000.00</div>
-            </div>
         </div>
 
         <div class="separator"></div>
