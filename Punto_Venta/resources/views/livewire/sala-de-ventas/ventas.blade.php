@@ -1012,7 +1012,7 @@
                                     }
                                     
                                     $subTotal = $importeGravado + $importeExento;
-                                    $totalAPagar = $subTotal + $impuestoVenta - $montoDescuentoFactura;
+                                    $totalAPagar = $subTotal - $montoDescuentoFactura + $impuestoVenta;
                                 @endphp
 
                                 <!-- Importe Gravado -->
@@ -1035,14 +1035,6 @@
                                     <span class="font-medium">L. {{ number_format($subTotal, 2) }}</span>
                                 </div>
 
-                                <!-- Impuesto sobre venta -->
-                                @if($impuestoVenta > 0)
-                                <div class="flex justify-between mb-2">
-                                    <span class="font-medium text-blue-700">Impuesto sobre venta (15%):</span>
-                                    <span class="font-medium text-blue-700">L. {{ number_format($impuestoVenta, 2) }}</span>
-                                </div>
-                                @endif
-
                                 <!-- Descuento general de la factura -->
                                 @if($descuentoFactura > 0)
                                     <div class="pl-3 mb-2 border-l-4 border-orange-400 bg-orange-50">
@@ -1054,6 +1046,14 @@
                                             <span class="font-medium text-orange-700">L. {{ number_format($montoDescuentoFactura, 2) }}</span>
                                         </div>
                                     </div>
+                                @endif
+
+                                <!-- Impuesto sobre venta -->
+                                @if($impuestoVenta > 0)
+                                <div class="flex justify-between mb-2">
+                                    <span class="font-medium text-blue-700">Impuesto sobre venta (15%):</span>
+                                    <span class="font-medium text-blue-700">L. {{ number_format($impuestoVenta, 2) }}</span>
+                                </div>
                                 @endif
 
                                 <hr class="my-3 border-gray-400">

@@ -1661,14 +1661,13 @@ class Ventas extends Component
         $this->subtotalBruto = (float)number_format($this->subtotalBruto, 2, '.', '');
         $this->totalIsv = (float)number_format($this->totalIsv, 2, '.', '');
 
-        // Aplicar descuento general de factura AL FINAL
+        // Aplicar descuento general de factura sobre el SUBTOTAL
         if ($this->descuentoFactura > 0) {
-            // El descuento se aplica sobre el total (subtotal + ISV) pero NO recalcula el ISV
-            $totalAntesDescuento = $this->subtotal + $this->totalIsv;
-            $this->montoDescuentoFactura = round($totalAntesDescuento * ($this->descuentoFactura / 100), 2);
+            // El descuento se aplica SOLO sobre el subtotal (sin ISV)
+            $this->montoDescuentoFactura = round($this->subtotal * ($this->descuentoFactura / 100), 2);
             
-            // Total final: Subtotal + ISV - Descuento de Factura
-            $this->total = (float)number_format($totalAntesDescuento - $this->montoDescuentoFactura, 2, '.', '');
+            // Total final: Subtotal - Descuento + ISV
+            $this->total = (float)number_format($this->subtotal - $this->montoDescuentoFactura + $this->totalIsv, 2, '.', '');
         } else {
             $this->montoDescuentoFactura = 0;
             $this->total = (float)number_format($this->subtotal + $this->totalIsv, 2, '.', '');
