@@ -988,6 +988,7 @@
                                     $importeGravado = 0;
                                     $importeExento = 0;
                                     $descuentosProductos = 0;
+                                    $impuestoVenta = 0;
                                     
                                     foreach($productosFactura as $item) {
                                         $subtotalItem = $item['precio'] * $item['cantidad'];
@@ -999,14 +1000,18 @@
                                         
                                         // Separar por tipo de ISV
                                         if(($item['isv'] ?? 0) == 15) {
-                                            $importeGravado += $subtotalConDescuento;
+                                            // El precio incluye ISV, extraerlo
+                                            $isvItem = $subtotalConDescuento / 1.15 * 0.15;
+                                            $subtotalSinIsv = $subtotalConDescuento - $isvItem;
+                                            
+                                            $importeGravado += $subtotalSinIsv;
+                                            $impuestoVenta += $isvItem;
                                         } else if(($item['isv'] ?? 0) == 0) {
                                             $importeExento += $subtotalConDescuento;
                                         }
                                     }
                                     
                                     $subTotal = $importeGravado + $importeExento;
-                                    $impuestoVenta = $importeGravado * 0.15;
                                     $totalAPagar = $subTotal + $impuestoVenta - $montoDescuentoFactura;
                                 @endphp
 

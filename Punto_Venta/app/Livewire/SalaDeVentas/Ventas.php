@@ -1661,64 +1661,14 @@ class Ventas extends Component
         $this->subtotalBruto = (float)number_format($this->subtotalBruto, 2, '.', '');
         $this->totalIsv = (float)number_format($this->totalIsv, 2, '.', '');
 
-        // Aplicar descuento general de factura
+        // Aplicar descuento general de factura AL FINAL
         if ($this->descuentoFactura > 0) {
-            // El descuento se aplica sobre el total (subtotal + ISV)
+            // El descuento se aplica sobre el total (subtotal + ISV) pero NO recalcula el ISV
             $totalAntesDescuento = $this->subtotal + $this->totalIsv;
             $this->montoDescuentoFactura = round($totalAntesDescuento * ($this->descuentoFactura / 100), 2);
-            $totalConDescuentoFactura = $totalAntesDescuento - $this->montoDescuentoFactura;
             
-            // Recalcular subtotal e ISV proporcionalmente
-            $this->totalIsv = 0;
-            $this->subtotal = 0;
-            $isvPorTasa = [];
-            
-            foreach ($this->productosFactura as $index => $producto) {
-                $tasaIsv = $producto['isv'];
-                
-                // Calcular la proporción del total que corresponde a este producto
-                $totalProducto = $producto['total'];
-                $proporcion = $totalAntesDescuento > 0 ? ($totalProducto / $totalAntesDescuento) : 0;
-                
-                // Aplicar la proporción del descuento de factura a este producto
-                $descuentoFacturaProducto = $this->montoDescuentoFactura * $proporcion;
-                $totalProductoConDescuentoFactura = $totalProducto - $descuentoFacturaProducto;
-                
-                // Recalcular ISV incluido en el nuevo total del producto
-                if ($tasaIsv > 0) {
-                    $isvProducto = round($totalProductoConDescuentoFactura / (1 + ($tasaIsv / 100)) * ($tasaIsv / 100), 2);
-                    $subtotalProducto = $totalProductoConDescuentoFactura - $isvProducto;
-                } else {
-                    $isvProducto = 0;
-                    $subtotalProducto = $totalProductoConDescuentoFactura;
-                }
-                
-                $this->totalIsv += $isvProducto;
-                $this->subtotal += $subtotalProducto;
-                
-                // Actualizar ISV calculado en el producto
-                $this->productosFactura[$index]['isv_calculado'] = $isvProducto;
-                $this->productosFactura[$index]['subtotal_con_descuento'] = $subtotalProducto;
-                
-                // Agrupar ISV por tasa
-                if ($tasaIsv > 0) {
-                    if (!isset($isvPorTasa[$tasaIsv])) {
-                        $isvPorTasa[$tasaIsv] = 0;
-                    }
-                    $isvPorTasa[$tasaIsv] += $isvProducto;
-                }
-            }
-            
-            // Actualizar isvPorTasa con los nuevos valores
-            $this->isvPorTasa = array_map(function($monto) {
-                return (float)number_format($monto, 2, '.', '');
-            }, $isvPorTasa);
-            
-            $this->totalIsv = (float)number_format($this->totalIsv, 2, '.', '');
-            $this->subtotal = (float)number_format($this->subtotal, 2, '.', '');
-            
-            // Total final
-            $this->total = (float)number_format($this->subtotal + $this->totalIsv, 2, '.', '');
+            // Total final: Subtotal + ISV - Descuento de Factura
+            $this->total = (float)number_format($totalAntesDescuento - $this->montoDescuentoFactura, 2, '.', '');
         } else {
             $this->montoDescuentoFactura = 0;
             $this->total = (float)number_format($this->subtotal + $this->totalIsv, 2, '.', '');
