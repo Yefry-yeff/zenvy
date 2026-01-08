@@ -983,80 +983,59 @@
                                     <hr class="mt-2">
                                 </div>
 
-                                <!-- Subtotal (sin ISV, sin descuentos) -->
+                                @php
+                                    // Calcular importe gravado y exento después de descuentos de productos
+                                    $importeGravado = 0;
+                                    $importeExento = 0;
+                                    $descuentosProductos = 0;
+                                    
+                                    foreach($productosFactura as $item) {
+                                        $subtotalItem = $item['precio'] * $item['cantidad'];
+                                        $descuentoItem = ($item['descuento_aplicado'] ?? 0) + 
+                                                        ($item['descuento_individual_aplicado'] ?? 0) + 
+                                                        ($item['descuento_unitario_aplicado'] ?? 0);
+                                        $descuentosProductos += $descuentoItem;
+                                        $subtotalConDescuento = $subtotalItem - $descuentoItem;
+                                        
+                                        // Separar por tipo de ISV
+                                        if(($item['isv'] ?? 0) == 15) {
+                                            $importeGravado += $subtotalConDescuento;
+                                        } else if(($item['isv'] ?? 0) == 0) {
+                                            $importeExento += $subtotalConDescuento;
+                                        }
+                                    }
+                                    
+                                    $subTotal = $importeGravado + $importeExento;
+                                    $impuestoVenta = $importeGravado * 0.15;
+                                    $totalAPagar = $subTotal + $impuestoVenta - $montoDescuentoFactura;
+                                @endphp
+
+                                <!-- Importe Gravado -->
                                 <div class="flex justify-between mb-2">
-                                    <span class="font-medium text-gray-700">Subtotal:</span>
-                                    <span class="font-medium" x-text="'L. ' + parseFloat(subtotalBruto).toFixed(2)">L. {{ number_format($subtotalBruto, 2) }}</span>
+                                    <span class="font-medium text-gray-700">Importe Gravado:</span>
+                                    <span class="font-medium">L. {{ number_format($importeGravado, 2) }}</span>
                                 </div>
 
-                                <!-- Desglose de descuentos -->
-                                @if($totalDescuentos > 0)
-                                    <div class="pl-3 mb-2 border-l-4 border-red-400 bg-red-50">
-                                        <div class="flex justify-between mb-1">
-                                            <span class="font-medium text-red-700">
-                                                <i class="mr-1 fas fa-minus-circle"></i>
-                                                Total Descuentos:
-                                            </span>
-                                            <span class="font-medium text-red-700" x-text="'-L. ' + parseFloat(totalDescuentos).toFixed(2)">-L. {{ number_format($totalDescuentos, 2) }}</span>
-                                        </div>
+                                <!-- Importe Exento -->
+                                @if($importeExento > 0)
+                                <div class="flex justify-between mb-2">
+                                    <span class="font-medium text-gray-700">Importe Exento:</span>
+                                    <span class="font-medium">L. {{ number_format($importeExento, 2) }}</span>
+                                </div>
+                                @endif
 
-                                        <!-- Desglose por tipo de descuento -->
-                                        <div class="mt-1 ml-2 space-y-1">
-                                            @if($descuentoTerceraEdad)
-                                                @php
-                                                    $totalDescuentoTerceraEdad = 0;
-                                                    foreach($productosFactura as $item) {
-                                                        if(($item['descuento_tercera'] ?? 0) == 1) {
-                                                            $subtotalItem = $item['precio'] * $item['cantidad'];
-                                                            $totalDescuentoTerceraEdad += $subtotalItem * 0.25;
-                                                        }
-                                                    }
-                                                @endphp
-                                                <div class="flex justify-between text-sm text-red-600">
-                                                    <span class="ml-2">• Descuento tercera edad (25%):</span>
-                                                    <span class="font-medium">L. {{ number_format($totalDescuentoTerceraEdad, 2) }}</span>
-                                                </div>
-                                            @endif
-                                            @if($descuentoCuartaEdad)
-                                                @php
-                                                    $totalDescuentoCuartaEdad = 0;
-                                                    foreach($productosFactura as $item) {
-                                                        if(($item['descuento_cuarta'] ?? 0) == 1) {
-                                                            $subtotalItem = $item['precio'] * $item['cantidad'];
-                                                            $totalDescuentoCuartaEdad += $subtotalItem * 0.35;
-                                                        }
-                                                    }
-                                                @endphp
-                                                <div class="flex justify-between text-sm text-red-600">
-                                                    <span class="ml-2">• Descuento cuarta edad (35%):</span>
-                                                    <span class="font-medium">L. {{ number_format($totalDescuentoCuartaEdad, 2) }}</span>
-                                                </div>
-                                            @endif
-                                            @php
-                                                // Calcular total de descuentos de productos individuales
-                                                $totalDescuentosIndividuales = 0;
-                                                foreach($productosFactura as $item) {
-                                                    $totalDescuentosIndividuales += $item['descuento_monto'] ?? 0;
-                                                }
-                                                // Calcular total de descuentos unitarios
-                                                $totalDescuentosUnitarios = array_sum(array_column($productosFactura, 'descuento_unitario_aplicado', 0));
-                                                // Suma total de descuentos de productos (unitarios + individuales)
-                                                $totalDescuentosProductos = $totalDescuentosIndividuales + $totalDescuentosUnitarios;
-                                            @endphp
-                                            @if($totalDescuentosProductos > 0)
-                                                <div class="flex justify-between text-sm text-red-600">
-                                                    <span class="ml-2">• Descuentos unitarios:</span>
-                                                    <span class="font-medium">L. {{ number_format($totalDescuentosProductos, 2) }}</span>
-                                                </div>
-                                            @endif
-                                        </div>
-                                    </div>
+                                <!-- Sub-Total -->
+                                <div class="flex justify-between mb-2">
+                                    <span class="font-medium text-gray-700">Sub-Total:</span>
+                                    <span class="font-medium">L. {{ number_format($subTotal, 2) }}</span>
+                                </div>
 
-                                    <!-- Subtotal con descuentos -->
-                                    <div class="flex justify-between mb-2 font-medium text-gray-700">
-                                        <span>Subtotal con descuentos:</span>
-                                        <span x-text="'L. ' + parseFloat(subtotal).toFixed(2)">L. {{ number_format($subtotal, 2) }}</span>
-                                    </div>
+                                <!-- Impuesto sobre venta -->
+                                @if($impuestoVenta > 0)
+                                <div class="flex justify-between mb-2">
+                                    <span class="font-medium text-blue-700">Impuesto sobre venta (15%):</span>
+                                    <span class="font-medium text-blue-700">L. {{ number_format($impuestoVenta, 2) }}</span>
+                                </div>
                                 @endif
 
                                 <!-- Descuento general de la factura -->
@@ -1065,46 +1044,10 @@
                                         <div class="flex justify-between mb-1">
                                             <span class="font-medium text-orange-700">
                                                 <i class="mr-1 fas fa-tag"></i>
-                                                Descuento Factura ({{ $descuentoFactura }}%):
+                                                Descuentos y rebajas:
                                             </span>
-                                            <span class="font-medium text-orange-700">-L. {{ number_format($montoDescuentoFactura, 2) }}</span>
+                                            <span class="font-medium text-orange-700">L. {{ number_format($montoDescuentoFactura, 2) }}</span>
                                         </div>
-                                    </div>
-
-                                    <!-- Subtotal después del descuento de factura -->
-                                    <div class="flex justify-between mb-2 font-medium text-gray-700">
-                                        <span>Subtotal final:</span>
-                                        <span>L. {{ number_format($subtotal - $montoDescuentoFactura, 2) }}</span>
-                                    </div>
-                                @endif
-
-                                <!-- Desglose del ISV -->
-                                @if($totalIsv > 0)
-                                    <div class="pl-3 mb-2 border-l-4 border-blue-400 bg-blue-50">
-                                        <div class="flex justify-between mb-1">
-                                            <span class="font-medium text-blue-700">
-                                                <i class="mr-1 fas fa-plus-circle"></i>
-                                                Total ISV:
-                                            </span>
-                                            <span class="font-medium text-blue-700">L. {{ number_format(round($totalIsv, 2), 2) }}</span>
-                                        </div>
-
-                                        <!-- Desglose del ISV por tasa si está disponible -->
-                                        @if(isset($isvPorTasa) && is_array($isvPorTasa) && count($isvPorTasa) > 0)
-                                            @foreach($isvPorTasa as $tasa => $monto)
-                                                @if($monto > 0)
-                                                    <div class="flex justify-between text-sm text-blue-600">
-                                                        <span class="ml-4">• ISV {{ $tasa }}%:</span>
-                                                        <span>L. {{ number_format($monto, 2) }}</span>
-                                                    </div>
-                                                @endif
-                                            @endforeach
-                                        @else
-                                            <div class="flex justify-between text-sm text-blue-600">
-                                                <span class="ml-4">• ISV 15%:</span>
-                                                <span x-text="'L. ' + parseFloat(totalIsv).toFixed(2)">L. {{ number_format($totalIsv, 2) }}</span>
-                                            </div>
-                                        @endif
                                     </div>
                                 @endif
 
@@ -1114,10 +1057,21 @@
                                 <div class="flex justify-between p-3 bg-green-100 border border-green-300 rounded">
                                     <span class="text-xl font-bold text-green-800">
                                         <i class="mr-2 fas fa-calculator"></i>
-                                        TOTAL A PAGAR:
+                                        Total a Pagar:
                                     </span>
-                                    <span class="text-xl font-bold text-green-800" x-text="'L. ' + parseFloat(total).toFixed(2)">L. {{ number_format($total, 2) }}</span>
+                                    <span class="text-xl font-bold text-green-800">L. {{ number_format($totalAPagar, 2) }}</span>
                                 </div>
+
+                                <!-- Ahorros -->
+                                @if($descuentosProductos > 0)
+                                <div class="flex justify-between p-2 mt-2 bg-yellow-50 border border-yellow-300 rounded">
+                                    <span class="font-medium text-yellow-800">
+                                        <i class="mr-1 fas fa-piggy-bank"></i>
+                                        Ahorros:
+                                    </span>
+                                    <span class="font-medium text-yellow-800">L. {{ number_format($descuentosProductos, 2) }}</span>
+                                </div>
+                                @endif
 
                                 <!-- Información adicional -->
                                 <div class="mt-3 text-xs text-center text-gray-500">
