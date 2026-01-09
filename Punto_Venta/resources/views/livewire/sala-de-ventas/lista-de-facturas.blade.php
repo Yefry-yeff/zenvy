@@ -113,7 +113,7 @@
                             <thead class="sticky top-0 z-10 bg-gray-100">
                                 <!-- Encabezados con ordenamiento -->
                                 <tr>
-                                    <th class="px-2 py-1.5 text-left border-b cursor-pointer hover:bg-gray-200 w-14" wire:click="ordenar('id')">
+                                    <th class="px-4 py-3 text-left border-b cursor-pointer hover:bg-gray-200 w-20" wire:click="ordenar('id')">
                                         <div class="flex items-center space-x-1">
                                             <span class="text-xs font-semibold">ID</span>
                                             @if($ordenarPor === 'id')
@@ -121,7 +121,7 @@
                                             @endif
                                         </div>
                                     </th>
-                                    <th class="px-2 py-1.5 text-left border-b cursor-pointer hover:bg-gray-200 w-24" wire:click="ordenar('numero_factura')">
+                                    <th class="px-4 py-3 text-left border-b cursor-pointer hover:bg-gray-200 w-40" wire:click="ordenar('numero_factura')">
                                         <div class="flex items-center space-x-1">
                                             <span class="text-xs font-semibold">N° Fact.</span>
                                             @if($ordenarPor === 'numero_factura')
@@ -153,7 +153,7 @@
                                             @endif
                                         </div>
                                     </th>
-                                    <th class="px-4 py-3 border-b cursor-pointer text-end hover:bg-gray-100" wire:click="ordenar('sub_total')">
+                                    <th class="px-2 py-3 border-b cursor-pointer text-end hover:bg-gray-100 w-24" wire:click="ordenar('sub_total')">
                                         <div class="flex items-center justify-end space-x-1">
                                             <span>Subtotal</span>
                                             @if($ordenarPor === 'sub_total')
@@ -161,7 +161,7 @@
                                             @endif
                                         </div>
                                     </th>
-                                    <th class="px-4 py-3 border-b cursor-pointer text-end hover:bg-gray-100" wire:click="ordenar('isv')">
+                                    <th class="px-2 py-3 border-b cursor-pointer text-end hover:bg-gray-100 w-24" wire:click="ordenar('isv')">
                                         <div class="flex items-center justify-end space-x-1">
                                             <span>ISV</span>
                                             @if($ordenarPor === 'isv')
@@ -169,7 +169,7 @@
                                             @endif
                                         </div>
                                     </th>
-                                    <th class="px-4 py-3 border-b cursor-pointer text-end hover:bg-gray-100" wire:click="ordenar('total')">
+                                    <th class="px-2 py-3 border-b cursor-pointer text-end hover:bg-gray-100 w-24" wire:click="ordenar('total')">
                                         <div class="flex items-center justify-end space-x-1">
                                             <span>Total</span>
                                             @if($ordenarPor === 'total')
@@ -190,7 +190,7 @@
                                 <!-- Fila de filtros por columna -->
                                 <tr class="bg-gray-100">
                                     <th class="px-4 py-2 border-b">
-                                        <input type="text" wire:model.live.debounce.300ms="filtroId" placeholder="Filtrar..." class="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500">
+                                        <input type="text" wire:model.live.debounce.300ms="filtroId" placeholder="Filtrar..." class="w-full pl-1 pr-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500">
                                     </th>
                                     <th class="px-4 py-2 border-b">
                                         <input type="text" wire:model.live.debounce.300ms="filtroNumero" placeholder="Filtrar..." class="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500">
@@ -202,15 +202,15 @@
                                         <input type="text" wire:model.live.debounce.300ms="filtroRTN" placeholder="Filtrar..." class="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500">
                                     </th>
                                     <th class="px-4 py-2 border-b">
-                                        <input type="text" wire:model.live.debounce.300ms="filtroFecha" placeholder="Filtrar..." class="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500">
+                                        <input type="date" wire:model.live.debounce.300ms="filtroFecha" class="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500">
                                     </th>
-                                    <th class="px-4 py-2 border-b">
+                                    <th class="px-2 py-2 border-b">
                                         <input type="text" wire:model.live.debounce.300ms="filtroSubtotal" placeholder="Filtrar..." class="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500">
                                     </th>
-                                    <th class="px-4 py-2 border-b">
+                                    <th class="px-2 py-2 border-b">
                                         <input type="text" wire:model.live.debounce.300ms="filtroISV" placeholder="Filtrar..." class="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500">
                                     </th>
-                                    <th class="px-4 py-2 border-b">
+                                    <th class="px-2 py-2 border-b">
                                         <input type="text" wire:model.live.debounce.300ms="filtroTotal" placeholder="Filtrar..." class="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500">
                                     </th>
                                     <th class="px-4 py-2 border-b">
