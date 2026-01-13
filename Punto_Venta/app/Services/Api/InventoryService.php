@@ -75,14 +75,22 @@ class InventoryService
         foreach ($items as $item) {
             try {
                 $product = $this->getProductBySku($item['sku']);
-                $isAvailable = $product->stock_actual >= $item['quantity'];
+                
+                // Obtener stock real desde recibido_bodega
+                $stockReal = \DB::table('recibido_bodega')
+                    ->where('producto_id', $product->id)
+                    ->where('estado_id', 1)
+                    ->where('cantidad_disponible', '>', 0)
+                    ->sum('cantidad_disponible');
+                
+                $isAvailable = $stockReal >= $item['quantity'];
                 
                 $result['items'][] = [
-                    'sku' => $item['sku'],
+                    'sku' => (string) $product->id,
                     'product_id' => $product->id,
                     'product_name' => $product->nombre,
                     'requested' => $item['quantity'],
-                    'available' => $product->stock_actual,
+                    'available' => (int) $stockReal,
                     'is_available' => $isAvailable
                 ];
                 
@@ -128,6 +136,6 @@ class InventoryService
      */
     public function invalidateCache(): void
     {
-        Cache::tags(['inventory', 'products'])->flush();
+        Cache::flush(); // Driver 'file' no soporta tags
     }
 }

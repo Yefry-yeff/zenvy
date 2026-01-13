@@ -24,33 +24,28 @@ class CreateSaleRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'external_order_id' => 'required|string|max:100',
-            
             // Cliente
-            'cliente' => 'required|array',
-            'cliente.documento' => 'nullable|string|max:50',
-            'cliente.nombre' => 'required|string|max:255',
-            'cliente.email' => 'nullable|email|max:255',
-            'cliente.telefono' => 'nullable|string|max:50',
-            'cliente.direccion' => 'nullable|string|max:500',
+            'customer_name' => 'required|string|max:255',
+            'customer_rtn' => 'nullable|string|max:50',
+            'customer_email' => 'nullable|email|max:255',
+            'customer_phone' => 'nullable|string|max:50',
+            'customer_address' => 'nullable|string|max:500',
             
             // Items
             'items' => 'required|array|min:1|max:100',
             'items.*.sku' => 'required|string|max:100',
-            'items.*.cantidad' => 'required|integer|min:1|max:10000',
-            'items.*.precio_unitario' => 'required|numeric|min:0|max:999999999',
+            'items.*.quantity' => 'required|integer|min:1|max:10000',
+            'items.*.price' => 'required|numeric|min:0|max:999999999',
             
             // Totales
             'subtotal' => 'required|numeric|min:0|max:999999999',
-            'descuento' => 'nullable|numeric|min:0|max:999999999',
-            'impuestos' => 'nullable|numeric|min:0|max:999999999',
+            'discount' => 'nullable|numeric|min:0|max:999999999',
+            'tax' => 'required|numeric|min:0|max:999999999',
             'total' => 'required|numeric|min:0|max:999999999',
             
-            // Forma de pago
-            'forma_pago' => 'nullable|string|max:50',
-            
-            // Metadatos opcionales
-            'metadatos' => 'nullable|array',
+            // Opcionales
+            'payment_method' => 'nullable|string|max:50',
+            'notes' => 'nullable|string|max:1000',
         ];
     }
 
@@ -60,16 +55,15 @@ class CreateSaleRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'external_order_id.required' => 'El ID del pedido externo es requerido',
-            'cliente.required' => 'Los datos del cliente son requeridos',
-            'cliente.nombre.required' => 'El nombre del cliente es requerido',
+            'customer_name.required' => 'El nombre del cliente es requerido',
             'items.required' => 'Debe incluir al menos un producto',
             'items.min' => 'Debe incluir al menos un producto',
             'items.*.sku.required' => 'El SKU del producto es requerido',
-            'items.*.cantidad.required' => 'La cantidad es requerida',
-            'items.*.cantidad.min' => 'La cantidad debe ser mayor a 0',
-            'items.*.precio_unitario.required' => 'El precio unitario es requerido',
+            'items.*.quantity.required' => 'La cantidad es requerida',
+            'items.*.quantity.min' => 'La cantidad debe ser mayor a 0',
+            'items.*.price.required' => 'El precio es requerido',
             'subtotal.required' => 'El subtotal es requerido',
+            'tax.required' => 'El ISV es requerido',
             'total.required' => 'El total es requerido',
         ];
     }

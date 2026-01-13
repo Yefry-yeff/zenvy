@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\PedidosWebController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\MenuController;
 use App\Http\Controllers\MorphingLogController;
@@ -20,6 +21,15 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    
+    // Bandeja de Pedidos Web
+    Route::prefix('pedidos-web')->name('pedidos-web.')->group(function() {
+        Route::get('/', [PedidosWebController::class, 'index'])->name('index');
+        Route::get('/{id}', [PedidosWebController::class, 'show'])->name('show');
+        Route::post('/{id}/process', [PedidosWebController::class, 'process'])->name('process');
+        Route::post('/{id}/reject', [PedidosWebController::class, 'reject'])->name('reject');
+        Route::get('/api/pendientes', [PedidosWebController::class, 'apiPendientes'])->name('api.pendientes');
+    });
 });
 
 Route::get('/logout', function () {

@@ -5,7 +5,8 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\V1\{
     AuthController,
     InventoryController,
-    SalesController
+    SalesController,
+    OrdersController
 };
 
 /*
@@ -51,7 +52,18 @@ Route::prefix('v1')->middleware([
     });
     
     // ========================================
-    // Ventas / Facturación
+    // Pedidos Web (Bandeja de Entrada)
+    // ========================================
+    Route::prefix('orders')->name('api.orders.')->group(function() {
+        Route::post('/', [OrdersController::class, 'store'])->name('store');
+        Route::get('/pending', [OrdersController::class, 'pending'])->name('pending');
+        Route::get('/unread/count', [OrdersController::class, 'unreadCount'])->name('unread-count');
+        Route::get('/{id}', [OrdersController::class, 'show'])->name('show');
+        Route::post('/{id}/process', [OrdersController::class, 'process'])->name('process');
+    });
+    
+    // ========================================
+    // Ventas / Facturación (Deprecado - usar orders)
     // ========================================
     Route::prefix('sales')->name('api.sales.')->group(function() {
         Route::post('/', [SalesController::class, 'store'])->name('store');

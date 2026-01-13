@@ -96,13 +96,29 @@ class ProductRepository
 
     /**
      * Obtener productos con stock bajo
-     * Nota: Esta tabla no maneja stock, retornar vacío
      */
     public function getLowStockProducts(int $threshold = null): \Illuminate\Support\Collection
     {
-        // Esta tabla no tiene campos de stock
-        // Retornar colección vacía o implementar lógica personalizada
-        return collect([]);
+        $threshold = $threshold ?? config('api.inventory.low_stock_threshold', 10);
+        
+        // Obtener productos con stock bajo desde recibido_bodega
+        $productsLowStock = DB::table('recibido_bodega as rb')
+            ->select('rb.producto_id', DB::raw('SUM(rb.cantidad_disponible) as total_stock'))
+            ->join('producto as p', 'rb.producto_id', '=', 'p.id')
+            ->where('rb.estado_id', 1)
+            ->where('p.estado_id', 1)
+            ->groupBy('rb.producto_id')
+            ->having('total_stock', '<=', $threshold)
+            ->having('total_stock', '>', 0)
+            ->pluck('producto_id');
+        
+        if ($productsLowStock->isEmpty()) {
+            return collect([]);
+        }
+        
+        return Producto::whereIn('id', $productsLowStock)
+            ->with(['subcategoria', 'marca'])
+            ->get();
     }
 
     /**
@@ -124,13 +140,19 @@ class ProductRepository
                 continue;
             }
 
-            // Sin campos de stock, asumir disponibilidad si el producto existe y está activo
+            // Obtener stock real desde recibido_bodega
+            $totalStock = DB::table('recibido_bodega')
+                ->where('producto_id', $product->id)
+                ->where('estado_id', 1)
+                ->where('cantidad_disponible', '>', 0)
+                ->sum('cantidad_disponible');
+
             $results[] = [
                 'sku' => (string) $product->id,
                 'product_id' => $product->id,
                 'requested' => $item['quantity'],
-                'available_stock' => 9999, // Valor placeholder
-                'available' => $product->estado_id == 1,
+                'available_stock' => (int) $totalStock,
+                'available' => $totalStock >= $item['quantity'],
             ];
         }
         

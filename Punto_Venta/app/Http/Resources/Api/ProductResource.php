@@ -14,6 +14,13 @@ class ProductResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        // Obtener stock real desde recibido_bodega
+        $stockReal = \DB::table('recibido_bodega')
+            ->where('producto_id', $this->id)
+            ->where('estado_id', 1)
+            ->where('cantidad_disponible', '>', 0)
+            ->sum('cantidad_disponible');
+        
         return [
             'id' => $this->id,
             'sku' => (string) $this->id, // Usar ID como SKU
@@ -28,8 +35,8 @@ class ProductResource extends JsonResource
                 (float) $this->ultimo_costo_compra
             ),
             'costo_promedio' => (float) $this->costo_promedio,
-            'stock_actual' => 9999, // Placeholder - no existe en esta tabla
-            'stock_minimo' => 0, // Placeholder
+            'stock_actual' => (int) $stockReal, // Stock real desde bodega
+            'stock_minimo' => 10, // Configurar según negocio
             'stock_maximo' => $this->when(
                 $request->get('include_details'),
                 9999

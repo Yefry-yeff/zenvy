@@ -23,14 +23,22 @@ class SalesController extends Controller
     public function store(CreateSaleRequest $request): JsonResponse
     {
         try {
-            $sale = $this->salesService->createSale(
+            $factura = $this->salesService->createSale(
                 $request->validated(),
                 $request->api_client
             );
             
             return response()->json([
                 'success' => true,
-                'data' => new SaleResource($sale),
+                'data' => [
+                    'factura_id' => $factura->id,
+                    'cliente' => $factura->nombre_cliente,
+                    'total' => (float) $factura->total,
+                    'subtotal' => (float) $factura->sub_total,
+                    'isv' => (float) $factura->isv,
+                    'fecha_emision' => $factura->fecha_emision,
+                    'estado' => $factura->estado_factura_id,
+                ],
                 'message' => 'Venta registrada exitosamente'
             ], 201);
             
