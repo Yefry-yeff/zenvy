@@ -1,0 +1,315 @@
+{
+  "info": {
+    "name": "API REST POS Zenvy",
+    "description": "Colección de endpoints para el API REST del Sistema POS Zenvy",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "12345"
+  },
+  "item": [
+    {
+      "name": "01. Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/health",
+          "host": ["{{base_url}}"],
+          "path": ["health"]
+        },
+        "description": "Verificar que el API está funcionando correctamente. No requiere autenticación."
+      }
+    },
+    {
+      "name": "02. Generar Token JWT",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code === 200) {",
+              "    var jsonData = pm.response.json();",
+              "    if (jsonData.success && jsonData.data.token) {",
+              "        pm.environment.set('auth_token', jsonData.data.token);",
+              "        console.log('Token guardado exitosamente');",
+              "    }",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"api_key\": \"{{api_key}}\",\n  \"api_secret\": \"{{api_secret}}\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/v1/auth/token",
+          "host": ["{{base_url}}"],
+          "path": ["v1", "auth", "token"]
+        },
+        "description": "Obtener token JWT para autenticación. El token se guarda automáticamente en las variables de entorno."
+      }
+    },
+    {
+      "name": "03. Listar Inventario",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{auth_token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/v1/inventory?per_page=20&available=true",
+          "host": ["{{base_url}}"],
+          "path": ["v1", "inventory"],
+          "query": [
+            {
+              "key": "per_page",
+              "value": "20",
+              "description": "Items por página"
+            },
+            {
+              "key": "available",
+              "value": "true",
+              "description": "Solo productos con stock"
+            },
+            {
+              "key": "search",
+              "value": "",
+              "disabled": true,
+              "description": "Búsqueda por nombre/SKU/código"
+            },
+            {
+              "key": "category_id",
+              "value": "",
+              "disabled": true,
+              "description": "Filtrar por categoría"
+            }
+          ]
+        },
+        "description": "Obtener lista de productos del inventario con filtros opcionales."
+      }
+    },
+    {
+      "name": "04. Consultar Producto por SKU",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{auth_token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/v1/inventory/PROD-001",
+          "host": ["{{base_url}}"],
+          "path": ["v1", "inventory", "PROD-001"]
+        },
+        "description": "Obtener detalles de un producto específico por su SKU."
+      }
+    },
+    {
+      "name": "05. Consultar Producto por Código de Barras",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{auth_token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/v1/inventory/barcode/7501234567890",
+          "host": ["{{base_url}}"],
+          "path": ["v1", "inventory", "barcode", "7501234567890"]
+        },
+        "description": "Obtener detalles de un producto por su código de barras."
+      }
+    },
+    {
+      "name": "06. Validar Stock",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{auth_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"items\": [\n    {\n      \"sku\": \"PROD-001\",\n      \"quantity\": 5\n    },\n    {\n      \"sku\": \"PROD-002\",\n      \"quantity\": 3\n    }\n  ]\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/v1/inventory/validate-stock",
+          "host": ["{{base_url}}"],
+          "path": ["v1", "inventory", "validate-stock"]
+        },
+        "description": "Validar disponibilidad de stock para múltiples productos."
+      }
+    },
+    {
+      "name": "07. Productos con Stock Bajo",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{auth_token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/v1/inventory/low-stock?threshold=10",
+          "host": ["{{base_url}}"],
+          "path": ["v1", "inventory", "low-stock"],
+          "query": [
+            {
+              "key": "threshold",
+              "value": "10",
+              "description": "Umbral de stock bajo"
+            }
+          ]
+        },
+        "description": "Obtener lista de productos con stock por debajo del umbral especificado."
+      }
+    },
+    {
+      "name": "08. Crear Venta",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code === 201) {",
+              "    var jsonData = pm.response.json();",
+              "    if (jsonData.success && jsonData.data.factura_id) {",
+              "        pm.environment.set('last_sale_id', jsonData.data.factura_id);",
+              "        console.log('Venta creada: ' + jsonData.data.factura_id);",
+              "    }",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{auth_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"external_order_id\": \"WEB-{{$timestamp}}\",\n  \"cliente\": {\n    \"documento\": \"1234567890\",\n    \"nombre\": \"Juan Pérez\",\n    \"email\": \"juan@example.com\",\n    \"telefono\": \"+504 9876-5432\",\n    \"direccion\": \"Tegucigalpa, Honduras\"\n  },\n  \"items\": [\n    {\n      \"sku\": \"PROD-001\",\n      \"cantidad\": 2,\n      \"precio_unitario\": 150.00\n    },\n    {\n      \"sku\": \"PROD-002\",\n      \"cantidad\": 1,\n      \"precio_unitario\": 200.00\n    }\n  ],\n  \"subtotal\": 500.00,\n  \"descuento\": 50.00,\n  \"impuestos\": 85.50,\n  \"total\": 535.50,\n  \"forma_pago\": \"tarjeta_credito\",\n  \"metadatos\": {\n    \"shipping_method\": \"express\",\n    \"tracking_number\": \"TRACK-123\",\n    \"notes\": \"Entregar en horario de oficina\"\n  }\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/v1/sales",
+          "host": ["{{base_url}}"],
+          "path": ["v1", "sales"]
+        },
+        "description": "Crear una nueva venta / facturar un pedido. El ID de la factura se guarda automáticamente."
+      }
+    },
+    {
+      "name": "09. Consultar Venta",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{auth_token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/v1/sales/{{last_sale_id}}",
+          "host": ["{{base_url}}"],
+          "path": ["v1", "sales", "{{last_sale_id}}"]
+        },
+        "description": "Consultar el estado y detalles de una venta específica."
+      }
+    },
+    {
+      "name": "10. Anular Venta",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{auth_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"motivo\": \"Solicitud del cliente - Cambió de opinión\",\n  \"external_order_id\": \"WEB-12345\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/v1/sales/{{last_sale_id}}/cancel",
+          "host": ["{{base_url}}"],
+          "path": ["v1", "sales", "{{last_sale_id}}", "cancel"]
+        },
+        "description": "Anular una venta existente y restaurar el inventario."
+      }
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{auth_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost/api",
+      "type": "string"
+    },
+    {
+      "key": "api_key",
+      "value": "pk_your_api_key_here",
+      "type": "string"
+    },
+    {
+      "key": "api_secret",
+      "value": "sk_your_api_secret_here",
+      "type": "string"
+    },
+    {
+      "key": "auth_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "last_sale_id",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}
