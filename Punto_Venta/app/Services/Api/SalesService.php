@@ -42,11 +42,25 @@ class SalesService
                     'caja_id' => 1, // Caja predeterminada para API
                 ]);
                 
-                // 3. Crear factura principal
+                // 3. Preparar comentario con información de entrega
+                $comentario = 'Venta desde API - E-commerce';
+                $comentario .= '\nCliente: ' . $data['customer_name'];
+                $comentario .= '\nEmail: ' . $data['customer_email'];
+                $comentario .= '\nTeléfono: ' . $data['customer_phone'];
+                $comentario .= '\nMétodo de pago: ' . $data['payment_method'];
+                $comentario .= '\nTipo de entrega: ' . ($data['delivery_type'] === 'retiro_tienda' ? 'Retiro en tienda' : 'Entrega a domicilio');
+                if ($data['delivery_type'] === 'domicilio' && !empty($data['delivery_address'])) {
+                    $comentario .= '\nDirección de envío: ' . $data['delivery_address'];
+                }
+                if (!empty($data['notes'])) {
+                    $comentario .= '\nNotas: ' . $data['notes'];
+                }
+                
+                // 4. Crear factura principal
                 $factura = Factura::create([
                     'cai_id' => 1, // CAI por defecto - ajustar según configuración
                     'transaccion_id' => $transaccionId,
-                    'nombre_cliente' => $data['customer_name'] ?? 'Cliente Web',
+                    'nombre_cliente' => $data['customer_name'],
                     'rtn' => $data['customer_rtn'] ?? '',
                     'sub_total' => $data['subtotal'],
                     'sub_total_grabado' => $data['subtotal'],
@@ -57,7 +71,7 @@ class SalesService
                     'dias_credito' => 0,
                     'fecha_emision' => now(),
                     'fecha_vencimiento' => now()->addDays(30),
-                    'comentario' => $data['notes'] ?? 'Venta desde API - E-commerce',
+                    'comentario' => $comentario,
                     'porc_descuento' => 0,
                     'monto_descuento' => $data['discount'] ?? 0,
                     'precio_dolar' => 1,
@@ -66,19 +80,33 @@ class SalesService
                     'users_id' => 1, // Usuario del sistema - ajustar si es necesario
                 ]);
                 
-                // 4. Crear items de factura y descontar stock
+                // 5. Crear items de factura y descontar stock
                 $indice = 1;
                 foreach ($data['items'] as $item) {
-                    $product = $this->productRepo->findBySku($item['sku']);
+                    // Obtener producto por ID
+                    $product = DB::table('producto')->where('id', $item['product_id'])->first();
                     
                     if (!$product) {
-                        throw new ProductNotFoundException("Producto {$item['sku']} no encontrado");
+                        throw new ProductNotFoundException("Producto ID {$item['product_id']} no encontrado");
                     }
                     
                     $cantidad = $item['quantity'];
                     $precioUnidad = $item['price'];
-                    $subtotalItem = $cantidad * $precioUnidad;
-                    $isvItem = $subtotalItem * 0.15; // 15% ISV
+                    $descuentoPorcentaje = $item['discount'] ?? 0;
+                    
+                    // Calcular subtotal del item antes del descuento
+                    $subtotalItemSinDescuento = $cantidad * $precioUnidad;
+                    
+                    // Calcular descuento en monto
+                    $descuentoMonto = ($subtotalItemSinDescuento * $descuentoPorcentaje) / 100;
+                    
+                    // Subtotal después del descuento
+                    $subtotalItem = $subtotalItemSinDescuento - $descuentoMonto;
+                    
+                    // Calcular ISV (15%)
+                    $isvItem = $subtotalItem * 0.15;
+                    
+                    // Total del item
                     $totalItem = $subtotalItem + $isvItem;
                     
                     // Crear item de factura
@@ -94,7 +122,7 @@ class SalesService
                         'precio_unidad' => $precioUnidad,
                         'cantidad' => $cantidad,
                         'subtotal' => $subtotalItem,
-                        'descuento' => 0,
+                        'descuento' => $descuentoMonto,
                         'isv_aplicado' => 15.00,
                         'isv' => $isvItem,
                         'total' => $totalItem,
@@ -106,12 +134,17 @@ class SalesService
                     $this->decrementarStockBodega($product->id, $cantidad);
                 }
                 
-                // 4. Invalidar cache de inventario
+                // 6. Invalidar cache de inventario
                 Cache::flush(); // Driver 'file' no soporta tags
                 
-                // 5. Log de éxito
+                // 7. Log de éxito
                 Log::info('API: Venta creada exitosamente', [
                     'factura_id' => $factura->id,
+                    'cliente' => $data['customer_name'],
+                    'email' => $data['customer_email'],
+                    'telefono' => $data['customer_phone'],
+                    'tipo_entrega' => $data['delivery_type'],
+                    'metodo_pago' => $data['payment_method'],
                     'total' => $factura->total,
                     'items' => count($data['items']),
                     'api_client' => $apiClient->name,
@@ -133,10 +166,11 @@ class SalesService
         $insufficientItems = [];
         
         foreach ($items as $item) {
-            $product = $this->productRepo->findBySku($item['sku']);
+            // Obtener producto por ID
+            $product = DB::table('producto')->where('id', $item['product_id'])->first();
             
             if (!$product) {
-                throw new ProductNotFoundException("Producto {$item['sku']} no encontrado");
+                throw new ProductNotFoundException("Producto ID {$item['product_id']} no encontrado");
             }
             
             // Obtener stock total disponible
@@ -147,7 +181,7 @@ class SalesService
             
             if ($stockDisponible < $item['quantity']) {
                 $insufficientItems[] = [
-                    'sku' => $item['sku'],
+                    'product_id' => $item['product_id'],
                     'product_name' => $product->nombre,
                     'requested' => $item['quantity'],
                     'available' => $stockDisponible,

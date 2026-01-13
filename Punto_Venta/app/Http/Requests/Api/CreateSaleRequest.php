@@ -26,16 +26,16 @@ class CreateSaleRequest extends FormRequest
         return [
             // Cliente
             'customer_name' => 'required|string|max:255',
+            'customer_email' => 'required|email|max:255',
+            'customer_phone' => 'required|string|regex:/^\+504[0-9]{8}$/|max:13',
             'customer_rtn' => 'nullable|string|max:50',
-            'customer_email' => 'nullable|email|max:255',
-            'customer_phone' => 'nullable|string|max:50',
-            'customer_address' => 'nullable|string|max:500',
             
-            // Items
+            // Items - Ahora recibe product_id en lugar de sku
             'items' => 'required|array|min:1|max:100',
-            'items.*.sku' => 'required|string|max:100',
+            'items.*.product_id' => 'required|integer|exists:producto,id',
             'items.*.quantity' => 'required|integer|min:1|max:10000',
             'items.*.price' => 'required|numeric|min:0|max:999999999',
+            'items.*.discount' => 'nullable|numeric|min:0|max:100',
             
             // Totales
             'subtotal' => 'required|numeric|min:0|max:999999999',
@@ -43,8 +43,12 @@ class CreateSaleRequest extends FormRequest
             'tax' => 'required|numeric|min:0|max:999999999',
             'total' => 'required|numeric|min:0|max:999999999',
             
-            // Opcionales
-            'payment_method' => 'nullable|string|max:50',
+            // Datos de entrega
+            'delivery_type' => 'required|in:retiro_tienda,domicilio',
+            'delivery_address' => 'required_if:delivery_type,domicilio|nullable|string|max:500',
+            
+            // Método de pago y notas
+            'payment_method' => 'required|string|max:50',
             'notes' => 'nullable|string|max:1000',
         ];
     }
@@ -56,15 +60,24 @@ class CreateSaleRequest extends FormRequest
     {
         return [
             'customer_name.required' => 'El nombre del cliente es requerido',
+            'customer_email.required' => 'El email del cliente es requerido',
+            'customer_email.email' => 'El email debe ser válido',
+            'customer_phone.required' => 'El teléfono del cliente es requerido',
+            'customer_phone.regex' => 'El teléfono debe estar en formato +504XXXXXXXX',
             'items.required' => 'Debe incluir al menos un producto',
             'items.min' => 'Debe incluir al menos un producto',
-            'items.*.sku.required' => 'El SKU del producto es requerido',
+            'items.*.product_id.required' => 'El ID del producto es requerido',
+            'items.*.product_id.exists' => 'El producto no existe',
             'items.*.quantity.required' => 'La cantidad es requerida',
             'items.*.quantity.min' => 'La cantidad debe ser mayor a 0',
             'items.*.price.required' => 'El precio es requerido',
             'subtotal.required' => 'El subtotal es requerido',
             'tax.required' => 'El ISV es requerido',
             'total.required' => 'El total es requerido',
+            'delivery_type.required' => 'El tipo de entrega es requerido',
+            'delivery_type.in' => 'El tipo de entrega debe ser "retiro_tienda" o "domicilio"',
+            'delivery_address.required_if' => 'La dirección de envío es requerida para entregas a domicilio',
+            'payment_method.required' => 'El método de pago es requerido',
         ];
     }
 

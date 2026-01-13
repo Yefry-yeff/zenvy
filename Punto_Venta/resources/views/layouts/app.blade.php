@@ -390,8 +390,8 @@
             pedidosDropdownOpen = false;
             document.getElementById('pedidos-dropdown').style.display = 'none';
             
-            // Abrir el detalle en una nueva pestaña
-            window.open('/pedidos-web/' + pedidoId, '_blank');
+            // Cargar el detalle del pedido en el componente dinámico
+            window.Livewire.dispatch('cambiarVista', ['DetallePedido', {pedidoId: pedidoId}]);
         }
 
         function updatePedidosBadge() {

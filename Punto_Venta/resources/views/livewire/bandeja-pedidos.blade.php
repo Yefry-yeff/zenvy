@@ -85,9 +85,9 @@
                                     <div class="text-xs text-gray-400">{{ $pedido->created_at->diffForHumans() }}</div>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                    <a href="{{ route('pedidos-web.show', $pedido->id) }}" target="_blank" class="text-blue-600 hover:text-blue-900">
+                                    <button wire:click="$dispatch('cambiarVista', ['DetallePedido', {pedidoId: {{ $pedido->id }}}])" class="text-blue-600 hover:text-blue-900">
                                         Ver detalles →
-                                    </a>
+                                    </button>
                                 </td>
                             </tr>
                         @empty

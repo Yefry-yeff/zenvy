@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ejemplo Checkout - Zenvy E-commerce</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            margin-bottom: 10px;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .section {
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .section:last-child {
+            border-bottom: none;
+        }
+        
+        .section h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: #333;
+        }
+        
+        input, select, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .error {
+            color: #e74c3c;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+        
+        .cart-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+        
+        .cart-item-info {
+            flex: 1;
+        }
+        
+        .cart-item-name {
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .cart-item-details {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .cart-item-price {
+            font-weight: 700;
+            color: #667eea;
+            font-size: 18px;
+        }
+        
+        .totals {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 5px;
+        }
+        
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        
+        .total-row.final {
+            font-size: 20px;
+            font-weight: 700;
+            color: #667eea;
+            border-top: 2px solid #ddd;
+            padding-top: 10px;
+            margin-top: 10px;
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 15px;
+            font-size: 16px;
+            font-weight: 600;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .radio-group {
+            display: flex;
+            gap: 20px;
+        }
+        
+        .radio-option {
+            flex: 1;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.3s;
+        }
+        
+        .radio-option:hover {
+            border-color: #667eea;
+        }
+        
+        .radio-option.active {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+        
+        .radio-option input {
+            display: none;
+        }
+        
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🛒 Finalizar Compra</h1>
+            <p>Complete los datos para procesar su pedido</p>
+        </div>
+        
+        <div class="content">
+            <div id="messages"></div>
+            
+            <!-- Carrito -->
+            <div class="section">
+                <h2>📦 Productos en tu Carrito</h2>
+                <div id="cart-items">
+                    <!-- Items se generan dinámicamente -->
+                </div>
+            </div>
+            
+            <!-- Datos del Cliente -->
+            <div class="section">
+                <h2>👤 Datos del Cliente</h2>
+                <div class="form-group">
+                    <label for="customer_name">Nombre Completo *</label>
+                    <input type="text" id="customer_name" placeholder="María González Pérez">
+                    <div class="error" id="error_customer_name"></div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="customer_email">Email *</label>
+                    <input type="email" id="customer_email" placeholder="maria@example.com">
+                    <div class="error" id="error_customer_email"></div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="customer_phone">Teléfono (formato: +504XXXXXXXX) *</label>
+                    <input type="tel" id="customer_phone" placeholder="+50498765432" maxlength="13">
+                    <div class="error" id="error_customer_phone"></div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="customer_rtn">RTN (Opcional)</label>
+                    <input type="text" id="customer_rtn" placeholder="08011985654321">
+                </div>
+            </div>
+            
+            <!-- Tipo de Entrega -->
+            <div class="section">
+                <h2>🚚 Tipo de Entrega</h2>
+                <div class="radio-group">
+                    <label class="radio-option active" data-value="retiro_tienda">
+                        <input type="radio" name="delivery_type" value="retiro_tienda" checked>
+                        <div>🏪 Retiro en Tienda</div>
+                    </label>
+                    <label class="radio-option" data-value="domicilio">
+                        <input type="radio" name="delivery_type" value="domicilio">
+                        <div>🏠 Entrega a Domicilio</div>
+                    </label>
+                </div>
+                
+                <div class="form-group" id="address_group" style="display: none; margin-top: 15px;">
+                    <label for="delivery_address">Dirección de Entrega *</label>
+                    <textarea id="delivery_address" rows="3" placeholder="Colonia, Bloque, Casa, Ciudad"></textarea>
+                    <div class="error" id="error_delivery_address"></div>
+                </div>
+            </div>
+            
+            <!-- Método de Pago -->
+            <div class="section">
+                <h2>💳 Método de Pago</h2>
+                <div class="form-group">
+                    <select id="payment_method">
+                        <option value="">Seleccione método de pago</option>
+                        <option value="Tarjeta de Crédito">Tarjeta de Crédito</option>
+                        <option value="Tarjeta de Débito">Tarjeta de Débito</option>
+                        <option value="Transferencia">Transferencia Bancaria</option>
+                        <option value="Efectivo">Efectivo</option>
+                    </select>
+                    <div class="error" id="error_payment_method"></div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="notes">Notas Adicionales (Opcional)</label>
+                    <textarea id="notes" rows="2" placeholder="Ej: Llamar antes de llegar, entregar en horario de tarde"></textarea>
+                </div>
+            </div>
+            
+            <!-- Resumen -->
+            <div class="section">
+                <h2>💰 Resumen del Pedido</h2>
+                <div class="totals">
+                    <div class="total-row">
+                        <span>Subtotal:</span>
+                        <span id="subtotal">L. 0.00</span>
+                    </div>
+                    <div class="total-row">
+                        <span>Descuento:</span>
+                        <span id="discount" style="color: #e74c3c;">-L. 0.00</span>
+                    </div>
+                    <div class="total-row">
+                        <span>ISV (15%):</span>
+                        <span id="tax">L. 0.00</span>
+                    </div>
+                    <div class="total-row final">
+                        <span>TOTAL:</span>
+                        <span id="total">L. 0.00</span>
+                    </div>
+                </div>
+            </div>
+            
+            <button class="btn btn-primary" id="btn_submit">
+                Confirmar Pedido
+            </button>
+        </div>
+    </div>
+    
+    <script src="zenvy-ecommerce-api-client.js"></script>
+    <script>
+        // ====================================================================
+        // CONFIGURACIÓN
+        // ====================================================================
+        
+        const API_CONFIG = {
+            baseUrl: 'http://localhost:8000',
+            apiKey: 'tu-api-key-aqui'
+        };
+        
+        // Datos de ejemplo del carrito (normalmente vendrían de tu sistema)
+        const cartData = [
+            {
+                id: 1,
+                name: 'Laptop HP Pavilion',
+                quantity: 1,
+                price: 15000.00,
+                discount: 10
+            },
+            {
+                id: 2,
+                name: 'Mouse Logitech',
+                quantity: 2,
+                price: 250.00,
+                discount: 5
+            },
+            {
+                id: 3,
+                name: 'Teclado Mecánico',
+                quantity: 1,
+                price: 800.00,
+                discount: 0
+            }
+        ];
+        
+        // ====================================================================
+        // INICIALIZACIÓN
+        // ====================================================================
+        
+        const api = new ZenvyEcommerceAPI(API_CONFIG.baseUrl, API_CONFIG.apiKey);
+        
+        // ====================================================================
+        // RENDERIZAR CARRITO Y TOTALES
+        // ====================================================================
+        
+        function renderCart() {
+            const cartContainer = document.getElementById('cart-items');
+            cartContainer.innerHTML = '';
+            
+            cartData.forEach(item => {
+                const itemPrice = item.quantity * item.price;
+                const itemDiscount = (itemPrice * item.discount) / 100;
+                const itemTotal = itemPrice - itemDiscount;
+                
+                const cartItem = document.createElement('div');
+                cartItem.className = 'cart-item';
+                cartItem.innerHTML = `
+                    <div class="cart-item-info">
+                        <div class="cart-item-name">${item.name}</div>
+                        <div class="cart-item-details">
+                            Cantidad: ${item.quantity} × L. ${item.price.toFixed(2)}
+                            ${item.discount > 0 ? `(-${item.discount}% desc.)` : ''}
+                        </div>
+                    </div>
+                    <div class="cart-item-price">L. ${itemTotal.toFixed(2)}</div>
+                `;
+                cartContainer.appendChild(cartItem);
+            });
+            
+            updateTotals();
+        }
+        
+        function updateTotals() {
+            const items = cartData.map(item => ({
+                product_id: item.id,
+                quantity: item.quantity,
+                price: item.price,
+                discount: item.discount || 0
+            }));
+            
+            const totals = api.calculateTotals(items);
+            
+            document.getElementById('subtotal').textContent = `L. ${totals.subtotal.toFixed(2)}`;
+            document.getElementById('discount').textContent = `-L. ${totals.discount.toFixed(2)}`;
+            document.getElementById('tax').textContent = `L. ${totals.tax.toFixed(2)}`;
+            document.getElementById('total').textContent = `L. ${totals.total.toFixed(2)}`;
+        }
+        
+        // ====================================================================
+        // MANEJO DE FORMULARIO
+        // ====================================================================
+        
+        // Toggle dirección según tipo de entrega
+        document.querySelectorAll('input[name="delivery_type"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                const addressGroup = document.getElementById('address_group');
+                addressGroup.style.display = this.value === 'domicilio' ? 'block' : 'none';
+                
+                // Actualizar estilos de las opciones
+                document.querySelectorAll('.radio-option').forEach(option => {
+                    option.classList.remove('active');
+                });
+                this.closest('.radio-option').classList.add('active');
+            });
+        });
+        
+        // Click en las opciones de radio
+        document.querySelectorAll('.radio-option').forEach(option => {
+            option.addEventListener('click', function() {
+                const radio = this.querySelector('input[type="radio"]');
+                radio.checked = true;
+                radio.dispatchEvent(new Event('change'));
+            });
+        });
+        
+        // Formato automático de teléfono
+        document.getElementById('customer_phone').addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            if (value.startsWith('504')) {
+                value = '+' + value;
+            } else if (value.length > 0 && !value.startsWith('504')) {
+                value = '+504' + value;
+            }
+            e.target.value = value.substring(0, 13);
+        });
+        
+        // ====================================================================
+        // ENVÍO DEL FORMULARIO
+        // ====================================================================
+        
+        document.getElementById('btn_submit').addEventListener('click', async function() {
+            // Limpiar mensajes anteriores
+            document.getElementById('messages').innerHTML = '';
+            document.querySelectorAll('.error').forEach(el => el.textContent = '');
+            
+            // Deshabilitar botón
+            const btn = this;
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading"></span> Procesando...';
+            
+            try {
+                // Recolectar datos del formulario
+                const formData = {
+                    customer_name: document.getElementById('customer_name').value,
+                    customer_email: document.getElementById('customer_email').value,
+                    customer_phone: document.getElementById('customer_phone').value,
+                    customer_rtn: document.getElementById('customer_rtn').value || null,
+                    
+                    items: cartData.map(item => ({
+                        product_id: item.id,
+                        quantity: item.quantity,
+                        price: item.price,
+                        discount: item.discount || 0
+                    })),
+                    
+                    delivery_type: document.querySelector('input[name="delivery_type"]:checked').value,
+                    delivery_address: document.getElementById('delivery_address').value || null,
+                    
+                    payment_method: document.getElementById('payment_method').value,
+                    notes: document.getElementById('notes').value || null
+                };
+                
+                // Calcular totales
+                const totals = api.calculateTotals(formData.items);
+                Object.assign(formData, totals);
+                
+                // Enviar a la API
+                const response = await api.createSale(formData);
+                
+                // Éxito
+                document.getElementById('messages').innerHTML = `
+                    <div class="success-message">
+                        <strong>✅ ¡Pedido Confirmado!</strong><br>
+                        Su pedido ha sido registrado exitosamente.<br>
+                        <strong>Factura #${response.data.factura_id}</strong><br>
+                        Total: L. ${response.data.total.toFixed(2)}
+                    </div>
+                `;
+                
+                // Limpiar formulario o redirigir
+                setTimeout(() => {
+                    alert('¡Gracias por su compra! Será redirigido...');
+                    // window.location.href = '/confirmacion/' + response.data.factura_id;
+                }, 2000);
+                
+            } catch (error) {
+                if (error instanceof APIError) {
+                    // Mostrar mensaje de error
+                    document.getElementById('messages').innerHTML = `
+                        <div class="error-message">
+                            <strong>❌ Error</strong><br>
+                            ${error.getUserFriendlyMessage()}
+                        </div>
+                    `;
+                    
+                    // Mostrar errores de validación
+                    if (error.isValidationError()) {
+                        Object.keys(error.details).forEach(field => {
+                            const errorEl = document.getElementById(`error_${field}`);
+                            if (errorEl) {
+                                errorEl.textContent = error.details[field][0];
+                            }
+                        });
+                    }
+                    
+                    // Mostrar productos sin stock
+                    if (error.isStockError()) {
+                        const stockDetails = error.details.map(item => 
+                            `${item.product_name}: solicitado ${item.requested}, disponible ${item.available}`
+                        ).join('<br>');
+                        
+                        document.getElementById('messages').innerHTML += `
+                            <div style="margin-top: 10px; font-size: 14px;">
+                                ${stockDetails}
+                            </div>
+                        `;
+                    }
+                } else {
+                    document.getElementById('messages').innerHTML = `
+                        <div class="error-message">
+                            <strong>❌ Error Inesperado</strong><br>
+                            Por favor intente nuevamente o contacte con soporte.
+                        </div>
+                    `;
+                }
+                
+                // Scroll al mensaje
+                document.getElementById('messages').scrollIntoView({ behavior: 'smooth' });
+                
+            } finally {
+                // Rehabilitar botón
+                btn.disabled = false;
+                btn.textContent = 'Confirmar Pedido';
+            }
+        });
+        
+        // ====================================================================
+        // INICIAR
+        // ====================================================================
+        
+        renderCart();
+    </script>
+</body>
+</html>

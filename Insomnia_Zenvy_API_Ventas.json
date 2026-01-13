@@ -1,0 +1,137 @@
+{
+  "_type": "export",
+  "__export_format": 4,
+  "__export_date": "2026-01-13T00:00:00.000Z",
+  "__export_source": "insomnia.desktop.app:v12.2.0",
+  "resources": [
+    {
+      "_id": "wrk_zenvy_api",
+      "_type": "workspace",
+      "name": "Zenvy API - Ventas E-commerce",
+      "description": "API de ventas para e-commerce de Zenvy\n\nServidor: http://localhost:8001\nCliente: Johann Ruiz\nTotal: L. 1,667.50",
+      "scope": "collection"
+    },
+    {
+      "_id": "env_base",
+      "_type": "environment",
+      "name": "Base Environment",
+      "data": {
+        "base_url": "http://127.0.0.1:8000",
+        "api_key": "pk_LhkEAssdwNMPjJMc3gqJL2TtIX96mi1s",
+        "api_secret": "sk_3fXa0kouB9l0Qiw1mLYoIcZKRX6WbIfLykKCLK5tT2fKKqPOYoQs7mOeS7tP1LcZ",
+        "token": ""
+      },
+      "parentId": "wrk_zenvy_api",
+      "color": null,
+      "isPrivate": false,
+      "metaSortKey": 1
+    },
+    {
+      "_id": "req_auth_token",
+      "_type": "request",
+      "name": "1. Obtener Token JWT",
+      "method": "POST",
+      "url": "{{ _.base_url }}/api/v1/auth/token",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"api_key\": \"{{ _.api_key }}\",\n  \"api_secret\": \"{{ _.api_secret }}\"\n}"
+      },
+      "parentId": "wrk_zenvy_api",
+      "description": "Obtener token JWT para autenticación.\n\nPASOS:\n1. Configura api_key y api_secret en el Environment\n2. Ejecuta este request\n3. Copia el token de la respuesta\n4. Pégalo en la variable 'token' del Environment"
+    },
+    {
+      "_id": "req_create_sale_johann",
+      "_type": "request",
+      "name": "2. Crear Venta - Johann Ruiz",
+      "method": "POST",
+      "url": "{{ _.base_url }}/api/v1/sales",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Accept",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"customer_name\": \"Johann Ruiz\",\n  \"customer_email\": \"johann_ruiz14@hotmail.com\",\n  \"customer_phone\": \"+50497525987\",\n  \n  \"items\": [\n    {\n      \"product_id\": 7463,\n      \"quantity\": 1,\n      \"price\": 1000.00,\n      \"discount\": 10\n    },\n    {\n      \"product_id\": 7462,\n      \"quantity\": 1,\n      \"price\": 500.00,\n      \"discount\": 0\n    },\n    {\n      \"product_id\": 7461,\n      \"quantity\": 1,\n      \"price\": 50.00,\n      \"discount\": 0\n    }\n  ],\n  \n  \"delivery_type\": \"domicilio\",\n  \"delivery_address\": \"Oficina Francisco Morazán, Tegucigalpa, El centro de AMDC, Frente AMDC\",\n  \n  \"payment_method\": \"Efectivo\",\n  \"notes\": \"Dejar afuera\",\n  \n  \"subtotal\": 1450.00,\n  \"discount\": 100.00,\n  \"tax\": 217.50,\n  \"total\": 1667.50\n}"
+      },
+      "parentId": "wrk_zenvy_api",
+      "description": "Crear venta para Johann Ruiz con:\n- 2 productos + envío\n- Entrega a domicilio\n- Pago en efectivo\n- Total: L. 1,667.50\n\nREQUERIMIENTOS:\n- Tener un token JWT válido en el Environment\n- Los product_id deben existir en la BD"
+    },
+    {
+      "_id": "req_get_sale",
+      "_type": "request",
+      "name": "3. Consultar Venta por ID",
+      "method": "GET",
+      "url": "{{ _.base_url }}/api/v1/sales/1",
+      "headers": [
+        {
+          "name": "Accept",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "parentId": "wrk_zenvy_api",
+      "description": "Consultar el estado de una venta existente.\n\nCambiar el '1' en la URL por el ID de la factura que quieres consultar."
+    },
+    {
+      "_id": "req_cancel_sale",
+      "_type": "request",
+      "name": "4. Anular Venta",
+      "method": "PUT",
+      "url": "{{ _.base_url }}/api/v1/sales/1/cancel",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Accept",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"motivo\": \"Cliente solicitó cancelación del pedido\"\n}"
+      },
+      "parentId": "wrk_zenvy_api",
+      "description": "Anular una venta y restaurar el stock.\n\nCambiar el '1' en la URL por el ID de la factura a anular."
+    },
+    {
+      "_id": "req_health",
+      "_type": "request",
+      "name": "0. Health Check (Sin Auth)",
+      "method": "GET",
+      "url": "{{ _.base_url }}/api/health",
+      "headers": [
+        {
+          "name": "Accept",
+          "value": "application/json"
+        }
+      ],
+      "parentId": "wrk_zenvy_api",
+      "description": "Verificar que la API está funcionando.\n\nEste endpoint NO requiere autenticación."
+    }
+  ]
+}
