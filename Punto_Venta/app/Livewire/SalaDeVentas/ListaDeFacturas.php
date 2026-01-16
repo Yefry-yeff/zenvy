@@ -195,6 +195,8 @@ class ListaDeFacturas extends Component
     public $productosFacturaImpresa = [];
     public $pagosFacturaImpresa = [];
     public $caiFacturaImpresa = null;
+    public $empresaFacturaImpresa = null;
+    public $tiendaFacturaImpresa = null;
     public $facturaDetalle = null;
 
     public function verDetalle($facturaId)
@@ -216,6 +218,16 @@ class ListaDeFacturas extends Component
     {
         // Cargar la factura
         $this->facturaParaImprimir = Factura::find($facturaId);
+
+        // Cargar información de la empresa
+        $this->empresaFacturaImpresa = DB::table('empresa')->first();
+
+        // Cargar información de la tienda
+        $this->tiendaFacturaImpresa = DB::table('tienda as t')
+            ->leftJoin('direccion as d', 't.direccion_sucursal_id', '=', 'd.id')
+            ->select('t.*', 'd.domicilio_tributario')
+            ->where('t.id', 1)
+            ->first();
 
         // Cargar información del CAI asociado a la factura
         $this->caiFacturaImpresa = DB::table('cai')
@@ -244,7 +256,14 @@ class ListaDeFacturas extends Component
             ->join('tipo_pago as tp', 'fp.tipo_pago_id', '=', 'tp.id')
             ->where('fp.factura_id', $facturaId)
             ->select('tp.nombre as metodo', 'fp.pago_recibido')
-            ->get();
+            ->get()
+            ->map(function($pago) {
+                return [
+                    'metodo' => $pago->metodo,
+                    'pago_recibido' => $pago->pago_recibido
+                ];
+            })
+            ->toArray();
     }
 
     public function cerrarImpresion()

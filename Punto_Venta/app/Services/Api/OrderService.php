@@ -188,6 +188,16 @@ class OrderService
                 $this->decrementarStockBodega($item->producto_id, $item->cantidad);
             }
             
+            // Crear registro de pago basado en el método de pago del pedido web
+            $tipoPagoId = $this->obtenerTipoPagoId($pedido->metodo_pago);
+            \App\Models\FacturaHasPago::create([
+                'factura_id' => $factura->id,
+                'tipo_pago_id' => $tipoPagoId,
+                'total_factura' => $pedido->total,
+                'pago_recibido' => $pedido->total,
+                'cambio' => 0
+            ]);
+            
             // Marcar pedido como facturado
             $pedido->marcarComoFacturado($factura->id);
             
@@ -260,5 +270,23 @@ class OrderService
     private function generateOrderNumber(): string
     {
         return 'WEB-' . date('Ymd') . '-' . strtoupper(substr(uniqid(), -6));
+    }
+    
+    /**
+     * Obtener ID del tipo de pago basado en el método
+     */
+    private function obtenerTipoPagoId(?string $metodoPago): int
+    {
+        // Mapeo de métodos de pago del pedido web a tipo_pago_id
+        // Basado en tabla tipo_pago: 1=Efectivo, 2=Tarjeta(POS), 3=Cheque, 4=Transferencia
+        $mapeo = [
+            'efectivo' => 1,
+            'tarjeta' => 2,
+            'transferencia' => 4,
+            'cheque' => 3,
+        ];
+        
+        $metodo = strtolower($metodoPago ?? 'efectivo');
+        return $mapeo[$metodo] ?? 1; // Por defecto efectivo
     }
 }
