@@ -35,7 +35,8 @@ class Factura extends Model
         'precio_dolar',
         'estado_factura_id',
         'users_id',
-        'factura_imagen'
+        'factura_imagen',
+        'origen_web'
     ];
 
     protected $casts = [
@@ -48,7 +49,8 @@ class Factura extends Model
         'total' => 'decimal:2',
         'credito' => 'decimal:2',
         'monto_descuento' => 'decimal:2',
-        'precio_dolar' => 'decimal:2'
+        'precio_dolar' => 'decimal:2',
+        'origen_web' => 'boolean'
     ];
 
     // Relationships

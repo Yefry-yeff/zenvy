@@ -58,7 +58,7 @@
             <div class="overflow-hidden border border-gray-300 rounded shadow">
                 <!-- Barra de búsqueda y filtros principales -->
                 <div class="px-4 py-3 border-b bg-gray-50">
-                    <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+                    <div class="grid grid-cols-1 gap-4 md:grid-cols-4">
                         <!-- Búsqueda -->
                         <div class="md:col-span-2">
                             <label class="block mb-1 text-sm font-medium text-gray-700">Buscar</label>
@@ -66,6 +66,15 @@
                                    wire:model.live.debounce.300ms="buscar"
                                    placeholder="Buscar por cliente, número o RTN..."
                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+                        <!-- Filtro Origen -->
+                        <div>
+                            <label class="block mb-1 text-sm font-medium text-gray-700">Origen</label>
+                            <select wire:model.live="filtroOrigen" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                <option value="">Todas</option>
+                                <option value="web">🌐 Página Web</option>
+                                <option value="pos">🏪 Punto de Venta</option>
+                            </select>
                         </div>
                         <!-- Botón Excel -->
                         <div class="flex items-end gap-2">
@@ -224,8 +233,15 @@
                             <tbody class="divide-y divide-gray-200">
                                 @if($facturas->count() > 0)
                                     @foreach($facturas as $factura)
-                                    <tr class="transition-colors duration-150 cursor-pointer hover:bg-gray-50" wire:key="factura-{{ $factura->id }}" wire:click="verDetalle({{ $factura->id }})">
-                                        <td class="px-2 py-1 text-xs">{{ $factura->id }}</td>
+                                    <tr class="transition-colors duration-150 cursor-pointer hover:bg-gray-50 {{ $factura->origen_web ? 'bg-blue-50' : '' }}" wire:key="factura-{{ $factura->id }}" wire:click="verDetalle({{ $factura->id }})">
+                                        <td class="px-2 py-1 text-xs">
+                                            <div class="flex items-center gap-1">
+                                                {{ $factura->id }}
+                                                @if($factura->origen_web)
+                                                    <span class="text-blue-600" title="Factura generada desde página web">🌐</span>
+                                                @endif
+                                            </div>
+                                        </td>
                                         <td class="px-2 py-1 text-xs font-semibold">{{ $factura->numero_factura ?? 'N/A' }}</td>
                                         <td class="px-2 py-1 text-xs truncate" title="{{ $factura->nombre_cliente ?? 'Cliente General' }}">{{ Str::limit($factura->nombre_cliente ?? 'Cliente General', 25) }}</td>
                                         <td class="px-2 py-1 text-xs">{{ $factura->rtn ?? 'N/A' }}</td>

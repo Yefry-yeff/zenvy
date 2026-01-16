@@ -14,7 +14,8 @@ class OrderService
 {
     public function __construct(
         private ProductRepository $productRepo,
-        private InventoryService $inventoryService
+        private InventoryService $inventoryService,
+        private \App\Services\CAIService $caiService
     ) {}
     
     /**
@@ -124,9 +125,20 @@ class OrderService
                 'caja_id' => $options['caja_id'] ?? 1,
             ]);
             
+            // Obtener el siguiente número de factura del CAI
+            try {
+                $infoCAI = $this->caiService->obtenerSiguienteNumeroFactura();
+                $caiId = $infoCAI['cai_id'];
+                $numeroFactura = $infoCAI['numero_factura'];
+            } catch (\Exception $e) {
+                Log::error('Error al obtener CAI', ['error' => $e->getMessage()]);
+                throw new \Exception('No se pudo obtener un CAI válido para facturar: ' . $e->getMessage());
+            }
+            
             // Crear factura
             $factura = Factura::create([
-                'cai_id' => $options['cai_id'] ?? 1,
+                'cai_id' => $caiId,
+                'numero_factura' => $numeroFactura,
                 'transaccion_id' => $transaccionId,
                 'nombre_cliente' => $pedido->cliente_nombre,
                 'rtn' => $pedido->cliente_rtn ?? '',
@@ -139,13 +151,14 @@ class OrderService
                 'dias_credito' => 0,
                 'fecha_emision' => now(),
                 'fecha_vencimiento' => now()->addDays(30),
-                'comentario' => "Pedido Web #{$pedido->numero_pedido} - {$pedido->notas}",
+                'comentario' => "Pedido Web #{$pedido->numero_pedido}" . ($pedido->notas ? " - {$pedido->notas}" : ""),
                 'porc_descuento' => 0,
                 'monto_descuento' => $pedido->descuento,
                 'precio_dolar' => 1,
                 'estado_factura_id' => 1,
                 'tipo_facturacion_id' => $options['tipo_facturacion_id'] ?? 1,
                 'users_id' => $userId,
+                'origen_web' => true, // Bandera para identificar que viene de la web
             ]);
             
             // Crear items de factura y descontar stock

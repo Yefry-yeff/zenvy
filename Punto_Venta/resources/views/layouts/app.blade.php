@@ -394,29 +394,6 @@
             window.Livewire.dispatch('cambiarVista', ['DetallePedido', {pedidoId: pedidoId}]);
         }
 
-        function updatePedidosBadge() {
-            fetch('/api/v1/orders/unread/count', {
-                headers: {
-                    'Accept': 'application/json',
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success && data.data.unread_count > 0) {
-                    const badge = document.getElementById('pedidos-badge');
-                    badge.textContent = data.data.unread_count;
-                    badge.style.display = 'inline-flex';
-                } else {
-                    const badge = document.getElementById('pedidos-badge');
-                    badge.style.display = 'none';
-                }
-            })
-            .catch(error => {
-                console.log('Badge update skipped:', error);
-            });
-        }
-
         // Cerrar dropdown al hacer clic fuera
         document.addEventListener('click', function(event) {
             const dropdown = document.getElementById('pedidos-dropdown');
@@ -428,11 +405,113 @@
             }
         });
 
+        let previousUnreadCount = 0;
+
+        // Función para mostrar alerta de nuevo pedido
+        function mostrarAlertaNuevoPedido(cantidad) {
+            // Crear notificación de escritorio si está permitido
+            if ("Notification" in window && Notification.permission === "granted") {
+                new Notification("Nuevo pedido web recibido", {
+                    body: `Tienes ${cantidad} pedido(s) pendiente(s) por procesar`,
+                    icon: "{{ asset('img/Logo_Paperland2.png') }}",
+                    badge: "{{ asset('img/Logo_Paperland2.png') }}"
+                });
+            }
+
+            // Reproducir sonido de notificación
+            const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBjGH0fPTgjMGHm7A7+OZRQ0PVK3n77FgGAg+lejys2EaBjqLz/PZeCwGKXnF8N+PPgsSYbro7qRSEwtBn+DyvmshBi+Dz/PaiDEGH27A7+OaRQ0PVa3n77FgGAg+lejys2EaBjqLz/PZeCwGKXnF8N+PPgsSYbro7qRSEwtBn+DyvmshBi+Dz/PaiDEGH27A7+OaRQ0PVa3n77FgGAg+lejys2EaBjqLz/PZeCwGKXnF8N+PPgsSYbro7qRSEwtBn+DyvmshBi+Dz/PaiDEGH27A7+OaRQ0PVa3n77FgGAg+lejys2EaBjqLz/PZeCwGKXnF8N+PPgsSYbro7qRSEwtBn+DyvmshBi+Dz/PaiDEGH27A7+OaRQ0PVa3n77FgGAg+lejys2EaBjqLz/PZeCwGKXnF8N+PPgsSYbro7qRSEwtBn+DyvmshBi+Dz/PaiDEGH27A7+OaRQ0PVa3n77FgGAg+lejys2EaBjqLz/PZeCwGKXnF8N+PPgsSYbro7qRSEwtBn+DyvmshBi+Dz/PaiDEGH27A7+OaRQ0PVa3n77FgGAg+lejys2EaBjqLz/PZeCwGKXnF8N+PPgsSYbro7qRSEwtBn+DyvmshBi+Dz/PaiDEGH27A7+OaRQ0PVa3n77FgGAg+lejys2EaBjqLz/PZeCwGKXnF8N+PPgsSYbro7qRSEwtBn+DyvmshBi+Dz/PaiDEGH27A7+OaRQ0PVa3n77FgGAg+lejys2EaBjqLz/PZeCwGKXnF8N+PPgsSYbro7qRSEwtBn+DyvmshBi+Dz/PaiDEGH27A7+OaRQ0PVa3n77FgGAg+lejys2EaBjqLz/PZeCwGKXnF8N+PPgsSYbro7qRSEwtBn+DyvmshBi+Dz/PaiDEGH27A7+OaRQ0PVa3n77FgGAg+lejys2EaBjqLz/PZeCwGKXnF8N+PPgsSYbro7qRSEwtBn+DyvmshBi+Dz/PaiDEGH27A7+OaRQ0PVa3n77FgGAg+lejys2EaBjqLz/PaiDEGH27A7+OaRQ0PVa3n77FgGAg+lejys2EaBjqLz/PZeCwGKXnF8N+PPgsSYbro7qRSEwtBn+DyvmshBi+Dz/PaiDEGH27A7+OaRQ0PVa3n77FgGAg+lejys2EaBjqLz/PZeCwGKXnF8N+PPgsSYbro7qRSEwtBn+DyvmshBi+Dz/PaiDEGH27A7+OaRQ0PVa3n77FgGAg+lejys2EaBjqLz/PZeCwGKXnF8N+PPgsSYbro7qRSEwtBn+DyvmshBi+Dz/PaiDEGH27A7+OaRQ0PVa3n77FgGAg+lejys2EaBjqLz/PZeCwGKXnF8N+PPgsSYbro7qRSEwtBn+DyvmshBi+Dz/PaiDEGH27A7+OaRQ0PVa3n77FgGAg+lejys2EaBjqLz/PZeCwGKXnF8N+PPgsSYbro7qRSEwtBn+DyvmshBi+Dz/PaiDEGH27A7+OaRQ0PVa3n77FgGAg+lejys2EaBjqLz/PZeCwGKXnF8N+PPgsSYbro7qRSEwtBn+DyvmshBi+Dz/PaiDEGH27A7+OaRQ0PVa3n77FgGAg+lejys2EaBjqLz/PZeCwGKXnF8N+PPgsSYbro7qRQ==');
+            audio.play().catch(e => console.log('Audio no disponible'));
+
+            // Mostrar toast animado
+            mostrarToast('Nuevo pedido web recibido', 'Tienes pedidos pendientes por procesar', 'info');
+        }
+
+        // Función para mostrar toast
+        function mostrarToast(titulo, mensaje, tipo = 'info') {
+            // Eliminar toasts anteriores
+            const toastAnterior = document.getElementById('notification-toast');
+            if (toastAnterior) toastAnterior.remove();
+
+            const colores = {
+                'info': 'bg-blue-600',
+                'success': 'bg-green-600',
+                'warning': 'bg-yellow-600',
+                'error': 'bg-red-600'
+            };
+
+            const toast = document.createElement('div');
+            toast.id = 'notification-toast';
+            toast.className = `fixed top-20 right-6 ${colores[tipo] || colores.info} text-white px-6 py-4 rounded-lg shadow-2xl z-[99999] transition-all duration-300 transform translate-x-0`;
+            toast.style.minWidth = '300px';
+            toast.innerHTML = `
+                <div class="flex items-start gap-3">
+                    <div class="flex-shrink-0 text-2xl">
+                        ${tipo === 'info' ? '🔔' : tipo === 'success' ? '✅' : tipo === 'warning' ? '⚠️' : '❌'}
+                    </div>
+                    <div class="flex-1">
+                        <h4 class="font-semibold text-lg">${titulo}</h4>
+                        <p class="text-sm mt-1 text-white/90">${mensaje}</p>
+                    </div>
+                    <button onclick="this.parentElement.parentElement.remove()" class="flex-shrink-0 text-white/80 hover:text-white">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+            `;
+            document.body.appendChild(toast);
+
+            // Auto-ocultar después de 5 segundos
+            setTimeout(() => {
+                toast.style.transform = 'translateX(400px)';
+                setTimeout(() => toast.remove(), 300);
+            }, 5000);
+        }
+
+        // Función mejorada para actualizar badge con alertas
+        function updatePedidosBadgeConAlertas() {
+            fetch('/api/v1/orders/unread/count', {
+                headers: {
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const unreadCount = data.data.unread_count || 0;
+                    const badge = document.getElementById('pedidos-badge');
+                    
+                    if (unreadCount > 0) {
+                        badge.textContent = unreadCount;
+                        badge.style.display = 'inline-flex';
+                        
+                        // Si hay más pedidos que antes, mostrar alerta
+                        if (unreadCount > previousUnreadCount && previousUnreadCount >= 0) {
+                            mostrarAlertaNuevoPedido(unreadCount);
+                        }
+                    } else {
+                        badge.style.display = 'none';
+                    }
+                    
+                    previousUnreadCount = unreadCount;
+                }
+            })
+            .catch(error => {
+                console.log('Badge update skipped:', error);
+            });
+        }
+
         // Cargar el contador de badges al cargar la página
         document.addEventListener('DOMContentLoaded', function() {
-            updatePedidosBadge();
-            // Actualizar cada 30 segundos
-            setInterval(updatePedidosBadge, 30000);
+            // Solicitar permiso para notificaciones
+            if ("Notification" in window && Notification.permission === "default") {
+                Notification.requestPermission();
+            }
+
+            updatePedidosBadgeConAlertas();
+            // Actualizar cada 15 segundos para detectar nuevos pedidos más rápido
+            setInterval(updatePedidosBadgeConAlertas, 15000);
         });
     </script>
 

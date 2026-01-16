@@ -46,6 +46,7 @@ class ListaDeFacturas extends Component
     public function updatedFiltroSubtotal() { $this->resetPage(); }
     public function updatedFiltroISV() { $this->resetPage(); }
     public function updatedFiltroTotal() { $this->resetPage(); }
+    public function updatedFiltroOrigen() { $this->resetPage(); }
     public function updatedRegistrosPorPagina() { $this->resetPage(); }
 
     // Métodos de paginación manual (opcional, igual que Producto)
@@ -70,6 +71,7 @@ class ListaDeFacturas extends Component
     public $filtroSubtotal = '';
     public $filtroISV = '';
     public $filtroTotal = '';
+    public $filtroOrigen = ''; // Filtro para origen web o POS
 
     // Paginación
     public $registrosPorPagina = 10;
@@ -126,6 +128,16 @@ class ListaDeFacturas extends Component
         if (!empty($this->filtroTotal)) {
             $query->where('total', 'like', '%' . $this->filtroTotal . '%');
         }
+        
+        // Filtro por origen en descarga Excel
+        if (!empty($this->filtroOrigen)) {
+            if ($this->filtroOrigen === 'web') {
+                $query->where('origen_web', true);
+            } elseif ($this->filtroOrigen === 'pos') {
+                $query->where('origen_web', false);
+            }
+        }
+        
         $query->orderBy($this->ordenarPor, $this->direccionOrden);
 
         // Obtener solo la página actual
@@ -550,6 +562,15 @@ class ListaDeFacturas extends Component
         }
         if (!empty($this->filtroTotal)) {
             $query->where('total', 'like', '%' . $this->filtroTotal . '%');
+        }
+        
+        // Filtro por origen (web o POS)
+        if (!empty($this->filtroOrigen)) {
+            if ($this->filtroOrigen === 'web') {
+                $query->where('origen_web', true);
+            } elseif ($this->filtroOrigen === 'pos') {
+                $query->where('origen_web', false);
+            }
         }
 
         // Ordenamiento
