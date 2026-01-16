@@ -99,9 +99,25 @@ class PedidosWebController extends Controller
                     'items_count' => $pedido->items->count(),
                     'leido' => $pedido->leido,
                     'created_at' => $pedido->created_at->diffForHumans(),
+                    'fecha_pedido' => $pedido->created_at->format('d/m/Y H:i'),
                     'url' => route('pedidos-web.show', $pedido->id),
                 ];
             })
+        ]);
+    }
+    
+    /**
+     * API: Contar pedidos no leídos
+     */
+    public function unreadCount()
+    {
+        $count = PedidoWeb::pendientesNoLeidos()->count();
+        
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'unread_count' => $count
+            ]
         ]);
     }
 }

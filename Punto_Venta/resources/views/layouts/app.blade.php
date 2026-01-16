@@ -470,7 +470,7 @@
 
         // Función mejorada para actualizar badge con alertas
         function updatePedidosBadgeConAlertas() {
-            fetch('/api/v1/orders/unread/count', {
+            fetch('/pedidos-web/api/unread-count', {
                 headers: {
                     'Accept': 'application/json',
                     'X-CSRF-TOKEN': '{{ csrf_token() }}'

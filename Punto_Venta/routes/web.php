@@ -29,6 +29,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/{id}/process', [PedidosWebController::class, 'process'])->name('process');
         Route::post('/{id}/reject', [PedidosWebController::class, 'reject'])->name('reject');
         Route::get('/api/pendientes', [PedidosWebController::class, 'apiPendientes'])->name('api.pendientes');
+        Route::get('/api/unread-count', [PedidosWebController::class, 'unreadCount'])->name('api.unread-count');
     });
 });
 
