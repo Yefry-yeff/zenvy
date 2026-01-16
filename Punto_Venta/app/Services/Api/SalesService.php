@@ -6,6 +6,8 @@ use App\Repositories\ProductRepository;
 use App\Models\Factura;
 use App\Models\FacturaHasProducto;
 use App\Models\RecibidoBodega;
+use App\Models\PedidoWeb;
+use App\Models\PedidoWebItem;
 use App\Exceptions\Api\InsufficientStockException;
 use App\Exceptions\Api\ProductNotFoundException;
 use Illuminate\Support\Facades\DB;
@@ -19,7 +21,236 @@ class SalesService
     ) {}
     
     /**
-     * Crear venta/factura con control de stock
+     * Crear pedido web (preview antes de facturar)
+     * Este método NO descuenta stock ni genera factura
+     */
+    public function createPreviewOrder(array $data, $apiClient): PedidoWeb
+    {
+        return DB::transaction(function() use ($data, $apiClient) {
+            // 1. Validar que los productos existan y haya stock disponible
+            $this->validateStock($data['items']);
+            
+            // 2. Generar número de pedido
+            $numeroPedido = $this->generarNumeroPedido();
+            
+            // 3. Preparar dirección completa
+            $direccionCompleta = null;
+            if ($data['delivery_type'] === 'domicilio' && !empty($data['delivery_address'])) {
+                $direccionCompleta = $data['delivery_address'];
+            }
+            
+            // 4. Preparar metadata
+            $metadata = [
+                'delivery_type' => $data['delivery_type'],
+                'api_client' => $apiClient->name ?? 'unknown',
+                'api_client_id' => $apiClient->id ?? null,
+                'external_order_id' => $data['external_order_id'] ?? null,
+            ];
+            
+            // 5. Crear pedido web
+            $pedido = PedidoWeb::create([
+                'numero_pedido' => $numeroPedido,
+                'estado' => 'pendiente',
+                'cliente_nombre' => $data['customer_name'],
+                'cliente_email' => $data['customer_email'] ?? null,
+                'cliente_telefono' => $data['customer_phone'] ?? null,
+                'cliente_rtn' => $data['customer_rtn'] ?? null,
+                'cliente_direccion' => $direccionCompleta,
+                'subtotal' => $data['subtotal'],
+                'descuento' => $data['discount'] ?? 0,
+                'isv' => $data['tax'],
+                'total' => $data['total'],
+                'metodo_pago' => $data['payment_method'] ?? null,
+                'notas' => $data['notes'] ?? null,
+                'metadata' => $metadata,
+                'leido' => false,
+            ]);
+            
+            // 6. Crear items del pedido
+            foreach ($data['items'] as $item) {
+                $product = DB::table('producto')->where('id', $item['product_id'])->first();
+                
+                if (!$product) {
+                    throw new ProductNotFoundException("Producto ID {$item['product_id']} no encontrado");
+                }
+                
+                $cantidad = $item['quantity'];
+                $precioUnidad = $item['price'];
+                $descuentoPorcentaje = $item['discount'] ?? 0;
+                
+                $subtotalItemSinDescuento = $cantidad * $precioUnidad;
+                $descuentoMonto = ($subtotalItemSinDescuento * $descuentoPorcentaje) / 100;
+                $subtotalItem = $subtotalItemSinDescuento - $descuentoMonto;
+                $isvItem = $subtotalItem * 0.15;
+                $totalItem = $subtotalItem + $isvItem;
+                
+                PedidoWebItem::create([
+                    'pedido_web_id' => $pedido->id,
+                    'producto_id' => $product->id,
+                    'cantidad' => $cantidad,
+                    'precio_unitario' => $precioUnidad,
+                    'subtotal' => $subtotalItem,
+                    'isv' => $isvItem,
+                    'total' => $totalItem,
+                ]);
+            }
+            
+            Log::info('API: Pedido web creado (preview)', [
+                'pedido_id' => $pedido->id,
+                'numero_pedido' => $numeroPedido,
+                'cliente' => $data['customer_name'],
+                'total' => $pedido->total,
+                'items' => count($data['items']),
+            ]);
+            
+            return $pedido->load('items');
+        });
+    }
+    
+    /**
+     * Procesar/Facturar un pedido web existente
+     * Este método SÍ descuenta stock y genera la factura
+     */
+    public function processOrder(int $pedidoId, int $userId = 1): Factura
+    {
+        // Lock para evitar procesamiento concurrente
+        $lockKey = "process_order_{$pedidoId}";
+        $lock = Cache::lock($lockKey, 10);
+        
+        try {
+            if (!$lock->get()) {
+                throw new \Exception('Este pedido ya está siendo procesado');
+            }
+            
+            return DB::transaction(function() use ($pedidoId, $userId) {
+                // 1. Obtener pedido web
+                $pedido = PedidoWeb::with('items')->findOrFail($pedidoId);
+                
+                // 2. Verificar que esté pendiente
+                if ($pedido->estado !== 'pendiente') {
+                    throw new \Exception("El pedido {$pedido->numero_pedido} ya fue procesado (Estado: {$pedido->estado})");
+                }
+                
+                // 3. Marcar como procesando
+                $pedido->marcarComoProcesando($userId);
+                
+                // 4. Validar stock nuevamente (por si cambió desde la creación del pedido)
+                $items = $pedido->items->map(function($item) {
+                    return [
+                        'product_id' => $item->producto_id,
+                        'quantity' => $item->cantidad,
+                    ];
+                })->toArray();
+                
+                $this->validateStock($items);
+                
+                // 5. Crear transacción
+                $transaccionId = DB::table('transaccion')->insertGetId([
+                    'caja_id' => 1,
+                ]);
+                
+                // 6. Crear comentario CORTO para factura (max 255 caracteres)
+                $comentario = sprintf(
+                    'Pedido Web: %s | Cliente: %s',
+                    $pedido->numero_pedido,
+                    substr($pedido->cliente_nombre, 0, 50)
+                );
+                
+                // 7. Crear factura
+                $factura = Factura::create([
+                    'cai_id' => 1,
+                    'transaccion_id' => $transaccionId,
+                    'nombre_cliente' => $pedido->cliente_nombre,
+                    'rtn' => $pedido->cliente_rtn ?? '',
+                    'sub_total' => $pedido->subtotal,
+                    'sub_total_grabado' => $pedido->subtotal,
+                    'sub_total_exento' => 0,
+                    'isv' => $pedido->isv,
+                    'total' => $pedido->total,
+                    'credito' => 0,
+                    'dias_credito' => 0,
+                    'fecha_emision' => now(),
+                    'fecha_vencimiento' => now()->addDays(30),
+                    'comentario' => $comentario,
+                    'porc_descuento' => 0,
+                    'monto_descuento' => $pedido->descuento,
+                    'precio_dolar' => 1,
+                    'estado_factura_id' => 1,
+                    'tipo_facturacion_id' => 1,
+                    'users_id' => $userId,
+                ]);
+                
+                // 8. Crear items de factura y descontar stock
+                $indice = 1;
+                foreach ($pedido->items as $item) {
+                    FacturaHasProducto::create([
+                        'factura_id' => $factura->id,
+                        'producto_id' => $item->producto_id,
+                        'seccion_id' => 2,
+                        'unidad_medida_id' => 1,
+                        'precio_id' => 1,
+                        'indice' => $indice++,
+                        'numero_unidades_resta_inventario' => $item->cantidad,
+                        'resta_inventario_total' => $item->cantidad,
+                        'precio_unidad' => $item->precio_unidad,
+                        'cantidad' => $item->cantidad,
+                        'subtotal' => $item->subtotal,
+                        'descuento' => $item->descuento,
+                        'isv_aplicado' => 15.00,
+                        'isv' => $item->isv,
+                        'total' => $item->total,
+                        'idPrecioSeleccionado' => '1',
+                        'precio_seleccionado' => $item->precio_unidad,
+                    ]);
+                    
+                    // Descontar stock
+                    $this->decrementarStockBodega($item->producto_id, $item->cantidad);
+                }
+                
+                // 9. Marcar pedido como facturado
+                $pedido->marcarComoFacturado($factura->id);
+                
+                // 10. Invalidar cache
+                Cache::flush();
+                
+                Log::info('API: Pedido web facturado exitosamente', [
+                    'pedido_id' => $pedido->id,
+                    'numero_pedido' => $pedido->numero_pedido,
+                    'factura_id' => $factura->id,
+                    'usuario_id' => $userId,
+                ]);
+                
+                return $factura->load('productos');
+            });
+            
+        } finally {
+            optional($lock)->release();
+        }
+    }
+    
+    /**
+     * Generar número de pedido único
+     */
+    private function generarNumeroPedido(): string
+    {
+        $year = date('Y');
+        $lastPedido = PedidoWeb::where('numero_pedido', 'LIKE', "PW-{$year}-%")
+            ->orderBy('id', 'desc')
+            ->first();
+        
+        if ($lastPedido) {
+            $lastNumber = (int) substr($lastPedido->numero_pedido, -4);
+            $newNumber = str_pad($lastNumber + 1, 4, '0', STR_PAD_LEFT);
+        } else {
+            $newNumber = '0001';
+        }
+        
+        return "PW-{$year}-{$newNumber}";
+    }
+    
+    /**
+     * Crear venta/factura directa con control de stock
+     * DEPRECADO: Usar createPreviewOrder() + processOrder() para el flujo recomendado
      */
     public function createSale(array $data, $apiClient): Factura
     {

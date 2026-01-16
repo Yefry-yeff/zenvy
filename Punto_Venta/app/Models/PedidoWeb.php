@@ -69,12 +69,6 @@ class PedidoWeb extends Model
         return $query->where('leido', false);
     }
     
-    public function scopePendientesNoLeidos($query)
-    {
-        return $query->where('estado', 'pendiente')
-                    ->where('leido', false);
-    }
-    
     // Métodos de estado
     public function marcarComoLeido(): void
     {

@@ -1,0 +1,191 @@
+{
+  "_type": "export",
+  "__export_format": 4,
+  "__export_date": "2026-01-14T00:00:00.000Z",
+  "__export_source": "insomnia.desktop.app:v12.2.0",
+  "resources": [
+    {
+      "_id": "wrk_zenvy_api",
+      "_type": "workspace",
+      "name": "Zenvy API - Ventas E-commerce (Preview Flow)",
+      "description": "API de ventas para e-commerce de Zenvy\n\n🆕 NUEVO FLUJO EN 2 PASOS:\n1. Crear Pedido Preview (sin facturar)\n2. Procesar/Facturar Pedido\n\nServidor: http://localhost:8000\nCliente: Johann Ruiz\nTotal: L. 1,667.50",
+      "scope": "collection"
+    },
+    {
+      "_id": "env_base",
+      "_type": "environment",
+      "name": "Base Environment",
+      "data": {
+        "base_url": "http://127.0.0.1:8000",
+        "api_key": "pk_LhkEAssdwNMPjJMc3gqJL2TtIX96mi1s",
+        "api_secret": "sk_3fXa0kouB9l0Qiw1mLYoIcZKRX6WbIfLykKCLK5tT2fKKqPOYoQs7mOeS7tP1LcZ",
+        "token": "",
+        "pedido_id": ""
+      },
+      "parentId": "wrk_zenvy_api",
+      "color": null,
+      "isPrivate": false,
+      "metaSortKey": 1
+    },
+    {
+      "_id": "req_auth_token",
+      "_type": "request",
+      "name": "1. Obtener Token JWT",
+      "method": "POST",
+      "url": "{{ _.base_url }}/api/v1/auth/token",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"api_key\": \"{{ _.api_key }}\",\n  \"api_secret\": \"{{ _.api_secret }}\"\n}"
+      },
+      "parentId": "wrk_zenvy_api",
+      "description": "Obtener token JWT para autenticación.\n\nPASOS:\n1. Configura api_key y api_secret en el Environment\n2. Ejecuta este request\n3. Copia el token de la respuesta\n4. Pégalo en la variable 'token' del Environment",
+      "metaSortKey": 10
+    },
+    {
+      "_id": "req_create_preview",
+      "_type": "request",
+      "name": "2. 📝 Crear Pedido Preview (NUEVO)",
+      "method": "POST",
+      "url": "{{ _.base_url }}/api/v1/sales/preview",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Accept",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"customer_name\": \"Johann Ruiz\",\n  \"customer_email\": \"johann_ruiz14@hotmail.com\",\n  \"customer_phone\": \"+50497525987\",\n  \"customer_rtn\": \"\",\n  \n  \"items\": [\n    {\n      \"product_id\": 1,\n      \"quantity\": 2,\n      \"price\": 725.00,\n      \"discount\": 0\n    }\n  ],\n  \n  \"delivery_type\": \"domicilio\",\n  \"delivery_address\": \"Oficina Francisco Morazán, Tegucigalpa, El centro de AMDC, Frente AMDC\",\n  \n  \"payment_method\": \"Efectivo\",\n  \"notes\": \"Dejar afuera, tocar timbre\",\n  \n  \"subtotal\": 1450.00,\n  \"discount\": 0,\n  \"tax\": 217.50,\n  \"total\": 1667.50\n}"
+      },
+      "parentId": "wrk_zenvy_api",
+      "description": "🆕 PASO 1: Crear pedido preview (sin facturar)\n\nCaracterísticas:\n✅ Valida stock disponible\n✅ NO descuenta stock\n✅ NO genera factura\n✅ Guarda pedido como 'pendiente'\n\nDespués de ejecutar:\n1. Copia el 'pedido_id' de la respuesta\n2. Pégalo en la variable 'pedido_id' del Environment\n3. Usa el request 'Procesar Pedido' para facturar",
+      "metaSortKey": 20
+    },
+    {
+      "_id": "req_process_order",
+      "_type": "request",
+      "name": "3. ✅ Procesar/Facturar Pedido (NUEVO)",
+      "method": "POST",
+      "url": "{{ _.base_url }}/api/v1/sales/{{ _.pedido_id }}/process",
+      "headers": [
+        {
+          "name": "Accept",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "parentId": "wrk_zenvy_api",
+      "description": "🆕 PASO 2: Procesar y facturar un pedido existente\n\nCaracterísticas:\n✅ Vuelve a validar stock\n✅ Descuenta stock usando FIFO\n✅ Genera factura en Zenvy\n✅ Actualiza pedido a 'facturado'\n\nREQUERIMIENTOS:\n- Ejecutar primero 'Crear Pedido Preview'\n- Configurar 'pedido_id' en Environment\n- El pedido debe estar en estado 'pendiente'",
+      "metaSortKey": 30
+    },
+    {
+      "_id": "req_create_sale_johann",
+      "_type": "request",
+      "name": "4. Crear Venta Directa (DEPRECADO)",
+      "method": "POST",
+      "url": "{{ _.base_url }}/api/v1/sales",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Accept",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"customer_name\": \"Johann Ruiz\",\n  \"customer_email\": \"johann_ruiz14@hotmail.com\",\n  \"customer_phone\": \"+50497525987\",\n  \n  \"items\": [\n    {\n      \"product_id\": 1,\n      \"quantity\": 2,\n      \"price\": 725.00,\n      \"discount\": 0\n    }\n  ],\n  \n  \"delivery_type\": \"domicilio\",\n  \"delivery_address\": \"Oficina Francisco Morazán, Tegucigalpa\",\n  \n  \"payment_method\": \"Efectivo\",\n  \"notes\": \"Dejar afuera\",\n  \n  \"subtotal\": 1450.00,\n  \"discount\": 0,\n  \"tax\": 217.50,\n  \"total\": 1667.50\n}"
+      },
+      "parentId": "wrk_zenvy_api",
+      "description": "⚠️ DEPRECADO: Método antiguo de venta directa\n\nProblemas:\n❌ Puede causar error de truncamiento\n❌ Descuenta stock inmediatamente\n❌ No permite preview\n\n💡 RECOMENDADO: Usar el nuevo flujo en 2 pasos:\n1. Crear Pedido Preview\n2. Procesar/Facturar Pedido",
+      "metaSortKey": 40
+    },
+    {
+      "_id": "req_get_sale",
+      "_type": "request",
+      "name": "5. Consultar Venta por ID",
+      "method": "GET",
+      "url": "{{ _.base_url }}/api/v1/sales/1",
+      "headers": [
+        {
+          "name": "Accept",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "parentId": "wrk_zenvy_api",
+      "description": "Consultar el estado de una venta/factura existente.\n\nCambiar el '1' en la URL por el ID de la factura que quieres consultar.",
+      "metaSortKey": 50
+    },
+    {
+      "_id": "req_cancel_sale",
+      "_type": "request",
+      "name": "6. Anular Venta",
+      "method": "PUT",
+      "url": "{{ _.base_url }}/api/v1/sales/1/cancel",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Accept",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"motivo\": \"Cliente solicitó cancelación del pedido\"\n}"
+      },
+      "parentId": "wrk_zenvy_api",
+      "description": "Anular una venta y restaurar el stock.\n\n⚠️ Solo funciona para ventas ya facturadas.\n\nCambiar el '1' en la URL por el ID de la factura a anular.",
+      "metaSortKey": 60
+    },
+    {
+      "_id": "req_health",
+      "_type": "request",
+      "name": "0. Health Check (Sin Auth)",
+      "method": "GET",
+      "url": "{{ _.base_url }}/api/health",
+      "headers": [
+        {
+          "name": "Accept",
+          "value": "application/json"
+        }
+      ],
+      "parentId": "wrk_zenvy_api",
+      "description": "Verificar que la API está funcionando.\n\nEste endpoint NO requiere autenticación.",
+      "metaSortKey": 5
+    }
+  ]
+}

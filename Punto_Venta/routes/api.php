@@ -63,9 +63,14 @@ Route::prefix('v1')->middleware([
     });
     
     // ========================================
-    // Ventas / Facturación (Deprecado - usar orders)
+    // Ventas / Facturación
     // ========================================
     Route::prefix('sales')->name('api.sales.')->group(function() {
+        // Nuevo flujo recomendado: preview + process
+        Route::post('/preview', [SalesController::class, 'createPreview'])->name('preview');
+        Route::post('/{pedidoId}/process', [SalesController::class, 'processPedido'])->name('process');
+        
+        // Flujo directo (deprecado pero mantenido por compatibilidad)
         Route::post('/', [SalesController::class, 'store'])->name('store');
         Route::get('/{id}', [SalesController::class, 'show'])->name('show');
         Route::put('/{id}/cancel', [SalesController::class, 'cancel'])->name('cancel');
