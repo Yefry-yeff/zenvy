@@ -13,13 +13,6 @@ class DetallePedido extends Component
     public $pedido;
     public $mostrarModalProcesar = false;
     public $mostrarModalRechazar = false;
-    public $modalImpresion = false;
-    public $facturaParaImprimir;
-    public $caiFacturaImpresa;
-    public $productosFacturaImpresa;
-    public $pagosFacturaImpresa;
-    public $empresaFacturaImpresa;
-    public $tiendaFacturaImpresa;
     
     // Propiedades para paginación y filtros de productos
     public $registrosPorPaginaProductos = 10;
@@ -88,88 +81,6 @@ class DetallePedido extends Component
         } catch (\Exception $e) {
             session()->flash('error', 'Error al rechazar pedido: ' . $e->getMessage());
         }
-    }
-
-    public function imprimirFactura()
-    {
-        try {
-            if ($this->pedido && $this->pedido->factura_id) {
-                $this->cargarDatosParaImpresion($this->pedido->factura_id);
-                $this->modalImpresion = true;
-            } else {
-                session()->flash('error', 'No se encontró la factura asociada al pedido.');
-            }
-        } catch (\Exception $e) {
-            session()->flash('error', 'Error al cargar la factura: ' . $e->getMessage());
-        }
-    }
-
-    private function cargarDatosParaImpresion($facturaId)
-    {
-        // Cargar la factura
-        $this->facturaParaImprimir = Factura::find($facturaId);
-
-        // Cargar información de la empresa (mantener como objeto)
-        $this->empresaFacturaImpresa = DB::table('empresa')->first();
-
-        // Cargar información de la tienda (mantener como objeto)
-        $this->tiendaFacturaImpresa = DB::table('tienda as t')
-            ->leftJoin('direccion as d', 't.direccion_sucursal_id', '=', 'd.id')
-            ->select('t.*', 'd.domicilio_tributario')
-            ->where('t.id', 1)
-            ->first();
-
-        // Cargar información del CAI y CONVERTIR A ARRAY (el template PDF lo usa como array)
-        $caiObj = DB::table('cai')
-            ->where('id', $this->facturaParaImprimir->cai_id)
-            ->first();
-        $this->caiFacturaImpresa = $caiObj ? (array) $caiObj : null;
-
-        // Cargar productos y convertir a arrays
-        $this->productosFacturaImpresa = DB::table('factura_has_producto as fp')
-            ->join('producto as p', 'fp.producto_id', '=', 'p.id')
-            ->where('fp.factura_id', $facturaId)
-            ->select(
-                'p.nombre',
-                'p.codigo_barra',
-                'fp.cantidad',
-                'fp.precio_unidad',
-                'fp.subtotal',
-                'fp.descuento',
-                'fp.isv_aplicado',
-                'fp.isv',
-                'fp.total'
-            )
-            ->get()
-            ->map(function($producto) {
-                return (array) $producto;
-            })
-            ->toArray();
-
-        // Cargar métodos de pago
-        $this->pagosFacturaImpresa = DB::table('factura_has_pago as fp')
-            ->join('tipo_pago as tp', 'fp.tipo_pago_id', '=', 'tp.id')
-            ->where('fp.factura_id', $facturaId)
-            ->select('tp.nombre as metodo', 'fp.pago_recibido')
-            ->get()
-            ->map(function($pago) {
-                return [
-                    'metodo' => $pago->metodo,
-                    'pago_recibido' => $pago->pago_recibido
-                ];
-            })
-            ->toArray();
-    }
-
-    public function cerrarImpresion()
-    {
-        $this->modalImpresion = false;
-        $this->facturaParaImprimir = null;
-        $this->caiFacturaImpresa = null;
-        $this->productosFacturaImpresa = null;
-        $this->pagosFacturaImpresa = null;
-        $this->empresaFacturaImpresa = null;
-        $this->tiendaFacturaImpresa = null;
     }
 
     // Métodos de paginación para productos

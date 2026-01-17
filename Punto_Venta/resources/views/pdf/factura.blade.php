@@ -205,6 +205,14 @@
     </style>
 </head>
 <body>
+    @php
+        // Si la factura viene de la web, cargar los datos del pedido original
+        $pedidoWeb = null;
+        if(isset($factura->origen_web) && $factura->origen_web) {
+            $pedidoWeb = \App\Models\PedidoWeb::where('factura_id', $factura->id)->first();
+        }
+    @endphp
+    
     @if($factura->estado_factura_id == 2)
         <div class="watermark">ANULADA</div>
     @endif
@@ -260,6 +268,9 @@
         <!-- FACTURA VENTA -->
         <div class="factura-title">
             <strong>FACTURA VENTA</strong>
+            @if($pedidoWeb)
+                <br><span style="font-size: 14px; color: #0066cc;">🌐 Pedido Web #{{ $pedidoWeb->numero_pedido }}</span>
+            @endif
         </div>
 
         <!-- NÚMERO DE FACTURA -->
@@ -276,15 +287,35 @@
 
         <!-- CONSUMIDOR FINAL / INFORMACIÓN DEL CLIENTE -->
         <div class="consumidor-final" style="font-weight: normal; font-size: 16px;">
-            @if($factura->rtn || ($factura->nombre_cliente && $factura->nombre_cliente != 'Consumidor Final'))
-                @if($factura->rtn)
-                    RTN: {{ $factura->rtn }}
-                    @if($factura->nombre_cliente && $factura->nombre_cliente != 'Consumidor Final')
+            @php
+                // Usar datos del pedido web si está disponible
+                $clienteNombre = $pedidoWeb ? $pedidoWeb->cliente_nombre : $factura->nombre_cliente;
+                $clienteRTN = $pedidoWeb ? $pedidoWeb->cliente_rtn : $factura->rtn;
+                $clienteEmail = $pedidoWeb ? $pedidoWeb->cliente_email : null;
+                $clienteTelefono = $pedidoWeb ? $pedidoWeb->cliente_telefono : null;
+                $clienteDireccion = $pedidoWeb ? $pedidoWeb->cliente_direccion : null;
+            @endphp
+            
+            @if($clienteRTN || ($clienteNombre && $clienteNombre != 'Consumidor Final'))
+                @if($clienteRTN)
+                    RTN: {{ $clienteRTN }}
+                    @if($clienteNombre && $clienteNombre != 'Consumidor Final')
                         <br>
                     @endif
                 @endif
-                @if($factura->nombre_cliente && $factura->nombre_cliente != 'Consumidor Final')
-                    CLIENTE: {{ $factura->nombre_cliente }}
+                @if($clienteNombre && $clienteNombre != 'Consumidor Final')
+                    CLIENTE: {{ $clienteNombre }}
+                @endif
+                @if($pedidoWeb)
+                    @if($clienteEmail)
+                        <br>Email: {{ $clienteEmail }}
+                    @endif
+                    @if($clienteTelefono)
+                        <br>Tel: {{ $clienteTelefono }}
+                    @endif
+                    @if($clienteDireccion)
+                        <br>Dir: {{ $clienteDireccion }}
+                    @endif
                 @endif
                 <br>
                 No. O/C Exenta:<br>

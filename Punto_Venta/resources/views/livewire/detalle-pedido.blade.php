@@ -55,13 +55,16 @@
                         
         @if($pedido->factura_id)
                             <p class="text-sm text-green-600 mt-2 flex items-center gap-2">
-                                ✓ Facturado con ID: <strong>{{ $pedido->factura_id }}</strong> 
+                                ✓ Facturado con ID: <strong>{{ $pedido->factura_id }}</strong>
+                                <span class="text-blue-600" title="Factura generada desde página web">🌐</span>
                                 @if($pedido->fecha_facturado)
                                     el {{ $pedido->fecha_facturado->format('d/m/Y H:i') }}
                                 @endif
-                                <button wire:click="imprimirFactura" class="ml-2 px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors">
+                                <a href="{{ route('factura.pdf.preview', $pedido->factura_id) }}" 
+                                   target="_blank"
+                                   class="ml-2 px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors inline-block">
                                     🖨️ Imprimir Factura
-                                </button>
+                                </a>
                             </p>
                         @endif
                     </div>
@@ -376,115 +379,6 @@
                 </div>
             </div>
         @endif
-    @endif
-
-    <!-- Modal de Impresión de Factura -->
-    @if($modalImpresion && $facturaParaImprimir)
-        <div class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50" style="margin: 0;" id="modal-impresion">
-            <div class="relative top-4 mx-auto border max-w-7xl shadow-lg rounded-md bg-white" style="width: calc(100% - 2rem); max-height: calc(100vh - 2rem);">
-                <!-- Header del Modal -->
-                <div class="flex justify-between items-center p-4 border-b bg-gray-50">
-                    <h3 class="text-xl font-semibold text-gray-900 flex items-center">
-                        <svg class="w-6 h-6 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
-                        </svg>
-                        Impresión de Factura {{ $facturaParaImprimir->numero_factura ?? 'Sin número' }}
-                    </h3>
-                    <button wire:click="cerrarImpresion" class="text-gray-400 hover:text-gray-600 text-2xl font-bold">
-                        ×
-                    </button>
-                </div>
-                
-                <!-- Contenido del Modal -->
-                <div class="flex" style="height: calc(100vh - 200px);">
-                    <!-- Vista previa de la factura (Lado izquierdo) -->
-                    <div class="w-2/3 p-4 bg-gray-50 overflow-y-auto border-r">
-                        @if($facturaParaImprimir && $empresaFacturaImpresa && $tiendaFacturaImpresa && $caiFacturaImpresa)
-                            <div class="max-w-md mx-auto bg-white shadow-sm p-6 rounded-lg" style="font-family: Arial, sans-serif; font-size: 12px;">
-                                @include('pdf.factura', [
-                                    'factura' => $facturaParaImprimir,
-                                    'caiFacturaImpresa' => $caiFacturaImpresa,
-                                    'productos' => collect($productosFacturaImpresa ?? []),
-                                    'pagos' => collect($pagosFacturaImpresa ?? []),
-                                    'empresa' => $empresaFacturaImpresa,
-                                    'tienda' => $tiendaFacturaImpresa
-                                ])
-                            </div>
-                        @else
-                            <div class="flex items-center justify-center h-full">
-                                <div class="text-center">
-                                    <div class="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                                    <p class="text-gray-600">Cargando vista previa de la factura...</p>
-                                </div>
-                            </div>
-                        @endif
-                    </div>
-
-                    <!-- Panel de opciones (Lado derecho) -->
-                    <div class="w-1/3 p-6 bg-white">
-                        <h4 class="text-lg font-semibold text-gray-800 mb-4">Opciones de impresión</h4>
-
-                        <div class="space-y-3 mb-6">
-                            <button 
-                                onclick="window.print()" 
-                                class="w-full flex items-center justify-center px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-semibold shadow-sm"
-                            >
-                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
-                                </svg>
-                                Imprimir ahora
-                            </button>
-
-                            <a 
-                                href="{{ route('factura.pdf', $facturaParaImprimir->id) }}"
-                                target="_blank" 
-                                class="w-full flex items-center justify-center px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors font-semibold shadow-sm"
-                            >
-                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                                </svg>
-                                Descargar PDF
-                            </a>
-
-                            @if($facturaParaImprimir->factura_imagen)
-                                <a 
-                                    href="{{ route('factura.imagen', $facturaParaImprimir->id) }}"
-                                    target="_blank" 
-                                    class="w-full flex items-center justify-center px-4 py-3 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg transition-colors font-semibold shadow-sm"
-                                >
-                                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                                    </svg>
-                                    Ver imagen PNG
-                                </a>
-                            @endif
-                        </div>
-
-                        <div class="pt-4 border-t border-gray-200">
-                            <h5 class="text-sm font-semibold text-gray-700 mb-2">Información de la factura</h5>
-                            <div class="text-sm text-gray-600 space-y-1">
-                                <p><strong>Cliente:</strong> {{ $facturaParaImprimir->nombre_cliente }}</p>
-                                <p><strong>Total:</strong> L {{ number_format($facturaParaImprimir->total, 2) }}</p>
-                                <p><strong>Fecha:</strong> {{ $facturaParaImprimir->fecha_emision->format('d/m/Y') }}</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Footer del Modal -->
-                <div class="flex justify-end items-center p-4 border-t bg-gray-50">
-                    <button 
-                        wire:click="cerrarImpresion" 
-                        class="px-6 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition-colors font-semibold flex items-center"
-                    >
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                        </svg>
-                        Cerrar
-                    </button>
-                </div>
-            </div>
-        </div>
     @endif
 </div>
 
