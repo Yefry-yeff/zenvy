@@ -770,6 +770,7 @@
                                     <td>
                                         <select class="form-select form-select-sm @if(empty($producto['unidad_medida_id'])) is-invalid @endif"
                                                 wire:model.live="productosRecepcionMasiva.{{ $index }}.unidad_medida_id"
+                                                wire:change="cambiarUnidadProducto({{ $index }}, $event.target.value)"
                                                 required>
                                             <option value="">Seleccionar</option>
                                             @foreach($producto['unidades_disponibles'] as $unidad)

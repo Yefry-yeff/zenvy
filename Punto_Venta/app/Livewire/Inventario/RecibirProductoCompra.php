@@ -781,6 +781,11 @@ class RecibirProductoCompra extends Component
                         }
                     }
 
+                    // Obtener el precio_venta_id por defecto (primera unidad disponible)
+                    $precioVentaIdDefault = $unidadesProducto->isNotEmpty() && isset($unidadesProducto[0]['precio_venta_id']) 
+                        ? $unidadesProducto[0]['precio_venta_id'] 
+                        : null;
+
                     $this->productosRecepcionMasiva[] = [
                         'id' => $detalle['id'],
                         'producto_id' => $detalle['producto_id'],
@@ -792,6 +797,7 @@ class RecibirProductoCompra extends Component
                         'cantidad_stock' => $detalle['cantidad_sin_asignar'], // Por defecto la misma cantidad
                         'unidades_disponibles' => $unidadesProducto->toArray(),
                         'fecha_expiracion' => $detalle['fecha_vencimiento'] ?? null,
+                        'precio_venta_id' => $precioVentaIdDefault, // ID de precio_has_venta
                         // Campos de distribución por producto
                         'bodega_id' => '', // Bodega seleccionada para este producto
                         'segmento_id' => '', // Segmento seleccionado para este producto
@@ -945,6 +951,29 @@ class RecibirProductoCompra extends Component
         }
     }
 
+    public function cambiarUnidadProducto($productoIndex, $unidadMedidaId)
+    {
+        if (isset($this->productosRecepcionMasiva[$productoIndex])) {
+            $producto = $this->productosRecepcionMasiva[$productoIndex];
+            
+            // Buscar la presentación correspondiente en las unidades disponibles
+            $unidadSeleccionada = collect($producto['unidades_disponibles'])
+                ->firstWhere('id', $unidadMedidaId);
+            
+            if ($unidadSeleccionada) {
+                // Actualizar el precio_venta_id correspondiente
+                $this->productosRecepcionMasiva[$productoIndex]['precio_venta_id'] = $unidadSeleccionada['precio_venta_id'];
+                
+                Log::info('Unidad de medida actualizada para recepción masiva', [
+                    'producto_index' => $productoIndex,
+                    'producto_id' => $producto['producto_id'],
+                    'unidad_medida_id' => $unidadMedidaId,
+                    'precio_venta_id' => $unidadSeleccionada['precio_venta_id']
+                ]);
+            }
+        }
+    }
+
     public function confirmarRecepcionMasiva()
     {
         // Validaciones
@@ -1048,6 +1077,16 @@ class RecibirProductoCompra extends Component
                 // Guardar cantidad anterior para bitácora
                 $cantidadSinAsignarAnterior = $detalleCompra->cantidad_sin_asignar;
 
+                // Obtener precio_venta_id correspondiente a la unidad de medida seleccionada
+                $precioVentaId = $producto['precio_venta_id'] ?? null;
+                
+                // Si no hay precio_venta_id en el producto, intentar buscarlo
+                if (!$precioVentaId && $producto['unidad_medida_id']) {
+                    $unidadSeleccionada = collect($producto['unidades_disponibles'])
+                        ->firstWhere('id', $producto['unidad_medida_id']);
+                    $precioVentaId = $unidadSeleccionada['precio_venta_id'] ?? null;
+                }
+
                 // Crear registro en recibido_bodega usando la sección específica del producto
                 $recibidoBodega = RecibidoBodega::create([
                     'producto_id' => $producto['producto_id'],
@@ -1060,6 +1099,7 @@ class RecibirProductoCompra extends Component
                     'comentario' => $this->comentarioRecepcionMasiva,
                     'unidades_compra' => $cantidadDistribuir,
                     'unidad_medida_id' => $producto['unidad_medida_id'],
+                    'precio_venta_id' => $precioVentaId, // ID de precio_has_venta
                     'users_registro_id' => Auth::id(),
                     'estado_id' => 1
                 ]);
@@ -1081,6 +1121,7 @@ class RecibirProductoCompra extends Component
                         'cantidad_disponible' => $cantidadParaStock,
                         'fecha_recibido' => $this->fechaRecepcionMasiva,
                         'comentario' => $this->comentarioRecepcionMasiva,
+                        'precio_venta_id' => $precioVentaId,
                         'compra_id' => $this->compraId
                     ]
                 );
