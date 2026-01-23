@@ -20,7 +20,7 @@
     <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
 
     {{-- Estilos compilados con Vite --}}
-    <link rel="stylesheet" href="{{ asset('build/assets/app-B6dSsrj3.css') }}">
+    <link rel="stylesheet" href="{{ asset('build/assets/app-poWAtTx1.css') }}">
 
     {{-- Bootstrap 5 CSS (sin integrity para evitar error) --}}
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -82,16 +82,16 @@
                     0
                 </span>
             </button>
-            
+
             {{-- Dropdown de pedidos --}}
             <div id="pedidos-dropdown" style="display: none; position: fixed;" class="w-96 bg-white rounded-lg shadow-2xl border border-gray-200 z-[99999]">
                 <div class="p-4 border-b border-gray-200">
                     <h3 class="text-lg font-semibold text-gray-800">Pedidos Web Pendientes</h3>
                     <p class="text-sm text-gray-500">Nuevas solicitudes de e-commerce</p>
                 </div>
-                <div class="max-h-96 overflow-y-auto" id="pedidos-container">
+                <div class="overflow-y-auto max-h-96" id="pedidos-container">
                     <div class="p-4 text-center text-gray-500">
-                        <svg class="animate-spin h-5 w-5 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <svg class="w-5 h-5 mx-auto animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                         </svg>
@@ -99,7 +99,7 @@
                     </div>
                 </div>
                 <div class="p-3 border-t border-gray-200 bg-gray-50">
-                    <button onclick="window.Livewire.dispatch('cambiarVista', ['BandejaPedidos']); togglePedidos(event);" class="w-full text-sm text-blue-600 hover:text-blue-800 font-medium text-left">
+                    <button onclick="window.Livewire.dispatch('cambiarVista', ['BandejaPedidos']); togglePedidos(event);" class="w-full text-sm font-medium text-left text-blue-600 hover:text-blue-800">
                         Ver todos los pedidos →
                     </button>
                 </div>
@@ -107,7 +107,7 @@
         </div>
 
         {{-- Perfil con dropdown de opciones --}}
-        <div x-data="{ 
+        <div x-data="{
             open: false,
             toggle(event) {
                 this.open = !this.open;
@@ -296,14 +296,14 @@
             const dropdown = document.getElementById('pedidos-dropdown');
             const button = event ? event.currentTarget : document.querySelector('button[onclick*="togglePedidos"]');
             pedidosDropdownOpen = !pedidosDropdownOpen;
-            
+
             if (pedidosDropdownOpen) {
                 // Mover el dropdown al body si aún no se ha movido para asegurar z-index correcto
                 if (!dropdownMovedToBody) {
                     document.body.appendChild(dropdown);
                     dropdownMovedToBody = true;
                 }
-                
+
                 // Calcular posición del botón
                 const rect = button.getBoundingClientRect();
                 dropdown.style.top = (rect.bottom + 8) + 'px';
@@ -317,7 +317,7 @@
 
         function loadPedidos() {
             const container = document.getElementById('pedidos-container');
-            
+
             fetch('/pedidos-web/api/pendientes', {
                 headers: {
                     'Accept': 'application/json',
@@ -348,7 +348,7 @@
 
         function renderPedidos(pedidos) {
             const container = document.getElementById('pedidos-container');
-            
+
             if (!pedidos || pedidos.length === 0) {
                 container.innerHTML = `
                     <div class="p-8 text-center text-gray-500">
@@ -360,28 +360,28 @@
                 `;
                 return;
             }
-            
+
             const pedidosHtml = pedidos.map(pedido => `
-                <button onclick="verDetallePedido(${pedido.id}); return false;" class="w-full text-left block p-4 border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                <button onclick="verDetallePedido(${pedido.id}); return false;" class="block w-full p-4 text-left transition-colors border-b border-gray-100 hover:bg-gray-50">
                     <div class="flex items-start justify-between">
                         <div class="flex-1">
                             <div class="flex items-center gap-2">
                                 ${!pedido.leido ? '<span class="text-blue-600">🔔</span>' : ''}
                                 <span class="font-semibold text-gray-800">${pedido.numero_pedido}</span>
                             </div>
-                            <p class="text-sm text-gray-600 mt-1">${pedido.cliente_nombre}</p>
+                            <p class="mt-1 text-sm text-gray-600">${pedido.cliente_nombre}</p>
                             <div class="flex items-center gap-3 mt-2 text-xs text-gray-500">
                                 <span>📦 ${pedido.items_count} items</span>
                                 <span>⏰ ${pedido.fecha_pedido}</span>
                             </div>
                         </div>
-                        <div class="text-right ml-2">
+                        <div class="ml-2 text-right">
                             <p class="text-lg font-bold text-gray-800">L ${pedido.total}</p>
                         </div>
                     </div>
                 </button>
             `).join('');
-            
+
             container.innerHTML = pedidosHtml;
         }
 
@@ -389,7 +389,7 @@
             // Cerrar el dropdown
             pedidosDropdownOpen = false;
             document.getElementById('pedidos-dropdown').style.display = 'none';
-            
+
             // Cargar el detalle del pedido en el componente dinámico
             window.Livewire.dispatch('cambiarVista', ['DetallePedido', {pedidoId: pedidoId}]);
         }
@@ -398,7 +398,7 @@
         document.addEventListener('click', function(event) {
             const dropdown = document.getElementById('pedidos-dropdown');
             const button = event.target.closest('button[onclick*="togglePedidos"]');
-            
+
             if (!button && dropdown && !dropdown.contains(event.target) && pedidosDropdownOpen) {
                 pedidosDropdownOpen = false;
                 dropdown.style.display = 'none';
@@ -449,8 +449,8 @@
                         ${tipo === 'info' ? '🔔' : tipo === 'success' ? '✅' : tipo === 'warning' ? '⚠️' : '❌'}
                     </div>
                     <div class="flex-1">
-                        <h4 class="font-semibold text-lg">${titulo}</h4>
-                        <p class="text-sm mt-1 text-white/90">${mensaje}</p>
+                        <h4 class="text-lg font-semibold">${titulo}</h4>
+                        <p class="mt-1 text-sm text-white/90">${mensaje}</p>
                     </div>
                     <button onclick="this.parentElement.parentElement.remove()" class="flex-shrink-0 text-white/80 hover:text-white">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -481,11 +481,11 @@
                 if (data.success) {
                     const unreadCount = data.data.unread_count || 0;
                     const badge = document.getElementById('pedidos-badge');
-                    
+
                     if (unreadCount > 0) {
                         badge.textContent = unreadCount;
                         badge.style.display = 'inline-flex';
-                        
+
                         // Si hay más pedidos que antes, mostrar alerta
                         if (unreadCount > previousUnreadCount && previousUnreadCount >= 0) {
                             mostrarAlertaNuevoPedido(unreadCount);
@@ -493,7 +493,7 @@
                     } else {
                         badge.style.display = 'none';
                     }
-                    
+
                     previousUnreadCount = unreadCount;
                 }
             })

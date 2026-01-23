@@ -430,23 +430,20 @@
                     
                     // Si es factura del API (origen_web), usar valores ya calculados
                     if(isset($factura->origen_web) && $factura->origen_web) {
-                        // Para facturas del API, sumar directamente los valores guardados
+                        // Para facturas del API, usar directamente los valores del modelo
+                        // que ya están correctamente calculados
                         $importeGravado = 0;
                         $importeExento = 0;
                         $impuestoVenta = 0;
                         
                         foreach($productos as $producto) {
-                            // Usar el subtotal que ya viene del API (ya incluye cantidad x precio)
+                            // Los valores ya vienen correctos del API
                             $subtotalItem = $producto['subtotal'] ?? 0;
                             $isvItem = $producto['isv'] ?? 0;
                             
-                            // Separar por tipo de ISV
-                            if(($producto['tasa_isv'] ?? 0) == 15 && $isvItem > 0) {
-                                $importeGravado += $subtotalItem;
-                                $impuestoVenta += $isvItem;
-                            } else {
-                                $importeExento += $subtotalItem;
-                            }
+                            // Todo en facturas web es gravado (con ISV)
+                            $importeGravado += $subtotalItem;
+                            $impuestoVenta += $isvItem;
                         }
                     } else {
                         // Para facturas normales, calcular como antes
