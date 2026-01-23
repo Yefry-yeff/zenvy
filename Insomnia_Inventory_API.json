@@ -1,0 +1,227 @@
+{
+  "_type": "export",
+  "__export_format": 4,
+  "__export_date": "2026-01-22T22:30:00.000Z",
+  "__export_source": "insomnia.desktop.app:v12.2.0",
+  "resources": [
+    {
+      "_id": "wrk_inventory_api",
+      "_type": "workspace",
+      "name": "Zenvy API - Inventario",
+      "description": "API de Inventario para sincronización en tiempo real\n\nServidor: http://localhost:8000\nEndpoints: Productos, Categorías, Stock",
+      "scope": "collection"
+    },
+    {
+      "_id": "env_inventory",
+      "_type": "environment",
+      "name": "Inventory Environment",
+      "data": {
+        "base_url": "http://127.0.0.1:8000",
+        "api_key": "pk_LhkEAssdwNMPjJMc3gqJL2TtIX96mi1s",
+        "api_secret": "sk_3fXa0kouB9l0Qiw1mLYoIcZKRX6WbIfLykKCLK5tT2fKKqPOYoQs7mOeS7tP1LcZ",
+        "token": ""
+      },
+      "parentId": "wrk_inventory_api",
+      "color": null,
+      "isPrivate": false,
+      "metaSortKey": 1
+    },
+    {
+      "_id": "fld_auth",
+      "_type": "request_group",
+      "name": "🔐 Autenticación",
+      "parentId": "wrk_inventory_api",
+      "description": ""
+    },
+    {
+      "_id": "req_get_token",
+      "_type": "request",
+      "name": "1. Obtener Token JWT",
+      "method": "POST",
+      "url": "{{ _.base_url }}/api/v1/auth/token",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"api_key\": \"{{ _.api_key }}\",\n  \"api_secret\": \"{{ _.api_secret }}\"\n}"
+      },
+      "parentId": "fld_auth",
+      "description": "Obtener token JWT para autenticación en los endpoints protegidos.\n\n**PASOS:**\n1. Configura `api_key` y `api_secret` en el Environment\n2. Ejecuta este request\n3. Copia el token de la respuesta (campo 'data.token')\n4. Pégalo en la variable 'token' del Environment"
+    },
+    {
+      "_id": "fld_inventory",
+      "_type": "request_group",
+      "name": "📦 Inventario - Productos y Categorías",
+      "parentId": "wrk_inventory_api",
+      "description": ""
+    },
+    {
+      "_id": "req_inventory_by_category",
+      "_type": "request",
+      "name": "2.1 Productos por Categoría",
+      "method": "GET",
+      "url": "{{ _.base_url }}/api/v1/inventory/by-category",
+      "headers": [
+        {
+          "name": "Accept",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "parentId": "fld_inventory",
+      "description": "Obtiene todos los productos con stock disponible, agrupados por categoría.\n\n**Respuesta incluye:**\n- ID, SKU, código de barras\n- Nombre del producto\n- Stock disponible\n- Precios (venta y compra)\n- Margen de ganancia\n\n**Meta:**\n- Total categorías\n- Total productos\n- Stock total\n- Timestamp\n\n**Uso:** Sincronizar inventario completo en el frontend cada X segundos"
+    },
+    {
+      "_id": "req_inventory_categories",
+      "_type": "request",
+      "name": "2.2 Listado de Categorías",
+      "method": "GET",
+      "url": "{{ _.base_url }}/api/v1/inventory/categories",
+      "headers": [
+        {
+          "name": "Accept",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "parentId": "fld_inventory",
+      "description": "Obtiene solo las categorías que tienen productos con stock disponible.\n\n**Respuesta incluye:**\n- ID de categoría\n- Nombre\n- Descripción\n- Total de productos en categoría\n- Stock total de la categoría\n\n**Uso:** Actualizar selectores, filtros y dropdowns en el frontend de forma ligera"
+    },
+    {
+      "_id": "req_inventory_all",
+      "_type": "request",
+      "name": "2.3 Inventario Completo (Paginado)",
+      "method": "GET",
+      "url": "{{ _.base_url }}/api/v1/inventory?per_page=20&page=1",
+      "headers": [
+        {
+          "name": "Accept",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "parentId": "fld_inventory",
+      "description": "Obtiene inventario completo con paginación.\n\n**Parámetros opcionales:**\n- `per_page`: Items por página (default: 15)\n- `page`: Número de página\n- `category_id`: Filtrar por categoría\n- `available`: Mostrar solo disponibles (true/false)\n- `search`: Buscar por nombre\n- `min_stock`: Stock mínimo\n- `order_by`: Campo para ordenar\n- `order_direction`: 'asc' o 'desc'\n\n**Ejemplo:** \n`?category_id=1&per_page=50&order_by=nombre&order_direction=asc`"
+    },
+    {
+      "_id": "req_inventory_low_stock",
+      "_type": "request",
+      "name": "2.4 Productos con Stock Bajo",
+      "method": "GET",
+      "url": "{{ _.base_url }}/api/v1/inventory/low-stock?threshold=10",
+      "headers": [
+        {
+          "name": "Accept",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "parentId": "fld_inventory",
+      "description": "Obtiene productos con stock por debajo del umbral especificado.\n\n**Parámetros:**\n- `threshold`: Cantidad mínima (ej: 10)\n\n**Respuesta incluye:**\n- ID, SKU, nombre\n- Stock actual\n- Stock mínimo\n- Categoría"
+    },
+    {
+      "_id": "req_inventory_sku",
+      "_type": "request",
+      "name": "2.5 Producto por SKU",
+      "method": "GET",
+      "url": "{{ _.base_url }}/api/v1/inventory/AGD-001",
+      "headers": [
+        {
+          "name": "Accept",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "parentId": "fld_inventory",
+      "description": "Obtiene un producto específico por su SKU.\n\n**Cambiar 'AGD-001' por el SKU del producto que necesites.**\n\n**Respuesta incluye:**\n- Todos los detalles del producto\n- Stock disponible\n- Precios\n- Categoría"
+    },
+    {
+      "_id": "req_inventory_barcode",
+      "_type": "request",
+      "name": "2.6 Producto por Código de Barras",
+      "method": "GET",
+      "url": "{{ _.base_url }}/api/v1/inventory/barcode/7891234567890",
+      "headers": [
+        {
+          "name": "Accept",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "parentId": "fld_inventory",
+      "description": "Obtiene un producto por su código de barras.\n\n**Cambiar '7891234567890' por el código de barras del producto.**"
+    },
+    {
+      "_id": "req_validate_stock",
+      "_type": "request",
+      "name": "2.7 Validar Stock (Múltiples Productos)",
+      "method": "POST",
+      "url": "{{ _.base_url }}/api/v1/inventory/validate-stock",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"items\": [\n    {\n      \"sku\": \"AGD-001\",\n      \"quantity\": 5\n    },\n    {\n      \"sku\": \"CUA-001\",\n      \"quantity\": 10\n    },\n    {\n      \"sku\": \"BOL-001\",\n      \"quantity\": 2\n    }\n  ]\n}"
+      },
+      "parentId": "fld_inventory",
+      "description": "Valida la disponibilidad de stock para múltiples productos.\n\n**Respuesta:**\n- `available`: true si hay suficiente stock de TODOS los items\n- Lista de cada item con:\n  - SKU\n  - Cantidad solicitada\n  - Cantidad disponible\n  - `is_available`: true/false para cada item\n\n**Uso:** Validar carrito de compra antes de procesar"
+    },
+    {
+      "_id": "fld_examples",
+      "_type": "request_group",
+      "name": "📚 Ejemplos de Respuestas",
+      "parentId": "wrk_inventory_api",
+      "description": ""
+    },
+    {
+      "_id": "doc_response_by_category",
+      "_type": "request",
+      "name": "Respuesta: Productos por Categoría",
+      "method": "GET",
+      "url": "{{ _.base_url }}/api/v1/inventory/by-category",
+      "headers": [],
+      "parentId": "fld_examples",
+      "description": "```json\n{\n  \"success\": true,\n  \"data\": [\n    {\n      \"categoria_id\": 1,\n      \"categoria_nombre\": \"Agendas\",\n      \"categoria_descripcion\": \"Productos de agenda y planeación\",\n      \"total_productos\": 3,\n      \"stock_total\": 45,\n      \"productos\": [\n        {\n          \"id\": 10,\n          \"sku\": \"AGD-001\",\n          \"codigo_barra\": \"7891234567890\",\n          \"nombre\": \"Agenda 10x15 2 Días por Página Spring C18\",\n          \"stock\": 15,\n          \"precio_venta\": 725.00,\n          \"precio_compra\": 450.00,\n          \"margen\": 61.11\n        }\n      ]\n    }\n  ],\n  \"meta\": {\n    \"total_categories\": 1,\n    \"total_products\": 1,\n    \"total_stock\": 15,\n    \"timestamp\": \"2026-01-22T22:30:00Z\"\n  }\n}\n```"
+    },
+    {
+      "_id": "doc_response_categories",
+      "_type": "request",
+      "name": "Respuesta: Categorías",
+      "method": "GET",
+      "url": "{{ _.base_url }}/api/v1/inventory/categories",
+      "headers": [],
+      "parentId": "fld_examples",
+      "description": "```json\n{\n  \"success\": true,\n  \"data\": [\n    {\n      \"id\": 1,\n      \"nombre\": \"Agendas\",\n      \"descripcion\": \"Productos de agenda y planeación\",\n      \"total_productos\": 3,\n      \"stock_total\": 45\n    },\n    {\n      \"id\": 2,\n      \"nombre\": \"Cuadernos\",\n      \"descripcion\": \"Cuadernos y libros de notas\",\n      \"total_productos\": 2,\n      \"stock_total\": 120\n    }\n  ],\n  \"meta\": {\n    \"total_categories\": 2,\n    \"total_products\": 5,\n    \"total_stock\": 165,\n    \"timestamp\": \"2026-01-22T22:30:00Z\"\n  }\n}\n```"
+    }
+  ]
+}

@@ -45,6 +45,8 @@ Route::prefix('v1')->middleware([
     // ========================================
     Route::prefix('inventory')->name('api.inventory.')->group(function() {
         Route::get('/', [InventoryController::class, 'index'])->name('index');
+        Route::get('/by-category', [InventoryController::class, 'byCategory'])->name('by-category');
+        Route::get('/categories', [InventoryController::class, 'categories'])->name('categories');
         Route::get('/low-stock', [InventoryController::class, 'lowStock'])->name('low-stock');
         Route::post('/validate-stock', [InventoryController::class, 'validateStock'])->name('validate-stock');
         Route::get('/barcode/{barcode}', [InventoryController::class, 'showByBarcode'])->name('show-barcode');

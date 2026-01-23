@@ -157,6 +157,60 @@ class InventoryController extends Controller
             return $this->errorResponse($e);
         }
     }
+
+    /**
+     * Obtener todos los productos con stock agrupados por categoría
+     * Ideal para sincronización en tiempo real con el frontend
+     * 
+     * GET /api/v1/inventory/by-category
+     */
+    public function byCategory(): JsonResponse
+    {
+        try {
+            $data = $this->inventoryService->getProductsByCategory();
+            
+            return response()->json([
+                'success' => true,
+                'data' => $data,
+                'meta' => [
+                    'total_categories' => count($data),
+                    'total_products' => collect($data)->sum('total_productos'),
+                    'total_stock' => collect($data)->sum('stock_total'),
+                    'timestamp' => now()->toIso8601String()
+                ]
+            ]);
+            
+        } catch (\Exception $e) {
+            return $this->errorResponse($e);
+        }
+    }
+
+    /**
+     * Obtener solo categorías con productos disponibles
+     * Ideal para actualizar selectores en tiempo real
+     * 
+     * GET /api/v1/inventory/categories
+     */
+    public function categories(): JsonResponse
+    {
+        try {
+            $categories = $this->inventoryService->getCategoriesWithStock();
+            
+            return response()->json([
+                'success' => true,
+                'data' => $categories,
+                'meta' => [
+                    'total_categories' => count($categories),
+                    'total_products' => collect($categories)->sum('total_productos'),
+                    'total_stock' => collect($categories)->sum('stock_total'),
+                    'timestamp' => now()->toIso8601String()
+                ]
+            ]);
+            
+        } catch (\Exception $e) {
+            return $this->errorResponse($e);
+        }
+    }
     
     /**
      * Manejo de errores centralizado
