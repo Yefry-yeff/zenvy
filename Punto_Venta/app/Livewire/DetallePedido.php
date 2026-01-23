@@ -24,7 +24,7 @@ class DetallePedido extends Component
     {
         if (!$pedidoId) {
             session()->flash('error', 'ID de pedido no proporcionado');
-            $this->dispatch('cambiarVista', ['BandejaPedidos']);
+            $this->dispatch('cambiarVista', 'BandejaPedidos');
             return;
         }
 
@@ -39,7 +39,7 @@ class DetallePedido extends Component
 
         if (!$this->pedido) {
             session()->flash('error', 'Pedido no encontrado');
-            $this->dispatch('cambiarVista', ['BandejaPedidos']);
+            $this->dispatch('cambiarVista', 'BandejaPedidos');
             return;
         }
 
@@ -155,7 +155,7 @@ class DetallePedido extends Component
 
     public function volverABandeja()
     {
-        $this->dispatch('cambiarVista', ['BandejaPedidos']);
+        $this->dispatch('cambiarVista', 'BandejaPedidos');
     }
 
     public function render()

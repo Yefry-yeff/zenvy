@@ -269,7 +269,7 @@
         <div class="factura-title">
             <strong>FACTURA VENTA</strong>
             @if($pedidoWeb)
-                <br><span style="font-size: 14px; color: #0066cc;">🌐 Pedido Web #{{ $pedidoWeb->numero_pedido }}</span>
+                <br><span style="font-size: 14px; color: #000;">Pedido Web #{{ $pedidoWeb->numero_pedido }}</span>
             @endif
         </div>
 
@@ -306,17 +306,6 @@
                 @if($clienteNombre && $clienteNombre != 'Consumidor Final')
                     CLIENTE: {{ $clienteNombre }}
                 @endif
-                @if($pedidoWeb)
-                    @if($clienteEmail)
-                        <br>Email: {{ $clienteEmail }}
-                    @endif
-                    @if($clienteTelefono)
-                        <br>Tel: {{ $clienteTelefono }}
-                    @endif
-                    @if($clienteDireccion)
-                        <br>Dir: {{ $clienteDireccion }}
-                    @endif
-                @endif
                 <br>
                 No. O/C Exenta:<br>
                 No. REG DE EXONERADO:<br>
@@ -344,11 +333,19 @@
 
         @foreach($productos as $producto)
             @php
-                // Calcular precio sin ISV
-                $precioSinIsv = ($producto['tasa_isv'] ?? 0) == 15 ? $producto['precio_unidad'] / 1.15 : $producto['precio_unidad'];
-                
-                // Calcular importe del producto SIN descuentos (cantidad × precio unitario sin ISV)
-                $importeProducto = $producto['cantidad'] * $precioSinIsv;
+                // Para facturas del API, usar valores ya calculados
+                if(isset($factura->origen_web) && $factura->origen_web) {
+                    // Usar directamente los valores del API
+                    $importeProducto = $producto['subtotal'] ?? 0;
+                    $isvProducto = $producto['isv'] ?? 0;
+                    $precioSinIsv = $producto['precio_unidad'] ?? 0;
+                } else {
+                    // Calcular precio sin ISV para facturas normales
+                    $precioSinIsv = ($producto['tasa_isv'] ?? 0) == 15 ? $producto['precio_unidad'] / 1.15 : $producto['precio_unidad'];
+                    
+                    // Calcular importe del producto SIN descuentos (cantidad × precio unitario sin ISV)
+                    $importeProducto = $producto['cantidad'] * $precioSinIsv;
+                }
 
                 // Obtener descuentos desde la nueva estructura agrupada
                 $descuentos = $producto['descuentos'] ?? [];
@@ -431,27 +428,49 @@
                         return $producto['total_descuentos'] ?? 0;
                     });
                     
-                    // Calcular igual que en el resumen de ventas
-                    $importeGravado = 0;
-                    $importeExento = 0;
-                    $impuestoVenta = 0;
-                    
-                    foreach($productos as $producto) {
-                        // Calcular precio sin ISV
-                        $precioSinIsvItem = ($producto['tasa_isv'] ?? 0) == 15 ? $producto['precio_unidad'] / 1.15 : $producto['precio_unidad'];
+                    // Si es factura del API (origen_web), usar valores ya calculados
+                    if(isset($factura->origen_web) && $factura->origen_web) {
+                        // Para facturas del API, sumar directamente los valores guardados
+                        $importeGravado = 0;
+                        $importeExento = 0;
+                        $impuestoVenta = 0;
                         
-                        $subtotalItem = ($producto['cantidad'] ?? 0) * $precioSinIsvItem;
-                        $descuentoItem = $producto['total_descuentos'] ?? 0;
-                        $subtotalConDescuento = $subtotalItem - $descuentoItem;
+                        foreach($productos as $producto) {
+                            // Usar el subtotal que ya viene del API (ya incluye cantidad x precio)
+                            $subtotalItem = $producto['subtotal'] ?? 0;
+                            $isvItem = $producto['isv'] ?? 0;
+                            
+                            // Separar por tipo de ISV
+                            if(($producto['tasa_isv'] ?? 0) == 15 && $isvItem > 0) {
+                                $importeGravado += $subtotalItem;
+                                $impuestoVenta += $isvItem;
+                            } else {
+                                $importeExento += $subtotalItem;
+                            }
+                        }
+                    } else {
+                        // Para facturas normales, calcular como antes
+                        $importeGravado = 0;
+                        $importeExento = 0;
+                        $impuestoVenta = 0;
                         
-                        // Separar por tipo de ISV
-                        if(($producto['tasa_isv'] ?? 0) == 15) {
-                            // Producto gravado
-                            $importeGravado += $subtotalConDescuento;
-                            // El ISV se calcula sobre el importe sin ISV
-                            $impuestoVenta += $subtotalConDescuento * 0.15;
-                        } else if(($producto['tasa_isv'] ?? 0) == 0) {
-                            $importeExento += $subtotalConDescuento;
+                        foreach($productos as $producto) {
+                            // Calcular precio sin ISV
+                            $precioSinIsvItem = ($producto['tasa_isv'] ?? 0) == 15 ? $producto['precio_unidad'] / 1.15 : $producto['precio_unidad'];
+                            
+                            $subtotalItem = ($producto['cantidad'] ?? 0) * $precioSinIsvItem;
+                            $descuentoItem = $producto['total_descuentos'] ?? 0;
+                            $subtotalConDescuento = $subtotalItem - $descuentoItem;
+                            
+                            // Separar por tipo de ISV
+                            if(($producto['tasa_isv'] ?? 0) == 15) {
+                                // Producto gravado
+                                $importeGravado += $subtotalConDescuento;
+                                // El ISV se calcula sobre el importe sin ISV
+                                $impuestoVenta += $subtotalConDescuento * 0.15;
+                            } else if(($producto['tasa_isv'] ?? 0) == 0) {
+                                $importeExento += $subtotalConDescuento;
+                            }
                         }
                     }
 
