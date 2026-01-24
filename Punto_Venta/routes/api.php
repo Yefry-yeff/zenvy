@@ -33,6 +33,11 @@ Route::prefix('v1/auth')->group(function() {
     Route::post('token', [AuthController::class, 'generateToken'])->name('api.auth.token');
 });
 
+// ========================================
+// Webhooks - Sincronización de inventario (sin autenticación API)
+// ========================================
+Route::post('/webhook/inventory', [InventoryController::class, 'webhookInventory'])->name('api.webhook.inventory');
+
 // Rutas protegidas con autenticación y auditoría
 Route::prefix('v1')->middleware([
     'api.auth',
@@ -49,6 +54,7 @@ Route::prefix('v1')->middleware([
         Route::get('/categories', [InventoryController::class, 'categories'])->name('categories');
         Route::get('/low-stock', [InventoryController::class, 'lowStock'])->name('low-stock');
         Route::post('/validate-stock', [InventoryController::class, 'validateStock'])->name('validate-stock');
+        Route::post('/sync/force', [InventoryController::class, 'forceSync'])->name('sync-force');
         Route::get('/barcode/{barcode}', [InventoryController::class, 'showByBarcode'])->name('show-barcode');
         Route::get('/{sku}', [InventoryController::class, 'show'])->name('show');
     });

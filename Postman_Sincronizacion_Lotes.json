@@ -1,0 +1,44 @@
+{
+  "info": {
+    "name": "Zenvy - Sincronización por Lotes (1500+ productos)",
+    "description": "Colección para probar la sincronización de inventario por lotes, solucionando el límite de 1500 productos",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Sincronización Completa (Lotes de 500 - Default)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{api_token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/v1/inventory/sync/force",
+          "host": ["{{base_url}}"],
+          "path": ["api", "v1", "inventory", "sync", "force"]
+        }
+      },
+      "response": [
+        {
+          "name": "Éxito - 1662 productos en 4 lotes",
+          "originalRequest": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/inventory/sync/force",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "inventory", "sync", "force"]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {

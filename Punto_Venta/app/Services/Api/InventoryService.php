@@ -122,7 +122,7 @@ class InventoryService
         return $products->map(function($product) {
             return [
                 'id' => $product->id,
-                'sku' => $product->sku,
+                'codigo_estatal' => $product->codigo_barra,
                 'nombre' => $product->nombre,
                 'stock_actual' => $product->stock_actual,
                 'stock_minimo' => $product->stock_minimo,
@@ -132,7 +132,7 @@ class InventoryService
     }
 
     /**
-     * Obtener todos los productos con stock agrupados por categoría
+     * Obtener todos los productos con stock agrupados por categoría (Segmento)
      * Ideal para sincronización en tiempo real con el frontend
      */
     public function getProductsByCategory(): array
@@ -141,43 +141,38 @@ class InventoryService
         $cacheTtl = config('api.inventory.cache_ttl', 300); // 5 minutos por defecto
         
         return Cache::remember($cacheKey, $cacheTtl, function() {
-            // Obtener productos con stock > 0 junto con su categoría
-            $products = \DB::table('producto as p')
+            // Obtener productos con stock > 0 desde recibido_bodega
+            // JOIN: recibido_bodega -> seccion -> segmento para obtener categoría
+            $products = \DB::table('recibido_bodega as rb')
+                ->join('producto as p', 'rb.producto_id', '=', 'p.id')
+                ->join('seccion as sec', 'rb.seccion_id', '=', 'sec.id')
+                ->join('segmento as seg', 'sec.segmento_id', '=', 'seg.id')
                 ->select([
                     'p.id',
-                    'p.sku',
                     'p.codigo_barra',
                     'p.nombre',
-                    'p.precio_venta',
-                    'p.precio_compra',
-                    'p.categoria_id',
-                    'c.nombre as categoria_nombre',
-                    'c.descripcion as categoria_descripcion',
-                    \DB::raw('COALESCE(SUM(rb.cantidad_disponible), 0) as stock_disponible')
+                    'seg.id as categoria_id',
+                    'seg.descripcion as categoria_nombre',
+                    \DB::raw('SUM(rb.cantidad_disponible) as stock_disponible'),
+                    \DB::raw('(SELECT phv.precio FROM precio_has_venta phv WHERE phv.producto_id = p.id AND phv.estado_id = 1 ORDER BY phv.cantidad ASC LIMIT 1) as precio_venta')
                 ])
-                ->leftJoin('categoria as c', 'p.categoria_id', '=', 'c.id')
-                ->leftJoin('recibido_bodega as rb', function($join) {
-                    $join->on('p.id', '=', 'rb.producto_id')
-                         ->where('rb.estado_id', '=', 1); // Solo disponibles
-                })
-                ->where('p.estado', '=', 'activo')
-                ->groupBy('p.id', 'p.sku', 'p.codigo_barra', 'p.nombre', 'p.precio_venta', 
-                         'p.precio_compra', 'p.categoria_id', 'c.nombre', 'c.descripcion')
-                ->having(\DB::raw('COALESCE(SUM(rb.cantidad_disponible), 0)'), '>', 0)
+                ->where('rb.estado_id', '=', 1)
+                ->where('p.estado_id', '=', 1)
+                ->groupBy('p.id', 'p.codigo_barra', 'p.nombre', 'seg.id', 'seg.descripcion')
+                ->havingRaw('SUM(rb.cantidad_disponible) > 0')
                 ->get();
 
-            // Agrupar por categoría
+            // Agrupar por categoría (Segmento)
             $grouped = [];
             
             foreach ($products as $product) {
-                $categoryId = $product->categoria_id ?? 0;
-                $categoryName = $product->categoria_nombre ?? 'Sin Categoría';
+                $categoryId = (int)$product->categoria_id;
                 
+                // Crear categoría si no existe
                 if (!isset($grouped[$categoryId])) {
                     $grouped[$categoryId] = [
                         'categoria_id' => $categoryId,
-                        'categoria_nombre' => $categoryName,
-                        'categoria_descripcion' => $product->categoria_descripcion ?? '',
+                        'categoria_nombre' => (string)$product->categoria_nombre,
                         'total_productos' => 0,
                         'stock_total' => 0,
                         'productos' => []
@@ -186,15 +181,11 @@ class InventoryService
                 
                 $productData = [
                     'id' => (int)$product->id,
-                    'sku' => (string)$product->sku,
+                    'codigo_estatal' => (string)$product->codigo_barra,
                     'codigo_barra' => (string)$product->codigo_barra,
                     'nombre' => (string)$product->nombre,
                     'stock' => (int)$product->stock_disponible,
-                    'precio_venta' => (float)$product->precio_venta,
-                    'precio_compra' => (float)$product->precio_compra,
-                    'margen' => $product->precio_compra > 0 
-                        ? round((($product->precio_venta - $product->precio_compra) / $product->precio_compra) * 100, 2)
-                        : 0
+                    'precio_venta' => (float)($product->precio_venta ?? 0),
                 ];
                 
                 $grouped[$categoryId]['productos'][] = $productData;

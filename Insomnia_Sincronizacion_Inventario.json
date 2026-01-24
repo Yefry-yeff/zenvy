@@ -1,0 +1,134 @@
+{
+  "_type": "export",
+  "__export_format": 4,
+  "__export_date": "2026-01-23T10:30:45.000Z",
+  "__export_source": "insomnia.desktop.app:v12.2.0",
+  "resources": [
+    {
+      "_id": "wrk_zenvy_sync",
+      "_type": "workspace",
+      "name": "Zenvy Sincronización Inventario",
+      "description": "Webhooks de sincronización de inventario",
+      "scope": "collection"
+    },
+    {
+      "_id": "env_local",
+      "_type": "environment",
+      "name": "Local - Laragon",
+      "parentId": "wrk_zenvy_sync",
+      "data": {
+        "base_url": "http://localhost:8000",
+        "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9eyJzdWIiOiJ6ZW52eS1kZXYtdG9rZW4iLCJpYXQiOjE3Mzc2MzAwMDAsImV4cCI6OTk5OTk5OTk5OX0.zenvyLocalDevToken2025SincronizacionInventarioPageWeb"
+      },
+      "color": null,
+      "isPrivate": false,
+      "metaSortKey": 1
+    },
+    {
+      "_id": "fld_webhooks",
+      "_type": "request_group",
+      "name": "📦 Webhooks",
+      "parentId": "wrk_zenvy_sync",
+      "description": "Eventos de sincronización"
+    },
+    {
+      "_id": "req_compra",
+      "_type": "request",
+      "name": "Compra Recibida",
+      "method": "POST",
+      "url": "{{ _.base_url }}/api/webhook/inventory",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\"evento\":\"inventario.compra_recibida\",\"timestamp\":\"2025-01-23T10:30:45Z\",\"producto\":{\"id\":1,\"nombre\":\"Monitor\",\"cantidad_ingresada\":50}}"
+      },
+      "parentId": "fld_webhooks",
+      "description": ""
+    },
+    {
+      "_id": "req_venta",
+      "_type": "request",
+      "name": "Venta Realizada",
+      "method": "POST",
+      "url": "{{ _.base_url }}/api/webhook/inventory",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\"evento\":\"inventario.venta_realizada\",\"timestamp\":\"2025-01-23T10:30:45Z\",\"numero_factura\":\"FAC-001\",\"productos_vendidos\":[{\"id\":1,\"cantidad\":5}]}"
+      },
+      "parentId": "fld_webhooks",
+      "description": ""
+    },
+    {
+      "_id": "req_anula",
+      "_type": "request",
+      "name": "Factura Anulada",
+      "method": "POST",
+      "url": "{{ _.base_url }}/api/webhook/inventory",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\"evento\":\"inventario.factura_anulada\",\"timestamp\":\"2025-01-23T10:30:45Z\",\"numero_factura\":\"FAC-001\",\"productos_restaurados\":[{\"id\":1,\"cantidad\":5}]}"
+      },
+      "parentId": "fld_webhooks",
+      "description": ""
+    },
+    {
+      "_id": "fld_admin",
+      "_type": "request_group",
+      "name": "⚙️ Admin",
+      "parentId": "wrk_zenvy_sync",
+      "description": ""
+    },
+    {
+      "_id": "req_force",
+      "_type": "request",
+      "name": "Forzar Sincronización",
+      "method": "POST",
+      "url": "{{ _.base_url }}/api/v1/inventory/sync/force",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{}"
+      },
+      "parentId": "fld_admin",
+      "description": ""
+    }
+  ]
+}

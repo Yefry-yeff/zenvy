@@ -12,6 +12,7 @@ use App\Models\Segmento;
 use App\Models\Cliente;
 use App\Models\Compra;
 use App\Models\CompraHasProducto;
+use App\Services\WebInventorySyncService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -534,6 +535,19 @@ class RecibirEnBodega extends Component
             ]);
 
             DB::commit();
+
+            // Sincronizar ingreso de compra con página web
+            $syncService = app(WebInventorySyncService::class);
+            $syncService->sincronizarCompraRecibida(
+                $this->productoSeleccionado->id,
+                $this->productoSeleccionado->nombre,
+                (int) $this->cantidadInicialSeccion,
+                [
+                    'fecha_recibido' => $this->fechaRecibido,
+                    'seccion_id' => $this->seccionSeleccionada,
+                    'comentario' => $this->comentario,
+                ]
+            );
 
             $this->mostrarModalConfirmacion = false;
             $this->mostrarExito('Producto recibido en bodega exitosamente');

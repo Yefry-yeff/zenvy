@@ -17,6 +17,7 @@ use App\Models\Marca;
 use App\Models\Categoria;
 use App\Models\Subcategoria;
 use App\Services\CAIService;
+use App\Services\WebInventorySyncService;
 use Livewire\Attributes\On;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -3088,6 +3089,7 @@ class Ventas extends Component
         ]);
 
         $cantidadRestante = $cantidadParaInventario;
+        $syncService = app(WebInventorySyncService::class);
 
         foreach ($registrosStock as $registro) {
             if ($cantidadRestante <= 0) break;
@@ -3131,6 +3133,27 @@ class Ventas extends Component
             ]);
             throw new \Exception("Stock insuficiente. Faltan {$cantidadRestante} unidades");
         }
+
+        // Sincronizar cambio de stock con página web (después de descontar)
+        $stockTotalActual = DB::table('recibido_bodega')
+            ->where('producto_id', $producto['id'])
+            ->where('estado_id', 1)
+            ->where('cantidad_disponible', '>', 0)
+            ->sum('cantidad_disponible');
+        
+        $stockTotalAnterior = $stockTotalActual + $cantidadParaInventario;
+        
+        $syncService->sincronizarCambioStock(
+            $producto['id'],
+            $producto['nombre'],
+            (int) $stockTotalAnterior,
+            (int) $stockTotalActual,
+            'factura',
+            [
+                'cantidad_vendida' => $cantidadParaInventario,
+                'unidad_medida_id' => $producto['unidad_medida_id']
+            ]
+        );
 
         Log::info("DEBUG guardarProductoConDistribucionSecciones FINALIZADO", [
             'cantidad_reducida' => $cantidadParaInventario,

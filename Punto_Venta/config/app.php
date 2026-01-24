@@ -123,4 +123,16 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Webhook de Sincronización de Inventario
+    |--------------------------------------------------------------------------
+    |
+    | Configuración para sincronizar inventario con página web externa
+    |
+    */
+
+    'webhook_url' => env('WEBHOOK_URL'),
+    'webhook_token' => env('WEBHOOK_TOKEN'),
+
 ];

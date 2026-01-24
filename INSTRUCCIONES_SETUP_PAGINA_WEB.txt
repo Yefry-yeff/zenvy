@@ -1,0 +1,168 @@
+=====================================
+SETUP COMPLETO - PÁGINA WEB
+Importar productos desde Zenvy POS
+=====================================
+
+📋 ARCHIVOS CREADOS:
+
+1. zenvy-api-client.php          → Cliente PHP para API de Zenvy
+2. sincronizar-inventario-bd.php → Script de sincronización con BD
+3. crear-tablas-bd.sql           → SQL para crear tablas
+4. mostrar-productos.php         → Página de ejemplo
+5. webhook-inventory.php         → Ya existe (receptor de webhooks)
+
+=====================================
+🚀 INSTALACIÓN PASO A PASO
+=====================================
+
+PASO 1: Crear Base de Datos
+----------------------------
+1. Abre phpMyAdmin o tu gestor MySQL
+2. Crea una base de datos nueva (ej: "mi_tienda")
+3. Ejecuta el archivo: crear-tablas-bd.sql
+
+PASO 2: Configurar Credenciales
+-------------------------------
+Edita sincronizar-inventario-bd.php:
+
+define('ZENVY_URL', 'http://127.0.0.1:8000');
+define('ZENVY_EMAIL', 'admin@zenvy.local');
+define('ZENVY_PASSWORD', 'TU_PASSWORD_AQUI');
+
+define('DB_HOST', 'localhost');
+define('DB_USER', 'root');
+define('DB_PASS', 'TU_PASSWORD_BD');
+define('DB_NAME', 'mi_tienda');
+
+PASO 3: Primera Sincronización
+------------------------------
+Ejecuta en terminal:
+
+cd C:\laragon\www\Procadts\zenvy
+php sincronizar-inventario-bd.php
+
+Deberías ver:
+✅ Conectado a base de datos
+✅ Autenticado en Zenvy API
+✅ Inventario obtenido de Zenvy
+✅ SINCRONIZACIÓN COMPLETADA
+
+PASO 4: Verificar Productos
+---------------------------
+Edita mostrar-productos.php:
+
+$mysqli = new mysqli('localhost', 'root', 'PASSWORD', 'mi_tienda');
+
+Abre en navegador:
+http://127.0.0.1:8001/mostrar-productos.php
+
+PASO 5: Sincronización Automática
+---------------------------------
+Configura sincronización cada 5 minutos.
+
+WINDOWS (Task Scheduler):
+1. Abre "Programador de tareas"
+2. Crear tarea básica
+3. Programa: php.exe
+4. Argumentos: C:\laragon\www\Procadts\zenvy\sincronizar-inventario-bd.php
+5. Repetir cada 5 minutos
+
+LINUX (Cron):
+crontab -e
+*/5 * * * * /usr/bin/php /ruta/sincronizar-inventario-bd.php >> /ruta/logs/sync.log 2>&1
+
+=====================================
+🔄 FLUJO DE SINCRONIZACIÓN
+=====================================
+
+OPCIÓN 1: Sincronización Manual
+--------------------------------
+Ejecuta cuando necesites:
+php sincronizar-inventario-bd.php
+
+OPCIÓN 2: Sincronización Automática
+-----------------------------------
+- Cada 5 minutos vía Cron/Task Scheduler
+- O cuando Zenvy envía webhook (webhook-inventory.php)
+
+OPCIÓN 3: API en Tiempo Real
+-----------------------------
+Usa zenvy-api-client.php directamente:
+
+require_once 'zenvy-api-client.php';
+$zenvy = new ZenvyApiClient('http://127.0.0.1:8000');
+$token = $zenvy->authenticate('email', 'password');
+$inventory = $zenvy->getInventoryByCategory();
+
+=====================================
+📡 ENDPOINTS DISPONIBLES
+=====================================
+
+Cliente PHP incluye métodos para:
+
+✅ authenticate()               → Obtener token JWT
+✅ getInventoryByCategory()    → Inventario por categoría (RECOMENDADO)
+✅ getInventory($params)       → Todos los productos (paginado)
+✅ getProductByBarcode($code)  → Buscar por código de barras
+✅ getCategories()             → Listar categorías
+✅ validateStock($items)       → Validar stock antes de vender
+✅ forceSync()                 → Forzar sincronización
+
+=====================================
+🧪 TESTING
+=====================================
+
+1. Test de conexión a Zenvy API:
+   php zenvy-api-client.php
+
+2. Test de sincronización completa:
+   php sincronizar-inventario-bd.php
+
+3. Test webhook (desde Zenvy):
+   POST http://127.0.0.1:8001/webhook-inventory.php
+
+4. Ver productos sincronizados:
+   http://127.0.0.1:8001/mostrar-productos.php
+
+=====================================
+✅ CHECKLIST DE CONFIGURACIÓN
+=====================================
+
+[ ] Base de datos creada
+[ ] Tablas creadas (crear-tablas-bd.sql)
+[ ] Credenciales configuradas en sincronizar-inventario-bd.php
+[ ] Primera sincronización ejecutada exitosamente
+[ ] Productos visibles en mostrar-productos.php
+[ ] Webhook configurado en Zenvy (.env)
+[ ] Sincronización automática programada (opcional)
+
+=====================================
+🆘 TROUBLESHOOTING
+=====================================
+
+Error: "Connection refused"
+→ Verifica que Zenvy POS esté corriendo en puerto 8000
+
+Error: "Unauthorized"
+→ Verifica email/password en sincronizar-inventario-bd.php
+
+Error: "Table doesn't exist"
+→ Ejecuta crear-tablas-bd.sql en tu base de datos
+
+Productos no se muestran
+→ Verifica que existan productos en Zenvy POS
+→ Ejecuta sincronizar-inventario-bd.php
+→ Verifica conexión a BD en mostrar-productos.php
+
+=====================================
+📞 RESUMEN RÁPIDO
+=====================================
+
+ZENVY POS:    http://127.0.0.1:8000 (API)
+PÁGINA WEB:   http://127.0.0.1:8001 (Tu sitio)
+
+Sincronizar: php sincronizar-inventario-bd.php
+Ver productos: http://127.0.0.1:8001/mostrar-productos.php
+Webhook: http://127.0.0.1:8001/webhook-inventory.php
+
+¡Sistema listo! 🎉
