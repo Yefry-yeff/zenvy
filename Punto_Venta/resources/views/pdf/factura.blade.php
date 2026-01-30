@@ -549,7 +549,11 @@
         <div class="valor-letras" style="font-size: 17px;">
             <strong>VALOR EN LETRAS:</strong><br>
             @php
+                // Si es pedido web, sumar el costo de envío al total
                 $total = $factura->total;
+                if ($pedidoWeb && is_array($pedidoWeb->metadata) && isset($pedidoWeb->metadata['shipping_cost'])) {
+                    $total += $pedidoWeb->metadata['shipping_cost'];
+                }
                 $entero = floor($total);
                 $centavos = round(($total - $entero) * 100);
 
@@ -643,7 +647,19 @@
         <div class="separator"></div>
 
         <!-- FORMA DE PAGO -->
-        @if(count($pagos) > 0)
+        @if($pedidoWeb && $pedidoWeb->metodo_pago)
+            <div class="forma-pago">
+                <strong>FORMA DE PAGO:</strong><br>
+                @php
+                    $totalConEnvio = $factura->total;
+                    if (is_array($pedidoWeb->metadata) && isset($pedidoWeb->metadata['shipping_cost'])) {
+                        $totalConEnvio += $pedidoWeb->metadata['shipping_cost'];
+                    }
+                @endphp
+                {{ $pedidoWeb->metodo_pago }}: L. {{ number_format($totalConEnvio, 2) }}
+            </div>
+            <div class="separator"></div>
+        @elseif(count($pagos) > 0)
             <div class="forma-pago">
                 <strong>FORMA DE PAGO:</strong><br>
                 @foreach($pagos as $pago)

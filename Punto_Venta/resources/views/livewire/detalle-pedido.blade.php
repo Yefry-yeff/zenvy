@@ -309,12 +309,6 @@
                                     <span class="font-medium">- L {{ number_format($pedido->descuento, 2) }}</span>
                                 </div>
                             @endif
-                            @if(is_array($pedido->metadata) && isset($pedido->metadata['shipping_cost']) && $pedido->metadata['shipping_cost'] > 0)
-                                <div class="flex justify-between items-center opacity-90">
-                                    <span class="text-sm">Costo de Envío:</span>
-                                    <span class="font-medium">L {{ number_format($pedido->metadata['shipping_cost'], 2) }}</span>
-                                </div>
-                            @endif
                             <div class="flex justify-between items-center opacity-90">
                                 <span class="text-sm">ISV (15%):</span>
                                 <span class="font-medium">L {{ number_format($pedido->isv, 2) }}</span>
@@ -325,6 +319,12 @@
                                     <span class="text-4xl font-bold">L {{ number_format($pedido->total, 2) }}</span>
                                 </div>
                             </div>
+                            @if(is_array($pedido->metadata) && isset($pedido->metadata['shipping_cost']) && $pedido->metadata['shipping_cost'] > 0)
+                                <div class="flex justify-between items-center opacity-90 pt-3 border-t border-blue-400 border-opacity-30">
+                                    <span class="text-sm">Costo de Envío:</span>
+                                    <span class="font-medium">L {{ number_format($pedido->metadata['shipping_cost'], 2) }}</span>
+                                </div>
+                            @endif
                         </div>
                     </div>
                 </div>
