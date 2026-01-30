@@ -90,7 +90,8 @@ class DetallePedido extends Component
         try {
             $this->mostrarModalComentarioRechazo = false;
             
-            $this->pedido->rechazar();
+            $motivo = $this->comentarioRechazo ?: 'Pedido rechazado desde panel administrativo';
+            $this->pedido->rechazar($motivo, auth()->id());
             
             // Enviar correo de notificación si tiene email
             if ($this->pedido->cliente_email) {
@@ -102,7 +103,7 @@ class DetallePedido extends Component
                     ));
             }
             
-            session()->flash('success', 'Pedido rechazado y notificación enviada al cliente');
+            session()->flash('success', 'Pedido rechazado, reservas liberadas y notificación enviada al cliente');
             $this->comentarioRechazo = ''; // Limpiar comentario
             $this->cargarPedido();
         } catch (\Exception $e) {

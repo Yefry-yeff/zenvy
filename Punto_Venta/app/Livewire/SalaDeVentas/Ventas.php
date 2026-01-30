@@ -18,6 +18,7 @@ use App\Models\Categoria;
 use App\Models\Subcategoria;
 use App\Services\CAIService;
 use App\Services\WebInventorySyncService;
+use App\Services\ReservaInventarioService;
 use Livewire\Attributes\On;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -4152,7 +4153,22 @@ class Ventas extends Component
 
             $stockTotal = $query->sum('rb.cantidad_disponible');
 
-            return $stockTotal ?? 0;
+            // NUEVO: Restar las reservas activas de pedidos web
+            $reservasActivas = DB::table('reservas_inventario')
+                ->where('producto_id', $productoId)
+                ->where('estado', 'activa')
+                ->sum('cantidad_reservada');
+
+            $stockDisponible = ($stockTotal ?? 0) - ($reservasActivas ?? 0);
+
+            Log::info("DEBUG calcularStockTotalPorUnidad con reservas", [
+                'producto_id' => $productoId,
+                'stock_bodega' => $stockTotal,
+                'reservas_activas' => $reservasActivas,
+                'stock_disponible' => $stockDisponible
+            ]);
+
+            return max(0, $stockDisponible); // Asegurar que nunca retorne negativo
         } catch (\Exception $e) {
             Log::error("Error en calcularStockTotalPorUnidad: " . $e->getMessage());
             return 0;

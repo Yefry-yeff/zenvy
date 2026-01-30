@@ -17,7 +17,8 @@ use Illuminate\Support\Facades\Log;
 class SalesService
 {
     public function __construct(
-        private ProductRepository $productRepo
+        private ProductRepository $productRepo,
+        private \App\Services\ReservaInventarioService $reservaService
     ) {}
     
     /**
@@ -107,6 +108,21 @@ class SalesService
                 'cliente' => $data['customer_name'],
                 'total' => $pedido->total,
                 'items' => count($data['items']),
+            ]);
+            
+            // 7. Crear reservas de inventario
+            $resultadoReservas = $this->reservaService->crearReservas($pedido);
+            
+            if (!$resultadoReservas['success']) {
+                throw new InsufficientStockException(
+                    'No se pudo reservar el inventario: ' . implode(', ', $resultadoReservas['errores'])
+                );
+            }
+            
+            Log::info('Reservas de inventario creadas para pedido', [
+                'pedido_id' => $pedido->id,
+                'numero_pedido' => $numeroPedido,
+                'reservas_creadas' => count($resultadoReservas['reservas']),
             ]);
             
             return $pedido->load('items');
@@ -236,10 +252,13 @@ class SalesService
                     $this->decrementarStockBodega($item->producto_id, $item->cantidad);
                 }
                 
-                // 9. Marcar pedido como facturado
+                // 9. Consumir reservas de inventario (marcarlas como consumidas)
+                $this->reservaService->consumirReservas($pedido, $userId);
+                
+                // 10. Marcar pedido como facturado
                 $pedido->marcarComoFacturado($factura->id);
                 
-                // 10. Invalidar cache
+                // 11. Invalidar cache
                 Cache::flush();
                 
                 Log::info('API: Pedido web facturado exitosamente', [
@@ -437,16 +456,13 @@ class SalesService
                 throw new ProductNotFoundException("Producto ID {$item['product_id']} no encontrado");
             }
             
-            // Obtener stock total disponible
-            $stockDisponible = RecibidoBodega::where('producto_id', $product->id)
-                ->where('estado_id', 1)
-                ->where('cantidad_disponible', '>', 0)
-                ->sum('cantidad_disponible');
+            // Obtener stock disponible considerando reservas activas
+            $stockDisponible = $this->reservaService->getStockDisponible($product->id);
             
             if ($stockDisponible < $item['quantity']) {
                 $insufficientItems[] = [
                     'product_id' => $item['product_id'],
-                    'product_name' => $product->nombre,
+                    'product_name' => $product->nombre_producto ?? $product->nombre,
                     'requested' => $item['quantity'],
                     'available' => $stockDisponible,
                 ];

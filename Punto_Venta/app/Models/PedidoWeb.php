@@ -58,6 +58,16 @@ class PedidoWeb extends Model
         return $this->belongsTo(User::class, 'procesado_por');
     }
     
+    public function reservas(): HasMany
+    {
+        return $this->hasMany(ReservaInventario::class);
+    }
+    
+    public function reservasActivas(): HasMany
+    {
+        return $this->hasMany(ReservaInventario::class)->where('estado', 'activa');
+    }
+    
     // Scopes
     public function scopePendientes($query)
     {
@@ -99,8 +109,12 @@ class PedidoWeb extends Model
         ]);
     }
     
-    public function rechazar(): void
+    public function rechazar(string $motivo = 'Pedido rechazado', ?int $usuarioId = null): void
     {
+        // Liberar reservas de inventario antes de cambiar el estado
+        $reservaService = app(\App\Services\ReservaInventarioService::class);
+        $reservaService->liberarReservas($this, $motivo, $usuarioId);
+        
         $this->update(['estado' => 'rechazado']);
     }
 }
