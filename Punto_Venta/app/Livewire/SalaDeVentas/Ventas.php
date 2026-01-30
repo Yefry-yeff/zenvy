@@ -3008,14 +3008,16 @@ class Ventas extends Component
         }
 
         // Obtener la primera sección disponible para este producto (para el registro en factura_has_producto)
+        // Usar precio_venta_id de recibido_bodega para hacer JOIN con precio_has_venta
         $primeraSeccion = DB::table('tienda as t')
             ->join('bodega as b', 'b.tienda_id', '=', 't.id')
             ->join('segmento as s', 's.bodega_id', '=', 'b.id')
             ->join('seccion as sc', 'sc.segmento_id', '=', 's.id')
             ->join('recibido_bodega as rb', 'rb.seccion_id', '=', 'sc.id')
+            ->join('precio_has_venta as phv', 'rb.precio_venta_id', '=', 'phv.id')
             ->where('t.id', Auth::user()->tienda_id)
             ->where('rb.producto_id', $producto['id'])
-            ->where('rb.unidad_medida_id', $producto['unidad_medida_id'])
+            ->where('rb.precio_venta_id', $producto['precio_id'])
             ->where('b.principal', 1)
             ->where('rb.cantidad_disponible', '>', 0)
             ->where('rb.estado_id', 1)
@@ -3023,7 +3025,11 @@ class Ventas extends Component
             ->first();
 
         if (!$primeraSeccion) {
-            Log::error("No hay stock disponible", ['producto_id' => $producto['id'], 'unidad_medida_id' => $producto['unidad_medida_id']]);
+            Log::error("No hay stock disponible", [
+                'producto_id' => $producto['id'], 
+                'precio_id' => $producto['precio_id'] ?? 'N/A',
+                'unidad_medida_id' => $producto['unidad_medida_id'] ?? 'N/A'
+            ]);
             throw new \Exception("No hay stock disponible para el producto con la unidad de medida seleccionada");
         }
 
@@ -3063,14 +3069,16 @@ class Ventas extends Component
         DB::table('factura_has_producto')->insert($registroFacturaProducto);
 
         // PASO 2: Reducir inventario usando FIFO
+        // Usar precio_venta_id de recibido_bodega para hacer JOIN con precio_has_venta
         $registrosStock = DB::table('tienda as t')
             ->join('bodega as b', 'b.tienda_id', '=', 't.id')
             ->join('segmento as s', 's.bodega_id', '=', 'b.id')
             ->join('seccion as sc', 'sc.segmento_id', '=', 's.id')
             ->join('recibido_bodega as rb', 'rb.seccion_id', '=', 'sc.id')
+            ->join('precio_has_venta as phv', 'rb.precio_venta_id', '=', 'phv.id')
             ->where('t.id', Auth::user()->tienda_id)
             ->where('rb.producto_id', $producto['id'])
-            ->where('rb.unidad_medida_id', $producto['unidad_medida_id'])
+            ->where('rb.precio_venta_id', $producto['precio_id'])
             ->where('b.principal', 1)
             ->where('rb.cantidad_disponible', '>', 0)
             ->where('rb.estado_id', 1)
@@ -3078,7 +3086,8 @@ class Ventas extends Component
                 'rb.id as recibido_bodega_id',
                 'rb.cantidad_disponible',
                 'rb.fecha_recibido',
-                'sc.descripcion as seccion_nombre'
+                'sc.descripcion as seccion_nombre',
+                'phv.unidad_medida_id'
             )
             ->orderBy('rb.fecha_recibido', 'ASC') // FIFO: primero el más antiguo
             ->get();
