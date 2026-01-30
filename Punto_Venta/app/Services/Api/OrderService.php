@@ -7,6 +7,7 @@ use App\Models\PedidoWebItem;
 use App\Models\Factura;
 use App\Models\FacturaHasProducto;
 use App\Repositories\ProductRepository;
+use App\Services\WebInventorySyncService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -15,7 +16,8 @@ class OrderService
     public function __construct(
         private ProductRepository $productRepo,
         private InventoryService $inventoryService,
-        private \App\Services\CAIService $caiService
+        private \App\Services\CAIService $caiService,
+        private WebInventorySyncService $syncService
     ) {}
     
     /**
@@ -211,6 +213,9 @@ class OrderService
                 
                 // Descontar stock usando FIFO
                 $this->decrementarStockBodega($item->producto_id, $item->cantidad);
+                
+                // Sincronizar cambio de stock con página web
+                $this->sincronizarInventarioWeb($item->producto_id, $item->producto->nombre ?? 'Producto', $item->cantidad);
             }
             
             // Crear registro de pago basado en el método de pago del pedido web
@@ -313,5 +318,53 @@ class OrderService
         
         $metodo = strtolower($metodoPago ?? 'efectivo');
         return $mapeo[$metodo] ?? 1; // Por defecto efectivo
+    }
+    
+    /**
+     * Sincronizar cambio de stock con página web
+     * Se llama después de descontar stock durante facturación
+     */
+    private function sincronizarInventarioWeb(int $productoId, string $nombreProducto, int $cantidadVendida): void
+    {
+        try {
+            // Calcular stock actual después del descuento
+            $stockActual = DB::table('recibido_bodega')
+                ->where('producto_id', $productoId)
+                ->where('estado_id', 1)
+                ->where('cantidad_disponible', '>', 0)
+                ->sum('cantidad_disponible');
+            
+            // Stock anterior era el actual + lo que se vendió
+            $stockAnterior = $stockActual + $cantidadVendida;
+            
+            // Sincronizar con página web
+            $this->syncService->sincronizarCambioStock(
+                $productoId,
+                $nombreProducto,
+                (int) $stockAnterior,
+                (int) $stockActual,
+                'factura_web',
+                [
+                    'cantidad_vendida' => $cantidadVendida,
+                    'tipo_operacion' => 'venta_web'
+                ]
+            );
+            
+            Log::info('Stock sincronizado con página web (OrderService)', [
+                'producto_id' => $productoId,
+                'producto_nombre' => $nombreProducto,
+                'stock_anterior' => $stockAnterior,
+                'stock_actual' => $stockActual,
+                'cantidad_vendida' => $cantidadVendida
+            ]);
+            
+        } catch (\Exception $e) {
+            // No fallar la facturación si hay error en la sincronización
+            Log::error('Error al sincronizar inventario con página web (OrderService)', [
+                'producto_id' => $productoId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+        }
     }
 }
