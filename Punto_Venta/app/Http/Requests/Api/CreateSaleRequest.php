@@ -40,16 +40,28 @@ class CreateSaleRequest extends FormRequest
             // Totales
             'subtotal' => 'required|numeric|min:0|max:999999999',
             'discount' => 'nullable|numeric|min:0|max:999999999',
+            'shipping_cost' => 'nullable|numeric|min:0|max:999999',
             'tax' => 'required|numeric|min:0|max:999999999',
             'total' => 'required|numeric|min:0|max:999999999',
             
             // Datos de entrega
-            'delivery_type' => 'required|in:retiro_tienda,domicilio',
+            'delivery_type' => 'required|in:retiro_tienda,domicilio,recoger',
             'delivery_address' => 'required_if:delivery_type,domicilio|nullable|string|max:500',
             
             // Método de pago y notas
             'payment_method' => 'required|string|max:50',
             'notes' => 'nullable|string|max:1000',
+            
+            // Información de transferencia bancaria (para payment_method = 'Transferencia Bancaria')
+            'transfer_info' => 'nullable|array',
+            'transfer_info.account_bank' => 'nullable|string|max:100',
+            'transfer_info.account_type' => 'nullable|string|max:50',
+            'transfer_info.account_number' => 'nullable|string|max:50',
+            'transfer_info.account_holder' => 'nullable|string|max:200',
+            'transfer_info.transfer_date' => 'nullable|date',
+            
+            // ID de orden externo (opcional, para tracking)
+            'external_order_id' => 'nullable|string|max:100',
         ];
     }
 

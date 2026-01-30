@@ -24,6 +24,13 @@ class OrderService
     public function createOrder(array $data, $apiClient): PedidoWeb
     {
         return DB::transaction(function() use ($data, $apiClient) {
+            // Log para debugging - verificar transfer_info
+            Log::info('OrderService::createOrder - Datos recibidos', [
+                'has_transfer_info' => isset($data['transfer_info']),
+                'transfer_info_value' => $data['transfer_info'] ?? 'NO EXISTE',
+                'payment_method' => $data['payment_method'] ?? 'NO ESPECIFICADO',
+            ]);
+            
             // 1. Validar disponibilidad de stock (opcional, solo advertencia)
             $stockValidation = $this->inventoryService->validateStock($data['items']);
             

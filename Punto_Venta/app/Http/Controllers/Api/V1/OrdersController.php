@@ -28,6 +28,13 @@ class OrdersController extends Controller
     public function store(CreateOrderRequest $request): JsonResponse
     {
         try {
+            // Log para debugging
+            \Log::info('API Order Received - RAW DATA', [
+                'all_input' => $request->all(),
+                'has_transfer_info' => $request->has('transfer_info'),
+                'transfer_info_value' => $request->input('transfer_info'),
+            ]);
+            
             $pedido = $this->orderService->createOrder(
                 $request->validated(),
                 $request->api_client
