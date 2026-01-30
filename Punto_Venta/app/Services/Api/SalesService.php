@@ -45,7 +45,13 @@ class SalesService
                 'api_client' => $apiClient->name ?? 'unknown',
                 'api_client_id' => $apiClient->id ?? null,
                 'external_order_id' => $data['external_order_id'] ?? null,
+                'shipping_cost' => $data['shipping_cost'] ?? 0,
             ];
+            
+            // Agregar información de transferencia bancaria si existe
+            if (isset($data['transfer_info'])) {
+                $metadata['transfer_info'] = $data['transfer_info'];
+            }
             
             // 5. Crear pedido web
             $pedido = PedidoWeb::create([
@@ -150,13 +156,36 @@ class SalesService
                 ]);
                 
                 // 6. Crear comentario CORTO para factura (max 255 caracteres)
-                $comentario = sprintf(
-                    'Pedido Web: %s | Cliente: %s',
-                    $pedido->numero_pedido,
-                    substr($pedido->cliente_nombre, 0, 50)
-                );
+                $comentarioParts = [
+                    'Pedido Web: ' . $pedido->numero_pedido,
+                    'Cliente: ' . substr($pedido->cliente_nombre, 0, 50)
+                ];
+                
+                // Agregar información de método de pago
+                if ($pedido->metodo_pago) {
+                    $comentarioParts[] = 'Pago: ' . $pedido->metodo_pago;
+                }
+                
+                // Agregar información de tipo de entrega
+                $metadata = $pedido->metadata;
+                if (isset($metadata['delivery_type'])) {
+                    $tipoEntrega = $metadata['delivery_type'] === 'domicilio' ? 'Envío a domicilio' : 'Retiro en tienda';
+                    $comentarioParts[] = $tipoEntrega;
+                }
+                
+                // Agregar costo de envío si existe
+                if (isset($metadata['shipping_cost']) && $metadata['shipping_cost'] > 0) {
+                    $comentarioParts[] = 'Envío: L.' . number_format($metadata['shipping_cost'], 2);
+                }
+                
+                $comentario = implode(' | ', $comentarioParts);
+                $comentario = substr($comentario, 0, 255); // Limitar a 255 caracteres
                 
                 // 7. Crear factura
+                // Calcular subtotal sin incluir el costo de envío
+                $shippingCost = $metadata['shipping_cost'] ?? 0;
+                $subtotalProductos = $pedido->subtotal - $shippingCost;
+                
                 $factura = Factura::create([
                     'cai_id' => 1,
                     'transaccion_id' => $transaccionId,
@@ -192,15 +221,15 @@ class SalesService
                         'indice' => $indice++,
                         'numero_unidades_resta_inventario' => $item->cantidad,
                         'resta_inventario_total' => $item->cantidad,
-                        'precio_unidad' => $item->precio_unidad,
+                        'precio_unidad' => $item->precio_unitario,
                         'cantidad' => $item->cantidad,
                         'subtotal' => $item->subtotal,
-                        'descuento' => $item->descuento,
+                        'descuento' => 0,
                         'isv_aplicado' => 15.00,
                         'isv' => $item->isv,
                         'total' => $item->total,
                         'idPrecioSeleccionado' => '1',
-                        'precio_seleccionado' => $item->precio_unidad,
+                        'precio_seleccionado' => $item->precio_unitario,
                     ]);
                     
                     // Descontar stock
@@ -218,6 +247,10 @@ class SalesService
                     'numero_pedido' => $pedido->numero_pedido,
                     'factura_id' => $factura->id,
                     'usuario_id' => $userId,
+                    'metodo_pago' => $pedido->metodo_pago,
+                    'delivery_type' => $metadata['delivery_type'] ?? null,
+                    'shipping_cost' => $shippingCost,
+                    'tiene_transferencia' => isset($metadata['transfer_info']),
                 ]);
                 
                 return $factura->load('productos');

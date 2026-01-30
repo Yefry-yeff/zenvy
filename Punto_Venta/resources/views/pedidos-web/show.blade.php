@@ -153,6 +153,36 @@
                                 <dt class="text-sm font-medium text-gray-600">Método</dt>
                                 <dd class="mt-1 text-base font-semibold text-gray-900">{{ $pedido->metodo_pago ?? 'No especificado' }}</dd>
                             </div>
+                            
+                            @if($pedido->metodo_pago === 'Transferencia Bancaria' && isset($pedido->metadata['transfer_info']))
+                                @php
+                                    $transferInfo = $pedido->metadata['transfer_info'];
+                                @endphp
+                                <div class="pt-3 border-t border-gray-100">
+                                    <dt class="text-sm font-medium text-gray-600 mb-2">Información de Transferencia</dt>
+                                    <dd class="space-y-2">
+                                        @if(isset($transferInfo['account_bank']))
+                                            <div class="flex justify-between text-sm">
+                                                <span class="text-gray-500">Banco:</span>
+                                                <span class="font-medium text-gray-900">{{ $transferInfo['account_bank'] }}</span>
+                                            </div>
+                                        @endif
+                                        @if(isset($transferInfo['account_number']))
+                                            <div class="flex justify-between text-sm">
+                                                <span class="text-gray-500">Cuenta:</span>
+                                                <span class="font-mono font-medium text-gray-900">{{ $transferInfo['account_number'] }}</span>
+                                            </div>
+                                        @endif
+                                        @if(isset($transferInfo['transfer_date']))
+                                            <div class="flex justify-between text-sm">
+                                                <span class="text-gray-500">Fecha Depósito:</span>
+                                                <span class="font-medium text-gray-900">{{ $transferInfo['transfer_date'] }}</span>
+                                            </div>
+                                        @endif
+                                    </dd>
+                                </div>
+                            @endif
+                            
                             <div class="pt-2 border-t border-gray-100">
                                 <dt class="text-sm font-medium text-gray-600">Subtotal</dt>
                                 <dd class="mt-1 text-base text-gray-900">L {{ number_format($pedido->subtotal, 2) }}</dd>
@@ -175,8 +205,18 @@
                 <div class="overflow-hidden bg-gradient-to-br from-indigo-600 to-blue-700 shadow-lg rounded-xl">
                     <div class="p-6 text-white">
                         <p class="text-sm font-medium text-indigo-100 mb-2">TOTAL A PAGAR</p>
-                        <p class="text-4xl font-bold mb-4">L {{ number_format($pedido->total, 2) }}</p>
-                        <div class="pt-4 border-t border-indigo-400">
+                        <p class="text-4xl font-bold mb-2">L {{ number_format($pedido->total, 2) }}</p>
+                        
+                        @if(isset($pedido->metadata['shipping_cost']) && $pedido->metadata['shipping_cost'] > 0)
+                            <div class="pt-2 mt-2 border-t border-indigo-400">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-sm text-indigo-100">Costo de Envío:</span>
+                                    <span class="text-lg font-semibold">L {{ number_format($pedido->metadata['shipping_cost'], 2) }}</span>
+                                </div>
+                            </div>
+                        @endif
+                        
+                        <div class="pt-4 border-t border-indigo-400 mt-4">
                             <p class="text-xs text-indigo-100">Cantidad de productos: <span class="font-semibold">{{ $pedido->items->count() }}</span></p>
                         </div>
                     </div>
@@ -191,6 +231,57 @@
                     </div>
                     <div class="p-6">
                         <p class="text-gray-700">{{ $pedido->cliente_direccion }}</p>
+                    </div>
+                </div>
+            @endif
+
+            <!-- Información de Transferencia Bancaria Detallada -->
+            @if($pedido->metodo_pago === 'Transferencia Bancaria' && isset($pedido->metadata['transfer_info']))
+                <div class="mb-6 overflow-hidden bg-white shadow-lg rounded-xl border-l-4 border-blue-500">
+                    <div class="px-6 py-4 border-b border-gray-100 bg-blue-50">
+                        <h4 class="text-lg font-bold text-gray-900 flex items-center gap-2">
+                            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                            </svg>
+                            Detalles de Transferencia Bancaria
+                        </h4>
+                    </div>
+                    <div class="p-6">
+                        @php
+                            $transferInfo = $pedido->metadata['transfer_info'];
+                        @endphp
+                        <dl class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            @if(isset($transferInfo['account_bank']))
+                                <div>
+                                    <dt class="text-sm font-medium text-gray-600">Banco</dt>
+                                    <dd class="mt-1 text-base font-semibold text-gray-900">{{ $transferInfo['account_bank'] }}</dd>
+                                </div>
+                            @endif
+                            @if(isset($transferInfo['account_type']))
+                                <div>
+                                    <dt class="text-sm font-medium text-gray-600">Tipo de Cuenta</dt>
+                                    <dd class="mt-1 text-base font-semibold text-gray-900">{{ ucfirst($transferInfo['account_type']) }}</dd>
+                                </div>
+                            @endif
+                            @if(isset($transferInfo['account_number']))
+                                <div>
+                                    <dt class="text-sm font-medium text-gray-600">Número de Cuenta</dt>
+                                    <dd class="mt-1 text-base font-mono font-semibold text-gray-900">{{ $transferInfo['account_number'] }}</dd>
+                                </div>
+                            @endif
+                            @if(isset($transferInfo['account_holder']))
+                                <div>
+                                    <dt class="text-sm font-medium text-gray-600">Titular de la Cuenta</dt>
+                                    <dd class="mt-1 text-base font-semibold text-gray-900">{{ $transferInfo['account_holder'] }}</dd>
+                                </div>
+                            @endif
+                            @if(isset($transferInfo['transfer_date']))
+                                <div class="md:col-span-2">
+                                    <dt class="text-sm font-medium text-gray-600">Fecha de Depósito/Transferencia</dt>
+                                    <dd class="mt-1 text-base font-semibold text-gray-900">{{ $transferInfo['transfer_date'] }}</dd>
+                                </div>
+                            @endif
+                        </dl>
                     </div>
                 </div>
             @endif

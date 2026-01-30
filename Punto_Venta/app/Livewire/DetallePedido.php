@@ -6,6 +6,8 @@ use Livewire\Component;
 use App\Models\PedidoWeb;
 use App\Models\Factura;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\PedidoNotificacion;
 
 class DetallePedido extends Component
 {
@@ -13,6 +15,12 @@ class DetallePedido extends Component
     public $pedido;
     public $mostrarModalProcesar = false;
     public $mostrarModalRechazar = false;
+    public $mostrarModalEnviarFactura = false;
+    public $mostrarModalComentarioRechazo = false;
+    
+    // Comentarios para envío de correos
+    public $comentarioFactura = '';
+    public $comentarioRechazo = '';
     
     // Propiedades para paginación y filtros de productos
     public $registrosPorPaginaProductos = 10;
@@ -72,14 +80,62 @@ class DetallePedido extends Component
 
     public function rechazarPedido()
     {
+        // Cerrar modal de confirmación y abrir modal de comentario
+        $this->mostrarModalRechazar = false;
+        $this->mostrarModalComentarioRechazo = true;
+    }
+    
+    public function confirmarRechazo()
+    {
         try {
-            $this->mostrarModalRechazar = false;
+            $this->mostrarModalComentarioRechazo = false;
             
             $this->pedido->rechazar();
-            session()->flash('success', 'Pedido rechazado');
+            
+            // Enviar correo de notificación si tiene email
+            if ($this->pedido->cliente_email) {
+                Mail::to($this->pedido->cliente_email)
+                    ->send(new PedidoNotificacion(
+                        $this->pedido,
+                        'rechazado',
+                        $this->comentarioRechazo
+                    ));
+            }
+            
+            session()->flash('success', 'Pedido rechazado y notificación enviada al cliente');
+            $this->comentarioRechazo = ''; // Limpiar comentario
             $this->cargarPedido();
         } catch (\Exception $e) {
             session()->flash('error', 'Error al rechazar pedido: ' . $e->getMessage());
+        }
+    }
+    
+    public function enviarFacturaCliente()
+    {
+        try {
+            if (!$this->pedido->factura_id) {
+                session()->flash('error', 'Este pedido no tiene una factura asociada');
+                return;
+            }
+            
+            if (!$this->pedido->cliente_email) {
+                session()->flash('error', 'El cliente no tiene un correo electrónico registrado');
+                return;
+            }
+            
+            Mail::to($this->pedido->cliente_email)
+                ->send(new PedidoNotificacion(
+                    $this->pedido,
+                    'facturado',
+                    $this->comentarioFactura,
+                    $this->pedido->factura_id
+                ));
+            
+            $this->mostrarModalEnviarFactura = false;
+            $this->comentarioFactura = ''; // Limpiar comentario
+            session()->flash('success', 'Factura enviada exitosamente al correo del cliente');
+        } catch (\Exception $e) {
+            session()->flash('error', 'Error al enviar factura: ' . $e->getMessage());
         }
     }
 

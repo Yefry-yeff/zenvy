@@ -133,14 +133,24 @@
                                 </p>
                             </div>
                         </div>
-                        <a href="{{ route('factura.pdf.preview', $pedido->factura_id) }}" 
-                           target="_blank"
-                           class="inline-flex items-center px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded transition-colors">
-                            <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
-                            </svg>
-                            Imprimir Factura
-                        </a>
+                        <div class="flex gap-2">
+                            <a href="{{ route('factura.pdf.preview', $pedido->factura_id) }}" 
+                               target="_blank"
+                               class="inline-flex items-center px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded transition-colors">
+                                <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+                                </svg>
+                                Imprimir Factura
+                            </a>
+                            <button 
+                                wire:click="$set('mostrarModalEnviarFactura', true)"
+                                class="inline-flex items-center px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-semibold rounded transition-colors">
+                                <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                                </svg>
+                                Enviar Factura al Cliente
+                            </button>
+                        </div>
                     </div>
                 </div>
             @endif
@@ -211,7 +221,45 @@
                         </h3>
                     </div>
                     <div class="p-6">
-                        <p class="text-2xl font-bold text-gray-900">{{ $pedido->metodo_pago ?? 'No especificado' }}</p>
+                        <p class="text-2xl font-bold text-gray-900 mb-4">{{ $pedido->metodo_pago ?? 'No especificado' }}</p>
+                        
+                        @if($pedido->metodo_pago === 'Transferencia Bancaria' && is_array($pedido->metadata) && isset($pedido->metadata['transfer_info']))
+                            @php
+                                $transferInfo = $pedido->metadata['transfer_info'];
+                            @endphp
+                            <div class="mt-4 pt-4 border-t border-gray-200">
+                                <h4 class="text-sm font-semibold text-gray-700 mb-3">Información de la Transferencia:</h4>
+                                <dl class="space-y-2 text-sm">
+                                    @if(isset($transferInfo['account_bank']))
+                                        <div class="flex justify-between">
+                                            <dt class="text-gray-600">Banco:</dt>
+                                            <dd class="font-medium text-gray-900">{{ $transferInfo['account_bank'] }}</dd>
+                                        </div>
+                                    @endif
+                                    @if(isset($transferInfo['account_number']))
+                                        <div class="flex justify-between">
+                                            <dt class="text-gray-600">Cuenta:</dt>
+                                            <dd class="font-mono font-medium text-gray-900">{{ $transferInfo['account_number'] }}</dd>
+                                        </div>
+                                    @endif
+                                    @if(isset($transferInfo['transfer_date']))
+                                        <div class="flex justify-between">
+                                            <dt class="text-gray-600">Fecha de Depósito:</dt>
+                                            <dd class="font-medium text-gray-900">{{ $transferInfo['transfer_date'] }}</dd>
+                                        </div>
+                                    @endif
+                                </dl>
+                            </div>
+                        @elseif($pedido->metodo_pago === 'Transferencia Bancaria')
+                            <div class="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                                <p class="text-sm text-amber-800">
+                                    <svg class="w-4 h-4 inline mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                                    </svg>
+                                    Los detalles de la transferencia no están disponibles para este pedido.
+                                </p>
+                            </div>
+                        @endif
                     </div>
                 </div>
 
@@ -242,6 +290,13 @@
                                     <span class="text-4xl font-bold">L {{ number_format($pedido->total, 2) }}</span>
                                 </div>
                             </div>
+                            
+                            @if(is_array($pedido->metadata) && array_key_exists('shipping_cost', $pedido->metadata))
+                                <div class="flex justify-between items-center opacity-90 pt-3 border-t border-blue-400 border-opacity-30">
+                                    <span class="text-sm">Costo de Envío:</span>
+                                    <span class="font-medium">L {{ number_format($pedido->metadata['shipping_cost'], 2) }}</span>
+                                </div>
+                            @endif
                         </div>
                     </div>
                 </div>
@@ -353,6 +408,57 @@
                 </div>
             @endif
         </div>
+
+        <!-- Información de Transferencia Bancaria -->
+        @if($pedido->metodo_pago === 'Transferencia Bancaria' && isset($pedido->metadata['transfer_info']))
+            <div class="mt-6 bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                    <h3 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                        </svg>
+                        Información de Transferencia Bancaria
+                    </h3>
+                </div>
+                <div class="p-6 bg-blue-50">
+                    @php
+                        $transferInfo = $pedido->metadata['transfer_info'];
+                    @endphp
+                    <dl class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        @if(isset($transferInfo['account_bank']))
+                            <div>
+                                <dt class="text-xs font-semibold text-blue-700 uppercase tracking-wide">Banco</dt>
+                                <dd class="mt-1 text-base font-medium text-gray-900">{{ $transferInfo['account_bank'] }}</dd>
+                            </div>
+                        @endif
+                        @if(isset($transferInfo['account_type']))
+                            <div>
+                                <dt class="text-xs font-semibold text-blue-700 uppercase tracking-wide">Tipo de Cuenta</dt>
+                                <dd class="mt-1 text-base font-medium text-gray-900">{{ ucfirst($transferInfo['account_type']) }}</dd>
+                            </div>
+                        @endif
+                        @if(isset($transferInfo['account_number']))
+                            <div>
+                                <dt class="text-xs font-semibold text-blue-700 uppercase tracking-wide">Número de Cuenta</dt>
+                                <dd class="mt-1 text-base font-mono text-gray-900">{{ $transferInfo['account_number'] }}</dd>
+                            </div>
+                        @endif
+                        @if(isset($transferInfo['account_holder']))
+                            <div>
+                                <dt class="text-xs font-semibold text-blue-700 uppercase tracking-wide">Titular de la Cuenta</dt>
+                                <dd class="mt-1 text-base font-medium text-gray-900">{{ $transferInfo['account_holder'] }}</dd>
+                            </div>
+                        @endif
+                        @if(isset($transferInfo['transfer_date']))
+                            <div class="md:col-span-2">
+                                <dt class="text-xs font-semibold text-blue-700 uppercase tracking-wide">Fecha de Transferencia</dt>
+                                <dd class="mt-1 text-base font-medium text-gray-900">{{ $transferInfo['transfer_date'] }}</dd>
+                            </div>
+                        @endif
+                    </dl>
+                </div>
+            </div>
+        @endif
 
         <!-- Notas -->
         @if($pedido->notas)
@@ -489,16 +595,75 @@
                     <div class="flex gap-3">
                         <button 
                             wire:click="rechazarPedido" 
-                            wire:loading.attr="disabled"
-                            class="flex-1 px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                            class="flex-1 px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-semibold flex items-center justify-center"
                         >
-                            <span wire:loading.remove wire:target="rechazarPedido" class="flex items-center gap-2">
-                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                            <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                            </svg>
+                            Continuar
+                        </button>
+                        <button 
+                            wire:click="$set('mostrarModalRechazar', false)" 
+                            class="px-4 py-3 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors font-semibold"
+                        >
+                            Cancelar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    <!-- Modal de Enviar Factura al Cliente -->
+    @if($mostrarModalEnviarFactura ?? false)
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" wire:click.self="$set('mostrarModalEnviarFactura', false)">
+            <div class="bg-white rounded-lg shadow-2xl w-full max-w-md mx-4 transform transition-all">
+                <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between bg-green-50">
+                    <h3 class="text-xl font-bold text-green-900 flex items-center gap-2">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                        </svg>
+                        Enviar Factura al Cliente
+                    </h3>
+                    <button wire:click="$set('mostrarModalEnviarFactura', false)" class="text-gray-400 hover:text-gray-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="p-6">
+                    <div class="mb-4">
+                        <p class="text-gray-700">
+                            Se enviará la factura al correo: <strong>{{ $pedido->cliente_email }}</strong>
+                        </p>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                            Mensaje adicional (opcional):
+                        </label>
+                        <textarea 
+                            wire:model="comentarioFactura"
+                            rows="4"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                            placeholder="Ej: Gracias por su compra. Su pedido será entregado en 2-3 días hábiles..."
+                        ></textarea>
+                        <p class="text-xs text-gray-500 mt-1">Este mensaje se incluirá en el correo enviado al cliente.</p>
+                    </div>
+
+                    <div class="flex gap-3">
+                        <button 
+                            wire:click="enviarFacturaCliente" 
+                            wire:loading.attr="disabled"
+                            class="flex-1 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                        >
+                            <span wire:loading.remove wire:target="enviarFacturaCliente" class="flex items-center gap-2">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
                                 </svg>
-                                Rechazar Pedido
+                                Enviar Factura
                             </span>
-                            <span wire:loading wire:target="rechazarPedido">
+                            <span wire:loading wire:target="enviarFacturaCliente">
                                 <svg class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -506,7 +671,85 @@
                             </span>
                         </button>
                         <button 
-                            wire:click="$set('mostrarModalRechazar', false)" 
+                            wire:click="$set('mostrarModalEnviarFactura', false)" 
+                            class="px-4 py-3 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors font-semibold"
+                        >
+                            Cancelar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    <!-- Modal de Comentario para Rechazo -->
+    @if($mostrarModalComentarioRechazo ?? false)
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" wire:click.self="$set('mostrarModalComentarioRechazo', false)">
+            <div class="bg-white rounded-lg shadow-2xl w-full max-w-md mx-4 transform transition-all">
+                <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between bg-red-50">
+                    <h3 class="text-xl font-bold text-red-900 flex items-center gap-2">
+                        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                        </svg>
+                        Motivo del Rechazo
+                    </h3>
+                    <button wire:click="$set('mostrarModalComentarioRechazo', false)" class="text-gray-400 hover:text-gray-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="p-6">
+                    <div class="mb-4">
+                        <p class="text-gray-700">
+                            Por favor, indique el motivo del rechazo. Esta información será enviada al cliente.
+                        </p>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                            Motivo del rechazo: <span class="text-red-600">*</span>
+                        </label>
+                        <textarea 
+                            wire:model="comentarioRechazo"
+                            rows="4"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                            placeholder="Ej: Lo sentimos, no contamos con stock disponible del producto solicitado..."
+                            required
+                        ></textarea>
+                        <p class="text-xs text-gray-500 mt-1">Este mensaje será enviado al correo del cliente.</p>
+                    </div>
+
+                    <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-6">
+                        <p class="text-xs text-amber-800 flex items-start gap-2">
+                            <svg class="w-4 h-4 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                            </svg>
+                            <span>El cliente recibirá una notificación por correo electrónico con el motivo del rechazo.</span>
+                        </p>
+                    </div>
+
+                    <div class="flex gap-3">
+                        <button 
+                            wire:click="confirmarRechazo" 
+                            wire:loading.attr="disabled"
+                            class="flex-1 px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                        >
+                            <span wire:loading.remove wire:target="confirmarRechazo" class="flex items-center gap-2">
+                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                                </svg>
+                                Rechazar Pedido
+                            </span>
+                            <span wire:loading wire:target="confirmarRechazo">
+                                <svg class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                            </span>
+                        </button>
+                        <button 
+                            wire:click="$set('mostrarModalComentarioRechazo', false)" 
                             class="px-4 py-3 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors font-semibold"
                         >
                             Cancelar

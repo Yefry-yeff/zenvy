@@ -118,6 +118,9 @@ class FacturaPDFController extends Controller
             // Como usamos el modelo Factura, fecha_emision ya viene como Carbon
             // No necesitamos convertir la fecha
 
+            // Cargar pedido web si existe
+            $pedidoWeb = \App\Models\PedidoWeb::where('factura_id', $facturaId)->first();
+
             // Generar el PDF
             $pdf = Pdf::loadView('pdf.factura', compact(
                 'factura',
@@ -125,7 +128,8 @@ class FacturaPDFController extends Controller
                 'pagos',
                 'empresa',
                 'tienda',
-                'caiFacturaImpresa'
+                'caiFacturaImpresa',
+                'pedidoWeb'
             ))
             ->setPaper([0, 0, 204.4, 595.3], 'portrait') // 72.1mm x 210mm
             ->setOptions([
@@ -275,6 +279,9 @@ class FacturaPDFController extends Controller
             // Como usamos el modelo Factura, fecha_emision ya viene como Carbon
             // No necesitamos convertir la fecha
 
+            // Cargar pedido web si existe
+            $pedidoWeb = \App\Models\PedidoWeb::where('factura_id', $facturaId)->first();
+
             // Generar el PDF para previsualización (inline)
             $pdf = Pdf::loadView('pdf.factura', compact(
                 'factura',
@@ -282,7 +289,8 @@ class FacturaPDFController extends Controller
                 'pagos',
                 'empresa',
                 'tienda',
-                'caiFacturaImpresa'
+                'caiFacturaImpresa',
+                'pedidoWeb'
             ))
             ->setPaper([0, 0, 204.4, 595.3], 'portrait') // 72.1mm x 210mm
             ->setOptions([
