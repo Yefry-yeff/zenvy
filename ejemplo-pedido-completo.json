@@ -1,0 +1,30 @@
+{
+  "customer_name": "Johann Sebastian Ruiz Quiroz",
+  "customer_email": "johann_ruiz14@hotmail.com",
+  "customer_phone": "+50497525987",
+  "customer_rtn": "",
+  "items": [
+    {
+      "product_id": 1788,
+      "quantity": 1,
+      "price": 21.74,
+      "discount": 0
+    }
+  ],
+  "delivery_type": "domicilio",
+  "delivery_address": "El centro de AMDC",
+  "payment_method": "Transferencia Bancaria",
+  "notes": "Por favor llamar antes de entregar",
+  "subtotal": 21.74,
+  "discount": 0,
+  "shipping_cost": 60,
+  "tax": 3.26,
+  "total": 85,
+  "transfer_info": {
+    "account_bank": "BAC",
+    "account_type": "ahorro",
+    "account_number": "7777725",
+    "account_holder": "Paperland",
+    "transfer_date": "2026-01-01"
+  }
+}

@@ -203,6 +203,35 @@
                                     <dd class="mt-2 text-base text-gray-900">{{ $pedido->cliente_direccion }}</dd>
                                 </div>
                             @endif
+                            
+                            @if(is_array($pedido->metadata) && isset($pedido->metadata['delivery_type']))
+                                <div>
+                                    <dt class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Tipo de Entrega</dt>
+                                    <dd class="mt-2">
+                                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium 
+                                            {{ $pedido->metadata['delivery_type'] === 'domicilio' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800' }}">
+                                            @if($pedido->metadata['delivery_type'] === 'domicilio')
+                                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+                                                </svg>
+                                                Envío a Domicilio
+                                            @else
+                                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                                </svg>
+                                                Recoger en Tienda
+                                            @endif
+                                        </span>
+                                    </dd>
+                                </div>
+                            @endif
+                            
+                            @if(is_array($pedido->metadata) && isset($pedido->metadata['delivery_address']) && $pedido->metadata['delivery_address'])
+                                <div class="md:col-span-2">
+                                    <dt class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Dirección de Envío</dt>
+                                    <dd class="mt-2 text-base text-gray-900">{{ $pedido->metadata['delivery_address'] }}</dd>
+                                </div>
+                            @endif
                         </dl>
                     </div>
                 </div>
@@ -280,6 +309,12 @@
                                     <span class="font-medium">- L {{ number_format($pedido->descuento, 2) }}</span>
                                 </div>
                             @endif
+                            @if(is_array($pedido->metadata) && isset($pedido->metadata['shipping_cost']) && $pedido->metadata['shipping_cost'] > 0)
+                                <div class="flex justify-between items-center opacity-90">
+                                    <span class="text-sm">Costo de Envío:</span>
+                                    <span class="font-medium">L {{ number_format($pedido->metadata['shipping_cost'], 2) }}</span>
+                                </div>
+                            @endif
                             <div class="flex justify-between items-center opacity-90">
                                 <span class="text-sm">ISV (15%):</span>
                                 <span class="font-medium">L {{ number_format($pedido->isv, 2) }}</span>
@@ -290,13 +325,6 @@
                                     <span class="text-4xl font-bold">L {{ number_format($pedido->total, 2) }}</span>
                                 </div>
                             </div>
-                            
-                            @if(is_array($pedido->metadata) && array_key_exists('shipping_cost', $pedido->metadata))
-                                <div class="flex justify-between items-center opacity-90 pt-3 border-t border-blue-400 border-opacity-30">
-                                    <span class="text-sm">Costo de Envío:</span>
-                                    <span class="font-medium">L {{ number_format($pedido->metadata['shipping_cost'], 2) }}</span>
-                                </div>
-                            @endif
                         </div>
                     </div>
                 </div>

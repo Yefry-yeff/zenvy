@@ -30,7 +30,23 @@ class OrderService
             // 2. Generar número de pedido único
             $numeroPedido = $data['order_number'] ?? $this->generateOrderNumber();
             
-            // 3. Crear pedido web
+            // 3. Preparar metadata
+            $metadata = [
+                'api_client' => $apiClient->name,
+                'stock_disponible_al_crear' => $stockValidation['available'],
+                'ip' => request()->ip(),
+                'user_agent' => request()->userAgent(),
+                'delivery_type' => $data['delivery_type'] ?? null,
+                'delivery_address' => $data['delivery_address'] ?? null,
+                'shipping_cost' => $data['shipping_cost'] ?? 0,
+            ];
+            
+            // Agregar transfer_info si existe
+            if (isset($data['transfer_info']) && is_array($data['transfer_info'])) {
+                $metadata['transfer_info'] = $data['transfer_info'];
+            }
+            
+            // 4. Crear pedido web
             $pedido = PedidoWeb::create([
                 'numero_pedido' => $numeroPedido,
                 'estado' => 'pendiente',
@@ -38,28 +54,30 @@ class OrderService
                 'cliente_email' => $data['customer_email'] ?? null,
                 'cliente_telefono' => $data['customer_phone'] ?? null,
                 'cliente_rtn' => $data['customer_rtn'] ?? null,
-                'cliente_direccion' => $data['customer_address'] ?? null,
+                'cliente_direccion' => $data['customer_address'] ?? $data['delivery_address'] ?? null,
                 'subtotal' => $data['subtotal'],
                 'descuento' => $data['discount'] ?? 0,
                 'isv' => $data['tax'],
                 'total' => $data['total'],
                 'metodo_pago' => $data['payment_method'] ?? null,
                 'notas' => $data['notes'] ?? null,
-                'metadata' => [
-                    'api_client' => $apiClient->name,
-                    'stock_disponible_al_crear' => $stockValidation['available'],
-                    'ip' => request()->ip(),
-                    'user_agent' => request()->userAgent(),
-                ],
+                'metadata' => $metadata,
                 'leido' => false,
             ]);
             
-            // 4. Crear items del pedido
+            // 5. Crear items del pedido
             foreach ($data['items'] as $item) {
-                $product = $this->productRepo->findBySku($item['sku']);
+                // Buscar producto por SKU o por ID
+                $product = null;
+                if (isset($item['sku']) && !empty($item['sku'])) {
+                    $product = $this->productRepo->findBySku($item['sku']);
+                } elseif (isset($item['product_id'])) {
+                    $product = \App\Models\Producto::find($item['product_id']);
+                }
                 
                 if (!$product) {
-                    throw new \Exception("Producto {$item['sku']} no encontrado");
+                    $identifier = $item['sku'] ?? $item['product_id'] ?? 'desconocido';
+                    throw new \Exception("Producto {$identifier} no encontrado");
                 }
                 
                 $cantidad = $item['quantity'];
