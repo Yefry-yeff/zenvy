@@ -47,9 +47,11 @@ class WebInventorySyncService
         array $detalles = []
     ): bool {
         if (!$this->estaConfigurado()) {
-            Log::debug('Webhook de inventario no configurado', [
+            Log::warning('⚠️ Webhook NO configurado - WEBHOOK_URL o WEBHOOK_TOKEN faltante en .env', [
                 'producto_id' => $productoId,
-                'razon' => $razon
+                'producto' => $nombreProducto,
+                'razon' => $razon,
+                'stock_actual' => $stockActual
             ]);
             return false;
         }
@@ -70,6 +72,17 @@ class WebInventorySyncService
             'detalles' => $detalles,
         ];
         
+        Log::info('📦 WEBHOOK INVENTARIO - Preparando envío', [
+            'evento' => 'stock_actualizado',
+            'producto_id' => $productoId,
+            'producto' => $nombreProducto,
+            'stock_anterior' => $stockAnterior,
+            'stock_actual' => $stockActual,
+            'cambio' => ($cambio >= 0 ? '+' : '') . $cambio,
+            'razon' => $razon,
+            'webhook_url' => $this->webhookUrl
+        ]);
+        
         return $this->enviarWebhook($payload, "stock_producto_{$productoId}_{$razon}");
     }
     
@@ -89,6 +102,10 @@ class WebInventorySyncService
         array $detalles = []
     ): bool {
         if (!$this->estaConfigurado()) {
+            Log::warning('⚠️ Webhook NO configurado - Compra no sincronizada', [
+                'producto_id' => $productoId,
+                'cantidad' => $cantidadRecibida
+            ]);
             return false;
         }
         
@@ -102,6 +119,15 @@ class WebInventorySyncService
             ],
             'detalles' => $detalles,
         ];
+        
+        Log::info('📥 WEBHOOK INVENTARIO - Compra recibida', [
+            'evento' => 'compra_recibida',
+            'producto_id' => $productoId,
+            'producto' => $nombreProducto,
+            'cantidad' => $cantidadRecibida,
+            'detalles' => $detalles,
+            'webhook_url' => $this->webhookUrl
+        ]);
         
         return $this->enviarWebhook($payload, "compra_producto_{$productoId}");
     }
@@ -122,6 +148,11 @@ class WebInventorySyncService
         array $detalles = []
     ): bool {
         if (!$this->estaConfigurado()) {
+            Log::warning('⚠️ Webhook NO configurado - Venta no sincronizada', [
+                'factura_id' => $facturaId,
+                'items' => count($items),
+                'total' => $total
+            ]);
             return false;
         }
         
@@ -136,6 +167,15 @@ class WebInventorySyncService
             'productos_vendidos' => $items,
             'detalles' => $detalles,
         ];
+        
+        Log::info('💰 WEBHOOK INVENTARIO - Venta realizada', [
+            'evento' => 'venta_realizada',
+            'factura_id' => $facturaId,
+            'cantidad_items' => count($items),
+            'total' => number_format($total, 2),
+            'productos' => collect($items)->pluck('nombre')->take(3)->join(', '),
+            'webhook_url' => $this->webhookUrl
+        ]);
         
         return $this->enviarWebhook($payload, "venta_factura_{$facturaId}");
     }
@@ -153,6 +193,10 @@ class WebInventorySyncService
         array $detalles = []
     ): bool {
         if (!$this->estaConfigurado()) {
+            Log::warning('⚠️ Webhook NO configurado - Anulación no sincronizada', [
+                'factura_id' => $facturaId,
+                'items' => count($items)
+            ]);
             return false;
         }
         
@@ -167,6 +211,14 @@ class WebInventorySyncService
             'detalles' => $detalles,
         ];
         
+        Log::info('❌ WEBHOOK INVENTARIO - Factura anulada', [
+            'evento' => 'factura_anulada',
+            'factura_id' => $facturaId,
+            'items_restaurados' => count($items),
+            'productos' => collect($items)->pluck('nombre')->take(3)->join(', '),
+            'webhook_url' => $this->webhookUrl
+        ]);
+        
         return $this->enviarWebhook($payload, "anulacion_factura_{$facturaId}");
     }
     
@@ -179,6 +231,7 @@ class WebInventorySyncService
     public function sincronizarInventarioCompleto(array $inventario): bool
     {
         if (!$this->estaConfigurado()) {
+            Log::warning('⚠️ Webhook NO configurado - Sincronización completa no realizada');
             return false;
         }
         
@@ -199,6 +252,14 @@ class WebInventorySyncService
             'categorias' => $inventario,
         ];
         
+        Log::info('🔄 WEBHOOK INVENTARIO - Sincronización completa', [
+            'evento' => 'sincronizacion_completa',
+            'total_categorias' => count($inventario),
+            'total_productos' => $totalProductos,
+            'total_stock' => $totalStock,
+            'webhook_url' => $this->webhookUrl
+        ]);
+        
         return $this->enviarWebhook($payload, "sync_completa_" . now()->timestamp);
     }
     
@@ -210,6 +271,11 @@ class WebInventorySyncService
         try {
             // Si la cola está en sync, ejecutar el envío en un proceso separado (fire-and-forget)
             if (config('queue.default') === 'sync') {
+                Log::info('🚀 Enviando webhook en modo SYNC (fire-and-forget)', [
+                    'evento' => $payload['evento'],
+                    'metodo' => 'socket directo',
+                    'cache_key' => $cacheKey
+                ]);
                 // Usar un subproceso sin bloquear el request principal
                 $this->enviarWebhookFireAndForget($payload, $cacheKey);
                 return true;
@@ -224,9 +290,10 @@ class WebInventorySyncService
                 $this->timeout
             );
             
-            Log::info('Job de webhook de inventario despachado', [
+            Log::info('✅ Job de webhook despachado a la cola', [
                 'evento' => $payload['evento'],
                 'cache_key' => $cacheKey,
+                'queue' => config('queue.default')
             ]);
             
             return true;
@@ -281,9 +348,18 @@ class WebInventorySyncService
                 fwrite($socket, implode("\r\n", $headers) . "\r\n\r\n" . $jsonPayload);
                 fclose($socket);
                 
-                Log::debug('Webhook enviado via socket (fire-and-forget)', [
+                Log::info('✅ Webhook enviado via socket (fire-and-forget)', [
                     'evento' => $payload['evento'] ?? 'unknown',
+                    'host' => $host,
+                    'port' => $port,
                     'cache_key' => $cacheKey
+                ]);
+            } else {
+                Log::error('❌ No se pudo abrir socket para webhook', [
+                    'host' => $host,
+                    'port' => $port,
+                    'errno' => $errno,
+                    'error' => $errstr
                 ]);
             }
             
