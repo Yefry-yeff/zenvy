@@ -293,38 +293,117 @@
                 </div>
 
                 <!-- Total -->
-                <div class="bg-gradient-to-br from-indigo-600 to-blue-600 rounded-lg shadow-lg overflow-hidden text-white">
-                    <div class="px-6 py-4 border-b border-blue-400 border-opacity-30">
-                        <h3 class="text-sm font-semibold uppercase tracking-wide opacity-90">Total a Pagar</h3>
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                    <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                        <h3 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                            </svg>
+                            Resumen del Pedido
+                        </h3>
                     </div>
-                    <div class="p-6">
-                        <div class="space-y-3">
-                            <div class="flex justify-between items-center opacity-90">
-                                <span class="text-sm">Subtotal:</span>
-                                <span class="font-medium">L {{ number_format($pedido->subtotal, 2) }}</span>
+                    <div class="p-4">
+                        <div class="w-full p-4 border border-gray-300 rounded-lg bg-gray-50">
+                            <!-- Encabezado -->
+                            <div class="mb-3 text-center">
+                                <h6 class="mb-0 font-bold text-gray-700">RESUMEN DE FACTURACIÓN</h6>
+                                <hr class="mt-2">
                             </div>
+
+                            @php
+                                // Calcular importe gravado y exento
+                                $importeGravado = 0;
+                                $importeExento = 0;
+                                $impuestoVenta = 0;
+                                
+                                foreach($pedido->items as $item) {
+                                    // Sumar el ISV ya calculado
+                                    $impuestoVenta += $item->isv;
+                                    
+                                    // Separar por tipo de ISV
+                                    if($item->isv > 0) {
+                                        // Producto gravado - el subtotal es sin ISV
+                                        $importeGravado += $item->subtotal;
+                                    } else {
+                                        // Producto exento
+                                        $importeExento += $item->subtotal;
+                                    }
+                                }
+                                
+                                $subTotal = $importeGravado + $importeExento;
+                                $costoEnvio = (is_array($pedido->metadata) && isset($pedido->metadata['shipping_cost'])) ? $pedido->metadata['shipping_cost'] : 0;
+                                $totalAPagar = $subTotal - $pedido->descuento + $impuestoVenta + $costoEnvio;
+                            @endphp
+
+                            <!-- Importe Gravado -->
+                            <div class="flex justify-between mb-2">
+                                <span class="font-medium text-gray-700">Importe Gravado:</span>
+                                <span class="font-medium">L {{ number_format($importeGravado, 2) }}</span>
+                            </div>
+
+                            <!-- Importe Exento -->
+                            @if($importeExento > 0)
+                            <div class="flex justify-between mb-2">
+                                <span class="font-medium text-gray-700">Importe Exento:</span>
+                                <span class="font-medium">L {{ number_format($importeExento, 2) }}</span>
+                            </div>
+                            @endif
+
+                            <!-- Sub-Total -->
+                            <div class="flex justify-between mb-2">
+                                <span class="font-medium text-gray-700">Sub-Total:</span>
+                                <span class="font-medium">L {{ number_format($subTotal, 2) }}</span>
+                            </div>
+
+                            <!-- Descuento general -->
                             @if($pedido->descuento > 0)
-                                <div class="flex justify-between items-center opacity-90 text-green-100">
-                                    <span class="text-sm">Descuento:</span>
-                                    <span class="font-medium">- L {{ number_format($pedido->descuento, 2) }}</span>
+                                <div class="pl-3 mb-2 border-l-4 border-orange-400 bg-orange-50">
+                                    <div class="flex justify-between mb-1">
+                                        <span class="font-medium text-orange-700">
+                                            <i class="mr-1 fas fa-tag"></i>
+                                            Descuentos y rebajas:
+                                        </span>
+                                        <span class="font-medium text-orange-700">L {{ number_format($pedido->descuento, 2) }}</span>
+                                    </div>
                                 </div>
                             @endif
-                            <div class="flex justify-between items-center opacity-90">
-                                <span class="text-sm">ISV (15%):</span>
-                                <span class="font-medium">L {{ number_format($pedido->isv, 2) }}</span>
+
+                            <!-- Impuesto sobre venta -->
+                            @if($impuestoVenta > 0)
+                            <div class="flex justify-between mb-2">
+                                <span class="font-medium text-blue-700">Impuesto sobre venta (15%):</span>
+                                <span class="font-medium text-blue-700">L {{ number_format($impuestoVenta, 2) }}</span>
                             </div>
-                            <div class="pt-4 border-t border-blue-400 border-opacity-30">
-                                <div class="flex justify-between items-center">
-                                    <span class="text-lg font-semibold">Total:</span>
-                                    <span class="text-4xl font-bold">L {{ number_format($pedido->total, 2) }}</span>
-                                </div>
-                            </div>
-                            @if(is_array($pedido->metadata) && isset($pedido->metadata['shipping_cost']) && $pedido->metadata['shipping_cost'] > 0)
-                                <div class="flex justify-between items-center opacity-90 pt-3 border-t border-blue-400 border-opacity-30">
-                                    <span class="text-sm">Costo de Envío:</span>
-                                    <span class="font-medium">L {{ number_format($pedido->metadata['shipping_cost'], 2) }}</span>
-                                </div>
                             @endif
+
+                            <!-- Costo de Envío -->
+                            @if($costoEnvio > 0)
+                            <div class="flex justify-between mb-2">
+                                <span class="font-medium text-purple-700">
+                                    <i class="mr-1 fas fa-truck"></i>
+                                    Costo de Envío:
+                                </span>
+                                <span class="font-medium text-purple-700">L {{ number_format($costoEnvio, 2) }}</span>
+                            </div>
+                            @endif
+
+                            <hr class="my-3 border-gray-400">
+
+                            <!-- Total final -->
+                            <div class="flex justify-between p-3 bg-green-100 border border-green-300 rounded">
+                                <span class="text-xl font-bold text-green-800">
+                                    <i class="mr-2 fas fa-calculator"></i>
+                                    Total a Pagar:
+                                </span>
+                                <span class="text-xl font-bold text-green-800">L {{ number_format($totalAPagar, 2) }}</span>
+                            </div>
+
+                            <!-- Información adicional -->
+                            <div class="mt-3 text-xs text-center text-gray-500">
+                                @if($pedido->items->count() > 0)
+                                    {{ $pedido->items->count() }} artículo(s) en el pedido
+                                @endif
+                            </div>
                         </div>
                     </div>
                 </div>

@@ -509,6 +509,17 @@
                     <div class="table-cell-right">L {{ number_format($impuestoVenta, 2) }}</div>
                 </div>
 
+                @if($pedidoWeb && isset($pedidoWeb->metadata['shipping_cost']) && $pedidoWeb->metadata['shipping_cost'] > 0)
+                <div class="table-row">
+                    <div class="table-cell-left">Costo de Envío</div>
+                    <div class="table-cell-right">L {{ number_format($pedidoWeb->metadata['shipping_cost'], 2) }}</div>
+                </div>
+                @php
+                    // Sumar el costo de envío al total a pagar
+                    $totalAPagar += $pedidoWeb->metadata['shipping_cost'];
+                @endphp
+                @endif
+
             </div>
 
             <div class="total-final">
@@ -519,17 +530,6 @@
                     </div>
                 </div>
             </div>
-
-            @if($pedidoWeb && isset($pedidoWeb->metadata['shipping_cost']) && $pedidoWeb->metadata['shipping_cost'] > 0)
-            <div style="margin-top: 8px;">
-                <div class="table-layout">
-                    <div class="table-row" style="font-size: 16px;">
-                        <div class="table-cell-left">Costo de Envío</div>
-                        <div class="table-cell-right">L {{ number_format($pedidoWeb->metadata['shipping_cost'], 2) }}</div>
-                    </div>
-                </div>
-            </div>
-            @endif
 
             @if($descuentosProductos > 0)
             <div style="margin-top: 8px;">

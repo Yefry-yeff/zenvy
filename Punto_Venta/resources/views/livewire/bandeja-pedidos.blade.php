@@ -154,7 +154,14 @@
                                     {{ $pedido->items->count() }} productos
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-right">
-                                    <div class="text-base font-bold text-gray-900">L {{ number_format($pedido->total, 2) }}</div>
+                                    @php
+                                        $costoEnvio = (is_array($pedido->metadata) && isset($pedido->metadata['shipping_cost'])) ? $pedido->metadata['shipping_cost'] : 0;
+                                        $totalConEnvio = $pedido->total + $costoEnvio;
+                                    @endphp
+                                    <div class="text-base font-bold text-gray-900">L {{ number_format($totalConEnvio, 2) }}</div>
+                                    @if($costoEnvio > 0)
+                                        <div class="text-xs text-gray-500">Inc. envío: L {{ number_format($costoEnvio, 2) }}</div>
+                                    @endif
                                 </td>
                                 <td class="px-6 py-4 text-sm text-gray-600 whitespace-nowrap">
                                     <div class="font-medium">{{ $pedido->created_at->format('d/m/Y') }}</div>
