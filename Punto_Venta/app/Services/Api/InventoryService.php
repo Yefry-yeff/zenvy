@@ -160,6 +160,7 @@ class InventoryService
                     'phv.precio',
                     'um.id as unidad_medida_id',
                     'um.nombre as unidad_nombre',
+                    'um.simbolo as unidad_simbolo',
                     'seg.id as categoria_id',
                     'seg.descripcion as categoria_nombre',
                     \DB::raw('SUM(rb.cantidad_disponible) as stock_disponible')
@@ -170,7 +171,7 @@ class InventoryService
                 ->groupBy(
                     'p.id', 'p.nombre',
                     'phv.codigo_barra', 'phv.id', 'phv.descripcion', 'phv.cantidad', 'phv.precio',
-                    'um.id', 'um.nombre',
+                    'um.id', 'um.nombre', 'um.simbolo',
                     'seg.id', 'seg.descripcion'
                 )
                 ->havingRaw('SUM(rb.cantidad_disponible) > 0')
@@ -206,7 +207,8 @@ class InventoryService
                     'cantidad_por_unidad' => (int)$product->cantidad_por_unidad,
                     'unidad_medida_id' => (int)$product->unidad_medida_id,
                     'unidad_nombre' => (string)$product->unidad_nombre,
-                    'unidad_simbolo' => (string)$product->unidad_simbolo,
+                    'unidad_simbolo' => (string)($product->unidad_simbolo ?? 'ud'),
+                    'stock_disponible' => (int)$product->stock_disponible,
                     'precio_venta' => (float)$product->precio,
                 ];
                 
