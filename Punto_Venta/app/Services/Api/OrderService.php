@@ -17,7 +17,8 @@ class OrderService
         private ProductRepository $productRepo,
         private InventoryService $inventoryService,
         private \App\Services\CAIService $caiService,
-        private WebInventorySyncService $syncService
+        private WebInventorySyncService $syncService,
+        private \App\Services\ReservaInventarioService $reservaService
     ) {}
     
     /**
@@ -227,6 +228,9 @@ class OrderService
                 'pago_recibido' => $pedido->total,
                 'cambio' => 0
             ]);
+            
+            // Consumir reservas de inventario (marcarlas como consumidas)
+            $this->reservaService->consumirReservas($pedido, $userId);
             
             // Marcar pedido como facturado
             $pedido->marcarComoFacturado($factura->id);
