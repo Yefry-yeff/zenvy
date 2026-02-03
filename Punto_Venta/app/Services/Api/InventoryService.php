@@ -133,7 +133,8 @@ class InventoryService
 
     /**
      * Obtener todos los productos con stock agrupados por categoría (Segmento)
-     * Ideal para sincronización en tiempo real con el frontend
+     * Agrupa productos por código de barras + unidad de medida
+     * Si un producto tiene la misma unidad y código de barras, suma el stock
      */
     public function getProductsByCategory(): array
     {
@@ -142,24 +143,40 @@ class InventoryService
         
         return Cache::remember($cacheKey, $cacheTtl, function() {
             // Obtener productos con stock > 0 desde recibido_bodega
-            // JOIN: recibido_bodega -> seccion -> segmento para obtener categoría
+            // Agrupado por código de barras (precio_has_venta) + unidad de medida
             $products = \DB::table('recibido_bodega as rb')
                 ->join('producto as p', 'rb.producto_id', '=', 'p.id')
+                ->join('precio_has_venta as phv', 'rb.precio_venta_id', '=', 'phv.id')
+                ->join('unidad_medida as um', 'phv.unidad_medida_id', '=', 'um.id')
                 ->join('seccion as sec', 'rb.seccion_id', '=', 'sec.id')
                 ->join('segmento as seg', 'sec.segmento_id', '=', 'seg.id')
                 ->select([
-                    'p.id',
-                    'p.codigo_barra',
-                    'p.nombre',
+                    'p.id as producto_id',
+                    'p.nombre as producto_nombre',
+                    'phv.codigo_barra',
+                    'phv.id as precio_venta_id',
+                    'phv.descripcion as presentacion',
+                    'phv.cantidad as cantidad_por_unidad',
+                    'phv.precio',
+                    'um.id as unidad_medida_id',
+                    'um.nombre as unidad_nombre',
                     'seg.id as categoria_id',
                     'seg.descripcion as categoria_nombre',
-                    \DB::raw('SUM(rb.cantidad_disponible) as stock_disponible'),
-                    \DB::raw('(SELECT phv.precio FROM precio_has_venta phv WHERE phv.producto_id = p.id AND phv.estado_id = 1 ORDER BY phv.cantidad ASC LIMIT 1) as precio_venta')
+                    \DB::raw('SUM(rb.cantidad_disponible) as stock_disponible')
                 ])
                 ->where('rb.estado_id', '=', 1)
                 ->where('p.estado_id', '=', 1)
-                ->groupBy('p.id', 'p.codigo_barra', 'p.nombre', 'seg.id', 'seg.descripcion')
+                ->where('phv.estado_id', '=', 1)
+                ->groupBy(
+                    'p.id', 'p.nombre',
+                    'phv.codigo_barra', 'phv.id', 'phv.descripcion', 'phv.cantidad', 'phv.precio',
+                    'um.id', 'um.nombre',
+                    'seg.id', 'seg.descripcion'
+                )
                 ->havingRaw('SUM(rb.cantidad_disponible) > 0')
+                ->orderBy('seg.descripcion')
+                ->orderBy('p.nombre')
+                ->orderBy('phv.cantidad')
                 ->get();
 
             // Agrupar por categoría (Segmento)
@@ -179,13 +196,18 @@ class InventoryService
                     ];
                 }
                 
+                // Crear identificador único por código de barras + unidad de medida
                 $productData = [
-                    'id' => (int)$product->id,
-                    'codigo_estatal' => (string)$product->codigo_barra,
+                    'id' => (int)$product->producto_id,
+                    'precio_venta_id' => (int)$product->precio_venta_id,
                     'codigo_barra' => (string)$product->codigo_barra,
-                    'nombre' => (string)$product->nombre,
-                    'stock' => (int)$product->stock_disponible,
-                    'precio_venta' => (float)($product->precio_venta ?? 0),
+                    'nombre' => (string)$product->producto_nombre,
+                    'presentacion' => (string)($product->presentacion ?? ''),
+                    'cantidad_por_unidad' => (int)$product->cantidad_por_unidad,
+                    'unidad_medida_id' => (int)$product->unidad_medida_id,
+                    'unidad_nombre' => (string)$product->unidad_nombre,
+                    'unidad_simbolo' => (string)$product->unidad_simbolo,
+                    'precio_venta' => (float)$product->precio,
                 ];
                 
                 $grouped[$categoryId]['productos'][] = $productData;

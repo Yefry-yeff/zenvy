@@ -161,6 +161,11 @@ class InventoryController extends Controller
 
     /**
      * Obtener todos los productos con stock agrupados por categoría
+     * 
+     * IMPORTANTE: Los productos se agrupan por código de barras + unidad de medida
+     * Si un producto tiene la misma unidad de medida y código de barras en diferentes lotes,
+     * el stock se suma automáticamente (ej: 2 unidades + 2 unidades = 4 total)
+     * 
      * Ideal para sincronización en tiempo real con el frontend
      * 
      * GET /api/v1/inventory/by-category
