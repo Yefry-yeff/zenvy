@@ -226,6 +226,7 @@
                                     @endif
                                 </div>
                             </th>
+                            <th class="px-2 py-1.5 text-center border-b w-16"><span class="text-xs font-semibold">Reservado</span></th>
                             <th class="px-2 py-1.5 text-center border-b cursor-pointer hover:bg-gray-200 w-20"
                                 wire:click="ordenar('fecha_recibido')">
                                 <div class="flex items-center justify-center space-x-1">
@@ -301,7 +302,8 @@
                                         <option value="agotado">0</option>
                                     </select>
                                 </th>
-                                <th class="px-2 py-1 border-b">
+                                <th class="px-2 py-1 border-b"></th>
+                                <th class="px-2 py-1 border-b"></th>
                                     <input type="date" 
                                            wire:model.live="filtroFechaRecibido"
                                            class="w-full px-1.5 py-0.5 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-transparent">
@@ -367,6 +369,22 @@
                                         <span class="text-xs font-bold {{ $item->cantidad_disponible > 10 ? 'text-green-600' : ($item->cantidad_disponible > 0 ? 'text-yellow-600' : 'text-red-600') }}">
                                             {{ number_format($item->cantidad_disponible, 0) }}
                                         </span>
+                                    </td>
+
+                                    <!-- Reservado -->
+                                    <td class="px-2 py-1 text-center border-b">
+                                        @if($item->cantidad_reservada > 0)
+                                            <button wire:click="verReservas({{ $item->producto_id }})"
+                                                    class="inline-flex items-center px-2 py-1 text-xs font-semibold text-white bg-orange-500 rounded hover:bg-orange-600 transition-colors"
+                                                    title="Ver pedidos con reservas">
+                                                <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                                                </svg>
+                                                {{ number_format($item->cantidad_reservada, 0) }}
+                                            </button>
+                                        @else
+                                            <span class="text-xs text-gray-400">-</span>
+                                        @endif
                                     </td>
 
                                     <!-- Fecha Recibido -->
@@ -469,7 +487,7 @@
                             @endforeach
                         @else
                             <tr>
-                                <td colspan="13" class="px-4 py-12 text-center">
+                                <td colspan="14" class="px-4 py-12 text-center">
                                     <div class="flex flex-col items-center">
                                         <svg class="w-16 h-16 mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-4.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 009.586 13H7"></path>
@@ -919,6 +937,122 @@
                             </span>
                         </button>
                     </div>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    <!-- Modal de Reservas -->
+    @if($mostrarModalReservas)
+        <div class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black bg-opacity-50">
+            <div class="relative w-full max-w-3xl p-0 mx-4 bg-white rounded-lg shadow-2xl">
+                <!-- Header -->
+                <div class="flex items-center justify-between px-6 py-4 bg-gradient-to-r from-orange-500 to-orange-600 rounded-t-lg">
+                    <div class="flex items-center gap-3">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                        </svg>
+                        <div>
+                            <h3 class="text-lg font-bold text-white">Reservas Activas</h3>
+                            <p class="text-sm text-orange-100">{{ $productoNombreReservas }}</p>
+                        </div>
+                    </div>
+                    <button wire:click="cerrarModalReservas" 
+                            class="text-white transition-colors hover:text-orange-200">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Body -->
+                <div class="px-6 py-4">
+                    <!-- Total Reservado -->
+                    <div class="mb-4 p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm font-semibold text-orange-800">Total Reservado:</span>
+                            <span class="text-2xl font-bold text-orange-600">{{ number_format($totalReservado, 0) }} unidades</span>
+                        </div>
+                    </div>
+
+                    <!-- Lista de Reservas -->
+                    @if(count($reservasProducto) > 0)
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm">
+                                <thead class="bg-gray-100 border-b-2 border-gray-300">
+                                    <tr>
+                                        <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Pedido</th>
+                                        <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Cliente</th>
+                                        <th class="px-4 py-3 text-center text-xs font-bold text-gray-700 uppercase">Cantidad</th>
+                                        <th class="px-4 py-3 text-center text-xs font-bold text-gray-700 uppercase">Estado</th>
+                                        <th class="px-4 py-3 text-center text-xs font-bold text-gray-700 uppercase">Fecha</th>
+                                        <th class="px-4 py-3 text-center text-xs font-bold text-gray-700 uppercase">Acción</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-200">
+                                    @foreach($reservasProducto as $reserva)
+                                        <tr class="hover:bg-gray-50">
+                                            <td class="px-4 py-3 font-semibold text-gray-900">
+                                                {{ $reserva['pedido_numero'] }}
+                                            </td>
+                                            <td class="px-4 py-3 text-gray-700">
+                                                {{ Str::limit($reserva['cliente'], 25) }}
+                                            </td>
+                                            <td class="px-4 py-3 text-center">
+                                                <span class="inline-flex px-3 py-1 text-xs font-bold text-orange-800 bg-orange-100 rounded-full">
+                                                    {{ number_format($reserva['cantidad'], 0) }}
+                                                </span>
+                                            </td>
+                                            <td class="px-4 py-3 text-center">
+                                                @if($reserva['estado_pedido'] === 'pendiente')
+                                                    <span class="inline-flex px-2 py-1 text-xs font-semibold text-yellow-700 bg-yellow-100 rounded-full">
+                                                        ⏱️ Pendiente
+                                                    </span>
+                                                @elseif($reserva['estado_pedido'] === 'procesando')
+                                                    <span class="inline-flex px-2 py-1 text-xs font-semibold text-blue-700 bg-blue-100 rounded-full">
+                                                        🔄 Procesando
+                                                    </span>
+                                                @else
+                                                    <span class="inline-flex px-2 py-1 text-xs font-semibold text-gray-700 bg-gray-100 rounded-full">
+                                                        {{ ucfirst($reserva['estado_pedido']) }}
+                                                    </span>
+                                                @endif
+                                            </td>
+                                            <td class="px-4 py-3 text-center text-xs text-gray-600">
+                                                {{ $reserva['fecha_reserva'] }}
+                                            </td>
+                                            <td class="px-4 py-3 text-center">
+                                                <button wire:click="$dispatch('cambiarVista', ['DetallePedido', {pedidoId: {{ $reserva['pedido_id'] }}}])"
+                                                        class="inline-flex items-center px-3 py-1 text-xs font-medium text-indigo-600 bg-indigo-50 rounded hover:bg-indigo-100 transition-colors">
+                                                    <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                                    </svg>
+                                                    Ver
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @else
+                        <div class="py-12 text-center">
+                            <svg class="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <p class="text-gray-600 font-medium">No hay reservas activas</p>
+                            <p class="text-sm text-gray-400">Este producto no tiene stock reservado</p>
+                        </div>
+                    @endif
+                </div>
+
+                <!-- Footer -->
+                <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 rounded-b-lg">
+                    <button wire:click="cerrarModalReservas"
+                            class="w-full px-4 py-2 text-sm font-semibold text-gray-700 bg-white border-2 border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-all">
+                        Cerrar
+                    </button>
                 </div>
             </div>
         </div>

@@ -8,6 +8,8 @@ use App\Models\RecibidoBodega;
 use App\Models\CambioUnidad;
 use App\Models\Bodega;
 use App\Models\Marca;
+use App\Models\ReservaInventario;
+use App\Models\PedidoWeb;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -65,6 +67,13 @@ class ListaDeProductos extends Component
     // Alerta de validación
     public $mostrarAlerta = false;
     public $mensajeAlerta = '';
+
+    // Modal de reservas
+    public $mostrarModalReservas = false;
+    public $productoIdReservas = null;
+    public $productoNombreReservas = '';
+    public $reservasProducto = [];
+    public $totalReservado = 0;
 
     // REMOVIDO: protected $queryString - Ya no persiste parámetros en URL
     // Los filtros se manejarán solo con sesión
@@ -296,6 +305,10 @@ class ListaDeProductos extends Component
                 ->leftJoin('unidad_medida as umv', 'p.unidad_medida_venta_id', '=', 'umv.id')
                 ->leftJoin('precio_has_venta as phv', 'rb.precio_venta_id', '=', 'phv.id')
                 ->leftJoin('producto_valencia_zenvy as pvz', 'p.id', '=', 'pvz.producto_id_zenvy')
+                ->leftJoin(DB::raw('(SELECT producto_id, SUM(cantidad_reservada) as total_reservado 
+                    FROM reservas_inventario 
+                    WHERE estado = "activa" 
+                    GROUP BY producto_id) as ri'), 'p.id', '=', 'ri.producto_id')
                 ->select(
                     'rb.id',
                     'rb.cantidad_disponible',
@@ -338,7 +351,8 @@ class ListaDeProductos extends Component
                     'seg.descripcion as segmento_descripcion',
                     'sec.descripcion as seccion_descripcion',
                     'um.nombre as unidad_medida',
-                    'umv.nombre as unidad_medida_venta'
+                    'umv.nombre as unidad_medida_venta',
+                    DB::raw('COALESCE(ri.total_reservado, 0) as cantidad_reservada')
                 )
                 ->where('rb.estado_id', 1) // Solo activos
                 ->where('b.id', '!=', 2); // Excluir bodega ID 2 (productos sin venta)
@@ -1099,6 +1113,65 @@ class ListaDeProductos extends Component
             $this->cerrarModalAjusteCantidades();
             session()->flash('error', 'Error al procesar el ajuste: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Abrir modal de reservas
+     */
+    public function verReservas($productoId)
+    {
+        try {
+            // Obtener información del producto
+            $producto = DB::table('producto')->where('id', $productoId)->first();
+            
+            if (!$producto) {
+                session()->flash('error', 'Producto no encontrado.');
+                return;
+            }
+
+            $this->productoIdReservas = $productoId;
+            $this->productoNombreReservas = $producto->nombre;
+
+            // Obtener reservas activas del producto con información del pedido
+            $this->reservasProducto = ReservaInventario::with(['pedidoWeb'])
+                ->where('producto_id', $productoId)
+                ->where('estado', 'activa')
+                ->orderBy('created_at', 'desc')
+                ->get()
+                ->map(function($reserva) {
+                    return [
+                        'id' => $reserva->id,
+                        'cantidad' => $reserva->cantidad_reservada,
+                        'pedido_numero' => $reserva->pedidoWeb->numero_pedido ?? 'N/A',
+                        'pedido_id' => $reserva->pedido_web_id,
+                        'cliente' => $reserva->pedidoWeb->cliente_nombre ?? 'N/A',
+                        'fecha_reserva' => $reserva->created_at->format('d/m/Y H:i'),
+                        'estado_pedido' => $reserva->pedidoWeb->estado ?? 'N/A',
+                    ];
+                })
+                ->toArray();
+
+            // Calcular total reservado
+            $this->totalReservado = ReservaInventario::cantidadReservadaProducto($productoId);
+
+            $this->mostrarModalReservas = true;
+
+        } catch (\Exception $e) {
+            Log::error('Error al obtener reservas: ' . $e->getMessage());
+            session()->flash('error', 'Error al cargar las reservas del producto.');
+        }
+    }
+
+    /**
+     * Cerrar modal de reservas
+     */
+    public function cerrarModalReservas()
+    {
+        $this->mostrarModalReservas = false;
+        $this->productoIdReservas = null;
+        $this->productoNombreReservas = '';
+        $this->reservasProducto = [];
+        $this->totalReservado = 0;
     }
 
     public function render()
