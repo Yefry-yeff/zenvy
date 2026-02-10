@@ -136,12 +136,13 @@ class OrderService
             $pedido->marcarComoProcesando($userId);
             
             // Validar stock nuevamente al momento de facturar
+            // Excluir las reservas del pedido actual para permitir su facturación
             $items = $pedido->items->map(fn($item) => [
                 'sku' => $item->producto_id,
                 'quantity' => $item->cantidad,
             ])->toArray();
             
-            $stockValidation = $this->inventoryService->validateStock($items);
+            $stockValidation = $this->inventoryService->validateStock($items, $pedidoId);
             
             if (!$stockValidation['available']) {
                 $pedido->update(['estado' => 'pendiente']); // Revertir

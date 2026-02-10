@@ -64,8 +64,11 @@ class InventoryService
     
     /**
      * Validar disponibilidad de stock para múltiples productos
+     * 
+     * @param array $items Items a validar
+     * @param int|null $excludePedidoId ID del pedido cuyas reservas deben excluirse (para permitir facturación del propio pedido)
      */
-    public function validateStock(array $items): array
+    public function validateStock(array $items, ?int $excludePedidoId = null): array
     {
         $result = [
             'available' => true,
@@ -83,13 +86,18 @@ class InventoryService
                     ->where('cantidad_disponible', '>', 0)
                     ->sum('cantidad_disponible');
                 
-                // Obtener reservas activas
-                $reservas = \DB::table('reservas_inventario')
+                // Obtener reservas activas, excluyendo las del pedido actual si se especifica
+                $reservasQuery = \DB::table('reservas_inventario')
                     ->where('producto_id', $product->id)
-                    ->where('estado', 'activa')
-                    ->sum('cantidad_reservada');
+                    ->where('estado', 'activa');
                 
-                // Stock disponible real = stock - reservas
+                if ($excludePedidoId) {
+                    $reservasQuery->where('pedido_web_id', '!=', $excludePedidoId);
+                }
+                
+                $reservas = $reservasQuery->sum('cantidad_reservada');
+                
+                // Stock disponible real = stock - reservas (excluyendo reservas del pedido actual)
                 $stockDisponible = max(0, $stockReal - $reservas);
                 
                 $isAvailable = $stockDisponible >= $item['quantity'];
