@@ -83,14 +83,25 @@ class InventoryService
                     ->where('cantidad_disponible', '>', 0)
                     ->sum('cantidad_disponible');
                 
-                $isAvailable = $stockReal >= $item['quantity'];
+                // Obtener reservas activas
+                $reservas = \DB::table('reservas_inventario')
+                    ->where('producto_id', $product->id)
+                    ->where('estado', 'activa')
+                    ->sum('cantidad_reservada');
+                
+                // Stock disponible real = stock - reservas
+                $stockDisponible = max(0, $stockReal - $reservas);
+                
+                $isAvailable = $stockDisponible >= $item['quantity'];
                 
                 $result['items'][] = [
                     'sku' => (string) $product->id,
                     'product_id' => $product->id,
                     'product_name' => $product->nombre,
                     'requested' => $item['quantity'],
-                    'available' => (int) $stockReal,
+                    'available' => (int) $stockDisponible,
+                    'stock_total' => (int) $stockReal,
+                    'reservado' => (int) $reservas,
                     'is_available' => $isAvailable
                 ];
                 
@@ -180,6 +191,14 @@ class InventoryService
                 ->orderBy('phv.cantidad')
                 ->get();
 
+            // Obtener todas las reservas activas agrupadas por producto_id
+            $reservasPorProducto = \DB::table('reservas_inventario')
+                ->select('producto_id', \DB::raw('SUM(cantidad_reservada) as total_reservado'))
+                ->where('estado', 'activa')
+                ->groupBy('producto_id')
+                ->pluck('total_reservado', 'producto_id')
+                ->toArray();
+
             // Agrupar por categoría (Segmento)
             $grouped = [];
             
@@ -197,6 +216,12 @@ class InventoryService
                     ];
                 }
                 
+                // Obtener reservas activas del producto
+                $reservas = $reservasPorProducto[$product->producto_id] ?? 0;
+                
+                // Calcular stock disponible real (stock - reservas)
+                $stockDisponible = max(0, (int)$product->stock_disponible - $reservas);
+                
                 // Crear identificador único por código de barras + unidad de medida
                 $productData = [
                     'id' => (int)$product->producto_id,
@@ -208,13 +233,18 @@ class InventoryService
                     'unidad_medida_id' => (int)$product->unidad_medida_id,
                     'unidad_nombre' => (string)$product->unidad_nombre,
                     'unidad_simbolo' => (string)($product->unidad_simbolo ?? 'ud'),
-                    'stock_disponible' => (int)$product->stock_disponible,
+                    'stock_disponible' => $stockDisponible,
+                    'stock_total' => (int)$product->stock_disponible,
+                    'stock_reservado' => $reservas,
                     'precio_venta' => (float)$product->precio,
                 ];
                 
-                $grouped[$categoryId]['productos'][] = $productData;
-                $grouped[$categoryId]['total_productos']++;
-                $grouped[$categoryId]['stock_total'] += (int)$product->stock_disponible;
+                // Solo incluir productos con stock disponible real > 0
+                if ($stockDisponible > 0) {
+                    $grouped[$categoryId]['productos'][] = $productData;
+                    $grouped[$categoryId]['total_productos']++;
+                    $grouped[$categoryId]['stock_total'] += $stockDisponible;
+                }
             }
             
             // Retornar como array indexado (compatible con JSON)
