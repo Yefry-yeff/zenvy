@@ -1087,6 +1087,28 @@ class RecibirEnBodega extends Component
 
             DB::commit();
 
+            // Sincronizar ingreso de compra con página web
+            try {
+                $syncService = app(WebInventorySyncService::class);
+                $syncService->sincronizarCompraRecibida(
+                    $this->productoParaDistribuir['producto_id'],
+                    $this->productoParaDistribuir['nombre'],
+                    (int) $cantidadDistribuir,
+                    [
+                        'fecha_recibido' => $this->fechaDistribucion,
+                        'compra_id' => $compra->id,
+                        'numero_factura' => $compra->numero_factura,
+                        'seccion_id' => $this->seccionDistribucion,
+                        'comentario' => $this->comentarioDistribucion,
+                    ]
+                );
+            } catch (\Exception $e) {
+                Log::warning('Error al enviar webhook de compra recibida', [
+                    'producto_id' => $this->productoParaDistribuir['producto_id'],
+                    'error' => $e->getMessage()
+                ]);
+            }
+
             // Preparar mensaje de éxito
             $mensaje = "Se distribuyeron {$cantidadDistribuir} {$this->productoParaDistribuir['unidad']} de {$this->productoParaDistribuir['nombre']} exitosamente a la bodega.";
 

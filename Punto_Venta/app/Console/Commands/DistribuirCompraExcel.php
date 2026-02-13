@@ -11,6 +11,7 @@ use App\Models\Bodega;
 use App\Models\Segmento;
 use App\Models\Seccion;
 use App\Models\Bitacora;
+use App\Services\WebInventorySyncService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use PhpOffice\PhpSpreadsheet\IOFactory;
@@ -83,6 +84,7 @@ class DistribuirCompraExcel extends Command
             DB::beginTransaction();
 
             $productosDistribuidos = 0;
+            $productosParaWebhook = []; // Para enviar webhooks después del commit
             $errores = [];
 
             // Procesar cada fila
@@ -212,12 +214,48 @@ class DistribuirCompraExcel extends Command
                     $this->info("Línea {$lineaNum}: ✓ {$producto->nombre} distribuido - {$cantidadDistribuir} unidades a {$bodega->nombre}/{$segmento->descripcion}/{$seccion->nombre}");
                     $productosDistribuidos++;
 
+                    // Guardar datos para webhook
+                    $productosParaWebhook[] = [
+                        'producto_id' => $productoId,
+                        'nombre' => $producto->nombre,
+                        'cantidad' => $cantidadStock,
+                        'seccion_id' => $seccionId,
+                        'fecha_recibido' => $fechaRecepcion,
+                        'comentario' => $comentario,
+                    ];
+
                 } catch (\Exception $e) {
                     $errores[] = "Línea {$lineaNum}: Error - " . $e->getMessage();
                 }
             }
 
             DB::commit();
+
+            // Sincronizar con pagina web via webhooks
+            if (count($productosParaWebhook) > 0) {
+                $this->info("\n📡 Enviando webhooks de sincronizacion...");
+                try {
+                    $syncService = app(WebInventorySyncService::class);
+                    foreach ($productosParaWebhook as $prod) {
+                        $syncService->sincronizarCompraRecibida(
+                            $prod['producto_id'],
+                            $prod['nombre'],
+                            (int) $prod['cantidad'],
+                            [
+                                'fecha_recibido' => $prod['fecha_recibido'],
+                                'compra_id' => $compraId,
+                                'numero_factura' => $compra->numero_factura,
+                                'seccion_id' => $prod['seccion_id'],
+                                'comentario' => $prod['comentario'],
+                                'origen' => 'distribucion_excel',
+                            ]
+                        );
+                    }
+                    $this->info("✅ Webhooks enviados exitosamente");
+                } catch (\Exception $e) {
+                    $this->warn("⚠️  Error al enviar webhooks: " . $e->getMessage());
+                }
+            }
 
             // Mostrar resumen
             $this->info("\n=== RESUMEN DE DISTRIBUCIÓN ===");

@@ -12,6 +12,7 @@ use App\Models\RecibidoBodega;
 use App\Models\UnidadMedida;
 use App\Models\Producto;
 use App\Models\Bitacora;
+use App\Services\WebInventorySyncService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -688,6 +689,32 @@ class RecibirProductoCompra extends Component
 
             DB::commit();
 
+            // Sincronizar ingreso de compra con página web
+            try {
+                $syncService = app(WebInventorySyncService::class);
+                // Enviar webhook por cada distribución individual
+                foreach ($this->distribucionesMultiples as $distribucion) {
+                    $syncService->sincronizarCompraRecibida(
+                        $this->detalleSeleccionado['producto_id'],
+                        $this->detalleSeleccionado['nombre_producto'],
+                        (int) $distribucion['cantidad_stock'],
+                        [
+                            'fecha_recibido' => $this->fechaDistribucion,
+                            'compra_id' => $compra->id,
+                            'numero_factura' => $compra->numero_factura,
+                            'seccion_id' => $distribucion['seccion_id'],
+                            'comentario' => $this->comentarioDistribucion,
+                            'tipo_recepcion' => 'multiple',
+                        ]
+                    );
+                }
+            } catch (\Exception $e) {
+                Log::warning('Error al enviar webhook de compra recibida (distribución múltiple)', [
+                    'producto_id' => $this->detalleSeleccionado['producto_id'],
+                    'error' => $e->getMessage()
+                ]);
+            }
+
             // Preparar mensaje de éxito detallado
             $mensaje = "✅ Distribución múltiple exitosa:\n\n";
             $mensaje .= "📦 Producto: {$this->detalleSeleccionado['nombre_producto']}\n";
@@ -1243,6 +1270,34 @@ class RecibirProductoCompra extends Component
             );
 
             DB::commit();
+
+            // Sincronizar ingreso de compras con página web (recepción masiva)
+            try {
+                $syncService = app(WebInventorySyncService::class);
+                // Enviar webhook por cada producto recibido
+                foreach ($this->productosParaRecibir as $producto) {
+                    if (isset($producto['recibir']) && $producto['recibir'] && isset($producto['cantidad_asignar_stock']) && $producto['cantidad_asignar_stock'] > 0) {
+                        $syncService->sincronizarCompraRecibida(
+                            $producto['producto_id'],
+                            $producto['nombre_producto'],
+                            (int) $producto['cantidad_asignar_stock'],
+                            [
+                                'fecha_recibido' => $this->fechaRecepcionMasiva,
+                                'compra_id' => $this->compraId,
+                                'numero_factura' => $compra->numero_factura,
+                                'seccion_id' => $producto['seccion_id'],
+                                'comentario' => $this->comentarioRecepcionMasiva,
+                                'tipo_recepcion' => 'masiva',
+                            ]
+                        );
+                    }
+                }
+            } catch (\Exception $e) {
+                Log::warning('Error al enviar webhook de compra recibida (recepción masiva)', [
+                    'compra_id' => $this->compraId,
+                    'error' => $e->getMessage()
+                ]);
+            }
 
             $mensajeDetalle .= "\n📊 Total productos recibidos: {$productosRecibidos}";
 

@@ -7,6 +7,8 @@ use App\Models\Compra;
 use App\Models\CompraHasProducto;
 use App\Models\RecibidoBodega;
 use App\Models\IdZenvyValencia;
+use App\Models\Producto;
+use App\Services\WebInventorySyncService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
@@ -463,6 +465,32 @@ class SincronizarYRecibirBodega extends Command
                 'created_at' => now(),
                 'updated_at' => now()
             ]);
+
+            // Sincronizar con página web vía webhook
+            try {
+                $producto = Producto::find($productoZenvyId);
+                if ($producto) {
+                    $syncService = app(WebInventorySyncService::class);
+                    $syncService->sincronizarCompraRecibida(
+                        $productoZenvyId,
+                        $producto->nombre,
+                        (int) $registro->cantidad_ingresada,
+                        [
+                            'fecha_recibido' => now()->format('Y-m-d'),
+                            'compra_id' => $compraId,
+                            'seccion_id' => 2,
+                            'origen' => 'sincronizacion_valencia',
+                            'comentario' => "Sincronización automática desde Valencia - Compra ID: {$compraId}",
+                        ]
+                    );
+                }
+            } catch (\Exception $e) {
+                Log::warning('Error al enviar webhook de compra recibida (sincronización Valencia)', [
+                    'producto_id' => $productoZenvyId,
+                    'compra_id' => $compraId,
+                    'error' => $e->getMessage()
+                ]);
+            }
         }
     }
 
