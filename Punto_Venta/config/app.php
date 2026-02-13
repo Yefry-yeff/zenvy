@@ -134,5 +134,8 @@ return [
 
     'webhook_url' => env('WEBHOOK_URL'),
     'webhook_token' => env('WEBHOOK_TOKEN'),
+    'webhook_timeout' => env('WEBHOOK_TIMEOUT', 5),
+    'webhook_enabled' => env('WEBHOOK_ENABLED', true),
+    'webhook_retry_attempts' => env('WEBHOOK_RETRY_ATTEMPTS', 3),
 
 ];

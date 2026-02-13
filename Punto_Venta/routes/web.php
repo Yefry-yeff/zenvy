@@ -59,6 +59,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/empresa', function () {
         return view('layouts.app');
     })->name('empresa');
+    
+    // Ruta para configuración de APIs y Webhooks
+    Route::get('/configuracion/apis', function () {
+        return view('layouts.app');
+    })->name('configuracion.apis');
 
     // Rutas para imágenes de facturas
     Route::get('/factura/{id}/imagen', function ($id) {

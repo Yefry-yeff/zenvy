@@ -109,4 +109,35 @@ return [
         'include_trace' => env('API_INCLUDE_TRACE', false),
         'pretty_print' => env('API_PRETTY_PRINT', false),
     ],
+    
+    /*
+    |--------------------------------------------------------------------------
+    | Webhooks
+    |--------------------------------------------------------------------------
+    |
+    | Configuración de webhooks para sincronización con servicios externos
+    |
+    */
+    'webhooks' => [
+        'enabled' => env('WEBHOOK_ENABLED', false),
+        'url' => env('WEBHOOK_URL', ''),
+        'token' => env('WEBHOOK_TOKEN', ''),
+        'timeout' => env('WEBHOOK_TIMEOUT', 5),
+        'retry_attempts' => env('WEBHOOK_RETRY_ATTEMPTS', 3),
+        'retry_delay' => env('WEBHOOK_RETRY_DELAY', 1000), // milisegundos
+        'verify_ssl' => env('WEBHOOK_VERIFY_SSL', true),
+        'log_requests' => env('WEBHOOK_LOG_REQUESTS', true),
+        'log_responses' => env('WEBHOOK_LOG_RESPONSES', true),
+        'async' => env('WEBHOOK_ASYNC', true), // Enviar en cola
+        
+        // Eventos a sincronizar
+        'eventos' => [
+            'inventario.stock_actualizado' => true,
+            'inventario.compra_recibida' => true,
+            'inventario.venta_realizada' => true,
+            'inventario.factura_anulada' => true,
+            'inventario.sincronizacion_completa' => true,
+        ],
+    ],
 ];
+

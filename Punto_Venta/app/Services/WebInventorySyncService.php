@@ -5,6 +5,8 @@ namespace App\Services;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
+use App\Jobs\EnviarWebhookJob;
+use App\Models\WebhookLog;
 
 /**
  * Servicio de Sincronización de Inventario con Página Web
@@ -266,9 +268,17 @@ class WebInventorySyncService
     /**
      * Enviar webhook a la página web (de forma asincrónica)
      */
-    private function enviarWebhook(array $payload, string $cacheKey): bool
+    private function enviarWebhook(array $payload, string $cacheKey, int $relacionadoId = null, string $relacionadoTipo = null): bool
     {
         try {
+            // Evitar duplicados
+            if (Cache::has("webhook_sent_{$cacheKey}")) {
+                Log::debug('Webhook duplicado descartado', ['cache_key' => $cacheKey]);
+                return false;
+            }
+            
+            Cache::put("webhook_sent_{$cacheKey}", true, now()->addSeconds(30));
+            
             // Si la cola está en sync, ejecutar el envío en un proceso separado (fire-and-forget)
             if (config('queue.default') === 'sync') {
                 Log::info('🚀 Enviando webhook en modo SYNC (fire-and-forget)', [
@@ -281,14 +291,13 @@ class WebInventorySyncService
                 return true;
             }
             
-            // Si hay una cola configurada, usar Job
-            \App\Jobs\SendInventoryWebhook::dispatch(
+            // Si hay una cola configurada, usar Job mejorado
+            EnviarWebhookJob::dispatch(
+                $payload['evento'],
                 $payload,
-                $cacheKey,
-                $this->webhookUrl,
-                $this->webhookToken,
-                $this->timeout
-            );
+                $relacionadoId,
+                $relacionadoTipo
+            )->onQueue('webhooks');
             
             Log::info('✅ Job de webhook despachado a la cola', [
                 'evento' => $payload['evento'],
