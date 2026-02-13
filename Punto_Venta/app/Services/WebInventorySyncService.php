@@ -30,21 +30,51 @@ class WebInventorySyncService
     }
     
     /**
+     * Calcular stock disponible real de un producto (stock total - reservas activas)
+     * 
+     * @param int $productoId
+     * @return array ['stock_total' => int, 'reservas_activas' => int, 'stock_disponible' => int]
+     */
+    public function calcularStockDisponible(int $productoId): array
+    {
+        // Obtener stock total desde recibido_bodega
+        $stockTotal = \DB::table('recibido_bodega')
+            ->where('producto_id', $productoId)
+            ->where('estado_id', 1)
+            ->sum('cantidad_disponible');
+        
+        // Obtener reservas activas
+        $reservasActivas = \DB::table('reservas_inventario')
+            ->where('producto_id', $productoId)
+            ->where('estado', 'activa')
+            ->sum('cantidad_reservada');
+        
+        // Stock disponible = stock total - reservas activas
+        $stockDisponible = max(0, $stockTotal - $reservasActivas);
+        
+        return [
+            'stock_total' => (int) $stockTotal,
+            'reservas_activas' => (int) $reservasActivas,
+            'stock_disponible' => (int) $stockDisponible,
+        ];
+    }
+    
+    /**
      * Sincronizar actualización de stock de producto
      * Se ejecuta cuando hay cambios en cantidad_disponible de recibido_bodega
      * 
      * @param int $productoId
      * @param string $nombreProducto
-     * @param int $stockAnterior
-     * @param int $stockActual
-     * @param string $razon (compra, factura, ajuste, anulacion)
+     * @param int|null $stockAnterior Si es null, se calcula automáticamente
+     * @param int|null $stockActual Si es null, se calcula automáticamente
+     * @param string $razon (compra, factura, ajuste, anulacion, rechazo_pedido_web)
      * @param array $detalles información adicional
      */
     public function sincronizarCambioStock(
         int $productoId,
         string $nombreProducto,
-        int $stockAnterior,
-        int $stockActual,
+        ?int $stockAnterior = null,
+        ?int $stockActual = null,
         string $razon = 'ajuste',
         array $detalles = []
     ): bool {
@@ -58,6 +88,25 @@ class WebInventorySyncService
             return false;
         }
         
+        // Si no se proporciona stock, calcularlo con reservas
+        if ($stockActual === null) {
+            $stockInfo = $this->calcularStockDisponible($productoId);
+            $stockActual = $stockInfo['stock_disponible'];
+            $stockTotalSinReservas = $stockInfo['stock_total'];
+            $reservasActivas = $stockInfo['reservas_activas'];
+        } else {
+            // Si se proporciona, obtener info de reservas de todos modos
+            $reservasActivas = \DB::table('reservas_inventario')
+                ->where('producto_id', $productoId)
+                ->where('estado', 'activa')
+                ->sum('cantidad_reservada');
+            $stockTotalSinReservas = $stockActual + $reservasActivas;
+        }
+        
+        if ($stockAnterior === null) {
+            $stockAnterior = $stockActual; // Default para evitar errores
+        }
+        
         $cambio = $stockActual - $stockAnterior;
         
         $payload = [
@@ -68,6 +117,8 @@ class WebInventorySyncService
                 'nombre' => $nombreProducto,
                 'stock_anterior' => $stockAnterior,
                 'stock_actual' => $stockActual,
+                'stock_total' => $stockTotalSinReservas,
+                'reservas_activas' => (int) $reservasActivas,
                 'cambio' => $cambio,
                 'razon' => $razon,
             ],
@@ -111,6 +162,9 @@ class WebInventorySyncService
             return false;
         }
         
+        // Calcular stock disponible después de recibir la compra
+        $stockInfo = $this->calcularStockDisponible($productoId);
+        
         $payload = [
             'evento' => 'inventario.compra_recibida',
             'timestamp' => now()->toIso8601String(),
@@ -118,6 +172,9 @@ class WebInventorySyncService
                 'id' => $productoId,
                 'nombre' => $nombreProducto,
                 'cantidad_ingresada' => $cantidadRecibida,
+                'stock_total' => $stockInfo['stock_total'],
+                'reservas_activas' => $stockInfo['reservas_activas'],
+                'stock_disponible' => $stockInfo['stock_disponible'],
             ],
             'detalles' => $detalles,
         ];
@@ -324,13 +381,7 @@ class WebInventorySyncService
     private function enviarWebhookFireAndForget(array $payload, string $cacheKey): void
     {
         try {
-            // Evitar duplicados
-            if (Cache::has("webhook_sent_{$cacheKey}")) {
-                Log::debug('Webhook duplicado descartado', ['cache_key' => $cacheKey]);
-                return;
-            }
-            
-            Cache::put("webhook_sent_{$cacheKey}", true, now()->addSeconds(30));
+            // NO chequear cache aquí - ya se chequeó en enviarWebhook()
             
             // Parsear URL
             $url = parse_url($this->webhookUrl);

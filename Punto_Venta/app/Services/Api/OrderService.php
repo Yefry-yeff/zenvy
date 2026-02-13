@@ -332,25 +332,36 @@ class OrderService
     private function sincronizarInventarioWeb(int $productoId, string $nombreProducto, int $cantidadVendida): void
     {
         try {
-            // Calcular stock actual después del descuento
-            $stockActual = DB::table('recibido_bodega')
+            // Calcular stock total después del descuento
+            $stockTotal = DB::table('recibido_bodega')
                 ->where('producto_id', $productoId)
                 ->where('estado_id', 1)
-                ->where('cantidad_disponible', '>', 0)
                 ->sum('cantidad_disponible');
             
-            // Stock anterior era el actual + lo que se vendió
-            $stockAnterior = $stockActual + $cantidadVendida;
+            // Obtener reservas activas (después de consumir las del pedido actual)
+            $reservasActivas = \DB::table('reservas_inventario')
+                ->where('producto_id', $productoId)
+                ->where('estado', 'activa')
+                ->sum('cantidad_reservada');
+            
+            // Stock disponible actual = stock total - reservas activas
+            $stockDisponibleActual = max(0, $stockTotal - $reservasActivas);
+            
+            // Stock disponible anterior = (stock total + vendido) - (reservas activas + cantidad vendida)
+            // Nota: Las reservas del pedido ya fueron consumidas, así que sumamos la cantidad al calcular el anterior
+            $stockDisponibleAnterior = max(0, ($stockTotal + $cantidadVendida) - ($reservasActivas + $cantidadVendida));
             
             // Sincronizar con página web
             $this->syncService->sincronizarCambioStock(
                 $productoId,
                 $nombreProducto,
-                (int) $stockAnterior,
-                (int) $stockActual,
+                (int) $stockDisponibleAnterior,
+                (int) $stockDisponibleActual,
                 'factura_web',
                 [
                     'cantidad_vendida' => $cantidadVendida,
+                    'stock_total' => (int) $stockTotal,
+                    'reservas_activas' => (int) $reservasActivas,
                     'tipo_operacion' => 'venta_web'
                 ]
             );
@@ -358,8 +369,10 @@ class OrderService
             Log::info('Stock sincronizado con página web (OrderService)', [
                 'producto_id' => $productoId,
                 'producto_nombre' => $nombreProducto,
-                'stock_anterior' => $stockAnterior,
-                'stock_actual' => $stockActual,
+                'stock_total' => $stockTotal,
+                'reservas_activas' => $reservasActivas,
+                'stock_disponible_anterior' => $stockDisponibleAnterior,
+                'stock_disponible_actual' => $stockDisponibleActual,
                 'cantidad_vendida' => $cantidadVendida
             ]);
             

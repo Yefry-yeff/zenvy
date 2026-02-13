@@ -3145,22 +3145,34 @@ class Ventas extends Component
         }
 
         // Sincronizar cambio de stock con página web (después de descontar)
+        $syncService = app(WebInventorySyncService::class);
+        
+        // Calcular stock total después del descuento
         $stockTotalActual = DB::table('recibido_bodega')
             ->where('producto_id', $producto['id'])
             ->where('estado_id', 1)
-            ->where('cantidad_disponible', '>', 0)
             ->sum('cantidad_disponible');
         
-        $stockTotalAnterior = $stockTotalActual + $cantidadParaInventario;
+        // Obtener reservas activas
+        $reservasActivas = DB::table('reservas_inventario')
+            ->where('producto_id', $producto['id'])
+            ->where('estado', 'activa')
+            ->sum('cantidad_reservada');
+        
+        // Stock disponible = stock total - reservas
+        $stockDisponibleActual = max(0, $stockTotalActual - $reservasActivas);
+        $stockDisponibleAnterior = max(0, ($stockTotalActual + $cantidadParaInventario) - $reservasActivas);
         
         $syncService->sincronizarCambioStock(
             $producto['id'],
             $producto['nombre'],
-            (int) $stockTotalAnterior,
-            (int) $stockTotalActual,
+            (int) $stockDisponibleAnterior,
+            (int) $stockDisponibleActual,
             'factura',
             [
                 'cantidad_vendida' => $cantidadParaInventario,
+                'stock_total' => (int) $stockTotalActual,
+                'reservas_activas' => (int) $reservasActivas,
                 'unidad_medida_id' => $producto['unidad_medida_id']
             ]
         );

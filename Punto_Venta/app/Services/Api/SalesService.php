@@ -557,9 +557,16 @@ class SalesService
             // Obtener items de la factura
             $items = FacturaHasProducto::where('factura_id', $id)->get();
             
-            // Restaurar stock
+            // Restaurar stock y sincronizar con página web
             foreach ($items as $item) {
+                $producto = DB::table('producto')->where('id', $item->producto_id)->first(['nombre']);
+                
                 $this->restaurarStockBodega($item->producto_id, $item->cantidad);
+                
+                // Sincronizar restauración de stock con página web
+                if ($producto) {
+                    $this->sincronizarRestauracionStock($item->producto_id, $producto->nombre, $item->cantidad);
+                }
             }
             
             // Marcar factura como anulada
@@ -636,24 +643,34 @@ class SalesService
                 return;
             }
             
-            // Calcular stock actual después del descuento
-            $stockActual = RecibidoBodega::where('producto_id', $productoId)
+            // Calcular stock total desde recibido_bodega (después del descuento)
+            $stockTotal = RecibidoBodega::where('producto_id', $productoId)
                 ->where('estado_id', 1)
-                ->where('cantidad_disponible', '>', 0)
                 ->sum('cantidad_disponible');
             
-            // Stock anterior era el actual + lo que se vendió
-            $stockAnterior = $stockActual + $cantidadVendida;
+            // Obtener reservas activas
+            $reservasActivas = \DB::table('reservas_inventario')
+                ->where('producto_id', $productoId)
+                ->where('estado', 'activa')
+                ->sum('cantidad_reservada');
+            
+            // Stock disponible actual = stock total - reservas
+            $stockDisponibleActual = max(0, $stockTotal - $reservasActivas);
+            
+            // Stock disponible anterior = (stock total + vendido) - reservas
+            $stockDisponibleAnterior = max(0, ($stockTotal + $cantidadVendida) - $reservasActivas);
             
             // Sincronizar con página web
             $this->syncService->sincronizarCambioStock(
                 $productoId,
                 $producto->nombre,
-                (int) $stockAnterior,
-                (int) $stockActual,
+                (int) $stockDisponibleAnterior,
+                (int) $stockDisponibleActual,
                 'factura_web',
                 [
                     'cantidad_vendida' => $cantidadVendida,
+                    'stock_total' => (int) $stockTotal,
+                    'reservas_activas' => (int) $reservasActivas,
                     'tipo_operacion' => 'venta_web'
                 ]
             );
@@ -661,14 +678,74 @@ class SalesService
             Log::info('Stock sincronizado con página web', [
                 'producto_id' => $productoId,
                 'producto_nombre' => $producto->nombre,
-                'stock_anterior' => $stockAnterior,
-                'stock_actual' => $stockActual,
+                'stock_total' => $stockTotal,
+                'reservas_activas' => $reservasActivas,
+                'stock_disponible_anterior' => $stockDisponibleAnterior,
+                'stock_disponible_actual' => $stockDisponibleActual,
                 'cantidad_vendida' => $cantidadVendida
             ]);
             
         } catch (\Exception $e) {
             // No fallar la facturación si hay error en la sincronización
             Log::error('Error al sincronizar inventario con página web', [
+                'producto_id' => $productoId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+        }
+    }
+    
+    /**
+     * Sincronizar restauración de stock con página web después de anular factura
+     */
+    private function sincronizarRestauracionStock(int $productoId, string $nombreProducto, int $cantidadRestaurada): void
+    {
+        try {
+            // Calcular stock total después de la restauración
+            $stockTotal = RecibidoBodega::where('producto_id', $productoId)
+                ->where('estado_id', 1)
+                ->sum('cantidad_disponible');
+            
+            // Obtener reservas activas
+            $reservasActivas = \DB::table('reservas_inventario')
+                ->where('producto_id', $productoId)
+                ->where('estado', 'activa')
+                ->sum('cantidad_reservada');
+            
+            // Stock disponible actual = stock total - reservas
+            $stockDisponibleActual = max(0, $stockTotal - $reservasActivas);
+            
+            // Stock disponible anterior = (stock total - restaurado) - reservas
+            $stockDisponibleAnterior = max(0, ($stockTotal - $cantidadRestaurada) - $reservasActivas);
+            
+            // Sincronizar con página web
+            $this->syncService->sincronizarCambioStock(
+                $productoId,
+                $nombreProducto,
+                (int) $stockDisponibleAnterior,
+                (int) $stockDisponibleActual,
+                'anulacion_factura',
+                [
+                    'cantidad_restaurada' => $cantidadRestaurada,
+                    'stock_total' => (int) $stockTotal,
+                    'reservas_activas' => (int) $reservasActivas,
+                    'tipo_operacion' => 'restauracion_stock'
+                ]
+            );
+            
+            Log::info('Stock restaurado sincronizado con página web', [
+                'producto_id' => $productoId,
+                'producto_nombre' => $nombreProducto,
+                'stock_total' => $stockTotal,
+                'reservas_activas' => $reservasActivas,
+                'stock_disponible_anterior' => $stockDisponibleAnterior,
+                'stock_disponible_actual' => $stockDisponibleActual,
+                'cantidad_restaurada' => $cantidadRestaurada
+            ]);
+            
+        } catch (\Exception $e) {
+            // No fallar la anulación si hay error en la sincronización
+            Log::error('Error al sincronizar restauración de stock con página web', [
                 'producto_id' => $productoId,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
