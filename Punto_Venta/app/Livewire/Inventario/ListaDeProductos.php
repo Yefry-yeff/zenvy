@@ -10,6 +10,7 @@ use App\Models\Bodega;
 use App\Models\Marca;
 use App\Models\ReservaInventario;
 use App\Models\PedidoWeb;
+use App\Services\WebInventorySyncService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -1026,6 +1027,21 @@ class ListaDeProductos extends Component
         try {
             DB::beginTransaction();
 
+            // CALCULAR STOCK TOTAL DEL PRODUCTO ANTES DEL AJUSTE (todos los registros)
+            $stockTotalAnterior = DB::table('recibido_bodega')
+                ->where('producto_id', $this->stockParaAjuste->producto_id)
+                ->where('estado_id', 1)
+                ->sum('cantidad_disponible');
+            
+            // Obtener reservas activas antes del ajuste
+            $reservasActivas = DB::table('reservas_inventario')
+                ->where('producto_id', $this->stockParaAjuste->producto_id)
+                ->where('estado', 'activa')
+                ->sum('cantidad_reservada');
+            
+            // Stock disponible anterior = stock total - reservas
+            $stockDisponibleAnterior = max(0, $stockTotalAnterior - $reservasActivas);
+
             $cantidadAnterior = floatval($this->stockParaAjuste->cantidad_disponible);
             $cantidadNueva = 0;
 
@@ -1042,7 +1058,7 @@ class ListaDeProductos extends Component
                 $cantidadNueva = $cantidadAnterior - floatval($this->cantidadAjuste);
             }
 
-            // Actualizar cantidad en recibido_bodega
+            // Actualizar cantidad en recibido_bodega (registro específico)
             $actualizados = DB::table('recibido_bodega')
                 ->where('id', $this->stockParaAjuste->id)
                 ->update([
@@ -1053,6 +1069,15 @@ class ListaDeProductos extends Component
             if ($actualizados === 0) {
                 throw new \Exception('No se pudo actualizar el registro de stock.');
             }
+
+            // CALCULAR STOCK TOTAL DEL PRODUCTO DESPUÉS DEL AJUSTE (todos los registros)
+            $stockTotalActual = DB::table('recibido_bodega')
+                ->where('producto_id', $this->stockParaAjuste->producto_id)
+                ->where('estado_id', 1)
+                ->sum('cantidad_disponible');
+            
+            // Stock disponible actual = stock total - reservas
+            $stockDisponibleActual = max(0, $stockTotalActual - $reservasActivas);
 
             // Insertar en tabla ajuste_inventario
             DB::table('ajuste_inventario')->insert([
@@ -1098,6 +1123,34 @@ class ListaDeProductos extends Component
             ]);
 
             DB::commit();
+
+            // Sincronizar ajuste de inventario con página web
+            // ENVIAMOS EL STOCK TOTAL ACUMULADO, NO SOLO DEL REGISTRO AJUSTADO
+            try {
+                $syncService = app(WebInventorySyncService::class);
+                $syncService->sincronizarCambioStock(
+                    $this->stockParaAjuste->producto_id,
+                    $this->productoNombreAjuste,
+                    (int) $stockDisponibleAnterior, // Stock total antes del ajuste
+                    (int) $stockDisponibleActual,   // Stock total después del ajuste
+                    'ajuste',
+                    [
+                        'tipo_ajuste' => $this->tipoAjuste,
+                        'cantidad_ajustada' => floatval($this->cantidadAjuste),
+                        'motivo' => $this->motivoAjuste,
+                        'bodega' => $this->bodegaNombreAjuste,
+                        'seccion' => $this->seccionNombreAjuste,
+                        'unidad_medida' => $this->unidadMedidaAjuste,
+                        'stock_total' => (int) $stockTotalActual,
+                        'reservas_activas' => (int) $reservasActivas,
+                    ]
+                );
+            } catch (\Exception $e) {
+                Log::warning('Error al enviar webhook de ajuste de inventario', [
+                    'producto_id' => $this->stockParaAjuste->producto_id,
+                    'error' => $e->getMessage()
+                ]);
+            }
 
             $mensaje = $this->tipoAjuste === 'aumentar' 
                 ? 'Se aumentaron ' . number_format(floatval($this->cantidadAjuste), 2) . ' unidades.'
