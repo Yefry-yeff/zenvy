@@ -784,15 +784,67 @@
             <div class="fixed inset-0 bg-black bg-opacity-50" wire:click="cerrarDetallesSincronizacion"></div>
 
             {{-- Modal --}}
-            <div class="relative w-full max-w-md p-6 mx-4 bg-white rounded-lg shadow-xl">
+            <div class="relative w-full max-w-2xl p-6 mx-4 bg-white rounded-lg shadow-xl max-h-[90vh] overflow-y-auto">
                 <div class="flex items-center justify-between mb-4">
-                    <h3 class="text-lg font-semibold text-gray-900">📊 Sincronización de Compras Completada</h3>
+                    <h3 class="text-lg font-semibold" 
+                        :class="{'text-red-600': {{isset($detallesSincronizacion['error']) && $detallesSincronizacion['error']}}, 'text-gray-900': {{!isset($detallesSincronizacion['error']) || !$detallesSincronizacion['error']}}}">
+                        @if(isset($detallesSincronizacion['error']) && $detallesSincronizacion['error'])
+                            ❌ Sincronización con Errores
+                        @else
+                            📊 Sincronización de Compras Completada
+                        @endif
+                    </h3>
                     <button wire:click="cerrarDetallesSincronizacion" class="text-gray-400 hover:text-gray-600">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                         </svg>
                     </button>
                 </div>
+
+                {{-- Mostrar productos fallidos si hay errores --}}
+                @if(isset($detallesSincronizacion['error']) && $detallesSincronizacion['error'] && !empty($detallesSincronizacion['productos_fallidos_detalle']))
+                    <div class="mb-6 overflow-hidden rounded-lg bg-red-50 border-2 border-red-200">
+                        <div class="p-4 bg-red-100">
+                            <h4 class="text-base font-semibold text-red-800">
+                                <svg class="inline w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+                                </svg>
+                                No se pudieron procesar las siguientes compras por productos faltantes:
+                            </h4>
+                        </div>
+                        <div class="p-4 space-y-3">
+                            @foreach($detallesSincronizacion['productos_fallidos_detalle'] as $detalle)
+                                <div class="p-3 bg-white border border-red-200 rounded-lg shadow-sm">
+                                    <div class="flex items-start justify-between">
+                                        <div class="flex-1">
+                                            <div class="flex items-center mb-2">
+                                                <span class="px-2 py-1 text-xs font-bold text-white rounded 
+                                                    {{ $detalle['tipo'] === 'Traslado' ? 'bg-blue-600' : 'bg-purple-600' }}">
+                                                    {{ $detalle['tipo'] }}
+                                                </span>
+                                                <span class="ml-2 text-sm font-bold text-gray-800">
+                                                    #{{ $detalle['numero'] }}
+                                                </span>
+                                            </div>
+                                            <div class="text-sm text-gray-700">
+                                                <span class="font-semibold">Productos faltantes ({{ $detalle['cantidad'] }}):</span>
+                                                <div class="mt-1 ml-2 text-red-700">
+                                                    {{ $detalle['productos'] }}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                        <div class="p-3 text-sm bg-red-50">
+                            <p class="text-red-800">
+                                <strong>Nota:</strong> Estos productos no existen en Zenvy y no se pudieron migrar desde Valencia. 
+                                Por favor, verifique que las categorías, subcategorías, marcas y unidades estén correctamente sincronizadas.
+                            </p>
+                        </div>
+                    </div>
+                @endif
 
                 <div class="space-y-3">
                     <div class="flex items-center justify-between p-3 rounded bg-green-50">
@@ -811,6 +863,13 @@
                         <div class="flex items-center justify-between p-3 rounded bg-yellow-50">
                             <span class="font-medium text-yellow-800">📦 Productos sincronizados:</span>
                             <span class="font-bold text-yellow-600">{{ $detallesSincronizacion['productos_sincronizados'] }}</span>
+                        </div>
+                    @endif
+
+                    @if(($detallesSincronizacion['productos_migrados'] ?? 0) > 0)
+                        <div class="flex items-center justify-between p-3 rounded bg-indigo-50">
+                            <span class="font-medium text-indigo-800">🔄 Productos migrados desde Valencia:</span>
+                            <span class="font-bold text-indigo-600">{{ $detallesSincronizacion['productos_migrados'] }}</span>
                         </div>
                     @endif
 

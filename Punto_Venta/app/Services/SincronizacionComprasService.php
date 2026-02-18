@@ -7,16 +7,19 @@ use App\Models\CompraHasProducto;
 use App\Models\IdZenvyValencia;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use App\Services\SincronizacionProductosService;
 
 class SincronizacionComprasService
 {
     private $conexionValencia;
     private $conexionZenvy;
+    private $sincronizacionProductos;
 
     public function __construct()
     {
         $this->conexionValencia = DB::connection('profac_app');
         $this->conexionZenvy = DB::connection(); // Usar conexión por defecto (db_zenvy)
+        $this->sincronizacionProductos = new SincronizacionProductosService();
     }
 
     /**
@@ -48,7 +51,9 @@ class SincronizacionComprasService
                 'compras_nuevas' => 0,
                 'productos_sincronizados' => 0,
                 'total_procesadas' => 0,
-                'errores' => 0
+                'errores' => 0,
+                'productos_migrados' => 0,
+                'productos_fallidos' => []
             ];
 
             // Agrupar por número de factura para crear las compras
@@ -84,6 +89,69 @@ class SincronizacionComprasService
                         continue;
                     }
 
+                    // Primero validar que todos los productos existan o puedan ser migrados
+                    $productosFallidos = [];
+                    $productosMigrados = [];
+                    
+                    foreach ($productosCompra as $productoData) {
+                        $idProductoZenvy = $this->obtenerIdProductoZenvy($productoData->producto_id_valencia);
+                        
+                        if (!$idProductoZenvy) {
+                            // Intentar migrar el producto desde Valencia
+                            Log::info("Producto Valencia ID {$productoData->producto_id_valencia} no encontrado en Zenvy, intentando migrar...");
+                            
+                            try {
+                                $resultadoMigracion = $this->sincronizacionProductos->sincronizarProducto($productoData->producto_id_valencia);
+                                
+                                if ($resultadoMigracion['success']) {
+                                    $productosMigrados[] = [
+                                        'id_valencia' => $productoData->producto_id_valencia,
+                                        'id_zenvy' => $resultadoMigracion['id_zenvy'],
+                                        'accion' => $resultadoMigracion['accion']
+                                    ];
+                                    Log::info("Producto migrado exitosamente: Valencia ID {$productoData->producto_id_valencia} => Zenvy ID {$resultadoMigracion['id_zenvy']}");
+                                } else {
+                                    // Obtener nombre del producto desde Valencia
+                                    $nombreProducto = $this->obtenerNombreProductoValencia($productoData->producto_id_valencia);
+                                    $productosFallidos[] = [
+                                        'id_valencia' => $productoData->producto_id_valencia,
+                                        'nombre' => $nombreProducto,
+                                        'error' => $resultadoMigracion['mensaje']
+                                    ];
+                                    Log::error("No se pudo migrar producto Valencia ID {$productoData->producto_id_valencia}: {$resultadoMigracion['mensaje']}");
+                                }
+                            } catch (\Exception $e) {
+                                $nombreProducto = $this->obtenerNombreProductoValencia($productoData->producto_id_valencia);
+                                $productosFallidos[] = [
+                                    'id_valencia' => $productoData->producto_id_valencia,
+                                    'nombre' => $nombreProducto,
+                                    'error' => $e->getMessage()
+                                ];
+                                Log::error("Error al migrar producto Valencia ID {$productoData->producto_id_valencia}: {$e->getMessage()}");
+                            }
+                        }
+                    }
+                    
+                    // Si hay productos que no se pudieron migrar, no crear la compra
+                    if (!empty($productosFallidos)) {
+                        $estadisticas['errores']++;
+                        
+                        // Agregar información del número de traslado/compra para cada producto fallido
+                        foreach ($productosFallidos as &$productoFallido) {
+                            $productoFallido['numero_factura'] = $numeroFactura;
+                            $productoFallido['tipo_origen'] = $primerProducto->tipo_origen ?? 'COMPRA';
+                        }
+                        
+                        $estadisticas['productos_fallidos'] = array_merge($estadisticas['productos_fallidos'], $productosFallidos);
+                        
+                        $nombresProductos = collect($productosFallidos)->pluck('nombre')->join(', ');
+                        Log::error("No se puede crear compra {$numeroFactura} debido a productos faltantes: {$nombresProductos}");
+                        continue; // Saltar esta compra
+                    }
+                    
+                    // Actualizar estadísticas de productos migrados
+                    $estadisticas['productos_migrados'] += count($productosMigrados);
+                    
                     // Crear nueva compra
                     $primerProducto = $productosCompra->first();
                     $compra = $this->crearCompra($primerProducto);
@@ -117,11 +185,36 @@ class SincronizacionComprasService
             }
 
             Log::info('Sincronización de compras completada', $estadisticas);
+            
+            // Preparar mensaje según resultados
+            $mensaje = 'Sincronización de compras completada';
+            $success = true;
+            
+            if (!empty($estadisticas['productos_fallidos'])) {
+                $cantidadFallidos = count($estadisticas['productos_fallidos']);
+                
+                // Agrupar por número de factura
+                $fallidosPorFactura = collect($estadisticas['productos_fallidos'])->groupBy('numero_factura');
+                
+                $mensajeDetallado = [];
+                foreach ($fallidosPorFactura as $numFactura => $productos) {
+                    $tipoOrigen = $productos->first()['tipo_origen'] ?? 'COMPRA';
+                    $tipoTexto = $tipoOrigen === 'TRASLADO' ? 'Traslado' : 'Compra';
+                    $nombresProductos = $productos->pluck('nombre')->join(', ');
+                    $mensajeDetallado[] = "{$tipoTexto} #{$numFactura}: {$nombresProductos}";
+                }
+                
+                $mensaje = "No se puede ingresar la(s) compra(s) debido a que faltan {$cantidadFallidos} producto(s): ";
+                $mensaje .= implode('; ', $mensajeDetallado);
+                $success = false;
+                
+                Log::warning($mensaje);
+            }
 
             return [
-                'success' => true,
+                'success' => $success,
                 'estadisticas' => $estadisticas,
-                'mensaje' => 'Sincronización de compras completada exitosamente'
+                'mensaje' => $mensaje
             ];
 
         } catch (\Exception $e) {
@@ -369,6 +462,24 @@ class SincronizacionComprasService
         }
     }
 
+    /**
+     * Obtener nombre de producto desde Valencia
+     */
+    private function obtenerNombreProductoValencia($idProductoValencia)
+    {
+        try {
+            $producto = $this->conexionValencia
+                ->table('producto')
+                ->where('id', $idProductoValencia)
+                ->first();
+            
+            return $producto ? $producto->nombre : "Producto ID {$idProductoValencia}";
+        } catch (\Exception $e) {
+            Log::error("Error al obtener nombre de producto Valencia ID {$idProductoValencia}: {$e->getMessage()}");
+            return "Producto ID {$idProductoValencia}";
+        }
+    }
+    
     /**
      * Forzar sincronización manual
      */

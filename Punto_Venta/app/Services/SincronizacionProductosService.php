@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\Log;
 use App\Models\IdZenvyValencia;
 use App\Models\ProductoValenciaZenvy;
 use App\Services\SincronizacionSubcategoriasService;
+use App\Services\SincronizacionMarcasService;
+use App\Services\SincronizacionUnidadesService;
 
 class SincronizacionProductosService
 {
@@ -116,21 +118,57 @@ class SincronizacionProductosService
             $unidadIdZenvy = $this->obtenerIdZenvy($productoValencia->unidad_medida_compra_id, 5); // 5 para unidades
             $subcategoriaIdZenvy = $this->obtenerIdZenvy($productoValencia->sub_categoria_id, 4); // 4 para subcategorías
 
-            // Validar que existan las relaciones necesarias
+            // Validar y sincronizar marcas si no existen
             if (!$marcaIdZenvy) {
-                throw new \Exception("Marca no sincronizada. Sincroniza primero la marca con ID: {$productoValencia->marca_id}");
+                Log::info("Marca Valencia ID {$productoValencia->marca_id} no encontrada, intentando sincronizar...");
+                try {
+                    $marcaSyncService = new SincronizacionMarcasService();
+                    $syncResult = $marcaSyncService->forzarSincronizacion();
+                    
+                    // Reintentar obtener el ID
+                    $marcaIdZenvy = $this->obtenerIdZenvy($productoValencia->marca_id, 2);
+                    
+                    if (!$marcaIdZenvy) {
+                        throw new \Exception("No se pudo sincronizar la marca con ID: {$productoValencia->marca_id}");
+                    }
+                    
+                    Log::info("Marca sincronizada exitosamente: Valencia ID {$productoValencia->marca_id} => Zenvy ID {$marcaIdZenvy}");
+                } catch (\Exception $e) {
+                    throw new \Exception("Marca no sincronizada y no se pudo migrar. ID Valencia: {$productoValencia->marca_id}. Error: {$e->getMessage()}");
+                }
             }
+            
+            // Validar y sincronizar unidades si no existen
             if (!$unidadIdZenvy) {
-                throw new \Exception("Unidad de medida no sincronizada. Sincroniza primero la unidad con ID: {$productoValencia->unidad_medida_compra_id}");
+                Log::info("Unidad Valencia ID {$productoValencia->unidad_medida_compra_id} no encontrada, intentando sincronizar...");
+                try {
+                    $unidadSyncService = new SincronizacionUnidadesService();
+                    $syncResult = $unidadSyncService->forzarSincronizacion();
+                    
+                    // Reintentar obtener el ID
+                    $unidadIdZenvy = $this->obtenerIdZenvy($productoValencia->unidad_medida_compra_id, 5);
+                    
+                    if (!$unidadIdZenvy) {
+                        throw new \Exception("No se pudo sincronizar la unidad con ID: {$productoValencia->unidad_medida_compra_id}");
+                    }
+                    
+                    Log::info("Unidad sincronizada exitosamente: Valencia ID {$productoValencia->unidad_medida_compra_id} => Zenvy ID {$unidadIdZenvy}");
+                } catch (\Exception $e) {
+                    throw new \Exception("Unidad de medida no sincronizada y no se pudo migrar. ID Valencia: {$productoValencia->unidad_medida_compra_id}. Error: {$e->getMessage()}");
+                }
             }
+            
+            // Validar y sincronizar subcategorías si no existen
             if (!$subcategoriaIdZenvy) {
+                Log::info("Subcategoría Valencia ID {$productoValencia->sub_categoria_id} no encontrada, intentando sincronizar...");
                 // Sincronizar subcategoría usando el servicio especializado
                 $subcatSyncService = new SincronizacionSubcategoriasService();
                 $syncResult = $subcatSyncService->sincronizarSubcategoria($productoValencia->sub_categoria_id);
                 if (!$syncResult['success']) {
-                    throw new \Exception("No se pudo sincronizar la subcategoría: " . $syncResult['mensaje']);
+                    throw new \Exception("No se pudo sincronizar la subcategoría con ID: {$productoValencia->sub_categoria_id}. Error: " . $syncResult['mensaje']);
                 }
                 $subcategoriaIdZenvy = $syncResult['id_zenvy'];
+                Log::info("Subcategoría sincronizada exitosamente: Valencia ID {$productoValencia->sub_categoria_id} => Zenvy ID {$subcategoriaIdZenvy}");
             }
 
             // Preparar datos para insertar/actualizar en Zenvy (sin codigo_barra)
@@ -251,6 +289,7 @@ class SincronizacionProductosService
                                     'producto_id' => $idProductoZenvy,
                                     'unidad_medida_id' => $unidadIdZenvy,
                                     'codigo_barra' => $codigoBarraValencia,
+                                    'cantidad' => 1, // Cantidad por defecto
                                     'precio' => $productoValencia->precio_base ?? 0,
                                     'estado_id' => 1,
                                     'created_at' => now(),
@@ -290,6 +329,7 @@ class SincronizacionProductosService
                                     'producto_id' => $idProductoZenvy,
                                     'unidad_medida_id' => $unidadIdZenvy,
                                     'codigo_barra' => $codigoBarraValencia,
+                                    'cantidad' => 1, // Cantidad por defecto
                                     'precio' => $productoValencia->precio_base ?? 0,
                                     'estado_id' => 1,
                                     'created_at' => now(),
@@ -343,6 +383,7 @@ class SincronizacionProductosService
                                 'producto_id' => $idProductoZenvy,
                                 'unidad_medida_id' => $unidadIdZenvy,
                                 'codigo_barra' => $codigoBarraValencia,
+                                'cantidad' => 1, // Cantidad por defecto
                                 'precio' => $productoValencia->precio_base ?? 0,
                                 'estado_id' => 1,
                                 'created_at' => now(),
@@ -576,6 +617,7 @@ class SincronizacionProductosService
                             'producto_id' => $idProductoZenvy,
                             'unidad_medida_id' => $unidadIdZenvy,
                             'codigo_barra' => $codigoBarraValencia,
+                            'cantidad' => 1, // Cantidad por defecto
                             'precio' => $productoValencia->precio_base ?? 0,
                             'estado_id' => 1,
                             'created_at' => now(),

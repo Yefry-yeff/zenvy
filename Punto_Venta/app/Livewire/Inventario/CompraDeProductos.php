@@ -497,14 +497,50 @@ class CompraDeProductos extends Component
                 'compras_sincronizadas' => $resultado['estadisticas']['compras_nuevas'] ?? 0,
                 'compras_nuevas' => $resultado['estadisticas']['compras_nuevas'] ?? 0,
                 'productos_sincronizados' => $resultado['estadisticas']['productos_sincronizados'] ?? 0,
+                'productos_migrados' => $resultado['estadisticas']['productos_migrados'] ?? 0,
                 'total_procesadas' => $resultado['estadisticas']['total_procesadas'] ?? 0,
                 'compras_no_procesadas' => $resultado['estadisticas']['errores'] ?? 0,
+                'productos_fallidos' => $resultado['estadisticas']['productos_fallidos'] ?? [],
                 'tiempo_ejecucion' => '~2 segundos'
             ];
 
             // Mensajes de estado
-            if (($resultado['estadisticas']['compras_nuevas'] ?? 0) > 0) {
-                session()->flash('mensaje', '✅ Sincronización completada: ' . $this->detallesSincronizacion['compras_nuevas'] . ' compras nuevas procesadas exitosamente.');
+            if (!$resultado['success'] && !empty($resultado['estadisticas']['productos_fallidos'])) {
+                // Si hay productos que no se pudieron migrar, mostrar error detallado
+                $productosFallidos = collect($resultado['estadisticas']['productos_fallidos']);
+                
+                // Agrupar por número de factura
+                $fallidosPorFactura = $productosFallidos->groupBy('numero_factura');
+                
+                $mensajeDetallado = [];
+                foreach ($fallidosPorFactura as $numFactura => $productos) {
+                    $tipoOrigen = $productos->first()['tipo_origen'] ?? 'COMPRA';
+                    $tipoTexto = $tipoOrigen === 'TRASLADO' ? 'Traslado' : 'Compra';
+                    $nombresProductos = $productos->pluck('nombre')->take(3)->join(', ');
+                    
+                    if ($productos->count() > 3) {
+                        $nombresProductos .= " y " . ($productos->count() - 3) . " más";
+                    }
+                    
+                    $mensajeDetallado[] = [
+                        'tipo' => $tipoTexto,
+                        'numero' => $numFactura,
+                        'productos' => $nombresProductos,
+                        'cantidad' => $productos->count()
+                    ];
+                }
+                
+                // Guardar detalles para mostrar en un modal de error
+                $this->detallesSincronizacion['error'] = true;
+                $this->detallesSincronizacion['productos_fallidos_detalle'] = $mensajeDetallado;
+                
+                session()->flash('error', '❌ No se pudo completar la sincronización. Revise los detalles de los productos faltantes.');
+            } elseif (($resultado['estadisticas']['compras_nuevas'] ?? 0) > 0) {
+                $mensaje = '✅ Sincronización completada: ' . $this->detallesSincronizacion['compras_nuevas'] . ' compras nuevas procesadas exitosamente.';
+                if (($resultado['estadisticas']['productos_migrados'] ?? 0) > 0) {
+                    $mensaje .= ' Se migraron ' . $resultado['estadisticas']['productos_migrados'] . ' productos nuevos desde Valencia.';
+                }
+                session()->flash('mensaje', $mensaje);
             } else {
                 session()->flash('mensaje', '✅ Sincronización completada: No hay nuevas compras para sincronizar.');
             }

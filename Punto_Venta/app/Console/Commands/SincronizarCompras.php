@@ -58,6 +58,7 @@ class SincronizarCompras extends Command
                     [
                         ['Compras nuevas', $estadisticas['compras_nuevas']],
                         ['Productos sincronizados', $estadisticas['productos_sincronizados']],
+                        ['Productos migrados', $estadisticas['productos_migrados'] ?? 0],
                         ['Total procesadas', $estadisticas['total_procesadas']],
                         ['Errores', $estadisticas['errores']]
                     ]
@@ -67,7 +68,11 @@ class SincronizarCompras extends Command
                 Log::info('Sincronización automática de compras completada', $estadisticas);
 
                 if ($estadisticas['compras_nuevas'] > 0) {
-                    $this->info("🎉 Se sincronizaron {$estadisticas['compras_nuevas']} compras nuevas con {$estadisticas['productos_sincronizados']} productos.");
+                    $mensaje = "🎉 Se sincronizaron {$estadisticas['compras_nuevas']} compras nuevas con {$estadisticas['productos_sincronizados']} productos.";
+                    if (($estadisticas['productos_migrados'] ?? 0) > 0) {
+                        $mensaje .= " Se migraron {$estadisticas['productos_migrados']} productos nuevos desde Valencia.";
+                    }
+                    $this->info($mensaje);
                 } else {
                     $this->info("ℹ️  No hay nuevas compras para sincronizar.");
                 }
@@ -76,6 +81,21 @@ class SincronizarCompras extends Command
                 
             } else {
                 $this->error('❌ Error en la sincronización: ' . $resultado['mensaje']);
+                
+                // Mostrar productos fallidos si existen
+                if (!empty($resultado['estadisticas']['productos_fallidos'])) {
+                    $this->error('Productos que no se pudieron migrar:');
+                    $productosTable = [];
+                    foreach ($resultado['estadisticas']['productos_fallidos'] as $producto) {
+                        $productosTable[] = [
+                            $producto['nombre'],
+                            $producto['id_valencia'],
+                            substr($producto['error'], 0, 80) // Limitar longitud del error
+                        ];
+                    }
+                    $this->table(['Nombre', 'ID Valencia', 'Error'], $productosTable);
+                }
+                
                 Log::error('Error en sincronización automática de compras: ' . $resultado['mensaje']);
                 return Command::FAILURE;
             }
