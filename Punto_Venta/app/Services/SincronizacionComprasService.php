@@ -7,6 +7,7 @@ use App\Models\CompraHasProducto;
 use App\Models\IdZenvyValencia;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 use App\Services\SincronizacionProductosService;
 
 class SincronizacionComprasService
@@ -28,20 +29,19 @@ class SincronizacionComprasService
     public function sincronizarComprasValencia()
     {
         try {
-            Log::info('Iniciando sincronización de compras desde Valencia');
-
             // Obtener compras desde Valencia usando el script proporcionado
             $comprasValencia = $this->obtenerComprasDesdeValencia();
 
             if (empty($comprasValencia)) {
-                Log::info('No se encontraron nuevas compras para sincronizar');
                 return [
                     'success' => true,
                     'estadisticas' => [
                         'compras_nuevas' => 0,
                         'productos_sincronizados' => 0,
                         'total_procesadas' => 0,
-                        'errores' => 0
+                        'errores' => 0,
+                        'productos_migrados' => 0,
+                        'productos_fallidos' => []
                     ],
                     'mensaje' => 'No hay nuevas compras para sincronizar'
                 ];
@@ -82,9 +82,6 @@ class SincronizacionComprasService
                         if (empty($compraExistente->user)) {
                             $compraExistente->user = 'Valencia';
                             $compraExistente->save();
-                            Log::info("Compra {$numeroFactura} actualizada con user='Valencia'");
-                        } else {
-                            Log::info("Compra con número de factura {$numeroFactura} ya existe, omitiendo...");
                         }
                         continue;
                     }
@@ -98,8 +95,6 @@ class SincronizacionComprasService
                         
                         if (!$idProductoZenvy) {
                             // Intentar migrar el producto desde Valencia
-                            Log::info("Producto Valencia ID {$productoData->producto_id_valencia} no encontrado en Zenvy, intentando migrar...");
-                            
                             try {
                                 $resultadoMigracion = $this->sincronizacionProductos->sincronizarProducto($productoData->producto_id_valencia);
                                 
@@ -109,7 +104,6 @@ class SincronizacionComprasService
                                         'id_zenvy' => $resultadoMigracion['id_zenvy'],
                                         'accion' => $resultadoMigracion['accion']
                                     ];
-                                    Log::info("Producto migrado exitosamente: Valencia ID {$productoData->producto_id_valencia} => Zenvy ID {$resultadoMigracion['id_zenvy']}");
                                 } else {
                                     // Obtener nombre del producto desde Valencia
                                     $nombreProducto = $this->obtenerNombreProductoValencia($productoData->producto_id_valencia);
@@ -118,7 +112,6 @@ class SincronizacionComprasService
                                         'nombre' => $nombreProducto,
                                         'error' => $resultadoMigracion['mensaje']
                                     ];
-                                    Log::error("No se pudo migrar producto Valencia ID {$productoData->producto_id_valencia}: {$resultadoMigracion['mensaje']}");
                                 }
                             } catch (\Exception $e) {
                                 $nombreProducto = $this->obtenerNombreProductoValencia($productoData->producto_id_valencia);
@@ -127,7 +120,6 @@ class SincronizacionComprasService
                                     'nombre' => $nombreProducto,
                                     'error' => $e->getMessage()
                                 ];
-                                Log::error("Error al migrar producto Valencia ID {$productoData->producto_id_valencia}: {$e->getMessage()}");
                             }
                         }
                     }
@@ -145,6 +137,15 @@ class SincronizacionComprasService
                         $estadisticas['productos_fallidos'] = array_merge($estadisticas['productos_fallidos'], $productosFallidos);
                         
                         $nombresProductos = collect($productosFallidos)->pluck('nombre')->join(', ');
+                        
+                        // Registrar en bitácora
+                        $this->registrarErrorEnBitacora('ERROR_MIGRACION_PRODUCTOS', [
+                            'id_referencia' => $numeroFactura,
+                            'tipo_compra' => $primerProducto->tipo_origen ?? 'COMPRA',
+                            'productos_fallidos' => $productosFallidos,
+                            'mensaje' => "No se puede crear compra {$numeroFactura} debido a productos faltantes: {$nombresProductos}"
+                        ]);
+                        
                         Log::error("No se puede crear compra {$numeroFactura} debido a productos faltantes: {$nombresProductos}");
                         continue; // Saltar esta compra
                     }
@@ -179,12 +180,16 @@ class SincronizacionComprasService
                     $estadisticas['total_procesadas']++;
 
                 } catch (\Exception $e) {
+                    $this->registrarErrorEnBitacora('ERROR_PROCESAR_COMPRA', [
+                        'id_referencia' => $numeroFactura,
+                        'error' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString()
+                    ]);
+                    
                     Log::error("Error al procesar compra {$numeroFactura}: " . $e->getMessage());
                     $estadisticas['errores']++;
                 }
             }
-
-            Log::info('Sincronización de compras completada', $estadisticas);
             
             // Preparar mensaje según resultados
             $mensaje = 'Sincronización de compras completada';
@@ -207,8 +212,6 @@ class SincronizacionComprasService
                 $mensaje = "No se puede ingresar la(s) compra(s) debido a que faltan {$cantidadFallidos} producto(s): ";
                 $mensaje .= implode('; ', $mensajeDetallado);
                 $success = false;
-                
-                Log::warning($mensaje);
             }
 
             return [
@@ -311,11 +314,6 @@ class SincronizacionComprasService
                 'updated_at' => now()
             ]);
 
-            Log::info("Compra creada exitosamente: {$compra->numero_factura} (ID: {$compra->id})", [
-                'recibido_bodega_id' => $datosCompra->recibido_bodega_id ?? null,
-                'compra_id_valencia' => $datosCompra->compra_id_valencia ?? null,
-                'translado_id_valencia' => $datosCompra->translado_id_valencia ?? null
-            ]);
             return $compra;
 
         } catch (\Exception $e) {
@@ -360,7 +358,6 @@ class SincronizacionComprasService
                 ->first();
 
             if ($productoExistente) {
-                Log::info("Producto {$idProductoZenvy} ya existe en compra {$compraId}, omitiendo...");
                 return false;
             }
 
@@ -388,16 +385,19 @@ class SincronizacionComprasService
                 'unidad_medida_id' => $idUnidadMedidaZenvy
             ]);
 
-            Log::info("Producto agregado a compra: Compra {$compraId}, Producto {$idProductoZenvy}, Unidad {$idUnidadMedidaZenvy}");
             return true;
 
         } catch (\Exception $e) {
-            Log::error("Error al agregar producto a compra {$compraId}: " . $e->getMessage(), [
+            $this->registrarErrorEnBitacora('ERROR_AGREGAR_PRODUCTO_COMPRA', [
+                'id_referencia' => $compraId,
                 'recibido_bodega_id' => $datosProducto->recibido_bodega_id ?? null,
                 'compra_id_valencia' => $datosProducto->compra_id_valencia ?? null,
                 'translado_id_valencia' => $datosProducto->translado_id_valencia ?? null,
-                'producto_id_valencia' => $datosProducto->producto_id_valencia ?? null
+                'producto_id_valencia' => $datosProducto->producto_id_valencia ?? null,
+                'error' => $e->getMessage()
             ]);
+            
+            Log::error("Error al agregar producto a compra {$compraId}: " . $e->getMessage());
             return false;
         }
     }
@@ -453,15 +453,41 @@ class SincronizacionComprasService
             );
 
             $tipoTexto = $tipoCompra === IdZenvyValencia::TIPO_TRASLADO ? 'TRASLADO' : 'COMPRA';
-            Log::info("Compra registrada en mapeo: Zenvy ID {$idCompraZenvy}, Valencia Factura {$numeroFacturaValencia}, Tipo: {$tipoTexto}", ['mapeo' => $mapeo ? $mapeo->toArray() : null]);
             return true;
 
         } catch (\Exception $e) {
+            $this->registrarErrorEnBitacora('ERROR_REGISTRAR_COMPRA_MAPEO', [
+                'id_referencia' => $idCompraZenvy,
+                'numero_factura' => $numeroFacturaValencia,
+                'tipo' => $tipoCompra,
+                'error' => $e->getMessage()
+            ]);
             Log::error("Error al registrar compra en mapeo: " . $e->getMessage());
             return false;
         }
     }
 
+    /**
+     * Registrar error en bitácora
+     */
+    private function registrarErrorEnBitacora($accion, $datos)
+    {
+        try {
+            DB::table('bitacora')->insert([
+                'tablaReferencia' => 'sincronizacion_compras',
+                'accion' => $accion,
+                'idReferencia' => $datos['id_referencia'] ?? 0,
+                'datosAnteriores' => null,
+                'datosNuevos' => json_encode($datos),
+                'users_id' => Auth::id() ?? 1,
+                'created_at' => now(),
+                'updated_at' => null
+            ]);
+        } catch (\Exception $e) {
+            // Silenciar error de bitácora para no interrumpir proceso
+        }
+    }
+    
     /**
      * Obtener nombre de producto desde Valencia
      */
@@ -475,7 +501,6 @@ class SincronizacionComprasService
             
             return $producto ? $producto->nombre : "Producto ID {$idProductoValencia}";
         } catch (\Exception $e) {
-            Log::error("Error al obtener nombre de producto Valencia ID {$idProductoValencia}: {$e->getMessage()}");
             return "Producto ID {$idProductoValencia}";
         }
     }

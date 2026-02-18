@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Subcategoria;
 use App\Models\SubcategoriaExterna;
 use App\Models\IdZenvyValencia;
+use App\Services\SincronizacionCategoriasService;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -313,11 +314,32 @@ class SincronizacionSubcategoriasService
                 $subcategoriaExterna->categoria_producto_id,
                 self::TIPO_DATO_CATEGORIAS
             );
+            
+            // Si no existe el mapeo de la categoría, sincronizarla automáticamente
             if (!$mapeoCategoriaExterna) {
-                return [
-                    'success' => false,
-                    'mensaje' => "No se encontró mapeo para la categoría externa ID: {$subcategoriaExterna->categoria_producto_id}",
-                ];
+                // Intentar sincronizar la categoría padre
+                $categoriaSyncService = new SincronizacionCategoriasService();
+                try {
+                    $categoriaSyncService->forzarSincronizacion();
+                    
+                    // Reintentar obtener el mapeo
+                    $mapeoCategoriaExterna = IdZenvyValencia::buscarPorValencia(
+                        $subcategoriaExterna->categoria_producto_id,
+                        self::TIPO_DATO_CATEGORIAS
+                    );
+                    
+                    if (!$mapeoCategoriaExterna) {
+                        return [
+                            'success' => false,
+                            'mensaje' => "No se pudo sincronizar la categoría externa ID: {$subcategoriaExterna->categoria_producto_id}",
+                        ];
+                    }
+                } catch (\Exception $e) {
+                    return [
+                        'success' => false,
+                        'mensaje' => "Error al sincronizar categoría padre ID: {$subcategoriaExterna->categoria_producto_id}. Error: {$e->getMessage()}",
+                    ];
+                }
             }
             $categoriaLocalId = $mapeoCategoriaExterna->id_zenvy;
 

@@ -4,6 +4,7 @@ namespace App\Services;
 
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 use App\Models\IdZenvyValencia;
 use App\Models\ProductoValenciaZenvy;
 use App\Services\SincronizacionSubcategoriasService;
@@ -58,6 +59,10 @@ class SincronizacionProductosService
                 ])
                 ->get();
         } catch (\Exception $e) {
+            $this->registrarErrorEnBitacora('ERROR_OBTENER_PRODUCTOS_VALENCIA', [
+                'id_referencia' => 0,
+                'error' => $e->getMessage()
+            ]);
             Log::error('Error al obtener productos de Valencia: ' . $e->getMessage());
             return collect();
         }
@@ -120,7 +125,6 @@ class SincronizacionProductosService
 
             // Validar y sincronizar marcas si no existen
             if (!$marcaIdZenvy) {
-                Log::info("Marca Valencia ID {$productoValencia->marca_id} no encontrada, intentando sincronizar...");
                 try {
                     $marcaSyncService = new SincronizacionMarcasService();
                     $syncResult = $marcaSyncService->forzarSincronizacion();
@@ -131,8 +135,6 @@ class SincronizacionProductosService
                     if (!$marcaIdZenvy) {
                         throw new \Exception("No se pudo sincronizar la marca con ID: {$productoValencia->marca_id}");
                     }
-                    
-                    Log::info("Marca sincronizada exitosamente: Valencia ID {$productoValencia->marca_id} => Zenvy ID {$marcaIdZenvy}");
                 } catch (\Exception $e) {
                     throw new \Exception("Marca no sincronizada y no se pudo migrar. ID Valencia: {$productoValencia->marca_id}. Error: {$e->getMessage()}");
                 }
@@ -140,7 +142,6 @@ class SincronizacionProductosService
             
             // Validar y sincronizar unidades si no existen
             if (!$unidadIdZenvy) {
-                Log::info("Unidad Valencia ID {$productoValencia->unidad_medida_compra_id} no encontrada, intentando sincronizar...");
                 try {
                     $unidadSyncService = new SincronizacionUnidadesService();
                     $syncResult = $unidadSyncService->forzarSincronizacion();
@@ -151,8 +152,6 @@ class SincronizacionProductosService
                     if (!$unidadIdZenvy) {
                         throw new \Exception("No se pudo sincronizar la unidad con ID: {$productoValencia->unidad_medida_compra_id}");
                     }
-                    
-                    Log::info("Unidad sincronizada exitosamente: Valencia ID {$productoValencia->unidad_medida_compra_id} => Zenvy ID {$unidadIdZenvy}");
                 } catch (\Exception $e) {
                     throw new \Exception("Unidad de medida no sincronizada y no se pudo migrar. ID Valencia: {$productoValencia->unidad_medida_compra_id}. Error: {$e->getMessage()}");
                 }
@@ -160,7 +159,6 @@ class SincronizacionProductosService
             
             // Validar y sincronizar subcategorías si no existen
             if (!$subcategoriaIdZenvy) {
-                Log::info("Subcategoría Valencia ID {$productoValencia->sub_categoria_id} no encontrada, intentando sincronizar...");
                 // Sincronizar subcategoría usando el servicio especializado
                 $subcatSyncService = new SincronizacionSubcategoriasService();
                 $syncResult = $subcatSyncService->sincronizarSubcategoria($productoValencia->sub_categoria_id);
@@ -168,7 +166,6 @@ class SincronizacionProductosService
                     throw new \Exception("No se pudo sincronizar la subcategoría con ID: {$productoValencia->sub_categoria_id}. Error: " . $syncResult['mensaje']);
                 }
                 $subcategoriaIdZenvy = $syncResult['id_zenvy'];
-                Log::info("Subcategoría sincronizada exitosamente: Valencia ID {$productoValencia->sub_categoria_id} => Zenvy ID {$subcategoriaIdZenvy}");
             }
 
             // Preparar datos para insertar/actualizar en Zenvy (sin codigo_barra)
@@ -197,10 +194,16 @@ class SincronizacionProductosService
             ];
 
             // Obtener codigo_barra de Valencia para actualizar en precio_has_venta
+            // Si no existe código de barras, usar el ID del producto de Valencia
             $codigoBarraValencia = $this->conexionProfac
                 ->table('producto')
                 ->where('id', $idProductoValencia)
                 ->value('codigo_barra');
+            
+            // Si no hay código de barras, usar el ID del producto de Valencia
+            if (empty($codigoBarraValencia)) {
+                $codigoBarraValencia = $idProductoValencia;
+            }
 
             $accion = '';
             $idProductoZenvy = null;
@@ -249,7 +252,6 @@ class SincronizacionProductosService
                     if ($precioBaseActual < $precio4Valencia) {
                         // Si precio base actual es menor que precio4, actualizarlo al precio4
                         $datosActualizacion['precio_base'] = $precio4Valencia;
-                        Log::info("Precio base ajustado automáticamente de {$precioBaseActual} a {$precio4Valencia} (precio4) para producto Valencia ID: $idProductoValencia");
                     }
                     // Si precio_base >= precio4, mantener el valor actual (no sincronizar)
 
@@ -289,13 +291,13 @@ class SincronizacionProductosService
                                     'producto_id' => $idProductoZenvy,
                                     'unidad_medida_id' => $unidadIdZenvy,
                                     'codigo_barra' => $codigoBarraValencia,
-                                    'cantidad' => 1, // Cantidad por defecto
+                                    'cantidad' => 1,
                                     'precio' => $productoValencia->precio_base ?? 0,
+                                    'users_id' => Auth::id() ?? 1,
                                     'estado_id' => 1,
                                     'created_at' => now(),
                                     'updated_at' => now()
                                 ]);
-                            Log::info("Registro creado en precio_has_venta para producto Zenvy ID: $idProductoZenvy");
                         }
                     }
                 } else {
@@ -329,19 +331,18 @@ class SincronizacionProductosService
                                     'producto_id' => $idProductoZenvy,
                                     'unidad_medida_id' => $unidadIdZenvy,
                                     'codigo_barra' => $codigoBarraValencia,
-                                    'cantidad' => 1, // Cantidad por defecto
+                                    'cantidad' => 1,
                                     'precio' => $productoValencia->precio_base ?? 0,
+                                    'users_id' => Auth::id() ?? 1,
                                     'estado_id' => 1,
                                     'created_at' => now(),
                                     'updated_at' => now()
                                 ]);
-                            Log::info("Registro creado en precio_has_venta para producto Zenvy ID: $idProductoZenvy");
                         }
                     }
                 }
 
                 $accion = 'actualizado';
-                Log::info("Producto actualizado exitosamente. Valencia ID: $idProductoValencia, Zenvy ID: $idProductoZenvy");
             } else {
                 // CREAR nuevo producto
                 $datosProductoZenvy['created_at'] = now();
@@ -383,18 +384,17 @@ class SincronizacionProductosService
                                 'producto_id' => $idProductoZenvy,
                                 'unidad_medida_id' => $unidadIdZenvy,
                                 'codigo_barra' => $codigoBarraValencia,
-                                'cantidad' => 1, // Cantidad por defecto
+                                'cantidad' => 1,
                                 'precio' => $productoValencia->precio_base ?? 0,
+                                'users_id' => Auth::id() ?? 1,
                                 'estado_id' => 1,
                                 'created_at' => now(),
                                 'updated_at' => now()
                             ]);
-                        Log::info("Registro creado en precio_has_venta para nuevo producto Zenvy ID: $idProductoZenvy");
                     }
                 }
 
                 $accion = 'creado';
-                Log::info("Producto creado exitosamente. Valencia ID: $idProductoValencia, Zenvy ID: $idProductoZenvy");
             }
 
             return [
@@ -406,6 +406,12 @@ class SincronizacionProductosService
             ];
 
         } catch (\Exception $e) {
+            $this->registrarErrorEnBitacora('ERROR_SINCRONIZAR_PRODUCTO', [
+                'id_referencia' => $idProductoValencia,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
             Log::error('Error al sincronizar producto: ' . $e->getMessage());
             return [
                 'success' => false,
@@ -477,6 +483,11 @@ class SincronizacionProductosService
             });
 
         } catch (\Exception $e) {
+            $this->registrarErrorEnBitacora('ERROR_OBTENER_PRODUCTOS_ESTADO', [
+                'id_referencia' => 0,
+                'estado' => $estado ?? 'N/A',
+                'error' => $e->getMessage()
+            ]);
             Log::error('Error al obtener productos con estado: ' . $e->getMessage());
             return collect();
         }
@@ -586,7 +597,6 @@ class SincronizacionProductosService
 
             if ($precio4Valencia > $precioBaseActual) {
                 $camposSoloLectura['precio_base'] = $precio4Valencia;
-                Log::info("Auto-actualizando precio_base de $precioBaseActual a $precio4Valencia para producto ID: $idProductoZenvy (precio4 mayor)");
             }
 
             // Actualizar solo los campos de solo lectura
@@ -596,10 +606,16 @@ class SincronizacionProductosService
                 ->update($camposSoloLectura);
 
             // Obtener codigo_barra de Valencia y actualizar en precio_has_venta
+            // Si no existe código de barras, usar el ID del producto de Valencia
             $codigoBarraValencia = $this->conexionProfac
                 ->table('producto')
                 ->where('id', $mapeo->id_valencia)
                 ->value('codigo_barra');
+            
+            // Si no hay código de barras, usar el ID del producto de Valencia
+            if (empty($codigoBarraValencia)) {
+                $codigoBarraValencia = $mapeo->id_valencia;
+            }
 
             // Crear registro en precio_has_venta solo si no existe
             if ($unidadIdZenvy) {
@@ -617,17 +633,15 @@ class SincronizacionProductosService
                             'producto_id' => $idProductoZenvy,
                             'unidad_medida_id' => $unidadIdZenvy,
                             'codigo_barra' => $codigoBarraValencia,
-                            'cantidad' => 1, // Cantidad por defecto
+                            'cantidad' => 1,
                             'precio' => $productoValencia->precio_base ?? 0,
+                            'users_id' => Auth::id() ?? 1,
                             'estado_id' => 1,
                             'created_at' => now(),
                             'updated_at' => now()
                         ]);
-                    Log::info("Registro creado en precio_has_venta para producto Zenvy ID: $idProductoZenvy");
                 }
             }
-
-            Log::info("Producto de Valencia actualizado exitosamente. Zenvy ID: $idProductoZenvy");
 
             return [
                 'success' => true,
@@ -637,6 +651,10 @@ class SincronizacionProductosService
             ];
 
         } catch (\Exception $e) {
+            $this->registrarErrorEnBitacora('ERROR_ACTUALIZAR_PRODUCTO_VALENCIA', [
+                'id_referencia' => $idProductoZenvy ?? 0,
+                'error' => $e->getMessage()
+            ]);
             Log::error("Error al actualizar producto de Valencia: " . $e->getMessage());
             throw $e;
         }
@@ -724,6 +742,10 @@ class SincronizacionProductosService
                 'ultima_sincronizacion' => $stats['ultima_sincronizacion']
             ];
         } catch (\Exception $e) {
+            $this->registrarErrorEnBitacora('ERROR_OBTENER_ESTADISTICAS_PRODUCTOS', [
+                'id_referencia' => 0,
+                'error' => $e->getMessage()
+            ]);
             Log::error('Error al obtener estadísticas de productos: ' . $e->getMessage());
             return [
                 'total_valencia' => 0,
@@ -733,6 +755,27 @@ class SincronizacionProductosService
                 'porcentaje_sincronizado' => 0,
                 'ultima_sincronizacion' => null
             ];
+        }
+    }
+
+    /**
+     * Registrar error en bitácora
+     */
+    private function registrarErrorEnBitacora($accion, $datos)
+    {
+        try {
+            DB::table('bitacora')->insert([
+                'tablaReferencia' => 'sincronizacion_productos',
+                'accion' => $accion,
+                'idReferencia' => $datos['id_referencia'] ?? 0,
+                'datosAnteriores' => null,
+                'datosNuevos' => json_encode($datos),
+                'users_id' => Auth::id() ?? 1,
+                'created_at' => now(),
+                'updated_at' => null
+            ]);
+        } catch (\Exception $e) {
+            // Silenciar error de bitácora para no interrumpir proceso
         }
     }
 
