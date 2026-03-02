@@ -639,8 +639,32 @@
 
         /* Asegurar que la tabla no se comprima demasiado */
         .table {
-            min-width: 1200px;
             margin-bottom: 0;
+            width: 100%;
+            table-layout: auto;
+        }
+
+        /* Tabla dentro del modal de recepción masiva - sin scroll horizontal */
+        .modal-dialog-scrollable .table-responsive {
+            overflow-x: visible;
+        }
+
+        .modal-dialog-scrollable .table {
+            min-width: auto;
+            font-size: 0.85rem;
+        }
+
+        .modal-dialog-scrollable .table th,
+        .modal-dialog-scrollable .table td {
+            padding: 0.5rem 0.25rem;
+            word-wrap: break-word;
+            white-space: normal;
+        }
+
+        .modal-dialog-scrollable .table select,
+        .modal-dialog-scrollable .table input {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
         }
 
         /* Estados visuales */
@@ -657,23 +681,24 @@
         /* Mejoras para dispositivos móviles */
         @media (max-width: 768px) {
             .table {
-                min-width: 1000px;
+                min-width: auto;
+                font-size: 0.8rem;
             }
 
             .table th,
             .table td {
                 padding: 0.5rem 0.25rem;
-                font-size: 0.875rem;
+                font-size: 0.75rem;
             }
         }
     </style>
 
     <!-- MODAL DE RECEPCIÓN MASIVA -->
     @if($mostrarModalRecepcionMasiva)
-    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5); z-index: 1055;">
+    <div class="modal fade show d-flex align-items-center justify-content-center" tabindex="-1" style="background-color: rgba(0,0,0,0.5); z-index: 9999; display: flex !important; position: fixed; top: 50px; left: 0; right: 0; bottom: 0; overflow-y: auto;">
         <!-- Zona de mensajes de error encima del modal -->
         @if($mostrarModalError && !empty($mensajeModalError))
-        <div class="position-fixed w-100 d-flex justify-content-center" style="top: 20px; z-index: 1060;">
+        <div class="position-fixed w-100 d-flex justify-content-center" style="top: 20px; z-index: 10000;">
             <div class="mx-3 border-0 shadow-lg alert alert-danger rounded-3" style="max-width: 600px;">
                 <div class="d-flex align-items-center">
                     <i class="fas fa-exclamation-triangle me-3 text-danger" style="font-size: 1.5rem;"></i>
@@ -689,60 +714,60 @@
         </div>
         @endif
 
-        <div class="modal-dialog modal-xl">
-            <div class="modal-content">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" style="max-width: 95vw; max-height: 85vh;">
+            <div class="modal-content" style="max-height: 85vh; overflow-y: auto;">
                 <div class="modal-header">
                     <h5 class="modal-title">
                         <i class="fas fa-download me-2"></i>Recibir Todos los Productos
                     </h5>
                     <button type="button" class="btn-close" wire:click="cerrarModalRecepcionMasiva"></button>
                 </div>
-                <div class="modal-body">
+                <div class="p-3 modal-body">
                     <!-- Configuración general -->
-                    <div class="mb-4 row">
+                    <div class="mb-2 row">
                         <div class="col-md-6">
-                            <label for="fechaRecepcionMasiva" class="form-label">Fecha de Recepción <span class="text-danger">*</span></label>
+                            <label for="fechaRecepcionMasiva" class="mb-1 form-label">Fecha de Recepción <span class="text-danger">*</span></label>
                             <input type="date"
                                    id="fechaRecepcionMasiva"
-                                   class="form-control"
+                                   class="form-control form-control-sm"
                                    wire:model.live="fechaRecepcionMasiva">
                         </div>
 
                     </div>
 
                     <!-- Comentario general -->
-                    <div class="mb-4 row">
+                    <div class="mb-3 row">
                         <div class="col-12">
-                            <label for="comentarioRecepcionMasiva" class="form-label">Comentario General</label>
+                            <label for="comentarioRecepcionMasiva" class="mb-1 form-label">Comentario General</label>
                             <textarea id="comentarioRecepcionMasiva"
-                                      class="form-control"
+                                      class="form-control form-control-sm"
                                       rows="2"
                                       wire:model.live="comentarioRecepcionMasiva"
-                                      placeholder="Comentario opcional para todos los productos..."></textarea>
+                                      placeholder="Comentario opcional..."></textarea>
                         </div>
                     </div>
-{{-- 
-                    <!-- Validación de productos sin unidad de medida -->
+
+                    {{-- <!-- Validación de productos sin unidad de medida -->
                     @php
                         $productosSinUnidad = collect($productosRecepcionMasiva)
                             ->filter(fn($p) => empty($p['unidad_medida_id']))
                             ->values();
                     @endphp
                     @if($productosSinUnidad->isNotEmpty())
-                        <div class="mb-4 border-4 alert alert-danger border-start">
+                        <div class="mb-3 border-4 alert alert-danger border-start">
                             <div class="d-flex align-items-start">
-                                <i class="fas fa-exclamation-circle me-2" style="font-size: 1.2rem; flex-shrink: 0; margin-top: 2px;"></i>
+                                <i class="fas fa-exclamation-circle me-2" style="font-size: 1rem; flex-shrink: 0; margin-top: 2px;"></i>
                                 <div class="flex-grow-1">
-                                    <h6 class="mb-2 alert-heading">
-                                        <strong>Productos sin unidad de medida asignada</strong>
+                                    <h6 class="mb-1 alert-heading" style="font-size: 0.9rem;">
+                                        <strong>Productos sin unidad de medida</strong>
                                     </h6>
-                                    <p class="mb-2">Los siguientes productos no cuentan con unidad de medida registrada</p>
-                                    <ul class="mb-0">
+                                    <p class="mb-2" style="font-size: 0.85rem;">Los siguientes productos no tienen unidad registrada en precio_has_venta</p>
+                                    <ul class="mb-0" style="font-size: 0.8rem;">
                                         @foreach($productosSinUnidad as $prod)
                                             <li>
                                                 <strong>{{ $prod['nombre_producto'] }}</strong>
                                                 <br>
-                                                <small class="text-muted">ID: {{ $prod['producto_id'] }} - Seleccione una unidad de medida o ve al producto para crear la unidad.</small>
+                                                <small class="text-muted">ID: {{ $prod['producto_id'] }} - Haz clic en el nombre para ir al producto</small>
                                             </li>
                                         @endforeach
                                     </ul>
@@ -756,14 +781,14 @@
                         <table class="table table-sm table-bordered">
                             <thead class="table-light">
                                 <tr>
-                                    <th style="width: 15%;">Producto</th>
-                                    <th style="width: 8%;" class="text-center">Cant. Pendiente</th>
-                                    <th style="width: 8%;" class="text-center">Cant. Distribuir</th>
+                                    <th style="width: 12%;">Producto</th>
+                                    <th style="width: 6%;" class="text-center">Cant. Pendiente</th>
+                                    <th style="width: 6%;" class="text-center">Cant. Distribuir</th>
                                     <th style="width: 10%;">Unidad Medida</th>
-                                    <th style="width: 8%;" class="text-center">Cant. Stock</th>
-                                    <th style="width: 12%;">Bodega</th>
-                                    <th style="width: 12%;">Segmento</th>
-                                    <th style="width: 12%;">Sección</th>
+                                    <th style="width: 6%;" class="text-center">Cant. Stock</th>
+                                    <th style="width: 10%;">Bodega</th>
+                                    <th style="width: 10%;">Segmento</th>
+                                    <th style="width: 10%;">Sección</th>
                                     <th style="width: 8%;" class="text-center">Fecha Exp.</th>
                                 </tr>
                             </thead>
@@ -905,18 +930,23 @@
                         </table>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" wire:click="cerrarModalRecepcionMasiva">
+                <div class="modal-footer" style="flex-wrap: wrap;">
+                    <button type="button" class="btn btn-sm btn-secondary" wire:click="cerrarModalRecepcionMasiva">
                         <i class="fas fa-times me-1"></i>Cancelar
                     </button>
                     @php
                         $tieneProductosSinUnidad = collect($productosRecepcionMasiva)
                             ->contains(fn($p) => empty($p['unidad_medida_id']));
                     @endphp
-
-                    <button type="button" class="btn btn-success" wire:click="confirmarRecepcionMasiva"
+                    {{-- @if($tieneProductosSinUnidad)
+                        <div class="mb-0 alert alert-warning flex-grow-1 ms-2" style="font-size: 0.85rem;">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <small><strong>⚠️ Hay productos sin unidad de medida</strong></small>
+                        </div>
+                    @endif --}}
+                    <button type="button" class="btn btn-sm btn-success" wire:click="confirmarRecepcionMasiva"
                             @if($tieneProductosSinUnidad) disabled @endif>
-                        <i class="fas fa-check me-1"></i>Confirmar Recepción Masiva
+                        <i class="fas fa-check me-1"></i>Confirmar
                     </button>
                 </div>
             </div>
