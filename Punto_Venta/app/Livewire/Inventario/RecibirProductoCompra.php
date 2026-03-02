@@ -801,6 +801,11 @@ class RecibirProductoCompra extends Component
                         ? $unidadesProducto[0]['precio_venta_id'] 
                         : null;
 
+                    // Obtener unidad_medida_id por defecto (primera unidad disponible, o vacío si no hay)
+                    $unidadMedidaIdDefault = $unidadesProducto->isNotEmpty() && isset($unidadesProducto[0]['id'])
+                        ? $unidadesProducto[0]['id']
+                        : '';
+
                     $this->productosRecepcionMasiva[] = [
                         'id' => $detalle['id'],
                         'producto_id' => $detalle['producto_id'],
@@ -808,7 +813,7 @@ class RecibirProductoCompra extends Component
                         'cantidad_pendiente' => $detalle['cantidad_sin_asignar'],
                         'cantidad_distribuir' => $detalle['cantidad_sin_asignar'], // Por defecto toda la cantidad
                         'unidad_medida_compra' => $detalle['unidad_medida'],
-                        'unidad_medida_id' => $detalle['unidad_medida_id'],
+                        'unidad_medida_id' => $unidadMedidaIdDefault,
                         'cantidad_stock' => $detalle['cantidad_sin_asignar'], // Por defecto la misma cantidad
                         'unidades_disponibles' => $unidadesProducto->toArray(),
                         'fecha_expiracion' => $detalle['fecha_vencimiento'] ?? null,
@@ -1020,7 +1025,7 @@ class RecibirProductoCompra extends Component
             }
 
             if (!$producto['unidad_medida_id']) {
-                $this->mostrarError("Debe seleccionar una unidad de medida para {$producto['nombre_producto']}.");
+                $this->mostrarError("El producto '{$producto['nombre_producto']}' no cuenta con unidad de medida asignada. Por favor, dirígase al producto y cree o guarde la unidad de medida en precio_has_venta.");
                 return;
             }
 
@@ -1335,6 +1340,11 @@ class RecibirProductoCompra extends Component
     public function volver()
     {
         $this->dispatch('cambiarVista', ruta: 'Inventario.CompraDeProductos');
+    }
+
+    public function irAlProducto($productoId)
+    {
+        $this->dispatch('cambiarVista', ruta: 'Inventario.ProductoForm', parametros: ['id' => $productoId]);
     }
 
     public function render()

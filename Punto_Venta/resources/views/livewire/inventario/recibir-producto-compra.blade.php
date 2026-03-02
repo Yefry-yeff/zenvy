@@ -30,22 +30,22 @@
                 <div class="p-4 bg-white border shadow rounded-xl">
                     <div class="row">
                         <div class="col-md-3">
-                            <div class="p-3 bg-blue-50 rounded-lg border-l-4 border-blue-500">
-                                <h6 class="text-sm font-medium text-blue-800 mb-1">Información General</h6>
-                                <p class="text-sm mb-1"><strong>N° Factura:</strong> {{ $compra->numero_factura }}</p>
-                                <p class="text-sm mb-1"><strong>Proveedor:</strong> {{ $compra->proveedor->nombre ?? 'N/A' }}</p>
-                                <p class="text-sm mb-1">
+                            <div class="p-3 border-l-4 border-blue-500 rounded-lg bg-blue-50">
+                                <h6 class="mb-1 text-sm font-medium text-blue-800">Información General</h6>
+                                <p class="mb-1 text-sm"><strong>N° Factura:</strong> {{ $compra->numero_factura }}</p>
+                                <p class="mb-1 text-sm"><strong>Proveedor:</strong> {{ $compra->proveedor->nombre ?? 'N/A' }}</p>
+                                <p class="mb-1 text-sm">
                                     <strong>Creado por:</strong>
                                     {{ $compra->user ?? 'N/A' }}
                                 </p>
-                                <p class="text-sm mb-0">
+                                <p class="mb-0 text-sm">
                                     <strong>Tipo:</strong>
                                     @if($compra->tipo_origen === 'TRASLADO')
-                                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-orange-100 text-orange-800">
+                                        <span class="inline-flex items-center px-2 py-1 text-xs text-orange-800 bg-orange-100 rounded-full">
                                             <i class="fas fa-exchange-alt me-1"></i>TRASLADO
                                         </span>
                                     @else
-                                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800">
+                                        <span class="inline-flex items-center px-2 py-1 text-xs text-blue-800 bg-blue-100 rounded-full">
                                             <i class="fas fa-shopping-cart me-1"></i>COMPRA
                                         </span>
                                     @endif
@@ -53,30 +53,30 @@
                             </div>
                         </div>
                         <div class="col-md-3">
-                            <div class="p-3 bg-green-50 rounded-lg border-l-4 border-green-500">
-                                <h6 class="text-sm font-medium text-green-800 mb-1">Fechas</h6>
-                                <p class="text-sm mb-1"><strong>Emisión:</strong> {{ \Carbon\Carbon::parse($compra->fecha_emision)->format('d/m/Y') }}</p>
-                                <p class="text-sm mb-0"><strong>Recepción:</strong> {{ \Carbon\Carbon::parse($compra->fecha_recepcion)->format('d/m/Y') }}</p>
+                            <div class="p-3 border-l-4 border-green-500 rounded-lg bg-green-50">
+                                <h6 class="mb-1 text-sm font-medium text-green-800">Fechas</h6>
+                                <p class="mb-1 text-sm"><strong>Emisión:</strong> {{ \Carbon\Carbon::parse($compra->fecha_emision)->format('d/m/Y') }}</p>
+                                <p class="mb-0 text-sm"><strong>Recepción:</strong> {{ \Carbon\Carbon::parse($compra->fecha_recepcion)->format('d/m/Y') }}</p>
                             </div>
                         </div>
                         <div class="col-md-3">
-                            <div class="p-3 bg-yellow-50 rounded-lg border-l-4 border-yellow-500">
-                                <h6 class="text-sm font-medium text-yellow-800 mb-1">Estado</h6>
-                                <p class="text-sm mb-0">
+                            <div class="p-3 border-l-4 border-yellow-500 rounded-lg bg-yellow-50">
+                                <h6 class="mb-1 text-sm font-medium text-yellow-800">Estado</h6>
+                                <p class="mb-0 text-sm">
                                     @if($compra->estado && strtolower($compra->estado->nombre) === 'activo')
-                                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">{{ $compra->estado->nombre }}</span>
+                                        <span class="inline-flex items-center px-2 py-1 text-xs text-green-800 bg-green-100 rounded-full">{{ $compra->estado->nombre }}</span>
                                     @elseif($compra->estado && strtolower($compra->estado->nombre) === 'distribuido')
-                                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-yellow-100 text-yellow-800">{{ $compra->estado->nombre }}</span>
+                                        <span class="inline-flex items-center px-2 py-1 text-xs text-yellow-800 bg-yellow-100 rounded-full">{{ $compra->estado->nombre }}</span>
                                     @else
-                                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-800">{{ $compra->estado->nombre ?? 'Sin Estado' }}</span>
+                                        <span class="inline-flex items-center px-2 py-1 text-xs text-gray-800 bg-gray-100 rounded-full">{{ $compra->estado->nombre ?? 'Sin Estado' }}</span>
                                     @endif
                                 </p>
                             </div>
                         </div>
                         <div class="col-md-3">
-                            <div class="p-3 bg-purple-50 rounded-lg border-l-4 border-purple-500">
-                                <h6 class="text-sm font-medium text-purple-800 mb-1">Productos</h6>
-                                <p class="text-sm mb-0"><strong>Total:</strong> {{ count($detallesCompra) }} productos</p>
+                            <div class="p-3 border-l-4 border-purple-500 rounded-lg bg-purple-50">
+                                <h6 class="mb-1 text-sm font-medium text-purple-800">Productos</h6>
+                                <p class="mb-0 text-sm"><strong>Total:</strong> {{ count($detallesCompra) }} productos</p>
                             </div>
                         </div>
                     </div>
@@ -91,11 +91,11 @@
                         <h3 class="text-lg font-semibold text-gray-700">
                             <i class="fas fa-boxes me-2"></i>Productos para Distribuir
                         </h3>
-                        <div class="d-flex align-items-center gap-3">
+                        <div class="gap-3 d-flex align-items-center">
                             <small class="text-muted">Total: {{ count($detallesCompra) }} productos</small>
                             @if(collect($detallesCompra)->sum('cantidad_sin_asignar') > 0)
                                 <button wire:click="abrirModalRecepcionMasiva"
-                                        class="btn btn-success btn-sm d-flex align-items-center gap-2">
+                                        class="gap-2 btn btn-success btn-sm d-flex align-items-center">
                                     <i class="fas fa-download"></i>
                                     Recibir Todos
                                 </button>
@@ -191,7 +191,7 @@
         <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
             <div class="modal-dialog modal-lg">
                 <div class="modal-content">
-                    <div class="modal-header bg-primary text-white">
+                    <div class="text-white modal-header bg-primary">
                         <h5 class="modal-title">
                             <i class="fas fa-warehouse me-2"></i>Distribuir a Bodega
                         </h5>
@@ -266,7 +266,7 @@
                                     <option value="" disabled>No hay bodegas disponibles</option>
                                 @endif
                             </select>
-                            <div wire:loading wire:target="bodegaDistribucion" class="text-muted small mt-1">
+                            <div wire:loading wire:target="bodegaDistribucion" class="mt-1 text-muted small">
                                 <i class="fas fa-spinner fa-spin me-1"></i>Cargando segmentos...
                             </div>
                         </div>
@@ -286,7 +286,7 @@
                                 @if(isset($segmentos) && count($segmentos) === 0 && $bodegaDistribucion)
                                     <small class="text-warning">No hay segmentos disponibles para esta bodega</small>
                                 @endif
-                                <div wire:loading wire:target="segmentoDistribucion" class="text-muted small mt-1">
+                                <div wire:loading wire:target="segmentoDistribucion" class="mt-1 text-muted small">
                                     <i class="fas fa-spinner fa-spin me-1"></i>Cargando secciones...
                                 </div>
                             </div>
@@ -423,12 +423,12 @@
                         </h5>
                     </div>
                     <div class="modal-body">
-                        <div class="text-center mb-3">
+                        <div class="mb-3 text-center">
                             <i class="fas fa-check-circle text-success" style="font-size: 3rem;"></i>
                         </div>
 
                         <!-- Información detallada de la distribución -->
-                        <div class="bg-light p-3 rounded mb-3">
+                        <div class="p-3 mb-3 rounded bg-light">
                             @php
                                 $lineas = explode("\n", $mensajeModalExito);
                             @endphp
@@ -457,7 +457,7 @@
                                                 <span>{{ str_replace('📍 Ubicación:', 'Ubicación:', $linea) }}</span>
                                             </div>
                                         @elseif(str_contains($linea, '🎉'))
-                                            <div class="alert alert-success mt-3 mb-0">
+                                            <div class="mt-3 mb-0 alert alert-success">
                                                 <i class="fas fa-trophy me-2"></i>
                                                 <strong>{{ str_replace('🎉 ', '', $linea) }}</strong>
                                             </div>
@@ -674,11 +674,11 @@
         <!-- Zona de mensajes de error encima del modal -->
         @if($mostrarModalError && !empty($mensajeModalError))
         <div class="position-fixed w-100 d-flex justify-content-center" style="top: 20px; z-index: 1060;">
-            <div class="alert alert-danger shadow-lg border-0 rounded-3 mx-3" style="max-width: 600px;">
+            <div class="mx-3 border-0 shadow-lg alert alert-danger rounded-3" style="max-width: 600px;">
                 <div class="d-flex align-items-center">
                     <i class="fas fa-exclamation-triangle me-3 text-danger" style="font-size: 1.5rem;"></i>
                     <div class="flex-grow-1">
-                        <h6 class="alert-heading mb-1">
+                        <h6 class="mb-1 alert-heading">
                             <strong>Error en la Recepción Masiva</strong>
                         </h6>
                         <p class="mb-0">{{ $mensajeModalError }}</p>
@@ -699,7 +699,7 @@
                 </div>
                 <div class="modal-body">
                     <!-- Configuración general -->
-                    <div class="row mb-4">
+                    <div class="mb-4 row">
                         <div class="col-md-6">
                             <label for="fechaRecepcionMasiva" class="form-label">Fecha de Recepción <span class="text-danger">*</span></label>
                             <input type="date"
@@ -711,7 +711,7 @@
                     </div>
 
                     <!-- Comentario general -->
-                    <div class="row mb-4">
+                    <div class="mb-4 row">
                         <div class="col-12">
                             <label for="comentarioRecepcionMasiva" class="form-label">Comentario General</label>
                             <textarea id="comentarioRecepcionMasiva"
@@ -721,6 +721,35 @@
                                       placeholder="Comentario opcional para todos los productos..."></textarea>
                         </div>
                     </div>
+{{-- 
+                    <!-- Validación de productos sin unidad de medida -->
+                    @php
+                        $productosSinUnidad = collect($productosRecepcionMasiva)
+                            ->filter(fn($p) => empty($p['unidad_medida_id']))
+                            ->values();
+                    @endphp
+                    @if($productosSinUnidad->isNotEmpty())
+                        <div class="mb-4 border-4 alert alert-danger border-start">
+                            <div class="d-flex align-items-start">
+                                <i class="fas fa-exclamation-circle me-2" style="font-size: 1.2rem; flex-shrink: 0; margin-top: 2px;"></i>
+                                <div class="flex-grow-1">
+                                    <h6 class="mb-2 alert-heading">
+                                        <strong>Productos sin unidad de medida asignada</strong>
+                                    </h6>
+                                    <p class="mb-2">Los siguientes productos no cuentan con unidad de medida registrada</p>
+                                    <ul class="mb-0">
+                                        @foreach($productosSinUnidad as $prod)
+                                            <li>
+                                                <strong>{{ $prod['nombre_producto'] }}</strong>
+                                                <br>
+                                                <small class="text-muted">ID: {{ $prod['producto_id'] }} - Seleccione una unidad de medida o ve al producto para crear la unidad.</small>
+                                            </li>
+                                        @endforeach
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    @endif --}}
 
                     <!-- Tabla de productos -->
                     <div class="table-responsive">
@@ -740,9 +769,15 @@
                             </thead>
                             <tbody>
                                 @foreach($productosRecepcionMasiva as $index => $producto)
-                                <tr wire:key="producto-masivo-{{ $producto['id'] }}">
+                                <tr wire:key="producto-masivo-{{ $producto['id'] }}"
+                                    @if(empty($producto['unidad_medida_id'])) class="table-danger" style="background-color: #f8d7da;" @endif></tr>>
                                     <td>
-                                        <strong>{{ $producto['nombre_producto'] }}</strong>
+                                        <button type="button" 
+                                                class="p-0 btn btn-link btn-sm text-decoration-none text-start"
+                                                wire:click="irAlProducto({{ $producto['producto_id'] }})"
+                                                title="Clic para editar el producto">
+                                            <strong class="text-primary">{{ $producto['nombre_producto'] }}</strong>
+                                        </button>
                                         <br><small class="text-muted">ID: {{ $producto['producto_id'] }}</small>
                                     </td>
                                     <td class="text-center">
@@ -787,7 +822,7 @@
                                     </td>
                                     <td>
                                         <input type="number"
-                                               class="form-control form-control-sm text-center"
+                                               class="text-center form-control form-control-sm"
                                                wire:model.live="productosRecepcionMasiva.{{ $index }}.cantidad_stock"
                                                min="1"
                                                step="1">
@@ -874,7 +909,13 @@
                     <button type="button" class="btn btn-secondary" wire:click="cerrarModalRecepcionMasiva">
                         <i class="fas fa-times me-1"></i>Cancelar
                     </button>
-                    <button type="button" class="btn btn-success" wire:click="confirmarRecepcionMasiva">
+                    @php
+                        $tieneProductosSinUnidad = collect($productosRecepcionMasiva)
+                            ->contains(fn($p) => empty($p['unidad_medida_id']));
+                    @endphp
+
+                    <button type="button" class="btn btn-success" wire:click="confirmarRecepcionMasiva"
+                            @if($tieneProductosSinUnidad) disabled @endif>
                         <i class="fas fa-check me-1"></i>Confirmar Recepción Masiva
                     </button>
                 </div>
