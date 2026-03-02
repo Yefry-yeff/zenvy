@@ -793,20 +793,8 @@ class RecibirProductoCompra extends Component
                             ];
                         });
 
-                    // Si no tiene unidades específicas, usar la unidad de la compra
-                    if ($unidadesProducto->isEmpty()) {
-                        $unidadCompra = UnidadMedida::where('id', $detalle['unidad_medida_id'])->first();
-                        if ($unidadCompra) {
-                            $unidadesProducto = collect([
-                                [
-                                    'id' => $unidadCompra->id,
-                                    'nombre' => $unidadCompra->nombre,
-                                    'simbolo' => $unidadCompra->simbolo,
-                                    'descripcion' => ''
-                                ]
-                            ]);
-                        }
-                    }
+                    // Si no tiene unidades en price_has_venta, mantener el array vacío
+                    // Esto asegura que el comportamiento sea consistente con el modal individual
 
                     // Obtener el precio_venta_id por defecto (primera unidad disponible)
                     $precioVentaIdDefault = $unidadesProducto->isNotEmpty() && isset($unidadesProducto[0]['precio_venta_id']) 
