@@ -795,7 +795,7 @@
                             <tbody>
                                 @foreach($productosRecepcionMasiva as $index => $producto)
                                 <tr wire:key="producto-masivo-{{ $producto['id'] }}"
-                                    @if(empty($producto['unidad_medida_id'])) class="table-danger" style="background-color: #f8d7da;" @endif></tr>>
+                                    @if(empty($producto['unidad_medida_id'])) class="table-danger" style="background-color: #f8d7da;" @endif></tr>
                                     <td>
                                         <button type="button" 
                                                 class="p-0 btn btn-link btn-sm text-decoration-none text-start"
