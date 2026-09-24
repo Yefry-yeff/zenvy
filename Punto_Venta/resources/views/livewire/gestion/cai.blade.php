@@ -30,7 +30,7 @@
             <div class="modal-dialog modal-dialog-centered" @click.stop>
                 <div class="shadow modal-content border-success">
                     <div class="text-white modal-header bg-success">
-                        <h5 class="modal-title">Éxito</h5>
+                        <h5 class="modal-title">✅ Éxito</h5>
                         <button type="button" class="btn-close" @click="show = false"></button>
                     </div>
                     <div class="modal-body">
@@ -38,6 +38,65 @@
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-success" @click="show = false">Aceptar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Backdrop manual -->
+        <div class="modal-backdrop fade show" x-show="show" x-transition></div>
+    </div>
+    @endif
+
+    @if (session()->has('error'))
+    <div x-data="{ show: true }" x-init="$nextTick(() => show = true)"
+        x-show="show"
+        x-transition
+        style="display: none;"
+    >
+        <div class="modal fade show d-block" tabindex="-1" role="dialog" @click.away="show = false">
+            <div class="modal-dialog modal-dialog-centered" @click.stop>
+                <div class="shadow modal-content border-danger">
+                    <div class="text-white modal-header bg-danger">
+                        <h5 class="modal-title">❌ Error</h5>
+                        <button type="button" class="btn-close" @click="show = false"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>{{ session('error') }}</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-danger" @click="show = false">Entendido</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Backdrop manual -->
+        <div class="modal-backdrop fade show" x-show="show" x-transition></div>
+    </div>
+    @endif
+
+    @if ($errors->any())
+    <div x-data="{ show: true }" x-init="$nextTick(() => show = true)"
+        x-show="show"
+        x-transition
+        style="display: none;"
+    >
+        <div class="modal fade show d-block" tabindex="-1" role="dialog" @click.away="show = false">
+            <div class="modal-dialog modal-dialog-centered" @click.stop>
+                <div class="shadow modal-content border-warning">
+                    <div class="text-white modal-header bg-warning">
+                        <h5 class="modal-title">⚠️ Campos requeridos</h5>
+                        <button type="button" class="btn-close" @click="show = false"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="mb-2"><strong>Por favor corrige los siguientes errores:</strong></p>
+                        <ul class="mb-0">
+                            @foreach ($errors->all() as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-warning" @click="show = false">Revisar formulario</button>
                     </div>
                 </div>
             </div>
@@ -144,53 +203,85 @@
                         <h5 class="modal-title">Ingreso de CAI</h5>
                     </div>
                     <div class="modal-body">
+                        <!-- Mensaje informativo -->
+                        <div class="mb-3 alert alert-info" role="alert">
+                            <strong>ℹ️ Información:</strong> 
+                            Todos los campos marcados con <span class="text-danger">*</span> son obligatorios. 
+                            Asegúrese de completar correctamente la información del CAI antes de guardar.
+                        </div>
+
                         <form wire:submit.prevent="crearCai">
                             <div class="row">
                                 <div class="mb-2 col-md-4">
-                                    <label for="nuevoCai" class="form-label">CAI</label>
-                                    <input type="text" id="nuevoCai" class="form-control" wire:model.defer="nuevoCai"  title="El CAI debe tener el formato ####-####-####-####-####-####" maxlength="39">
+                                    <label for="nuevoCai" class="form-label">CAI <span class="text-danger">*</span></label>
+                                    <input type="text" id="nuevoCai" class="form-control @error('nuevoCai') is-invalid @enderror" wire:model.defer="nuevoCai" placeholder="Ej: 1234-5678-9012-3456-7890-1234" title="El CAI debe tener el formato ####-####-####-####-####-####" maxlength="39">
                                     @error('nuevoCai')
-                                        <div class="mt-1 text-sm text-danger">{{ $message }}</div>
+                                        <div class="invalid-feedback">
+                                            <strong>CAI requerido:</strong> {{ $message }}
+                                        </div>
                                     @enderror
+                                    @if(!$errors->has('nuevoCai') && !empty($nuevoCai))
+                                        <div class="mt-1 text-success text-sm">✓ CAI válido</div>
+                                    @endif
                                 </div>
 
                                 <div class="mb-2 col-md-4">
-                                    <label for="nuevoFechaLimite" class="form-label">Fecha límite</label>
-                                    <input type="date" id="nuevoFechaLimite" class="form-control" wire:model.defer="nuevoFechaLimite" title="Debe seleccionar una fecha límite de vigencia de este CAI.">
+                                    <label for="nuevoFechaLimite" class="form-label">Fecha límite <span class="text-danger">*</span></label>
+                                    <input type="date" id="nuevoFechaLimite" class="form-control @error('nuevoFechaLimite') is-invalid @enderror" wire:model.defer="nuevoFechaLimite" title="Debe seleccionar una fecha límite de vigencia de este CAI.">
                                     @error('nuevoFechaLimite')
-                                        <div class="mt-1 text-sm text-danger">{{ $message }}</div>
+                                        <div class="invalid-feedback">
+                                            <strong>Fecha límite requerida:</strong> {{ $message }}
+                                        </div>
                                     @enderror
+                                    @if(!$errors->has('nuevoFechaLimite') && !empty($nuevoFechaLimite))
+                                        <div class="mt-1 text-success text-sm">✓ Fecha válida</div>
+                                    @endif
                                 </div>
 
 
                                 <div class="mb-2 col-md-4">
-                                    <label for="nuevoFechaSolicitud" class="form-label">Fecha de Solicitud</label>
-                                    <input type="date" id="nuevoFechaSolicitud" class="form-control" wire:model.defer="nuevoFechaSolicitud" title="Debe seleccionar una fecha límite de vigencia de este CAI.">
+                                    <label for="nuevoFechaSolicitud" class="form-label">Fecha de Solicitud <span class="text-danger">*</span></label>
+                                    <input type="date" id="nuevoFechaSolicitud" class="form-control @error('nuevoFechaSolicitud') is-invalid @enderror" wire:model.defer="nuevoFechaSolicitud" title="Debe seleccionar la fecha de solicitud del CAI.">
                                     @error('nuevoFechaSolicitud')
-                                        <div class="mt-1 text-sm text-danger">{{ $message }}</div>
+                                        <div class="invalid-feedback">
+                                            <strong>Fecha de solicitud requerida:</strong> {{ $message }}
+                                        </div>
                                     @enderror
+                                    @if(!$errors->has('nuevoFechaSolicitud') && !empty($nuevoFechaSolicitud))
+                                        <div class="mt-1 text-success text-sm">✓ Fecha válida</div>
+                                    @endif
                                 </div>
 
 
                                 <div class="mb-2 col-md-4">
-                                    <label for="nuevoPuntoEmision" class="form-label">Punto de Emisión</label>
-                                    <input type="text" id="nuevoPuntoEmision" class="form-control" wire:model.defer="nuevoPuntoEmision" title="Debe seleccionar una fecha límite de vigencia de este CAI.">
+                                    <label for="nuevoPuntoEmision" class="form-label">Punto de Emisión <span class="text-danger">*</span></label>
+                                    <input type="text" id="nuevoPuntoEmision" class="form-control @error('nuevoPuntoEmision') is-invalid @enderror" wire:model.defer="nuevoPuntoEmision" placeholder="Ej: 001-001" title="Debe ingresar el punto de emisión.">
                                     @error('nuevoPuntoEmision')
-                                        <div class="mt-1 text-sm text-danger">{{ $message }}</div>
+                                        <div class="invalid-feedback">
+                                            <strong>Punto de emisión requerido:</strong> {{ $message }}
+                                        </div>
                                     @enderror
+                                    @if(!$errors->has('nuevoPuntoEmision') && !empty($nuevoPuntoEmision))
+                                        <div class="mt-1 text-success text-sm">✓ Punto de emisión válido</div>
+                                    @endif
                                 </div>
 
                                 <div class="mb-2 col-md-4">
-                                    <label for="tipoDocumento" class="form-label">Tipo de documento</label>
-                                    <select id="tipoDocumento" class="form-select" wire:model.defer="tipoDocumentoSeleccionado">
+                                    <label for="tipoDocumento" class="form-label">Tipo de documento <span class="text-danger">*</span></label>
+                                    <select id="tipoDocumento" class="form-select @error('tipoDocumentoSeleccionado') is-invalid @enderror" wire:model.defer="tipoDocumentoSeleccionado">
                                         <option value="">Seleccione un tipo...</option>
                                         @foreach($tiposDocumento as $tipo)
                                             <option value="{{ $tipo->id }}">{{ $tipo->nombre }}</option>
                                         @endforeach
                                     </select>
                                     @error('tipoDocumentoSeleccionado')
-                                        <div class="mt-1 text-sm text-danger">{{ $message }}</div>
+                                        <div class="invalid-feedback">
+                                            <strong>Tipo de documento requerido:</strong> Debe seleccionar un tipo de documento fiscal
+                                        </div>
                                     @enderror
+                                    @if(!$errors->has('tipoDocumentoSeleccionado') && !empty($tipoDocumentoSeleccionado))
+                                        <div class="mt-1 text-success text-sm">✓ Tipo seleccionado</div>
+                                    @endif
                                 </div>
 
 
@@ -230,11 +321,11 @@
                                     }"
                                     @click.outside="open = false"
                                 >
-                                    <label for="tiendaId" class="form-label">Seleccionar Tienda</label>
+                                    <label for="tiendaId" class="form-label">Seleccionar Tienda <span class="text-danger">*</span></label>
 
                                     <input type="text"
-                                        placeholder="Buscar..."
-                                        class="mb-1 form-control"
+                                        placeholder="Buscar tienda..."
+                                        class="mb-1 form-control @error('tiendaSeleccionado') is-invalid @enderror"
                                         x-model="search"
                                         @focus="open = true; clearSearch()"
                                         @input="open = true"
@@ -250,56 +341,98 @@
                                     </ul>
 
                                     @error('tiendaSeleccionado')
-                                        <div class="mt-1 text-sm text-danger">{{ $message }}</div>
+                                        <div class="invalid-feedback d-block">
+                                            <strong>Tienda requerida:</strong> Debe seleccionar una tienda
+                                        </div>
                                     @enderror
+                                    @if(!$errors->has('tiendaSeleccionado') && !empty($tiendaSeleccionado))
+                                        <div class="mt-1 text-success text-sm">✓ Tienda seleccionada</div>
+                                    @endif
+                                    @error('tiendaSeleccionado')
+                                        <div class="invalid-feedback d-block">
+                                            <strong>Tienda requerida:</strong> Debe seleccionar una tienda
+                                        </div>
+                                    @enderror
+                                    @if(!$errors->has('tiendaSeleccionado') && !empty($tiendaSeleccionado))
+                                        <div class="mt-1 text-success text-sm">✓ Tienda seleccionada</div>
+                                    @endif
                                 </div>
 
                                 <div class="mb-2 col-md-4">
-                                    <label for="nuevoCantidadSolicitada" class="form-label">Cantidad Solicitada</label>
-                                    <input type="number" id="nuevoCantidadSolicitada" step="1" min="0" oninput="this.value = this.value.replace(/[^0-9]/g, '')" class="form-control" wire:model.defer="nuevoCantidadSolicitada" title="Debe ingresar un numero entero.">
+                                    <label for="nuevoCantidadSolicitada" class="form-label">Cantidad Solicitada <span class="text-danger">*</span></label>
+                                    <input type="number" id="nuevoCantidadSolicitada" step="1" min="1" oninput="this.value = this.value.replace(/[^0-9]/g, '')" class="form-control @error('nuevoCantidadSolicitada') is-invalid @enderror" wire:model.defer="nuevoCantidadSolicitada" placeholder="Ej: 1000" title="Debe ingresar un número entero mayor a 0.">
                                     @error('nuevoCantidadSolicitada')
-                                        <div class="mt-1 text-sm text-danger">{{ $message }}</div>
+                                        <div class="invalid-feedback">
+                                            <strong>Cantidad solicitada requerida:</strong> {{ $message }}
+                                        </div>
                                     @enderror
+                                    @if(!$errors->has('nuevoCantidadSolicitada') && !empty($nuevoCantidadSolicitada))
+                                        <div class="mt-1 text-success text-sm">✓ Cantidad válida</div>
+                                    @endif
                                 </div>
 
                                 <div class="mb-2 col-md-4">
-                                    <label for="nuevoCantidadOtorgada" class="form-label">Cantidad Otorgada</label>
-                                    <input type="number" id="nuevoCantidadOtorgada" step="1" min="0" oninput="this.value = this.value.replace(/[^0-9]/g, '')" class="form-control" wire:model.defer="nuevoCantidadOtorgada" title="Debe ingresar un numero entero.">
+                                    <label for="nuevoCantidadOtorgada" class="form-label">Cantidad Otorgada <span class="text-danger">*</span></label>
+                                    <input type="number" id="nuevoCantidadOtorgada" step="1" min="1" oninput="this.value = this.value.replace(/[^0-9]/g, '')" class="form-control @error('nuevoCantidadOtorgada') is-invalid @enderror" wire:model.defer="nuevoCantidadOtorgada" placeholder="Ej: 1000" title="Debe ingresar un número entero mayor a 0.">
                                     @error('nuevoCantidadOtorgada')
-                                        <div class="mt-1 text-sm text-danger">{{ $message }}</div>
+                                        <div class="invalid-feedback">
+                                            <strong>Cantidad otorgada requerida:</strong> {{ $message }}
+                                        </div>
                                     @enderror
+                                    @if(!$errors->has('nuevoCantidadOtorgada') && !empty($nuevoCantidadOtorgada))
+                                        <div class="mt-1 text-success text-sm">✓ Cantidad válida</div>
+                                    @endif
                                 </div>
 
                                 <div class="mb-2 col-md-4">
-                                    <label for="nuevoRangoInicial" class="form-label">Rango Inicial</label>
-                                    <input type="text" id="nuevoRangoInicial" step="1" class="form-control" wire:model.defer="nuevoRangoInicial" title="Debe contener el formato correcto.">
+                                    <label for="nuevoRangoInicial" class="form-label">Rango Inicial <span class="text-danger">*</span></label>
+                                    <input type="text" id="nuevoRangoInicial" class="form-control @error('nuevoRangoInicial') is-invalid @enderror" wire:model.defer="nuevoRangoInicial" placeholder="Ej: 001-001-01-00000001" title="Debe contener el formato correcto de rango inicial.">
                                     @error('nuevoRangoInicial')
-                                        <div class="mt-1 text-sm text-danger">{{ $message }}</div>
+                                        <div class="invalid-feedback">
+                                            <strong>Rango inicial requerido:</strong> {{ $message }}
+                                        </div>
                                     @enderror
+                                    @if(!$errors->has('nuevoRangoInicial') && !empty($nuevoRangoInicial))
+                                        <div class="mt-1 text-success text-sm">✓ Rango válido</div>
+                                    @endif
                                 </div>
 
                                 <div class="mb-2 col-md-4">
-                                    <label for="nuevoRangoFinal" class="form-label">Rando Final</label>
-                                    <input type="text" id="nuevoRangoFinal" class="form-control" wire:model.defer="nuevoRangoFinal" title="Debe contener el formato correcto.">
+                                    <label for="nuevoRangoFinal" class="form-label">Rango Final <span class="text-danger">*</span></label>
+                                    <input type="text" id="nuevoRangoFinal" class="form-control @error('nuevoRangoFinal') is-invalid @enderror" wire:model.defer="nuevoRangoFinal" placeholder="Ej: 001-001-01-00001000" title="Debe contener el formato correcto de rango final.">
                                     @error('nuevoRangoFinal')
-                                        <div class="mt-1 text-sm text-danger">{{ $message }}</div>
+                                        <div class="invalid-feedback">
+                                            <strong>Rango final requerido:</strong> {{ $message }}
+                                        </div>
                                     @enderror
+                                    @if(!$errors->has('nuevoRangoFinal') && !empty($nuevoRangoFinal))
+                                        <div class="mt-1 text-success text-sm">✓ Rango válido</div>
+                                    @endif
                                 </div>
 
                             </div>
                             <div class="flex justify-end mt-4">
                                 <button
+                                    type="button"
+                                    wire:click="cerrarModalCrear"
+                                    class="px-4 py-2 me-2 text-gray-700 bg-gray-200 border rounded hover:bg-gray-300"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
                                     type="submit"
                                     wire:loading.attr="disabled"
                                     class="px-4 py-2 text-white rounded"
                                     :class="{
-                                        'bg-emerald-600 hover:bg-emerald-700': theme === 'verde',
-                                        'bg-blue-600 hover:bg-blue-700': theme === 'azul',
-                                        'bg-gray-900 hover:bg-gray-800': theme === 'oscuro',
-                                        'bg-slate-700 hover:bg-slate-800': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
+                                        'bg-emerald-600 hover:bg-emerald-700': theme === 'verde' && !$wire.loading,
+                                        'bg-blue-600 hover:bg-blue-700': theme === 'azul' && !$wire.loading,
+                                        'bg-gray-900 hover:bg-gray-800': theme === 'oscuro' && !$wire.loading,
+                                        'bg-slate-700 hover:bg-slate-800': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro' && !$wire.loading,
+                                        'bg-gray-400 cursor-not-allowed': $wire.loading
                                     }"
                                 >
-                                    Guardar
+                                    <span wire:loading.remove>💾 Guardar CAI</span>
+                                    <span wire:loading>⏳ Guardando...</span>
                                 </button>
                             </div>
                         </form>

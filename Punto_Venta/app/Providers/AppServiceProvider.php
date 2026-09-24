@@ -18,6 +18,10 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // Configurar zona horaria de Honduras globalmente
+        \Illuminate\Support\Carbon::setLocale('es');
+        date_default_timezone_set('America/Tegucigalpa');
+        
         Menu::observe(MenuObserver::class);
 
         View::composer('*', function ($view) {

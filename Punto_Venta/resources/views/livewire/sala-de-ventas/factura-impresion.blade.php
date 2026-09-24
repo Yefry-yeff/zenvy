@@ -3,28 +3,10 @@
         <!-- Barra de herramientas superior -->
         <div class="py-3 mb-3 bg-white row border-bottom">
             <div class="col-12">
-                <div class="d-flex justify-content-between align-items-center">
-                    <h4 class="mb-0">
-                        <i class="fas fa-file-invoice"></i>
-                        Factura {{ $factura->numero_factura }}
-                    </h4>
-                    <div class="btn-group">
-                        <button onclick="window.print()" class="btn btn-primary btn-sm">
-                            <i class="fas fa-print"></i> Imprimir
-                        </button>
-                        <a href="{{ route('factura.pdf', $factura->id) }}" class="btn btn-danger btn-sm">
-                            <i class="fas fa-download"></i> Descargar PDF
-                        </a>
-                        @if($factura->factura_imagen)
-                            <a href="{{ route('factura.imagen', $factura->id) }}" target="_blank" class="btn btn-info btn-sm">
-                                <i class="fas fa-image"></i> Ver Imagen
-                            </a>
-                        @endif
-                        <button onclick="history.back()" class="btn btn-secondary btn-sm">
-                            <i class="fas fa-arrow-left"></i> Volver
-                        </button>
-                    </div>
-                </div>
+                <h4 class="mb-0">
+                    <i class="fas fa-file-invoice"></i>
+                    Factura {{ $factura->numero_factura }}
+                </h4>
             </div>
         </div>
 

@@ -323,29 +323,43 @@ class ProductosSeccion extends Component
     }
 
     /**
-     * EDITAR PRODUCTO
+     * EDITAR STOCK DE PRODUCTO
      *
-     * Navega al formulario de edición de stock del producto
-     * Permite modificar las cantidades y datos de inventario
+     * Navega al formulario de edición de stock con el recibido específico
      *
-     * @param int $productoId ID del producto a editar
+     * @param int $recibidoId ID del RecibidoBodega específico a editar
      * @return void
      */
-    public function editarProducto($productoId)
+    public function editarProducto($recibidoId)
     {
         try {
-            // Verifica que el producto exista
-            $producto = \App\Models\Producto::findOrFail($productoId);
+            // Debug: Verificar qué ID se está recibiendo
+            Log::info('Editando producto por RecibidoBodega', [
+                'recibido_id_recibido' => $recibidoId,
+                'seccion_id' => $this->seccionId,
+                'usuario_id' => Auth::id()
+            ]);
 
-            // Navega al formulario de stock con parámetros para edición
+            // Verifica que el RecibidoBodega exista
+            $recibido = \App\Models\RecibidoBodega::findOrFail($recibidoId);
+
+            Log::info('RecibidoBodega encontrado', [
+                'recibido_id' => $recibido->id,
+                'producto_id' => $recibido->producto_id,
+                'producto_nombre' => $recibido->producto->nombre ?? 'No encontrado',
+                'cantidad_inicial' => $recibido->cantidad_inicial,
+                'cantidad_disponible' => $recibido->cantidad_disponible
+            ]);
+
+            // Navega al formulario de stock con el RecibidoBodega específico
             $this->dispatch('cambiarVista', ruta: 'Inventario.StockForm', parametros: [
-                'productoId' => $productoId,
+                'recibidoId' => $recibidoId,  // Enviar el ID específico del RecibidoBodega
                 'seccionId' => $this->seccionId  // Para poder regresar al contexto
             ]);
 
         } catch (\Exception $e) {
-            Log::error('Error al editar stock del producto', [
-                'producto_id' => $productoId,
+            Log::error('Error al editar stock del RecibidoBodega', [
+                'recibido_id' => $recibidoId,
                 'seccion_id' => $this->seccionId,
                 'mensaje' => $e->getMessage(),
                 'usuario_id' => Auth::id()
@@ -353,9 +367,7 @@ class ProductosSeccion extends Component
 
             $this->mostrarError('Error al acceder al producto seleccionado');
         }
-    }
-
-    // =========================================================================
+    }    // =========================================================================
     // MÉTODOS DE FILTRADO Y BÚSQUEDA
     // =========================================================================
 

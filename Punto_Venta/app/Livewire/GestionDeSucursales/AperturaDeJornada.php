@@ -27,15 +27,15 @@ class AperturaDeJornada extends Component
     public function cargarTiendaUsuario()
     {
         $usuario = Auth::user();
-        
+
         if ($usuario && $usuario->tienda_id) {
             $this->tiendaUsuario = $usuario->tienda_id;
-            
+
             // Obtener nombre de la tienda
             $tienda = DB::table('tienda')
                 ->where('id', $this->tiendaUsuario)
                 ->first();
-            
+
             $this->nombreTienda = $tienda ? $tienda->denominacion_social : 'Tienda no encontrada';
         }
     }
@@ -43,7 +43,7 @@ class AperturaDeJornada extends Component
     public function validarYProcesarApertura()
     {
         $this->resetear();
-        
+
         if (!$this->tiendaUsuario) {
             $this->mensaje = 'Usuario sin tienda asignada. No se puede procesar la apertura.';
             $this->tipoMensaje = 'error';
@@ -59,44 +59,67 @@ class AperturaDeJornada extends Component
         }
 
         try {
-            // 1. Verificar si ya existe una jornada aperturada para hoy
+            // 1. VALIDACIÓN PRINCIPAL: Verificar si ya existe una jornada abierta para hoy
             $jornadaHoy = DB::table('jornada')
+                ->where('fecha', $this->fechaApertura)
+                ->where('tienda_id', $this->tiendaUsuario)
+                ->where('apertura', 1)
+                ->where('cierre', 0)
+                ->first();
+
+            if ($jornadaHoy) {
+                $this->mensaje = "❌ Ya existe una jornada abierta para la fecha {$this->fechaApertura} en {$this->nombreTienda}. No se puede aperturar nuevamente.";
+                $this->tipoMensaje = 'error';
+                return;
+            }
+
+            // COMENTADO: Permitir múltiples aperturas/cierres en el mismo día
+            /*
+            // 2. Verificar si existe algún registro para esta fecha (independientemente del estado)
+            $jornadaExistente = DB::table('jornada')
                 ->where('fecha', $this->fechaApertura)
                 ->where('tienda_id', $this->tiendaUsuario)
                 ->first();
 
-            if ($jornadaHoy && $jornadaHoy->apertura == 1) {
-                $this->mensaje = "Ya existe una jornada aperturada para la fecha {$this->fechaApertura} en {$this->nombreTienda}.";
+            if ($jornadaExistente && $jornadaExistente->cierre == 1) {
+                $this->mensaje = "❌ Ya existe una jornada cerrada para la fecha {$this->fechaApertura} en {$this->nombreTienda}. No se puede aperturar nuevamente.";
                 $this->tipoMensaje = 'error';
                 return;
             }
+            */
 
-            // 2. Validar cierre del día anterior (solo si no es la primera vez)
-            $fechaAnterior = Carbon::parse($this->fechaApertura)->subDay()->format('Y-m-d');
-            
-            $jornadaAnterior = DB::table('jornada')
+            // 3. VALIDACIÓN ADICIONAL: Verificar jornadas no cerradas de días anteriores
+            $jornadasAbiertas = DB::table('jornada')
                 ->where('tienda_id', $this->tiendaUsuario)
-                ->where('fecha', $fechaAnterior)
-                ->first();
+                ->where('fecha', '<', $this->fechaApertura)
+                ->where('apertura', 1)
+                ->where('cierre', 0)
+                ->orderBy('fecha', 'desc')
+                ->get();
 
-            // Si existe registro del día anterior, debe estar cerrado
-            if ($jornadaAnterior && $jornadaAnterior->cierre != 1) {
-                $this->mensaje = "No se puede aperturar la jornada porque la jornada del día anterior ({$fechaAnterior}) no está cerrada. Debe cerrar la jornada anterior primero.";
+            if ($jornadasAbiertas->count() > 0) {
+                $fechasTexto = $jornadasAbiertas->pluck('fecha')->map(function($fecha) {
+                    return date('d/m/Y', strtotime($fecha));
+                })->implode(', ');
+
+                $this->mensaje = "❌ NO se puede aperturar la jornada porque existen jornadas sin cerrar de días anteriores: " . $fechasTexto .
+                    ". Debe cerrar todas las jornadas pendientes antes de aperturar una nueva.";
                 $this->tipoMensaje = 'error';
                 return;
             }
 
-            // 3. Si no hay registros anteriores, es la primera vez (permitir)
-            $primerRegistro = DB::table('jornada')
+            // 4. Todo está bien, proceder con la apertura
+            $esFirstTime = !DB::table('jornada')
                 ->where('tienda_id', $this->tiendaUsuario)
                 ->exists();
 
-            if (!$primerRegistro) {
-                $this->mensaje = "Esta será la primera jornada aperturada para {$this->nombreTienda}. ¡Bienvenido al sistema!";
-                $this->tipoMensaje = 'info';
+            if ($esFirstTime) {
+                $this->mensaje = "✅ Esta será la primera jornada para {$this->nombreTienda}. Creando registro...";
+            } else {
+                $this->mensaje = "✅ Validaciones completadas. Creando nueva jornada para {$this->nombreTienda}...";
             }
 
-            // 4. Proceder con la apertura
+            $this->tipoMensaje = 'info';
             $this->procesarAperturaJornada();
 
         } catch (\Exception $e) {
@@ -108,7 +131,7 @@ class AperturaDeJornada extends Component
     public function procesarAperturaJornada()
     {
         if ($this->procesoEnCurso) return;
-        
+
         $this->procesoEnCurso = true;
 
         try {
@@ -129,6 +152,7 @@ class AperturaDeJornada extends Component
             DB::commit();
 
             $this->mensaje = 'Jornada aperturada exitosamente para la fecha ' . $this->fechaApertura . ' en ' . $this->nombreTienda . ' (ID: ' . $jornadaId . ')';
+
             $this->tipoMensaje = 'success';
 
         } catch (\Exception $e) {

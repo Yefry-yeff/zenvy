@@ -16,15 +16,47 @@ class DashboardDinamico extends Component
     public $productosStockBajo = [];
     public $actividad = [];
     public $estadoCaja = null;
-    public $estadoJornada = null;
+    public $esAdmin = false;
+
+    // Datos para gráficos
+    public $ventasSemana = [];
+    public $diasSemanaLabels = [];
+    public $topProductosLabels = [];
+    public $topProductosData = [];
+    public $metodosPagoLabels = [];
+    public $metodosPagoData = [];
+    public $topClientesLabels = [];
+    public $topClientesData = [];
+    public $chartKey; // Key única para forzar re-render de gráficos
+
+    protected $listeners = ['actualizarDashboard'];
 
     public function mount()
+    {
+        $this->chartKey = uniqid('chart_');
+        $this->cargarTodosDatos();
+    }
+
+    /**
+     * Método llamado por wire:init
+     */
+    public function inicializarDashboard()
+    {
+        // Este método se ejecuta después de que el DOM esté listo
+        // Emitir evento para inicializar gráficos
+        $this->dispatch('dashboardRenderizado');
+    }
+
+    /**
+     * Cargar todos los datos del dashboard
+     */
+    protected function cargarTodosDatos()
     {
         $this->cargarDatosUsuario();
         $this->cargarEstadisticas();
         $this->cargarDatosPorRol();
-        $this->cargarEstadoJornada();
         $this->cargarEstadoCaja();
+        $this->cargarDatosGraficos();
     }
 
     public function cargarDatosUsuario()
@@ -37,6 +69,14 @@ class DashboardDinamico extends Component
             'tienda' => $usuario->tienda->denominacion_social ?? 'Sin tienda',
             'ultimo_acceso' => $usuario->updated_at->format('d/m/Y H:i')
         ];
+        
+        // Verificar si el usuario es Admin o Administrador
+        if ($usuario && $usuario->roles_id) {
+            $this->esAdmin = DB::table('roles')
+                ->where('id', $usuario->roles_id)
+                ->whereIn('txt_nombre', ['Admin', 'Administrador', 'admin', 'administrador'])
+                ->exists();
+        }
     }
 
     public function cargarEstadisticas()
@@ -47,21 +87,24 @@ class DashboardDinamico extends Component
         $this->estadisticas = [
             'facturas_hoy' => DB::table('factura')
                 ->whereDate('created_at', today())
+                ->where('estado_factura_id', '!=', 2) // Excluir facturas anuladas
                 ->count(),
-            
+
             'ventas_hoy' => DB::table('factura')
                 ->whereDate('created_at', today())
+                ->where('estado_factura_id', '!=', 2) // Excluir facturas anuladas
                 ->sum('total'),
-            
+
             'ventas_mes' => DB::table('factura')
                 ->whereMonth('created_at', now()->month)
                 ->whereYear('created_at', now()->year)
+                ->where('estado_factura_id', '!=', 2) // Excluir facturas anuladas
                 ->sum('total'),
-            
+
             'productos_activos' => DB::table('producto')
                 ->where('estado_id', 1)
                 ->count(),
-            
+
             'usuarios_activos' => DB::table('users')
                 ->where('estado_id', 1)
                 ->count(),
@@ -81,24 +124,31 @@ class DashboardDinamico extends Component
             // Para stock bajo, filtrar por bodegas de la tienda del usuario
             $queryStockBajo = DB::table('recibido_bodega')
                 ->where('cantidad_disponible', '<', 10);
-            
+
             // Si el usuario no es Admin, filtrar por su tienda
             if (!$this->usuarioTienePermisos(['Configuracion.Usuarios', 'Configuracion.Roles']) && $usuario->tienda_id) {
                 $queryStockBajo->join('seccion as s', 'recibido_bodega.seccion_id', '=', 's.id')
                     ->join('segmento as seg', 's.segmento_id', '=', 'seg.id')
                     ->join('bodega as b', 'seg.bodega_id', '=', 'b.id')
-                    ->where('b.tienda_id', $usuario->tienda_id);
+                    ->where('b.tienda_id', $usuario->tienda_id)
+                    ->where('b.id', '!=', 2); // Excluir bodega ID 2 (productos sin venta)
+            } else {
+                // Para Admin, también excluir bodega ID 2
+                $queryStockBajo->join('seccion as s', 'recibido_bodega.seccion_id', '=', 's.id')
+                    ->join('segmento as seg', 's.segmento_id', '=', 'seg.id')
+                    ->join('bodega as b', 'seg.bodega_id', '=', 'b.id')
+                    ->where('b.id', '!=', 2); // Excluir bodega ID 2 (productos sin venta)
             }
-            
+
             // Para recepciones de productos del mes, filtrar por usuario actual si no es Admin
             $queryRecepciones = DB::table('recibido_bodega')
                 ->whereMonth('created_at', now()->month)
                 ->whereYear('created_at', now()->year);
-            
+
             if (!$this->usuarioTienePermisos(['Configuracion.Usuarios', 'Configuracion.Roles'])) {
                 $queryRecepciones->where('users_registro_id', $usuario->id);
             }
-            
+
             $this->estadisticas = array_merge($this->estadisticas, [
                 'stock_bajo' => $queryStockBajo->count(),
                 'recepciones_mes' => $queryRecepciones->count(),
@@ -121,6 +171,7 @@ class DashboardDinamico extends Component
                     'u.name as usuario',
                     'f.nombre_cliente'
                 )
+                ->where('f.estado_factura_id', '!=', 2) // Excluir facturas anuladas
                 ->orderBy('f.created_at', 'desc')
                 ->limit(5)
                 ->get();
@@ -134,13 +185,14 @@ class DashboardDinamico extends Component
                 ->join('segmento as seg', 's.segmento_id', '=', 'seg.id')
                 ->join('bodega as b', 'seg.bodega_id', '=', 'b.id')
                 ->where('rb.cantidad_disponible', '<', 10)
-                ->where('rb.cantidad_disponible', '>', 0);
-            
+                ->where('rb.cantidad_disponible', '>', 0)
+                ->where('b.id', '!=', 2); // Excluir bodega ID 2 (productos sin venta)
+
             // Si el usuario no tiene permisos administrativos, filtrar por su tienda
             if (!$this->usuarioTienePermisos(['Configuracion.Usuarios', 'Configuracion.Roles']) && $usuario->tienda_id) {
                 $queryProductosStockBajo->where('b.tienda_id', $usuario->tienda_id);
             }
-            
+
             $this->productosStockBajo = $queryProductosStockBajo
                 ->select(
                     'p.nombre as producto',
@@ -181,99 +233,7 @@ class DashboardDinamico extends Component
         }
     }
 
-    public function cargarEstadoJornada()
-    {
-        $usuario = Auth::user();
-        
-        // Solo cargar estado de jornada si el usuario tiene tienda asignada
-        if ($usuario->tienda_id) {
-            $fechaActual = date('Y-m-d');
-            
-            // Buscar la jornada del día actual para la tienda del usuario
-            $jornadaActual = DB::table('jornada')
-                ->where('fecha', $fechaActual)
-                ->where('tienda_id', $usuario->tienda_id)
-                ->orderBy('created_at', 'desc')
-                ->first();
 
-            if ($jornadaActual) {
-                // Determinar el estado de la jornada
-                $estado = 'cerrada'; // Por defecto cerrada
-                $estado_codigo = 0;
-                
-                if ($jornadaActual->apertura == 1 && $jornadaActual->cierre == 0) {
-                    $estado = 'abierta';
-                    $estado_codigo = 1;
-                } elseif ($jornadaActual->apertura == 0 && $jornadaActual->cierre == 1) {
-                    $estado = 'cerrada';
-                    $estado_codigo = 2;
-                } elseif ($jornadaActual->apertura == 0 && $jornadaActual->cierre == 0) {
-                    $estado = 'sin_aperturar';
-                    $estado_codigo = 0;
-                }
-
-                // Obtener información del usuario que aperturó y cerró
-                $usuarioApertura = null;
-                $usuarioCierre = null;
-                
-                if ($jornadaActual->user_id_apertura) {
-                    $usuarioApertura = DB::table('users')
-                        ->where('id', $jornadaActual->user_id_apertura)
-                        ->select('name')
-                        ->first();
-                }
-                
-                if ($jornadaActual->user_id_cierre) {
-                    $usuarioCierre = DB::table('users')
-                        ->where('id', $jornadaActual->user_id_cierre)
-                        ->select('name')
-                        ->first();
-                }
-
-                $this->estadoJornada = [
-                    'id' => $jornadaActual->id,
-                    'fecha' => $jornadaActual->fecha,
-                    'estado' => $estado,
-                    'estado_codigo' => $estado_codigo,
-                    'estado_texto' => $this->obtenerTextoEstadoJornada($estado),
-                    'apertura' => $jornadaActual->apertura,
-                    'cierre' => $jornadaActual->cierre,
-                    'usuario_apertura' => $usuarioApertura->name ?? null,
-                    'usuario_cierre' => $usuarioCierre->name ?? null,
-                    'comentario' => $jornadaActual->comentario,
-                    'fecha_creacion' => $jornadaActual->created_at,
-                    'fecha_actualizacion' => $jornadaActual->updated_at
-                ];
-            } else {
-                // No hay jornada para hoy
-                $this->estadoJornada = [
-                    'id' => null,
-                    'fecha' => $fechaActual,
-                    'estado' => 'sin_jornada',
-                    'estado_codigo' => -1,
-                    'estado_texto' => 'Sin jornada creada',
-                    'apertura' => 0,
-                    'cierre' => 0,
-                    'usuario_apertura' => null,
-                    'usuario_cierre' => null,
-                    'comentario' => null,
-                    'fecha_creacion' => null,
-                    'fecha_actualizacion' => null
-                ];
-            }
-        }
-    }
-
-    private function obtenerTextoEstadoJornada($estado)
-    {
-        return match($estado) {
-            'abierta' => 'Abierta',
-            'cerrada' => 'Cerrada',
-            'sin_aperturar' => 'Sin aperturar',
-            'sin_jornada' => 'Sin jornada',
-            default => 'Desconocido'
-        };
-    }
 
     public function cargarEstadoCaja()
     {
@@ -283,43 +243,105 @@ class DashboardDinamico extends Component
         $tienePermisosCaja = $this->usuarioTienePermisos([
             'SalaDeVentas.Ventas',
             'Caja.RecibidoDeEfectivo',
-            'Caja.EntregaDeEfectivo', 
+            'Caja.EntregaDeEfectivo',
             'Caja.SaldoInicial',
             'Caja.CierreDeCaja'
         ]);
-        
-        if ($tienePermisosCaja) {
+
+        if ($tienePermisosCaja && $usuario->tienda_id) {
             // Obtener la tienda actual del usuario
             $tiendaId = $usuario->tienda_id;
-            
+
             // Fecha actual para filtrar por día en transcurso
             $fechaHoy = date('Y-m-d');
-            
-            // Buscar la caja del usuario en la tienda actual y fecha actual
+
+            // Buscar la caja actual del usuario en la tienda
             $cajaActual = DB::table('caja')
                 ->where('users_id', $usuario->id)
                 ->where('tienda_id', $tiendaId)
-                ->whereDate('created_at', $fechaHoy)
-                ->orderBy('created_at', 'desc')
+                ->orderBy('updated_at', 'desc')
                 ->first();
 
             if ($cajaActual) {
+                // Obtener la última apertura de caja para obtener la fecha
+                $ultimaApertura = DB::table('apertura_caja')
+                    ->where('caja_id', $cajaActual->id)
+                    ->orderBy('fecha_apertura', 'desc')
+                    ->first();
+
+                // Verificar si tiene caja abierta hoy
+                $tieneAperturaHoy = $ultimaApertura &&
+                    date('Y-m-d', strtotime($ultimaApertura->fecha_apertura)) == $fechaHoy;
+
+                // Determinar el tipo de estado
+                $esCajaHoy = $tieneAperturaHoy;
+
+                // Calcular balances por tipo de pago basándose en transacciones del día de la jornada abierta
+                $fechaJornada = $this->obtenerFechaJornadaAbierta();
+                $balancesPorTipo = DB::table('transaccion')
+                    ->where('caja_id', $cajaActual->id)
+                    ->whereDate('created_at', $fechaJornada)
+                    ->selectRaw('
+                        IFNULL(SUM(efectivo), 0) as balance_efectivo,
+                        IFNULL(SUM(tarjeta), 0) as balance_tarjeta,
+                        IFNULL(SUM(cheque), 0) as balance_cheque,
+                        IFNULL(SUM(transferencia), 0) as balance_transferencia
+                    ')
+                    ->first();
+
+                // Balance total
+                $balanceTotal = ($balancesPorTipo->balance_efectivo ?? 0) +
+                               ($balancesPorTipo->balance_tarjeta ?? 0) +
+                               ($balancesPorTipo->balance_cheque ?? 0) +
+                               ($balancesPorTipo->balance_transferencia ?? 0);
+
                 $this->estadoCaja = [
                     'id' => $cajaActual->id,
                     'estado' => $cajaActual->estado_caja,
-                    'estado_texto' => $this->obtenerTextoEstado($cajaActual->estado_caja),
+                    'estado_texto' => $this->obtenerTextoEstadoCaja($cajaActual->estado_caja, $esCajaHoy),
                     'balance' => $cajaActual->balance,
-                    'fecha_creacion' => $cajaActual->created_at,
+                    'balance_efectivo' => $balancesPorTipo->balance_efectivo ?? 0,
+                    'balance_tarjeta' => $balancesPorTipo->balance_tarjeta ?? 0,
+                    'balance_cheque' => $balancesPorTipo->balance_cheque ?? 0,
+                    'balance_transferencia' => $balancesPorTipo->balance_transferencia ?? 0,
+                    'balance_total_calculado' => $balanceTotal,
+                    'fecha_apertura' => $ultimaApertura ? $ultimaApertura->fecha_apertura : null,
                     'fecha_actualizacion' => $cajaActual->updated_at,
-                    'tienda_id' => $cajaActual->tienda_id
+                    'tienda_id' => $cajaActual->tienda_id,
+                    'es_caja_hoy' => $esCajaHoy,
+                    'tiene_caja_hoy' => $tieneAperturaHoy
                 ];
             } else {
-                // Si no se encuentra caja, establecer mensaje apropiado
+                // Si no se encuentra ninguna caja
                 $this->estadoCaja = [
-                    'mensaje' => 'No se encontró caja para el usuario en esta tienda hoy'
+                    'id' => null,
+                    'estado' => 0,
+                    'estado_texto' => 'Sin caja creada',
+                    'balance' => 0,
+                    'balance_efectivo' => 0,
+                    'balance_tarjeta' => 0,
+                    'balance_cheque' => 0,
+                    'balance_transferencia' => 0,
+                    'balance_total_calculado' => 0,
+                    'fecha_apertura' => null,
+                    'fecha_actualizacion' => null,
+                    'tienda_id' => $tiendaId,
+                    'es_caja_hoy' => false,
+                    'tiene_caja_hoy' => false,
+                    'mensaje' => 'No se encontró caja para el usuario en esta tienda'
                 ];
             }
         }
+    }
+
+    private function obtenerTextoEstadoCaja($estado, $esCajaHoy = true)
+    {
+        return match($estado) {
+            1 => 'Abierta',
+            2 => 'Cerrada',
+            0 => 'Sin usar',
+            default => 'Desconocido'
+        };
     }
 
     /**
@@ -330,7 +352,7 @@ class DashboardDinamico extends Component
     private function usuarioTienePermisos($permisos)
     {
         $usuario = Auth::user();
-        
+
         if (!$usuario || !$usuario->roles_id) {
             return false;
         }
@@ -338,7 +360,7 @@ class DashboardDinamico extends Component
         // Verificar si es admin (tiene acceso a todo)
         $rolNombre = $usuario->rol->txt_nombre ?? '';
         $esAdmin = in_array($rolNombre, ['Admin', 'Administrador']);
-        
+
         if ($esAdmin) {
             return true;
         }
@@ -365,22 +387,184 @@ class DashboardDinamico extends Component
         if (is_string($permisos)) {
             $permisos = [$permisos];
         }
-        
+
         return $this->usuarioTienePermisos($permisos);
     }
 
-    private function obtenerTextoEstado($estado)
+    /**
+     * Obtiene la fecha de la jornada que esté abierta
+     *
+     * @return string
+     */
+    private function obtenerFechaJornadaAbierta()
     {
-        return match($estado) {
-            0 => 'Sin usar',
-            1 => 'Abierta',
-            2 => 'Cerrada',
-            default => 'Desconocido'
-        };
+        $usuario = Auth::user();
+
+        if (!$usuario || !$usuario->tienda_id) {
+            return Carbon::now()->format('Y-m-d');
+        }
+
+        // Buscar jornada aperturada (puede ser de cualquier fecha)
+        $jornadaAbierta = DB::table('jornada')
+            ->where('tienda_id', $usuario->tienda_id)
+            ->where('apertura', 1)
+            ->where('cierre', 0)
+            ->first();
+
+        if ($jornadaAbierta) {
+            return Carbon::parse($jornadaAbierta->fecha)->format('Y-m-d');
+        }
+
+        // Si no hay jornada abierta, usar fecha actual
+        return Carbon::now()->format('Y-m-d');
+    }
+
+    /**
+     * Cargar datos para los gráficos del dashboard
+     */
+    public function cargarDatosGraficos()
+    {
+        // Generar nueva key para forzar re-render de los gráficos
+        $this->chartKey = uniqid('chart_');
+
+        $usuario = Auth::user();
+
+        // 1. Ventas de la última semana (últimos 7 días) con nombres de días dinámicos
+        if ($this->usuarioTienePermisos(['SalaDeVentas.Ventas'])) {
+            $ventasPorDia = DB::table('factura')
+                ->select(DB::raw('DATE(created_at) as fecha'), DB::raw('SUM(total) as total'))
+                ->where('created_at', '>=', Carbon::now()->subDays(6)->startOfDay())
+                ->where('estado_factura_id', '!=', 2) // Excluir facturas anuladas
+                ->groupBy(DB::raw('DATE(created_at)'))
+                ->orderBy('fecha', 'asc')
+                ->get()
+                ->keyBy('fecha');
+
+            // Llenar con 0 los días sin ventas y generar labels dinámicos
+            $this->ventasSemana = [];
+            $this->diasSemanaLabels = [];
+            for ($i = 6; $i >= 0; $i--) {
+                $fecha = Carbon::now()->subDays($i);
+                $fechaStr = $fecha->format('Y-m-d');
+
+                // Nombre del día en español
+                $nombreDia = $fecha->locale('es')->isoFormat('dddd');
+                $this->diasSemanaLabels[] = ucfirst($nombreDia);
+
+                $this->ventasSemana[] = $ventasPorDia->has($fechaStr)
+                    ? round($ventasPorDia[$fechaStr]->total, 2)
+                    : 0;
+            }
+        }
+
+        // 2. Top 5 productos más vendidos (del mes actual)
+        if ($this->usuarioTienePermisos(['Inventario.Producto', 'SalaDeVentas.Ventas'])) {
+            $topProductos = DB::table('factura_has_producto as fhp')
+                ->join('factura as f', 'fhp.factura_id', '=', 'f.id')
+                ->join('producto as p', 'fhp.producto_id', '=', 'p.id')
+                ->select('p.nombre', DB::raw('SUM(fhp.cantidad) as total_vendido'))
+                ->whereMonth('f.created_at', now()->month)
+                ->whereYear('f.created_at', now()->year)
+                ->where('f.estado_factura_id', '!=', 2) // Excluir facturas anuladas
+                ->groupBy('p.id', 'p.nombre')
+                ->orderByDesc('total_vendido')
+                ->limit(5)
+                ->get();
+
+            $this->topProductosLabels = $topProductos->pluck('nombre')->toArray();
+            $this->topProductosData = $topProductos->pluck('total_vendido')->toArray();
+
+            // Si no hay datos, poner valores por defecto
+            if (empty($this->topProductosLabels)) {
+                $this->topProductosLabels = ['Sin datos'];
+                $this->topProductosData = [0];
+            }
+        }
+
+        // 3. Ventas por método de pago (hoy) - Dinámico para cualquier tipo de pago
+        if ($this->usuarioTienePermisos(['SalaDeVentas.Ventas', 'Caja.RecibidoDeEfectivo'])) {
+            $metodosPago = DB::table('factura_has_pago as fhp')
+                ->join('tipo_pago as tp', 'fhp.tipo_pago_id', '=', 'tp.id')
+                ->join('factura as f', 'fhp.factura_id', '=', 'f.id')
+                ->select('tp.nombre', DB::raw('SUM(fhp.pago_recibido) as total'))
+                ->whereDate('f.created_at', today())
+                ->where('f.estado_factura_id', '!=', 2) // Excluir facturas anuladas
+                ->groupBy('tp.id', 'tp.nombre')
+                ->orderByDesc('total')
+                ->limit(4)
+                ->get();
+
+            if ($metodosPago->isNotEmpty()) {
+                $this->metodosPagoLabels = $metodosPago->pluck('nombre')->toArray();
+                $this->metodosPagoData = $metodosPago->pluck('total')->map(function($value) {
+                    return round($value, 2);
+                })->toArray();
+            } else {
+                // Si no hay datos de hoy, mostrar valores vacíos
+                $this->metodosPagoLabels = ['Sin datos'];
+                $this->metodosPagoData = [0];
+            }
+        }
+
+        // 4. Top 5 clientes que más compran (basado en nombre_cliente de factura)
+        if ($this->usuarioTienePermisos(['SalaDeVentas.Ventas', 'Clientes.Clientes'])) {
+            $topClientes = DB::table('factura as f')
+                ->select(
+                    DB::raw('COALESCE(NULLIF(f.nombre_cliente, ""), "CONSUMIDOR FINAL") as cliente_nombre'),
+                    DB::raw('COUNT(f.id) as total_compras'),
+                    DB::raw('SUM(f.total) as total_gastado')
+                )
+                ->whereMonth('f.created_at', now()->month)
+                ->whereYear('f.created_at', now()->year)
+                ->where('f.estado_factura_id', '!=', 2) // Excluir facturas anuladas
+                ->whereNotNull('f.nombre_cliente')
+                ->groupBy('cliente_nombre')
+                ->orderByDesc('total_gastado')
+                ->limit(5)
+                ->get();
+
+            $this->topClientesLabels = $topClientes->pluck('cliente_nombre')->toArray();
+            $this->topClientesData = $topClientes->pluck('total_gastado')->map(function($value) {
+                return round($value, 2);
+            })->toArray();
+
+            // Si no hay datos, poner valores por defecto
+            if (empty($this->topClientesLabels)) {
+                $this->topClientesLabels = ['Sin datos'];
+                $this->topClientesData = [0];
+            }
+        }
+    }
+
+    /**
+     * Actualizar todos los datos del dashboard
+     */
+    public function actualizarDatos()
+    {
+        // Recargar todas las estadísticas
+        $this->cargarTodosDatos();
+
+        // Emitir evento para que Alpine.js recargue los gráficos
+        $this->dispatch('datosActualizados');
+    }
+
+    public function actualizarDashboard()
+    {
+        // Recargar todas las estadísticas
+        $this->cargarTodosDatos();
+
+        // Emitir evento para que Alpine.js recargue los gráficos
+        $this->dispatch('datosActualizados');
     }
 
     public function render()
     {
+        // Recargar datos cada vez que se renderiza (cuando regresas a la vista)
+        $this->cargarTodosDatos();
+
+        // Emitir evento para que Alpine.js reinicialice los gráficos
+        $this->dispatch('dashboardRenderizado');
+
         return view('livewire.dashboard-dinamico');
     }
 }

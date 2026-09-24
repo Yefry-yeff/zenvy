@@ -1,4 +1,4 @@
- var clientesTableObserver = null;
+ /*var clientesTableObserver = null;
         function initClientesTable() {
             setTimeout(function() {
                 var $table = $('#clientesTable');
@@ -38,4 +38,4 @@
                 });
                 clientesTableObserver.observe(main, { childList: true, subtree: true });
             }
-        });
+        });*/

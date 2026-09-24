@@ -3,6 +3,14 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+
+    {{-- Favicon --}}
+    <link rel="icon" type="image/x-icon" href="{{ asset('img/favicon/favicon.ico') }}">
+    <link rel="icon" type="image/svg+xml" href="{{ asset('img/favicon/favicon.svg') }}">
+    <link rel="icon" type="image/png" sizes="96x96" href="{{ asset('img/favicon/favicon-96x96.png') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('img/favicon/apple-touch-icon.png') }}">
+    <link rel="manifest" href="{{ asset('img/favicon/site.webmanifest') }}">
 
     {{-- Fuentes --}}
     <link rel="preconnect" href="https://fonts.bunny.net">
@@ -12,7 +20,7 @@
     <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
 
     {{-- Estilos compilados con Vite --}}
-    <link rel="stylesheet" href="{{ asset('build/assets/app-lSBa4py6.css') }}">
+    <link rel="stylesheet" href="{{ asset('build/assets/app-B6dSsrj3.css') }}">
 
     {{-- Bootstrap 5 CSS (sin integrity para evitar error) --}}
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -20,6 +28,8 @@
     {{-- DataTables CSS --}}
     <link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet" />
 
+    {{-- FontAwesome --}}
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     {{-- Livewire --}}
     @livewireStyles
@@ -48,10 +58,13 @@
         </button>
 
         <div class="flex items-center gap-2 text-base font-semibold">
-            <div class="p-1 bg-white rounded-xl">
-                <img src="{{ asset('img/logo-zenvy.png') }}" alt="Logo Zenvy" class="object-contain w-auto h-8">
+            <div class="flex flex-col items-start gap-0">
+                <div class="flex items-center gap-2">
+                    <img src="{{ asset('img/Logo_Paperland2.png') }}" alt="Logo Paperland" class="object-contain w-8 h-8">
+                    <span class="text-xl font-semibold text-white">Paperland</span>
+                </div>
+                <span class="text-[0.65rem] text-white/80 -mt-1 ml-10">imagina · crea · diviértete</span>
             </div>
-            <span class="text-white">ZENVY POS v1.0</span>
         </div>
     </div>
 
@@ -95,8 +108,40 @@
     {{-- Livewire scripts --}}
     @livewireScripts
 
+    {{-- Dashboard Events para gráficos (inline para asegurar que se ejecute) --}}
+    <script>
+        document.addEventListener('livewire:init', () => {
+            // Escuchar eventos de Livewire
+            Livewire.on('dashboardRenderizado', () => {
+                if (typeof window.chartsInitialized !== 'undefined' && window.chartsInitialized) {
+                    if (typeof destroyCharts === 'function') {
+                        destroyCharts();
+                    }
+                }
+                setTimeout(() => {
+                    if (typeof initCharts === 'function') {
+                        initCharts();
+                    }
+                }, 150);
+            });
+
+            Livewire.on('datosActualizados', () => {
+                if (typeof window.chartsInitialized !== 'undefined' && window.chartsInitialized) {
+                    if (typeof destroyCharts === 'function') {
+                        destroyCharts();
+                    }
+                }
+                setTimeout(() => {
+                    if (typeof initCharts === 'function') {
+                        initCharts();
+                    }
+                }, 150);
+            });
+        });
+    </script>
+
     {{-- App JS compilado con Vite --}}
-    <script type="module" src="{{ asset('build/assets/app-Ck2gzFIp.js') }}"></script>
+    <script type="module" src="{{ asset('build/assets/app-BLl8G-P3.js') }}"></script>
 
     {{-- jQuery y DataTables JS CDN --}}
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
@@ -125,17 +170,37 @@
         x-data="{
             showModal: false,
             timeout: null,
+            lastActivity: Date.now(),
+            sessionTimeout: 8 * 60 * 60 * 60 * 60 * 60 * 60 * 1000, // 2 horas
             resetTimer() {
-                clearTimeout(this.timeout);
-                this.timeout = setTimeout(() => this.showModal = true, 10 * 60 * 1000); // 10 minutos
+                if (this.timeout) {
+                    clearTimeout(this.timeout);
+                    this.timeout = null;
+                }
+                this.lastActivity = Date.now();
+                this.timeout = setTimeout(() => {
+                    // Verificar si realmente pasó el tiempo sin optimizar
+                    if (Date.now() - this.lastActivity >= this.sessionTimeout) {
+                        this.showModal = true;
+                    }
+                }, this.sessionTimeout);
             },
             cerrarSesion() {
                 window.location.href = '{{ route('logout') }}';
             },
             init() {
                 this.resetTimer();
+                // Usar throttling para evitar resetear el timer muy frecuentemente
+                let throttle = false;
+                const throttledReset = () => {
+                    if (!throttle) {
+                        throttle = true;
+                        this.resetTimer();
+                        setTimeout(() => { throttle = false; }, 1000); // Throttle de 1 segundo
+                    }
+                };
                 ['mousemove', 'keydown', 'click', 'scroll'].forEach(evt =>
-                    window.addEventListener(evt, () => this.resetTimer())
+                    window.addEventListener(evt, throttledReset, { passive: true })
                 );
             }
         }"

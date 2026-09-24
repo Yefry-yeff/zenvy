@@ -15,14 +15,15 @@
         theme === 'azul' ? 'bg-blue-800/30' :
         theme === 'oscuro' ? 'bg-gray-800/50' : 'bg-slate-700/30'
     ]"
-    class="h-full overflow-y-auto text-white border-r backdrop-blur-md border-white/10"
+    class="flex flex-col h-full text-white border-r backdrop-blur-md border-white/10"
 >
-    <nav class="p-4 space-y-2 text-sm">
+    <nav class="flex-1 p-4 space-y-2 overflow-y-auto text-sm" style="padding-bottom: 120px;">
         {{-- Dashboard --}}
         <div class="flex justify-center">
             <button
-                x-on:click="Livewire.dispatch('cambiarVista', ['dashboard'])"
+                x-on:click="window.Livewire.dispatch('cambiarVista', ['dashboard'])"
                 class="flex items-center gap-2 px-2 py-1 text-sm font-medium text-white transition hover:text-white/80"
+                title="Dashboard"
             >
                 <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -72,4 +73,26 @@
             </div>
         @endforeach
     </nav>
+
+    {{-- Copyright y versión al final del sidebar --}}
+    <div
+        x-show="sidebarOpen"
+        x-transition
+        class="sticky bottom-0 left-0 right-0 p-4 text-center border-t border-white/10 bg-gradient-to-t from-black/20 to-transparent"
+    >
+        <div class="space-y-1">
+            <div class="flex items-center justify-center gap-1 text-xs text-white/60">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                </svg>
+                <span>© 2025 ZENVY POS</span>
+            </div>
+            <div class="font-mono text-xs text-white/40">
+                v5.0.1
+            </div>
+            <div class="text-xs text-white/30">
+                Desarrollado por Cadss
+            </div>
+        </div>
+    </div>
 </aside>

@@ -187,9 +187,27 @@
             width: 30%;
             text-align: right;
         }
+
+        /* Marca de agua para facturas anuladas */
+        .watermark {
+            position: fixed;
+            top: 30%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-45deg);
+            font-size: 60px;
+            font-weight: bold;
+            color: rgba(255, 0, 0, 0.25);
+            z-index: 9999;
+            pointer-events: none;
+            white-space: nowrap;
+            letter-spacing: 5px;
+        }
     </style>
 </head>
 <body>
+    @if($factura->estado_factura_id == 2)
+        <div class="watermark">ANULADA</div>
+    @endif
     <div class="container">
         <!-- ENCABEZADO - DATOS DE LA EMPRESA -->
         <div class="text-center">
@@ -252,13 +270,13 @@
         <!-- DUPLICADO Y RANGOS (solo últimos 8 dígitos) -->
         @if($caiFacturaImpresa)
             <div class="duplicado-rango">
-                (DUPLICADO) {{ substr(str_pad($caiFacturaImpresa['rango_inicio'], 8, '0', STR_PAD_LEFT), -8) }} - {{ substr(str_pad($caiFacturaImpresa['rango_final'], 8, '0', STR_PAD_LEFT), -8) }}
+                {{ substr(str_pad($caiFacturaImpresa['rango_inicio'], 8, '0', STR_PAD_LEFT), -8) }} - {{ substr(str_pad($caiFacturaImpresa['rango_final'], 8, '0', STR_PAD_LEFT), -8) }}
             </div>
         @endif
 
-        <!-- INFORMACIÓN DEL CLIENTE -->
-        @if($factura->rtn || ($factura->nombre_cliente && $factura->nombre_cliente != 'Consumidor Final'))
-            <div class="duplicado-rango" style="margin-top: 4px;">
+        <!-- CONSUMIDOR FINAL / INFORMACIÓN DEL CLIENTE -->
+        <div class="consumidor-final" style="font-weight: normal; font-size: 16px;">
+            @if($factura->rtn || ($factura->nombre_cliente && $factura->nombre_cliente != 'Consumidor Final'))
                 @if($factura->rtn)
                     RTN: {{ $factura->rtn }}
                     @if($factura->nombre_cliente && $factura->nombre_cliente != 'Consumidor Final')
@@ -266,10 +284,16 @@
                     @endif
                 @endif
                 @if($factura->nombre_cliente && $factura->nombre_cliente != 'Consumidor Final')
-                    {{ $factura->nombre_cliente }}
+                    CLIENTE: {{ $factura->nombre_cliente }}
                 @endif
-            </div>
-        @endif
+                <br>
+                No. O/C Exenta:<br>
+                No. REG DE EXONERADO:<br>
+                No. REG DE LA SAG:
+            @else
+                <strong>CONSUMIDOR FINAL</strong>
+            @endif
+        </div>
 
         <!-- FECHA Y USUARIO -->
         <div class="fecha-usuario">
@@ -277,13 +301,6 @@
         </div>
 
         <div class="separator"></div>
-
-        <!-- CONSUMIDOR FINAL -->
-        <div class="consumidor-final">
-            <strong>CONSUMIDOR FINAL</strong>
-            @if($factura->nombre_cliente && $factura->nombre_cliente != 'CONSUMIDOR FINAL')
-            @endif
-        </div>
 
         <!-- TABLA DE PRODUCTOS -->
         <div class="table-header">
@@ -298,15 +315,8 @@
             @php
                 // Calcular importe del producto SIN descuentos (cantidad × precio unitario)
                 $importeProducto = $producto['cantidad'] * $producto['precio_unidad'];
-
-                // Obtener descuentos desde la nueva estructura agrupada
-                $descuentos = $producto['descuentos'] ?? [];
-                $descuentoUnitario = $descuentos['Producto'] ?? 0;
-                $descuentoTerceraEdad = $descuentos['3ra edad'] ?? 0;
-                $descuentoCuartaEdad = $descuentos['4ta edad'] ?? 0;
-                
-                // Calcular total de descuentos de adulto mayor
-                $descuentoAdultoMayor = $descuentoTerceraEdad + $descuentoCuartaEdad;
+                $totalDescuentoProducto = $producto['total_descuentos'] ?? 0;
+                $descuentoPorUnidad = $producto['descuento_por_unidad'] ?? 0;
             @endphp
             <div class="product-row">
                 <div class="product-table-row">
@@ -319,23 +329,17 @@
                     </div>
                     <div class="col-descripcion">
                         {{ $producto['nombre'] }}<br>
-                        <span style="font-size: 13px;">{{ $producto['cantidad'] }} x L. {{ number_format($producto['precio_unidad'], 2) }}</span>
+                        <span style="font-size: 13px;">
+                            {{ $producto['cantidad'] }}
+                            @if(isset($producto['unidad_nombre']) && $producto['unidad_nombre'])
+                                {{ $producto['unidad_nombre'] }}
+                            @endif
+                            x L. {{ number_format($producto['precio_unidad'], 2) }}
+                        </span>
 
-                        @if($descuentoUnitario > 0)
-                            <br><span style="font-size: 15px;">
-                                Descuento de producto: L. {{ number_format($descuentoUnitario, 2) }}
-                            </span>
-                        @endif
-
-                        @if($descuentoTerceraEdad > 0)
-                            <br><span style="font-size: 15px;">
-                                Descuento - 25% 3ra edad
-                            </span>
-                        @endif
-
-                        @if($descuentoCuartaEdad > 0)
-                            <br><span style="font-size: 15px;">
-                                Descuento - 35% 4ta edad
+                        @if($totalDescuentoProducto > 0)
+                            <br><span style="font-size: 13px; font-weight: bold;">
+                                DESCTO : -L. {{ number_format($descuentoPorUnidad, 2) }}
                             </span>
                         @endif
                     </div>
@@ -343,16 +347,8 @@
                         <!-- Importe del producto SIN descuentos -->
                         L. {{ number_format($importeProducto, 2) }}
 
-                        @if($descuentoUnitario > 0)
-                            <br><span style="font-size: 15px;">-L. {{ number_format($descuentoUnitario, 2) }}</span>
-                        @endif
-
-                        @if($descuentoTerceraEdad > 0)
-                            <br><span style="font-size: 15px;">-L. {{ number_format($descuentoTerceraEdad, 2) }}</span>
-                        @endif
-
-                        @if($descuentoCuartaEdad > 0)
-                            <br><span style="font-size: 15px;">-L. {{ number_format($descuentoCuartaEdad, 2) }}</span>
+                        @if($totalDescuentoProducto > 0)
+                            <br><span style="font-size: 13px; font-weight: bold;">-L. {{ number_format($totalDescuentoProducto, 2) }}</span>
                         @endif
                     </div>
                 </div>
@@ -361,89 +357,91 @@
 
         <div class="separator"></div>
 
-        <!-- DETALLE DE TOTALES -->
+       <!-- DETALLE DE TOTALES -->
         <div class="totals-section">
             <div class="table-layout">
                 @php
-                    // Calcular subtotal como suma de importes SIN descuentos (cantidad × precio_unidad)
-                    $subtotalSinDescuentos = collect($productos)->sum(function($producto) {
+                    $productosExentos = collect($productos)->filter(function($producto) {
+                        return ($producto['tasa_isv'] ?? 0) == 0;
+                    });
+                    $productosGravados = collect($productos)->filter(function($producto) {
+                        return ($producto['tasa_isv'] ?? 0) > 0;
+                    });
+                    $subtotalExento = $productosExentos->sum(function($producto) {
                         return ($producto['cantidad'] ?? 0) * ($producto['precio_unidad'] ?? 0);
                     });
-
-                    // Calcular total de TODOS los descuentos desde la tabla descuentos agrupados
-                    $totalDescuentos = collect($productos)->sum(function($producto) {
-                        return $producto['total_descuentos'] ?? 0;
+                    $descuentoExento = $productosExentos->sum('total_descuentos');
+                    $totalExento = max(0, $subtotalExento - $descuentoExento);
+                    $subtotalGravado = $productosGravados->sum(function($producto) {
+                        return ($producto['cantidad'] ?? 0) * ($producto['precio_unidad'] ?? 0);
                     });
+                    $descuentoGravado = $productosGravados->sum('total_descuentos');
+                    $totalGravado = max(0, $subtotalGravado - $descuentoGravado);
+                    $subtotalFinal = $totalExento + $totalGravado;
                 @endphp
+
                 <div class="table-row">
-                    <div class="table-cell-left">SUB-TOTAL</div>
-                    <div class="table-cell-right">L. {{ number_format($subtotalSinDescuentos, 2) }}</div>
+                    <div class="table-cell-left">SUBTOTAL EXENTO</div>
+                    <div class="table-cell-right">L. {{ number_format($subtotalExento, 2) }}</div>
                 </div>
-                @if($totalDescuentos > 0)
                 <div class="table-row">
-                    <div class="table-cell-left">DESCUENTOS Y REBAJAS</div>
-                    <div class="table-cell-right">-L. {{ number_format($totalDescuentos, 2) }}</div>
+                    <div class="table-cell-left">DESCUENTO EXENTO</div>
+                    <div class="table-cell-right">-L. {{ number_format($descuentoExento, 2) }}</div>
                 </div>
-                @endif
                 <div class="table-row">
-                    <div class="table-cell-left">IMPORTE EXONERADO</div>
-                    <div class="table-cell-right">L. {{ number_format(collect($productos)->filter(function($producto) {
-                        return ($producto['tasa_isv'] ?? 0) == 0;
-                    })->sum(function($producto) {
-                        return $producto['subtotal'] ?? 0;
-                    }), 2) }}</div>
+                    <div class="table-cell-left">TOTAL EXENTO</div>
+                    <div class="table-cell-right">L. {{ number_format($totalExento, 2) }}</div>
                 </div>
+
                 @php
-                    // Calcular importes por tasa de ISV
-                    $importe15 = collect($productos)->filter(function($producto) {
-                        return ($producto['tasa_isv'] ?? 0) == 15;
-                    })->sum(function($producto) {
-                        return $producto['subtotal'] ?? 0;
-                    });
-
-                    $importe18 = collect($productos)->filter(function($producto) {
-                        return ($producto['tasa_isv'] ?? 0) == 18;
-                    })->sum(function($producto) {
-                        return $producto['subtotal'] ?? 0;
-                    });
-
-                    // Calcular impuestos por tasa (usar campo 'isv' que siempre tiene el monto calculado)
+                    // Redondear el impuesto por línea, igual que al crear la factura.
                     $impuesto15 = collect($productos)->filter(function($producto) {
                         return ($producto['tasa_isv'] ?? 0) == 15;
                     })->sum(function($producto) {
-                        return $producto['isv'] ?? 0;
+                        $importe = ($producto['cantidad'] ?? 0) * ($producto['precio_unidad'] ?? 0);
+                        $baseGravada = max(0, $importe - ($producto['total_descuentos'] ?? 0));
+                        return round($baseGravada * 0.15, 2);
                     });
 
                     $impuesto18 = collect($productos)->filter(function($producto) {
                         return ($producto['tasa_isv'] ?? 0) == 18;
                     })->sum(function($producto) {
-                        return $producto['isv'] ?? 0;
+                        $importe = ($producto['cantidad'] ?? 0) * ($producto['precio_unidad'] ?? 0);
+                        $baseGravada = max(0, $importe - ($producto['total_descuentos'] ?? 0));
+                        return round($baseGravada * 0.18, 2);
                     });
                 @endphp
+
                 <div class="table-row">
-                    <div class="table-cell-left">IMPORTE 15%</div>
-                    <div class="table-cell-right">L. {{ number_format($importe15, 2) }}</div>
+                    <div class="table-cell-left">SUBTOTAL GRAVADO</div>
+                    <div class="table-cell-right">L. {{ number_format($subtotalGravado, 2) }}</div>
                 </div>
                 <div class="table-row">
-                    <div class="table-cell-left">IMPORTE 18%</div>
-                    <div class="table-cell-right">L. {{ number_format($importe18, 2) }}</div>
+                    <div class="table-cell-left">DESCUENTO GRAVADO</div>
+                    <div class="table-cell-right">-L. {{ number_format($descuentoGravado, 2) }}</div>
                 </div>
                 <div class="table-row">
-                    <div class="table-cell-left">TOTAL IMPORTE</div>
-                    <div class="table-cell-right">L. {{ number_format($factura->sub_total, 2) }}</div>
+                    <div class="table-cell-left">TOTAL GRAVADO</div>
+                    <div class="table-cell-right">L. {{ number_format($totalGravado, 2) }}</div>
+                </div>
+
+                <div class="table-row">
+                    <div class="table-cell-left">SUB-TOTAL</div>
+                    <div class="table-cell-right">L. {{ number_format($subtotalFinal, 2) }}</div>
                 </div>
                 <div class="table-row">
                     <div class="table-cell-left">IMPUESTO DEL 15%</div>
                     <div class="table-cell-right">L. {{ number_format($impuesto15, 2) }}</div>
                 </div>
-                <div class="table-row">
+                <!--<div class="table-row">
                     <div class="table-cell-left">IMPUESTO DEL 18%</div>
                     <div class="table-cell-right">L. {{ number_format($impuesto18, 2) }}</div>
                 </div>
                 <div class="table-row">
                     <div class="table-cell-left">TOTAL IMPUESTOS</div>
                     <div class="table-cell-right">L. {{ number_format($factura->isv, 2) }}</div>
-                </div>
+                </div>-->
+
             </div>
 
             <div class="total-final">
@@ -471,40 +469,64 @@
                 $especiales = ['DIEZ', 'ONCE', 'DOCE', 'TRECE', 'CATORCE', 'QUINCE', 'DIECISÉIS', 'DIECISIETE', 'DIECIOCHO', 'DIECINUEVE'];
                 $centenas = ['', 'CIENTO', 'DOSCIENTOS', 'TRESCIENTOS', 'CUATROCIENTOS', 'QUINIENTOS', 'SEISCIENTOS', 'SETECIENTOS', 'OCHOCIENTOS', 'NOVECIENTOS'];
 
+                // Función auxiliar para convertir números menores a 1000
+                function convertirGrupo($num, $unidades, $decenas, $especiales, $centenas) {
+                    $texto = '';
+                    
+                    if ($num >= 100) {
+                        $c = floor($num / 100);
+                        if ($num == 100) {
+                            $texto .= 'CIEN ';
+                        } else {
+                            $texto .= $centenas[$c] . ' ';
+                        }
+                        $num %= 100;
+                    }
+
+                    if ($num >= 20) {
+                        $d = floor($num / 10);
+                        $texto .= $decenas[$d];
+                        $num %= 10;
+                        if ($num > 0) $texto .= ' Y ' . $unidades[$num];
+                    } elseif ($num >= 10) {
+                        $texto .= $especiales[$num - 10];
+                    } elseif ($num > 0) {
+                        $texto .= $unidades[$num];
+                    }
+                    
+                    return $texto;
+                }
+
                 // Convertir parte entera
                 $letrasEntero = '';
                 if ($entero == 0) {
                     $letrasEntero = 'CERO';
                 } else {
+                    // Manejar millones
+                    if ($entero >= 1000000) {
+                        $millones = floor($entero / 1000000);
+                        if ($millones == 1) {
+                            $letrasEntero .= 'UN MILLON ';
+                        } else {
+                            $letrasEntero .= convertirGrupo($millones, $unidades, $decenas, $especiales, $centenas) . ' MILLONES ';
+                        }
+                        $entero %= 1000000;
+                    }
+                    
+                    // Manejar miles
                     if ($entero >= 1000) {
                         $miles = floor($entero / 1000);
                         if ($miles == 1) {
                             $letrasEntero .= 'MIL ';
                         } else {
-                            $letrasEntero .= $unidades[$miles] . ' MIL ';
+                            $letrasEntero .= convertirGrupo($miles, $unidades, $decenas, $especiales, $centenas) . ' MIL ';
                         }
                         $entero %= 1000;
                     }
 
-                    if ($entero >= 100) {
-                        $c = floor($entero / 100);
-                        if ($entero == 100) {
-                            $letrasEntero .= 'CIEN ';
-                        } else {
-                            $letrasEntero .= $centenas[$c] . ' ';
-                        }
-                        $entero %= 100;
-                    }
-
-                    if ($entero >= 20) {
-                        $d = floor($entero / 10);
-                        $letrasEntero .= $decenas[$d];
-                        $entero %= 10;
-                        if ($entero > 0) $letrasEntero .= ' Y ' . $unidades[$entero];
-                    } elseif ($entero >= 10) {
-                        $letrasEntero .= $especiales[$entero - 10];
-                    } elseif ($entero > 0) {
-                        $letrasEntero .= $unidades[$entero];
+                    // Manejar centenas, decenas y unidades
+                    if ($entero > 0) {
+                        $letrasEntero .= convertirGrupo($entero, $unidades, $decenas, $especiales, $centenas);
                     }
                 }
 

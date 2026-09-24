@@ -259,7 +259,7 @@ class UsuariosForm extends Component
 
     public function volver()
     {
-        $this->dispatch('cambiarVista', ruta: 'configuracion.usuarios');
+        $this->dispatch('cambiarVista', ruta: 'Configuracion.Usuarios');
     }
 
     public function render()

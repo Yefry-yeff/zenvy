@@ -3,15 +3,28 @@
 namespace App\Livewire\Caja;
 
 use Livewire\Component;
+use Livewire\WithPagination;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 
 class GestionDeDiferencias extends Component
 {
-    public $diferencias = [];
+    use WithPagination;
+
     public $tiendaUsuario;
     public $nombreTienda;
+    
+    // Filtros
+    public $filtroCaja = '';
+    public $filtroUsuario = '';
+    public $filtroTipoCierre = '';
+    public $filtroEstado = '';
+    public $filtroFechaDesde = '';
+    public $filtroFechaHasta = '';
+    
+    // Paginación
+    public $registrosPorPagina = 10;
     
     // Modal de gestión
     public $mostrarModal = false;
@@ -99,40 +112,134 @@ class GestionDeDiferencias extends Component
 
     public function cargarDiferencias()
     {
-        if (!$this->tiendaUsuario) return;
+        if (!$this->tiendaUsuario) return collect();
 
         // Obtener todas las cajas con diferencias de la tienda
-        // Ahora usamos directamente cc.diferencia_efectivo que se actualiza con las gestiones
-        $this->diferencias = DB::table('cierre_de_caja as cc')
+        $query = DB::table('cierre_de_caja as cc')
             ->join('caja as c', 'cc.caja_id', '=', 'c.id')
             ->join('users as u', 'c.users_id', '=', 'u.id')
             ->leftJoin('gestion_diferencia as gd', 'cc.id', '=', 'gd.cierre_de_caja_id')
             ->where('u.tienda_id', $this->tiendaUsuario)
-            ->whereRaw('ABS(cc.diferencia_efectivo) >= 0.01') // Solo mostrar diferencias que aún tienen saldo pendiente
+            ->whereRaw('ABS(cc.diferencia_efectivo) >= 0.01'); // Solo mostrar diferencias que aún tienen saldo pendiente
+
+        // Aplicar filtros
+        if (!empty($this->filtroCaja)) {
+            $query->where('c.id', 'like', '%' . $this->filtroCaja . '%');
+        }
+
+        if (!empty($this->filtroUsuario)) {
+            $query->where('u.name', 'like', '%' . $this->filtroUsuario . '%');
+        }
+
+        if (!empty($this->filtroTipoCierre)) {
+            if ($this->filtroTipoCierre === 'caja') {
+                $query->where('cc.tipo_cierre', 1);
+            } elseif ($this->filtroTipoCierre === 'jornada') {
+                $query->where('cc.tipo_cierre', 2);
+            }
+        }
+
+        if (!empty($this->filtroEstado)) {
+            if ($this->filtroEstado === 'pendiente') {
+                $query->whereRaw('ABS(cc.diferencia_efectivo) >= 0.01');
+            } elseif ($this->filtroEstado === 'resuelto') {
+                $query->whereRaw('ABS(cc.diferencia_efectivo) < 0.01');
+            }
+        }
+
+        if (!empty($this->filtroFechaDesde)) {
+            $query->whereDate('cc.created_at', '>=', $this->filtroFechaDesde);
+        }
+
+        if (!empty($this->filtroFechaHasta)) {
+            $query->whereDate('cc.created_at', '<=', $this->filtroFechaHasta);
+        }
+
+        return $query->select(
+                'cc.id as cierre_id',
+                'c.id as caja_id',
+                'c.users_id',
+                'u.name as nombre_usuario',
+                'cc.diferencia_efectivo',
+                'cc.total_efectivo',
+                'cc.conteo_efectivo',
+                'cc.created_at',
+                'cc.tipo_cierre',
+                DB::raw('COALESCE(SUM(gd.monto), 0) as total_gestionado'),
+                'cc.diferencia_efectivo as diferencia_pendiente',
+                DB::raw('COUNT(gd.id) as gestiones_realizadas')
+            )
+            ->groupBy('cc.id', 'c.id', 'c.users_id', 'u.name', 'cc.diferencia_efectivo', 'cc.total_efectivo', 'cc.conteo_efectivo', 'cc.created_at', 'cc.tipo_cierre')
+            ->orderBy('cc.created_at', 'desc')
+            ->paginate($this->registrosPorPagina);
+    }
+
+    // Métodos para actualizar filtros
+    public function updatedFiltroCaja()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedFiltroUsuario()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedFiltroTipoCierre()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedFiltroEstado()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedFiltroFechaDesde()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedFiltroFechaHasta()
+    {
+        $this->resetPage();
+    }
+
+    public function limpiarFiltros()
+    {
+        $this->filtroCaja = '';
+        $this->filtroUsuario = '';
+        $this->filtroTipoCierre = '';
+        $this->filtroEstado = '';
+        $this->filtroFechaDesde = '';
+        $this->filtroFechaHasta = '';
+        $this->resetPage();
+    }
+
+    public function abrirModal($cierreId)
+    {
+        // Buscar la diferencia directamente de la base de datos
+        $this->diferenciaSeleccionada = DB::table('cierre_de_caja as cc')
+            ->join('caja as c', 'cc.caja_id', '=', 'c.id')
+            ->join('users as u', 'c.users_id', '=', 'u.id')
+            ->leftJoin('gestion_diferencia as gd', 'cc.id', '=', 'gd.cierre_de_caja_id')
+            ->where('cc.id', $cierreId)
             ->select(
                 'cc.id as cierre_id',
                 'c.id as caja_id',
                 'c.users_id',
                 'u.name as nombre_usuario',
-                'cc.diferencia_efectivo', // Usar directamente el campo actualizado
+                'cc.diferencia_efectivo',
                 'cc.total_efectivo',
                 'cc.conteo_efectivo',
                 'cc.created_at',
+                'cc.tipo_cierre',
                 DB::raw('COALESCE(SUM(gd.monto), 0) as total_gestionado'),
-                'cc.diferencia_efectivo as diferencia_pendiente', // Ahora es lo mismo que diferencia_efectivo
+                'cc.diferencia_efectivo as diferencia_pendiente',
                 DB::raw('COUNT(gd.id) as gestiones_realizadas')
             )
-            ->groupBy('cc.id', 'c.id', 'c.users_id', 'u.name', 'cc.diferencia_efectivo', 'cc.total_efectivo', 'cc.conteo_efectivo', 'cc.created_at')
-            ->orderBy('cc.created_at', 'desc')
-            ->get()
-            ->toArray();
-    }
-
-    public function abrirModal($cierreId)
-    {
-        // Buscar la diferencia seleccionada
-        $this->diferenciaSeleccionada = collect($this->diferencias)
-            ->firstWhere('cierre_id', $cierreId);
+            ->groupBy('cc.id', 'c.id', 'c.users_id', 'u.name', 'cc.diferencia_efectivo', 'cc.total_efectivo', 'cc.conteo_efectivo', 'cc.created_at', 'cc.tipo_cierre')
+            ->first();
 
         if ($this->diferenciaSeleccionada) {
             // Cargar historial de gestiones para esta diferencia
@@ -237,15 +344,11 @@ class GestionDeDiferencias extends Component
                 $this->mensajeExito = "Se registró un {$tipoMovimiento} de L. " . number_format(abs($this->monto), 2) . " en la Caja #{$this->diferenciaSeleccionada->caja_id}, {$impactoTexto}. Nueva diferencia: L. " . number_format(abs($nuevaDiferencia), 2) . ". La transacción permanece abierta.";
             }
 
-            // Recargar datos
-            $this->cargarDiferencias();
-            
             // Si la diferencia no se cerró completamente, actualizar historial en el modal
             if (!$this->diferenciaTotalmenteResuelta) {
                 $this->cargarHistorialGestiones($this->diferenciaSeleccionada->cierre_id);
-                // Actualizar la diferencia seleccionada con los nuevos datos
-                $this->diferenciaSeleccionada = collect($this->diferencias)
-                    ->firstWhere('cierre_id', $this->diferenciaSeleccionada->cierre_id);
+                // Recargar la diferencia seleccionada con los nuevos datos
+                $this->abrirModal($this->diferenciaSeleccionada->cierre_id);
             }
             
             $this->cerrarModal();
@@ -274,8 +377,90 @@ class GestionDeDiferencias extends Component
         $this->tipoMensaje = '';
     }
 
+    public function descargarExcel()
+    {
+        try {
+            // Obtener todos los datos sin paginación para el reporte
+            $query = DB::table('cierre_de_caja as cc')
+                ->join('caja as c', 'cc.caja_id', '=', 'c.id')
+                ->join('users as u', 'c.users_id', '=', 'u.id')
+                ->leftJoin('gestion_diferencia as gd', 'cc.id', '=', 'gd.cierre_de_caja_id')
+                ->where('u.tienda_id', $this->tiendaUsuario)
+                ->whereRaw('ABS(cc.diferencia_efectivo) >= 0.01');
+
+            // Aplicar los mismos filtros
+            if (!empty($this->filtroCaja)) {
+                $query->where('c.id', 'like', '%' . $this->filtroCaja . '%');
+            }
+            if (!empty($this->filtroUsuario)) {
+                $query->where('u.name', 'like', '%' . $this->filtroUsuario . '%');
+            }
+            if (!empty($this->filtroTipoCierre)) {
+                if ($this->filtroTipoCierre === 'caja') {
+                    $query->where('cc.tipo_cierre', 1);
+                } elseif ($this->filtroTipoCierre === 'jornada') {
+                    $query->where('cc.tipo_cierre', 2);
+                }
+            }
+            if (!empty($this->filtroEstado)) {
+                if ($this->filtroEstado === 'pendiente') {
+                    $query->whereRaw('ABS(cc.diferencia_efectivo) >= 0.01');
+                } elseif ($this->filtroEstado === 'resuelto') {
+                    $query->whereRaw('ABS(cc.diferencia_efectivo) < 0.01');
+                }
+            }
+            if (!empty($this->filtroFechaDesde)) {
+                $query->whereDate('cc.created_at', '>=', $this->filtroFechaDesde);
+            }
+            if (!empty($this->filtroFechaHasta)) {
+                $query->whereDate('cc.created_at', '<=', $this->filtroFechaHasta);
+            }
+
+            $diferencias = $query->select(
+                    'cc.id as cierre_id',
+                    'c.id as caja_id',
+                    'u.name as nombre_usuario',
+                    'cc.diferencia_efectivo',
+                    'cc.total_efectivo',
+                    'cc.conteo_efectivo',
+                    'cc.created_at',
+                    'cc.tipo_cierre',
+                    DB::raw('COALESCE(SUM(gd.monto), 0) as total_gestionado'),
+                    DB::raw('COUNT(gd.id) as gestiones_realizadas')
+                )
+                ->groupBy('cc.id', 'c.id', 'u.name', 'cc.diferencia_efectivo', 'cc.total_efectivo', 'cc.conteo_efectivo', 'cc.created_at', 'cc.tipo_cierre')
+                ->orderBy('cc.created_at', 'desc')
+                ->get();
+
+            $fechaGeneracion = now()->format('d/m/Y H:i:s');
+            $usuarioReporte = Auth::user()->name;
+            $timestamp = now()->format('Y-m-d_H-i-s');
+            $filename = "gestion_diferencias_{$timestamp}.xlsx";
+
+            $tempDir = storage_path('app/temp');
+            if (!file_exists($tempDir)) {
+                mkdir($tempDir, 0755, true);
+            }
+
+            \Maatwebsite\Excel\Facades\Excel::store(
+                new \App\Excel\GestionDiferenciasExport($diferencias, $fechaGeneracion, $usuarioReporte, $this->nombreTienda),
+                $filename,
+                'temp'
+            );
+
+            return $this->redirectRoute('download.file', ['file' => $filename]);
+        } catch (\Exception $e) {
+            $this->mensaje = 'Error al generar el archivo Excel: ' . $e->getMessage();
+            $this->tipoMensaje = 'error';
+        }
+    }
+
     public function render()
     {
-        return view('livewire.caja.gestion-de-diferencias');
+        $diferencias = $this->cargarDiferencias();
+        
+        return view('livewire.caja.gestion-de-diferencias', [
+            'diferencias' => $diferencias
+        ]);
     }
 }

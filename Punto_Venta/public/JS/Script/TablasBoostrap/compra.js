@@ -1,4 +1,4 @@
- var comprasTableObserver = null;
+ /*var comprasTableObserver = null;
         function initComprasTable() {
             setTimeout(function() {
                 var $table = $('#comprasTabla');
@@ -38,4 +38,4 @@
                 });
                 comprasTableObserver.observe(main, { childList: true, subtree: true });
             }
-        });
+        });*/

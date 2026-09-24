@@ -52,14 +52,91 @@
                     </p>
                 </div>
 
+                <!-- Filtros -->
+                <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold text-gray-800">
+                            <i class="fas fa-filter mr-2 text-orange-500"></i>
+                            Filtros de Búsqueda
+                        </h3>
+                        <button wire:click="limpiarFiltros" class="px-3 py-1.5 text-sm bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg transition-colors">
+                            <i class="fas fa-times mr-1"></i>
+                            Limpiar Filtros
+                        </button>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                        <!-- Filtro por Caja -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Caja</label>
+                            <input type="text"
+                                   wire:model.live.debounce.300ms="filtroCaja"
+                                   placeholder="ID de caja..."
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-orange-500 focus:border-transparent">
+                        </div>
+
+                        <!-- Filtro por Usuario -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Usuario</label>
+                            <input type="text"
+                                   wire:model.live.debounce.300ms="filtroUsuario"
+                                   placeholder="Nombre del usuario..."
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-orange-500 focus:border-transparent">
+                        </div>
+
+                        <!-- Filtro por Tipo de Cierre -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de Cierre</label>
+                            <select wire:model.live="filtroTipoCierre" 
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-orange-500">
+                                <option value="">Todos</option>
+                                <option value="caja">Cierre de Caja</option>
+                                <option value="jornada">Cierre de Jornada</option>
+                            </select>
+                        </div>
+
+                        <!-- Filtro por Estado -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Estado</label>
+                            <select wire:model.live="filtroEstado" 
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-orange-500">
+                                <option value="">Todos</option>
+                                <option value="pendiente">Pendiente</option>
+                                <option value="resuelto">Resuelto</option>
+                            </select>
+                        </div>
+
+                        <!-- Filtro por Fecha Desde -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Fecha Desde</label>
+                            <input type="date"
+                                   wire:model.live="filtroFechaDesde"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-orange-500 focus:border-transparent">
+                        </div>
+
+                        <!-- Filtro por Fecha Hasta -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Fecha Hasta</label>
+                            <input type="date"
+                                   wire:model.live="filtroFechaHasta"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-orange-500 focus:border-transparent">
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Lista de Diferencias -->
-                @if(count($diferencias) > 0)
+                @if($diferencias->count() > 0)
                     <div class="bg-white border border-gray-200 rounded-lg overflow-hidden">
-                        <div class="bg-gray-50 px-6 py-3 border-b border-gray-200">
+                        <div class="bg-gray-50 px-6 py-3 border-b border-gray-200 flex items-center justify-between">
                             <h3 class="text-lg font-semibold text-gray-800">
                                 <i class="fas fa-list mr-2 text-orange-500"></i>
-                                Cajas con Diferencias ({{ count($diferencias) }})
+                                Cajas con Diferencias ({{ $diferencias->total() }})
                             </h3>
+                            <button wire:click="descargarExcel"
+                                    class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm rounded-lg transition-colors">
+                                <i class="fas fa-file-excel mr-2"></i>
+                                Exportar a Excel
+                            </button>
                         </div>
 
                         <div class="overflow-x-auto">
@@ -73,6 +150,10 @@
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             <i class="fas fa-user mr-1"></i>
                                             Usuario
+                                        </th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            <i class="fas fa-door-closed mr-1"></i>
+                                            Tipo de Cierre
                                         </th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             <i class="fas fa-calendar mr-1"></i>
@@ -126,6 +207,19 @@
                                                 </div>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap">
+                                                @if($diferencia->tipo_cierre == 1)
+                                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                                        <i class="fas fa-cash-register mr-1"></i>
+                                                        Cierre de Caja
+                                                    </span>
+                                                @else
+                                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                                                        <i class="fas fa-calendar-day mr-1"></i>
+                                                        Cierre de Jornada
+                                                    </span>
+                                                @endif
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap">
                                                 <div class="text-sm text-gray-900">
                                                     {{ \Carbon\Carbon::parse($diferencia->created_at)->format('d/m/Y') }}
                                                 </div>
@@ -174,18 +268,23 @@
                                 </tbody>
                             </table>
                         </div>
+
+                        <!-- Paginación -->
+                        <div class="bg-gray-50 px-6 py-3 border-t border-gray-200">
+                            {{ $diferencias->links() }}
+                        </div>
                     </div>
                 @else
                     <div class="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
                         <i class="fas fa-balance-scale text-gray-400 text-4xl mb-4"></i>
                         <h3 class="text-lg font-medium text-gray-900 mb-2">No hay diferencias pendientes</h3>
-                        <p class="text-gray-600 mb-4">No se encontraron cajas con diferencias de efectivo en su tienda.</p>
+                        <p class="text-gray-600 mb-4">No se encontraron cajas con diferencias de efectivo en su tienda con los filtros aplicados.</p>
                         <button 
-                            wire:click="cargarDiferencias"
+                            wire:click="limpiarFiltros"
                             class="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
                         >
                             <i class="fas fa-sync-alt mr-2"></i>
-                            Actualizar
+                            Limpiar Filtros
                         </button>
                     </div>
                 @endif

@@ -28,7 +28,13 @@ class Producto extends Model
         'subcategoria_id',
         'marca_id',
         'unidad_medida_venta_id',
-        'users_id'
+        'users_id',
+        'imagen',
+        'producto_valencia',
+        'precio1',
+        'precio2',
+        'precio3',
+        'precio4'
     ];
 
     // Relationships
@@ -50,6 +56,11 @@ class Producto extends Model
     public function isv()
     {
         return $this->belongsTo(Isv::class, 'isv_id');
+    }
+
+    public function estado()
+    {
+        return $this->belongsTo(Estado::class, 'estado_id');
     }
 
     // Relación con compras
@@ -96,11 +107,24 @@ class Producto extends Model
         return $this->hasMany(RecibidoBodega::class, 'producto_id');
     }
 
+    public function preciosVenta()
+    {
+        return $this->hasMany(PrecioHasVenta::class, 'producto_id')
+                    ->where('estado_id', 1)
+                    ->orderBy('cantidad', 'asc');
+    }
+
+    public function mapeoValencia()
+    {
+        return $this->hasOne(ProductoValenciaZenvy::class, 'producto_id_zenvy');
+    }
+
     // Static methods for SP operations
     public static function crearProducto($datos)
     {
         try {
-            return DB::statement('CALL sp_crud_producto(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
+            // Usar DB::select() para obtener el ID generado por el SP
+            $resultado = DB::select('CALL sp_crud_producto(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
                 1, // Acción: crear
                 null, // ID (se genera automáticamente)
                 $datos['nombre'] ?? '',
@@ -122,8 +146,11 @@ class Producto extends Model
                 $datos['users_id'] ?? null,
                 $datos['descuento_unitario'] ?? 0,
                 $datos['descuento_tercera'] ?? 0, // SP normaliza a 0/1 automáticamente
-                $datos['descuento_cuarta'] ?? 0   // SP normaliza a 0/1 automáticamente
+                $datos['descuento_cuarta'] ?? 0,   // SP normaliza a 0/1 automáticamente
+                $datos['imagen'] ?? null // Nuevo parámetro imagen
             ]);
+
+            return $resultado; // Retorna el array con el ID generado
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error('Error en crearProducto: ' . $e->getMessage(), ['datos' => $datos]);
             throw $e;
@@ -133,7 +160,7 @@ class Producto extends Model
     public static function actualizarProducto($id, $datos)
     {
         try {
-            return DB::statement('CALL sp_crud_producto(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
+            return DB::statement('CALL sp_crud_producto(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
                 2, // Acción: actualizar
                 $id,
                 $datos['nombre'] ?? '',
@@ -148,14 +175,15 @@ class Producto extends Model
                 $datos['subcategoria_id'] ?? null,
                 $datos['marca_id'] ?? null,
                 $datos['unidad_medida_venta_id'] ?? null,
-                0, // precio1
-                0, // precio2
-                0, // precio3
-                0, // precio4
+                $datos['precio1'] ?? 0, // precio1
+                $datos['precio2'] ?? 0, // precio2
+                $datos['precio3'] ?? 0, // precio3
+                $datos['precio4'] ?? 0, // precio4
                 $datos['users_id'] ?? null,
                 $datos['descuento_unitario'] ?? 0,
                 $datos['descuento_tercera'] ?? 0, // SP normaliza a 0/1 automáticamente
-                $datos['descuento_cuarta'] ?? 0   // SP normaliza a 0/1 automáticamente
+                $datos['descuento_cuarta'] ?? 0,   // SP normaliza a 0/1 automáticamente
+                $datos['imagen'] ?? null // Nuevo parámetro imagen
             ]);
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error('Error en actualizarProducto: ' . $e->getMessage(), ['id' => $id, 'datos' => $datos]);
@@ -165,19 +193,19 @@ class Producto extends Model
 
     public static function eliminarProducto($id)
     {
-        return DB::statement('CALL sp_crud_producto(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
+        return DB::statement('CALL sp_crud_producto(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
             3, // Acción: eliminar
             $id,
-            null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null
+            null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null
         ]);
     }
 
     public static function consultarDetallado($id)
     {
-        return DB::select('CALL sp_crud_producto(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
+        return DB::select('CALL sp_crud_producto(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
             4, // Acción: consultar detallado
             $id,
-            null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null
+            null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null
         ]);
     }
 }

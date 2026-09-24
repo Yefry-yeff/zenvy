@@ -210,7 +210,7 @@
                         --}}
                         @forelse($productos as $recibido)
                             <tr class="text-center align-middle transition-colors duration-200 cursor-pointer hover:bg-blue-50 hover:shadow-sm"
-                                wire:click="editarProducto({{ $recibido->producto->id }})"
+                                wire:click="editarProducto({{ $recibido->id }})"
                                 title="🖱️ Haga clic para editar el stock de este producto"
                                 style="user-select: none;">
                                 {{-- COLUMNA 1: ID DEL PRODUCTO --}}

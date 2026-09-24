@@ -17,6 +17,7 @@ class Descuento extends Model
         'Tipo_descuento',
         'monto_unidad',
         'monto_total',
+        'indice_factura_has_producto',
         'users_id'
     ];
 

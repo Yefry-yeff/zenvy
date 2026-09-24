@@ -67,4 +67,25 @@ class Compra extends Model
     {
         return $this->belongsTo(Estado::class, 'estado_id');
     }
+
+    /**
+     * Obtener el tipo de origen de la compra (COMPRA o TRASLADO)
+     * basado en el registro en id_zenvy_valencia
+     */
+    public function getTipoOrigenAttribute()
+    {
+        $mapeo = \App\Models\IdZenvyValencia::where('id_zenvy', $this->id)
+            ->whereIn('tipo_dato_migrado_id', [
+                \App\Models\IdZenvyValencia::TIPO_COMPRA, 
+                \App\Models\IdZenvyValencia::TIPO_TRASLADO
+            ])
+            ->first();
+
+        if ($mapeo) {
+            return $mapeo->tipo_dato_migrado_id === \App\Models\IdZenvyValencia::TIPO_TRASLADO ? 'TRASLADO' : 'COMPRA';
+        }
+
+        // Si no hay registro, siempre devolver 'COMPRA'
+        return 'COMPRA';
+    }
 }

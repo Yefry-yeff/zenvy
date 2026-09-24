@@ -15,6 +15,7 @@ class Factura extends Model
     protected $fillable = [
         'cai_id',
         'tipo_facturacion_id',
+        'transaccion_id',
         'numero_factura',
         'numero_secuencia_cai',
         'nombre_cliente',
@@ -31,6 +32,8 @@ class Factura extends Model
         'comentario',
         'porc_descuento',
         'monto_descuento',
+        'descuento_gravado',
+        'descuento_exento',
         'precio_dolar',
         'estado_factura_id',
         'users_id',
@@ -47,6 +50,8 @@ class Factura extends Model
         'total' => 'decimal:2',
         'credito' => 'decimal:2',
         'monto_descuento' => 'decimal:2',
+        'descuento_gravado' => 'decimal:2',
+        'descuento_exento' => 'decimal:2',
         'precio_dolar' => 'decimal:2'
     ];
 

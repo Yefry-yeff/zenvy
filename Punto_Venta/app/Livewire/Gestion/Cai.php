@@ -92,9 +92,8 @@ class Cai extends Component
 
     public function crearCai()
     {
-        //dd("entra");
         try {
-            // Validar datos del formulario
+            // Validar datos del formulario con mensajes personalizados
             $this->validate([
                 'nuevoCai'             => 'required|string|max:60',
                 'nuevoFechaLimite'     => 'required|date|after:today',
@@ -106,6 +105,30 @@ class Cai extends Component
                 'nuevoCantidadOtorgada' => 'required|integer|min:1',
                 'nuevoRangoInicial'  => 'required|string|max:45',
                 'nuevoRangoFinal'  => 'required|string|max:45',
+            ], [
+                'nuevoCai.required' => 'El CAI es obligatorio',
+                'nuevoCai.max' => 'El CAI no puede exceder 60 caracteres',
+                'nuevoFechaLimite.required' => 'La fecha límite es obligatoria',
+                'nuevoFechaLimite.date' => 'La fecha límite debe ser una fecha válida',
+                'nuevoFechaLimite.after' => 'La fecha límite debe ser posterior a hoy',
+                'nuevoFechaSolicitud.required' => 'La fecha de solicitud es obligatoria',
+                'nuevoFechaSolicitud.date' => 'La fecha de solicitud debe ser una fecha válida',
+                'nuevoPuntoEmision.required' => 'El punto de emisión es obligatorio',
+                'nuevoPuntoEmision.max' => 'El punto de emisión no puede exceder 100 caracteres',
+                'tipoDocumentoSeleccionado.required' => 'Debe seleccionar un tipo de documento fiscal',
+                'tipoDocumentoSeleccionado.exists' => 'El tipo de documento seleccionado no es válido',
+                'tiendaSeleccionado.required' => 'Debe seleccionar una tienda',
+                'tiendaSeleccionado.exists' => 'La tienda seleccionada no es válida',
+                'nuevoCantidadSolicitada.required' => 'La cantidad solicitada es obligatoria',
+                'nuevoCantidadSolicitada.integer' => 'La cantidad solicitada debe ser un número entero',
+                'nuevoCantidadSolicitada.min' => 'La cantidad solicitada debe ser mayor a 0',
+                'nuevoCantidadOtorgada.required' => 'La cantidad otorgada es obligatoria',
+                'nuevoCantidadOtorgada.integer' => 'La cantidad otorgada debe ser un número entero',
+                'nuevoCantidadOtorgada.min' => 'La cantidad otorgada debe ser mayor a 0',
+                'nuevoRangoInicial.required' => 'El rango inicial es obligatorio',
+                'nuevoRangoInicial.max' => 'El rango inicial no puede exceder 45 caracteres',
+                'nuevoRangoFinal.required' => 'El rango final es obligatorio',
+                'nuevoRangoFinal.max' => 'El rango final no puede exceder 45 caracteres',
             ]);
 
             // Iniciar transacción para mantener integridad de datos

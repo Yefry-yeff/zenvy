@@ -1,9 +1,9 @@
 <div> {{-- ELEMENTO RAÍZ ÚNICO OBLIGATORIO --}}
 
-    {{-- Tabla de Marcas --}}
-    <div class="overflow-hidden border border-gray-300 rounded shadow" x-data x-init="$watch('theme', t => localStorage.setItem('theme', t))">
+    {{-- Sección de Marcas Propias de Zenvy --}}
+    <div class="mb-6 overflow-hidden border border-gray-300 rounded shadow" x-data x-init="$watch('theme', t => localStorage.setItem('theme', t))">
 
-        <!-- ENCABEZADO -->
+        <!-- ENCABEZADO MARCAS ZENVY -->
         <div class="flex items-center justify-between px-5 py-3 mb-4 font-semibold text-white rounded-t"
             :class="{
                 'bg-emerald-600': theme === 'verde',
@@ -12,17 +12,17 @@
                 'bg-slate-700': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
             }"
         >
-            <h5 class="mb-0 text-lg">Gestión de Marcas</h5>
+            <h5 class="mb-0 text-lg">📦 Marcas de Paperland</h5>
             <button wire:click="abrirModalCrear"
                 class="inline-flex items-center gap-1 px-3 py-2 text-sm text-gray-800 bg-white rounded hover:bg-gray-100">
                 <span>➕</span> Agregar Marca
             </button>
         </div>
 
-        <!-- TABLA -->
+        <!-- TABLA MARCAS ZENVY -->
         <div class="px-4 py-3 pt-0 card-body">
             <div class="table-responsive">
-                <table id="marcasTable" class="table mb-0 align-middle table-sm table-hover table-bordered">
+                <table id="marcasZenvyTable" class="table mb-0 align-middle table-sm table-hover table-bordered">
                     <thead class="table-light">
                         <tr class="text-center align-middle">
                             <th style="width: 80px;">ID</th>
@@ -31,12 +31,12 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse($marcas as $marca)
+                        @forelse($marcasZenvy as $marca)
                             <tr class="text-center align-middle hover:bg-gray-50">
-                                <td class="fw-semibold cursor-pointer" wire:click="editar({{ $marca->id }})">{{ $marca->id }}</td>
-                                <td class="text-start cursor-pointer" wire:click="editar({{ $marca->id }})">{{ $marca->nombre }}</td>
+                                <td class="cursor-pointer fw-semibold" wire:click="editar({{ $marca->id }})">{{ $marca->id }}</td>
+                                <td class="cursor-pointer text-start" wire:click="editar({{ $marca->id }})">{{ $marca->nombre }}</td>
                                 <td>
-                                    <button type="button" class="btn btn-link p-0" wire:click="confirmarEliminar({{ $marca->id }})" title="Eliminar" onclick="event.stopPropagation();">
+                                    <button type="button" class="p-0 btn btn-link" wire:click="confirmarEliminar({{ $marca->id }})" title="Eliminar" onclick="event.stopPropagation();">
                                         <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M6 7v12a2 2 0 002 2h8a2 2 0 002-2V7M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2m-7 0h10" style="color:#e3342f;" />
                                             <line x1="10" y1="11" x2="10" y2="17" stroke="#e3342f" stroke-width="2"/>
@@ -47,7 +47,79 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="3" class="py-4 text-center text-muted">No hay marcas disponibles.</td>
+                                <td colspan="3" class="py-4 text-center text-muted">No hay marcas propias de Zenvy.</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    {{-- Sección de Marcas de Valencia --}}
+    <div class="overflow-hidden border border-orange-300 rounded shadow" x-data x-init="$watch('theme', t => localStorage.setItem('theme', t))">
+
+        <!-- ENCABEZADO MARCAS VALENCIA -->
+        <div class="flex items-center justify-between px-5 py-3 mb-4 font-semibold text-white bg-orange-600 rounded-t">
+            <h5 class="mb-0 text-lg">🏢 Marcas de Valencia (Solo Lectura)</h5>
+            
+            <!-- Botón de sincronización con estado de carga -->
+            <div class="relative">
+                <button wire:click="sincronizarMarcasValencia"
+                    wire:loading.attr="disabled"
+                    wire:target="sincronizarMarcasValencia"
+                    class="inline-flex items-center gap-1 px-3 py-2 text-sm text-gray-800 bg-white rounded hover:bg-gray-100 disabled:opacity-75 disabled:cursor-not-allowed">
+                    
+                    <!-- Spinner de carga -->
+                    <div wire:loading wire:target="sincronizarMarcasValencia" class="inline-block w-4 h-4 border-2 border-gray-300 border-t-orange-600 rounded-full animate-spin"></div>
+                    
+                    <!-- Icono normal -->
+                    <span wire:loading.remove wire:target="sincronizarMarcasValencia">🔄</span>
+                    
+                    <!-- Texto del botón -->
+                    <span wire:loading.remove wire:target="sincronizarMarcasValencia">Sincronizar</span>
+                    <span wire:loading wire:target="sincronizarMarcasValencia">Sincronizando...</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Barra de progreso para sincronización -->
+        @if($sincronizandoMarcas && $progreso !== null)
+            <div class="px-5 pb-3">
+                <div class="w-full bg-gray-200 rounded-full h-2">
+                    <div class="bg-orange-600 h-2 rounded-full transition-all duration-300" 
+                         style="width: {{ $progreso }}%"></div>
+                </div>
+                <p class="text-sm text-gray-600 mt-1">Sincronizando marcas... {{ $progreso }}%</p>
+            </div>
+        @endif
+
+        <!-- TABLA MARCAS VALENCIA -->
+        <div class="px-4 py-3 pt-0 card-body">
+            <div class="table-responsive">
+                <table id="marcasValenciaTable" class="table mb-0 align-middle table-sm table-hover table-bordered">
+                    <thead class="table-light">
+                        <tr class="text-center align-middle">
+                            <th style="width: 80px;">ID</th>
+                            <th>Nombre</th>
+                            <th style="width: 120px;">Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($marcasValencia as $marca)
+                            <tr class="text-center align-middle bg-orange-50">
+                                <td class="fw-semibold">{{ $marca->id }}</td>
+                                <td class="text-start">{{ $marca->nombre }}</td>
+                                <td>
+                                    <span class="px-2 py-1 text-xs text-orange-800 bg-orange-100 rounded badge">
+                                        🔒 Sincronizada
+                                    </span>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="3" class="py-4 text-center text-muted">No hay marcas sincronizadas desde Valencia.</td>
                             </tr>
                         @endforelse
                     </tbody>
@@ -89,7 +161,7 @@
                                 <input type="text" id="marcaNombre" class="form-control"
                                        wire:model.defer="form.nombre">
                                 @error('form.nombre')
-                                    <div class="text-danger mt-1 text-sm">{{ $message }}</div>
+                                    <div class="mt-1 text-sm text-danger">{{ $message }}</div>
                                 @enderror
                             </div>
                             <div class="flex justify-end mt-4">
@@ -103,7 +175,7 @@
                                         'bg-slate-700 hover:bg-slate-800': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
                                     }"
                                 >
-                                    Guardar
+                                    💾 Guardar
                                 </button>
                             </div>
                         </form>
@@ -113,8 +185,8 @@
         </div>
     </div>
 
-    <!-- Modal Agregar Marca -->
-    <div wire:key="modal-nueva-marca">
+    {{-- Modal Crear Marca --}}
+    <div wire:key="modal-crear">
         <div class="modal fade show"
              tabindex="-1"
              style="display: @if($modalCrearAbierto) block @else none @endif; background: rgba(0,0,0,0.5); z-index: 1000;"
@@ -132,18 +204,22 @@
                             'bg-slate-700 text-white': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
                          }"
                     >
-                        <h5 class="modal-title">Agregar Marca</h5>
+                        <h5 class="modal-title">Crear Nueva Marca</h5>
                     </div>
                     <div class="modal-body">
                         <form wire:submit.prevent="crearMarca">
                             <div class="mb-3">
-                                <label for="nuevaMarcaNombre" class="form-label">Nombre</label>
-                                <input type="text" id="nuevaMarcaNombre" class="form-control" wire:model.defer="nuevaMarcaNombre">
+                                <label for="nuevaMarcaNombre" class="form-label">Nombre de la Marca</label>
+                                <input type="text" id="nuevaMarcaNombre" class="form-control"
+                                       wire:model.defer="nuevaMarcaNombre" placeholder="Ingrese el nombre de la marca">
                                 @error('nuevaMarcaNombre')
-                                    <div class="text-danger mt-1 text-sm">{{ $message }}</div>
+                                    <div class="mt-1 text-sm text-danger">{{ $message }}</div>
                                 @enderror
                             </div>
-                            <div class="flex justify-end mt-4">
+                            <div class="flex justify-end gap-2 mt-4">
+                                <button type="button" class="btn btn-secondary" wire:click="cerrarModalCrear">
+                                    ❌ Cancelar
+                                </button>
                                 <button
                                     type="submit"
                                     class="px-4 py-2 text-white rounded"
@@ -154,7 +230,7 @@
                                         'bg-slate-700 hover:bg-slate-800': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
                                     }"
                                 >
-                                    Guardar
+                                    ➕ Crear Marca
                                 </button>
                             </div>
                         </form>
@@ -164,8 +240,8 @@
         </div>
     </div>
 
-    <!-- Modal Confirmar Eliminación -->
-    <div wire:key="modal-confirmar-eliminar">
+    {{-- Modal Eliminar Marca --}}
+    <div wire:key="modal-eliminar-{{ $marcaAEliminar ?? 'none' }}">
         <div class="modal fade show"
              tabindex="-1"
              style="display: @if($modalEliminarAbierto) block @else none @endif; background: rgba(0,0,0,0.5); z-index: 1000;"
@@ -175,22 +251,21 @@
         >
             <div class="modal-dialog modal-dialog-centered modal-lg">
                 <div class="modal-content">
-                    <div class="modal-header bg-danger text-white">
-                        <h5 class="modal-title">⚠️ ¿Eliminar marca?</h5>
+                    <div class="text-white bg-red-600 modal-header">
+                        <h5 class="modal-title">🗑️ Eliminar Marca</h5>
                     </div>
                     <div class="modal-body">
                         @if(count($productosVinculados) > 0)
                             <div class="alert alert-warning">
-                                <h6><strong>⚠️ No se puede eliminar esta marca</strong></h6>
-                                <p>Esta marca tiene <strong>{{ count($productosVinculados) }} producto(s)</strong> vinculado(s). 
-                                   Primero debe eliminar o cambiar la marca de estos productos:</p>
+                                <h6><strong>⚠️ No se puede eliminar la marca</strong></h6>
+                                <p>Esta marca tiene <strong>{{ count($productosVinculados) }}</strong> producto(s) vinculado(s):</p>
                             </div>
-                            
-                            <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
+
+                            <div class="table-responsive">
                                 <table class="table table-sm table-striped">
-                                    <thead class="table-light sticky-top">
+                                    <thead class="table-light">
                                         <tr>
-                                            <th style="width: 150px;">Código de Barras</th>
+                                            <th style="width: 150px;">Código</th>
                                             <th>Nombre del Producto</th>
                                         </tr>
                                     </thead>
@@ -198,7 +273,7 @@
                                         @foreach($productosVinculados as $producto)
                                             <tr>
                                                 <td class="text-center">
-                                                    <code class="bg-light px-2 py-1 rounded">{{ $producto['codigo_barra'] }}</code>
+                                                    <code class="px-2 py-1 rounded bg-light">{{ $producto['codigo_barra'] }}</code>
                                                 </td>
                                                 <td>{{ $producto['nombre'] }}</td>
                                             </tr>
@@ -206,14 +281,14 @@
                                     </tbody>
                                 </table>
                             </div>
-                            
-                            <div class="alert alert-info mt-3">
+
+                            <div class="mt-3 alert alert-info">
                                 <small>
-                                    <strong>💡 Sugerencia:</strong> 
+                                    <strong>💡 Sugerencia:</strong>
                                     Vaya al módulo de <strong>Productos</strong> y edite cada producto para cambiar su marca o elimínelos.
                                 </small>
                             </div>
-                            
+
                             <div class="flex justify-end gap-2 mt-4">
                                 <button type="button" class="btn btn-secondary" wire:click="cerrarModalEliminar">
                                     <i class="fas fa-times me-1"></i> Cerrar
@@ -224,10 +299,10 @@
                                 <h6><strong>✅ Esta marca se puede eliminar</strong></h6>
                                 <p>No hay productos vinculados a esta marca.</p>
                             </div>
-                            
+
                             <p><strong>¿Estás seguro que deseas eliminar esta marca?</strong></p>
                             <p class="text-muted">Esta acción no se puede deshacer.</p>
-                            
+
                             <div class="flex justify-end gap-2 mt-4">
                                 <button type="button" class="btn btn-secondary" wire:click="cerrarModalEliminar">
                                     <i class="fas fa-times me-1"></i> No, cancelar
@@ -248,7 +323,7 @@
              @click.window="show = false"
              @keydown.window="show = false"
              @mousemove.window="show = false"
-             class="alert alert-success mt-3 mb-0 transition-opacity duration-300">
+             class="mt-3 mb-0 transition-opacity duration-300 alert alert-success">
             {{ session('mensaje') }}
         </div>
     @endif
@@ -258,8 +333,73 @@
              @click.window="show = false"
              @keydown.window="show = false"
              @mousemove.window="show = false"
-             class="alert alert-danger mt-3 mb-0 transition-opacity duration-300">
+             class="mt-3 mb-0 transition-opacity duration-300 alert alert-danger">
             {{ session('error') }}
+        </div>
+    @endif
+
+    {{-- Modal de Detalles de Sincronización de Marcas --}}
+    @if($detallesSincronizacion)
+        <div class="fixed inset-0 z-50 flex items-center justify-center">
+            {{-- Overlay --}}
+            <div class="fixed inset-0 bg-black bg-opacity-50" wire:click="cerrarDetallesSincronizacion"></div>
+            
+            {{-- Modal --}}
+            <div class="relative bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-gray-900">📊 Sincronización de Marcas Completada</h3>
+                    <button wire:click="cerrarDetallesSincronizacion" class="text-gray-400 hover:text-gray-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+                
+                <div class="space-y-3">
+                    <div class="flex justify-between items-center p-3 bg-green-50 rounded">
+                        <span class="font-medium text-green-800">✅ Marcas procesadas:</span>
+                        <span class="font-bold text-green-600">{{ $detallesSincronizacion['marcas_sincronizadas'] }}</span>
+                    </div>
+                    
+                    @if($detallesSincronizacion['marcas_nuevas'] > 0)
+                        <div class="flex justify-between items-center p-3 bg-blue-50 rounded">
+                            <span class="font-medium text-blue-800">🆕 Marcas nuevas:</span>
+                            <span class="font-bold text-blue-600">{{ $detallesSincronizacion['marcas_nuevas'] }}</span>
+                        </div>
+                    @endif
+                    
+                    @if($detallesSincronizacion['marcas_actualizadas'] > 0)
+                        <div class="flex justify-between items-center p-3 bg-yellow-50 rounded">
+                            <span class="font-medium text-yellow-800">🔄 Marcas actualizadas:</span>
+                            <span class="font-bold text-yellow-600">{{ $detallesSincronizacion['marcas_actualizadas'] }}</span>
+                        </div>
+                    @endif
+                    
+                    @if($detallesSincronizacion['sin_cambios'] > 0)
+                        <div class="flex justify-between items-center p-3 bg-gray-50 rounded">
+                            <span class="font-medium text-gray-800">⚪ Sin cambios:</span>
+                            <span class="font-bold text-gray-600">{{ $detallesSincronizacion['sin_cambios'] }}</span>
+                        </div>
+                    @endif
+                    
+                    <div class="flex justify-between items-center p-3 bg-orange-50 rounded">
+                        <span class="font-medium text-orange-800">📈 Total procesadas:</span>
+                        <span class="font-bold text-orange-600">{{ $detallesSincronizacion['total_procesadas'] }}</span>
+                    </div>
+                    
+                    <div class="flex justify-between items-center p-3 bg-purple-50 rounded">
+                        <span class="font-medium text-purple-800">⏱️ Tiempo:</span>
+                        <span class="font-bold text-purple-600">{{ $detallesSincronizacion['tiempo_ejecucion'] }}</span>
+                    </div>
+                </div>
+                
+                <div class="mt-6 text-center">
+                    <button wire:click="cerrarDetallesSincronizacion" 
+                            class="px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700 transition-colors">
+                        Cerrar
+                    </button>
+                </div>
+            </div>
         </div>
     @endif
 

@@ -1,126 +1,114 @@
 <div>
     <style>
-        /* Estilos para tabla de productos recibidos */
-        .producto-row-disponible {
-            background-color: rgba(34, 197, 94, 0.05) !important;
+        /* Alerta flotante personalizada (igual que compra-de-producto) */
+        .alert-campo-obligatorio {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            background: #f8d7da;
+            color: #721c24;
+            padding: 12px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+            border-left: 4px solid #dc3545;
+            animation: slideIn 0.3s ease-out;
         }
-        .producto-row-agotado {
-            background-color: rgba(239, 68, 68, 0.05) !important;
-            opacity: 0.7;
-        }
-        .badge-disponible {
-            background-color: #22c55e !important;
-            color: white;
-            font-weight: 600;
-        }
-        .badge-agotado {
-            background-color: #ef4444 !important;
-            color: white;
-            font-weight: 600;
-        }
-        .badge-poco-stock {
-            background-color: #f59e0b !important;
-            color: white;
-            font-weight: 600;
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
         }
     </style>
 
-    <!-- Mensajes de éxito y error -->
-    @if (session()->has('mensaje'))
-    <div x-data="{ show: true }" x-init="$nextTick(() => show = true)"
-        x-show="show"
-        x-transition
-        style="display: none;"
-    >
-        <div class="modal fade show d-block" tabindex="-1" role="dialog" @click.away="show = false">
-            <div class="modal-dialog modal-dialog-centered" @click.stop>
-                <div class="shadow modal-content border-success">
-                    <div class="text-white modal-header bg-success">
-                        <h5 class="modal-title">✅ Éxito</h5>
-                        <button type="button" class="btn-close" @click="show = false"></button>
-                    </div>
-                    <div class="modal-body">
-                        <p>{{ session('mensaje') }}</p>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-success" @click="show = false">Aceptar</button>
-                    </div>
-                </div>
-            </div>
+    <!-- Alerta de validación -->
+    @if($mostrarAlerta)
+        <div class="alert-campo-obligatorio">
+            <strong>⚠️ Campo Obligatorio</strong>
+            <button wire:click="cerrarAlerta" style="float: right; background: none; border: none; font-size: 18px; cursor: pointer;">×</button>
+            <br><small>{{ $mensajeAlerta }}</small>
         </div>
-        <div class="modal-backdrop fade show" x-show="show" x-transition></div>
-    </div>
+    @endif
+
+    <!-- MENSAJES DE SESIÓN -->
+    @if (session()->has('message'))
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <strong>✅ Éxito:</strong> {{ session('message') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
+    @if (session()->has('warning'))
+        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+            <strong>⚠️ Advertencia:</strong> {{ session('warning') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
     @endif
 
     @if (session()->has('error'))
-    <div x-data="{ show: true }" x-init="$nextTick(() => show = true)"
-        x-show="show"
-        x-transition
-        style="display: none;"
-    >
-        <div class="modal fade show d-block" tabindex="-1" role="dialog" @click.away="show = false">
-            <div class="modal-dialog modal-dialog-centered modal-lg" @click.stop>
-                <div class="shadow modal-content border-danger">
-                    <div class="text-white modal-header bg-danger">
-                        <h5 class="modal-title">❌ Error</h5>
-                        <button type="button" class="btn-close btn-close-white" @click="show = false"></button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="alert alert-danger mb-0">
-                            <strong>Se ha producido un error:</strong>
-                            <br><br>
-                            <div class="font-monospace small bg-light p-2 rounded border">
-                                {{ session('error') }}
-                            </div>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-danger" @click="show = false">Entendido</button>
-                    </div>
-                </div>
-            </div>
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <strong>❌ Error:</strong> {{ session('error') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
-        <div class="modal-backdrop fade show" x-show="show" x-transition></div>
-    </div>
     @endif
 
-    <!-- Filtros y búsqueda -->
-    <div class="overflow-hidden border border-gray-300 rounded shadow mb-4" x-data x-init="$watch('theme', t => localStorage.setItem('theme', t))">
-        <div class="flex items-center justify-between px-5 py-3 font-semibold text-white" 
-             :class="{'bg-emerald-600': theme === 'verde','bg-blue-600': theme === 'azul','bg-gray-900': theme === 'oscuro','bg-slate-700': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'}">
-            <h5 class="mb-0 text-lg">🔍 Filtros de Búsqueda</h5>
+    <!-- CONTENEDOR PRINCIPAL OPTIMIZADO -->
+    <div class="overflow-hidden border border-gray-300 rounded shadow" x-data x-init="$watch('theme', t => localStorage.setItem('theme', t))">
+
+        <!-- ENCABEZADO -->
+        <div class="flex items-center justify-between px-5 py-3 font-semibold text-white rounded-t"
+            :class="{
+                'bg-emerald-600': theme === 'verde',
+                'bg-blue-600': theme === 'azul',
+                'bg-gray-900': theme === 'oscuro',
+                'bg-slate-700': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
+            }"
+        >
+            <h5 class="mb-0 text-lg">📦 Productos Recibidos en Bodega</h5>
+            <div class="flex items-center gap-2">
+                <span class="text-sm opacity-90">Total: {{ $productosRecibidos->total() }}</span>
+            </div>
         </div>
-        <div class="px-4 py-3 card-body">
-            <div class="row g-3">
-                <div class="col-md-3">
-                    <label for="filtroProducto" class="form-label">Buscar Producto</label>
-                    <input type="text" 
-                           id="filtroProducto" 
-                           class="form-control" 
-                           wire:model.live="filtroProducto"
-                           placeholder="Nombre, código de barras...">
+
+        <!-- FILTROS Y BÚSQUEDA -->
+        <div class="px-4 py-3 border-b bg-gray-50">
+            <div class="grid grid-cols-1 gap-4 md:grid-cols-4">
+                <!-- Búsqueda de Producto -->
+                <div>
+                    <label class="block mb-1 text-sm font-medium text-gray-700">Buscar Producto</label>
+                    <input type="text"
+                           wire:model.live.debounce.300ms="filtroProducto"
+                           placeholder="Nombre, código de barras..."
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                 </div>
-                <div class="col-md-3">
-                    <label for="filtroBodega" class="form-label">Bodega</label>
-                    <select id="filtroBodega" class="form-select" wire:model.live="filtroBodega">
+
+                <!-- Filtro de Bodega -->
+                <div>
+                    <label class="block mb-1 text-sm font-medium text-gray-700">Bodega</label>
+                    <select wire:model.live="filtroBodega" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500">
                         <option value="">Todas las bodegas</option>
                         @foreach($bodegas as $bodega)
                             <option value="{{ $bodega->id }}">{{ $bodega->nombre }}</option>
                         @endforeach
                     </select>
                 </div>
-                <div class="col-md-3">
-                    <label for="filtroEstado" class="form-label">Estado Stock</label>
-                    <select id="filtroEstado" class="form-select" wire:model.live="filtroEstado">
+
+                <!-- Filtro de Estado Stock -->
+                <div>
+                    <label class="block mb-1 text-sm font-medium text-gray-700">Estado Stock</label>
+                    <select wire:model.live="filtroEstado" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500">
                         <option value="">Todos</option>
                         <option value="disponible">Disponible</option>
                         <option value="poco_stock">Poco Stock</option>
                         <option value="agotado">Agotado</option>
                     </select>
                 </div>
-                <div class="col-md-3">
-                    <label for="filtroMarca" class="form-label">Marca</label>
-                    <select id="filtroMarca" class="form-select" wire:model.live="filtroMarca">
+
+                <!-- Filtro de Marca -->
+                <div>
+                    <label class="block mb-1 text-sm font-medium text-gray-700">Marca</label>
+                    <select wire:model.live="filtroMarca" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500">
                         <option value="">Todas las marcas</option>
                         @foreach($marcas as $marca)
                             <option value="{{ $marca->id }}">{{ $marca->nombre }}</option>
@@ -128,132 +116,811 @@
                     </select>
                 </div>
             </div>
-            <div class="row mt-3">
-                <div class="col-12">
-                    <button wire:click="limpiarFiltros" class="btn btn-outline-secondary btn-sm">
-                        🗑️ Limpiar Filtros
-                    </button>
-                    <span class="badge bg-info ms-2">{{ count($productosRecibidos) }} productos encontrados</span>
+            
+            <!-- Botones de acción -->
+            <div class="flex gap-2 mt-3">
+                <button wire:click="limpiarFiltros" class="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+                    🗑️ Limpiar Filtros
+                </button>
+                <button wire:click="descargarExcel"
+                    class="inline-flex items-center gap-1 px-3 py-2 text-sm text-white bg-green-600 rounded hover:bg-green-700 disabled:opacity-50"
+                    wire:loading.attr="disabled"
+                    wire:target="descargarExcel"
+                    title="Descargar reporte">
+                    <span wire:loading.remove wire:target="descargarExcel">📥</span>
+                    <span wire:loading wire:target="descargarExcel">
+                        <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                    </span>
+                    <span wire:loading.remove wire:target="descargarExcel">Descargar reporte</span>
+                    <span wire:loading wire:target="descargarExcel">Generando...</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- INFORMACIÓN DE RESULTADOS -->
+        <div class="px-4 py-2 bg-gray-100 border-b">
+            <div class="text-sm text-gray-600">
+                Showing {{ $productosRecibidos->firstItem() ?? 0 }} to {{ $productosRecibidos->lastItem() ?? 0 }}
+                of {{ $productosRecibidos->total() }} results
+                @if($filtroProducto)
+                    | Filtrado por: "{{ $filtroProducto }}"
+                @endif
+            </div>
+        </div>
+
+        <!-- TABLA COMPACTA -->
+        <div class="px-2 py-2">
+            <div class="overflow-x-auto max-h-[calc(100vh-280px)]">
+                <table class="min-w-full text-xs border border-gray-200 table-fixed">
+                    <thead class="sticky top-0 z-10 bg-gray-100">
+                        <!-- Encabezados con ordenamiento -->
+                        <tr>
+                            <th class="px-2 py-1.5 text-left border-b cursor-pointer hover:bg-gray-200 w-20"
+                                wire:click="ordenar('producto_id')">
+                                <div class="flex items-center space-x-1">
+                                    <span class="text-xs font-semibold">Cód</span>
+                                    @if($ordenarPor === 'producto_id')
+                                        <span class="text-blue-500">
+                                            @if($direccionOrden === 'asc') ↑ @else ↓ @endif
+                                        </span>
+                                    @endif
+                                </div>
+                            </th>
+                            <th class="px-2 py-1.5 text-left border-b cursor-pointer hover:bg-gray-200 w-48"
+                                wire:click="ordenar('producto_nombre')">
+                                <div class="flex items-center space-x-1">
+                                    <span class="text-xs font-semibold">Producto</span>
+                                    @if($ordenarPor === 'producto_nombre')
+                                        <span class="text-blue-500">
+                                            @if($direccionOrden === 'asc') ↑ @else ↓ @endif
+                                        </span>
+                                    @endif
+                                </div>
+                            </th>
+                            <th class="px-2 py-1.5 text-left border-b cursor-pointer hover:bg-gray-200 w-28"
+                                wire:click="ordenar('codigo_barra')">
+                                <div class="flex items-center space-x-1">
+                                    <span class="text-xs font-semibold">Código Barra</span>
+                                    @if($ordenarPor === 'codigo_barra')
+                                        <span class="text-blue-500">
+                                            @if($direccionOrden === 'asc') ↑ @else ↓ @endif
+                                        </span>
+                                    @endif
+                                </div>
+                            </th>
+                            <th class="px-2 py-1.5 text-left border-b cursor-pointer hover:bg-gray-200 w-24"
+                                wire:click="ordenar('marca_nombre')">
+                                <div class="flex items-center space-x-1">
+                                    <span class="text-xs font-semibold">Marca</span>
+                                    @if($ordenarPor === 'marca_nombre')
+                                        <span class="text-blue-500 text-xs">
+                                            @if($direccionOrden === 'asc') ↑ @else ↓ @endif
+                                        </span>
+                                    @endif
+                                </div>
+                            </th>
+                            <th class="px-2 py-1.5 text-left border-b cursor-pointer hover:bg-gray-200 w-32"
+                                wire:click="ordenar('bodega_nombre')">
+                                <div class="flex items-center space-x-1">
+                                    <span class="text-xs font-semibold">Bodega</span>
+                                    @if($ordenarPor === 'bodega_nombre')
+                                        <span class="text-blue-500 text-xs">
+                                            @if($direccionOrden === 'asc') ↑ @else ↓ @endif
+                                        </span>
+                                    @endif
+                                </div>
+                            </th>
+                            <th class="px-2 py-1.5 text-left border-b w-28"><span class="text-xs font-semibold">Segmento</span></th>
+                            <th class="px-2 py-1.5 text-left border-b w-28"><span class="text-xs font-semibold">Sección</span></th>
+                            <th class="px-2 py-1.5 text-center border-b cursor-pointer hover:bg-gray-200 w-16"
+                                wire:click="ordenar('cantidad_disponible')">
+                                <div class="flex items-center justify-center space-x-1">
+                                    <span class="text-xs font-semibold">Stock</span>
+                                    @if($ordenarPor === 'cantidad_disponible')
+                                        <span class="text-blue-500 text-xs">
+                                            @if($direccionOrden === 'asc') ↑ @else ↓ @endif
+                                        </span>
+                                    @endif
+                                </div>
+                            </th>
+                            <th class="px-2 py-1.5 text-center border-b cursor-pointer hover:bg-gray-200 w-20"
+                                wire:click="ordenar('fecha_recibido')">
+                                <div class="flex items-center justify-center space-x-1">
+                                    <span class="text-xs font-semibold">F. Recibido</span>
+                                    @if($ordenarPor === 'fecha_recibido')
+                                        <span class="text-blue-500 text-xs">
+                                            @if($direccionOrden === 'asc') ↑ @else ↓ @endif
+                                        </span>
+                                    @endif
+                                </div>
+                            </th>
+                            <th class="px-2 py-1.5 text-center border-b w-20"><span class="text-xs font-semibold">F. Exp.</span></th>
+                            <th class="px-2 py-1.5 text-center border-b w-20"><span class="text-xs font-semibold">Estado</span></th>
+                            <th class="px-2 py-1.5 text-center border-b w-24"><span class="text-xs font-semibold">Comentario</span></th>
+                            <th class="px-2 py-1.5 text-center border-b w-16"><span class="text-xs font-semibold">Acciones</span></th>
+                        </tr>
+                        <!-- Fila de filtros -->
+                            <tr class="bg-white">
+                                <th class="px-2 py-1 border-b">
+                                    <input type="text" 
+                                           wire:model.live.debounce.300ms="filtroCodigoProducto"
+                                           placeholder="Filtrar..."
+                                           class="w-full px-1.5 py-0.5 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-transparent">
+                                </th>
+                                <th class="px-2 py-1 border-b">
+                                    <input type="text" 
+                                           wire:model.live.debounce.300ms="filtroProducto"
+                                           placeholder="Filtrar..."
+                                           class="w-full px-1.5 py-0.5 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-transparent">
+                                </th>
+                                <th class="px-2 py-1 border-b">
+                                    <input type="text" 
+                                           wire:model.live.debounce.300ms="filtroCodigoBarra"
+                                           placeholder="Filtrar..."
+                                           class="w-full px-1.5 py-0.5 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-transparent">
+                                </th>
+                                <th class="px-2 py-1 border-b">
+                                    <select wire:model.live="filtroMarca" 
+                                            class="w-full px-1.5 py-0.5 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500">
+                                        <option value="">Todas</option>
+                                        @foreach($marcas as $marca)
+                                            <option value="{{ $marca->id }}">{{ $marca->nombre }}</option>
+                                        @endforeach
+                                    </select>
+                                </th>
+                                <th class="px-2 py-1 border-b">
+                                    <select wire:model.live="filtroBodega" 
+                                            class="w-full px-1.5 py-0.5 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500">
+                                        <option value="">Todas</option>
+                                        @foreach($bodegas as $bodega)
+                                            <option value="{{ $bodega->id }}">{{ $bodega->nombre }}</option>
+                                        @endforeach
+                                    </select>
+                                </th>
+                                <th class="px-2 py-1 border-b">
+                                    <input type="text" 
+                                           wire:model.live.debounce.300ms="filtroSegmento"
+                                           placeholder="Filtrar..."
+                                           class="w-full px-1.5 py-0.5 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-transparent">
+                                </th>
+                                <th class="px-2 py-1 border-b">
+                                    <input type="text" 
+                                           wire:model.live.debounce.300ms="filtroSeccion"
+                                           placeholder="Filtrar..."
+                                           class="w-full px-1.5 py-0.5 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-transparent">
+                                </th>
+                                <th class="px-2 py-1 border-b">
+                                    <select wire:model.live="filtroEstado" 
+                                            class="w-full px-1.5 py-0.5 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500">
+                                        <option value="">Todos</option>
+                                        <option value="disponible">OK</option>
+                                        <option value="poco_stock">Bajo</option>
+                                        <option value="agotado">0</option>
+                                    </select>
+                                </th>
+                                <th class="px-2 py-1 border-b">
+                                    <input type="date" 
+                                           wire:model.live="filtroFechaRecibido"
+                                           class="w-full px-1.5 py-0.5 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-transparent">
+                                </th>
+                                <th class="px-2 py-1 border-b">
+                                    <input type="date" 
+                                           wire:model.live="filtroFechaExpiracion"
+                                           class="w-full px-1.5 py-0.5 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-transparent">
+                                </th>
+                                <th class="px-2 py-1 border-b"></th>
+                                <th class="px-2 py-1 border-b"></th>
+                                <th class="px-2 py-1 border-b"></th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            @if($productosRecibidos->count() > 0)
+                                @foreach($productosRecibidos as $item)
+                                    <tr class="hover:bg-gray-50">
+
+                                        <!-- ID de Producto (Valencia o Zenvy) -->
+                                        <td class="px-2 py-1 text-xs border-b">
+                                            @if($item->id_mostrar)
+                                                <span class="font-semibold text-gray-700">{{ $item->id_mostrar }}</span>
+                                            @else
+                                                <span class="text-gray-400">N/A</span>
+                                            @endif
+                                        </td>
+
+                                    <!-- Producto -->
+                                    <td class="px-2 py-1 text-xs border-b">
+                                        <div class="truncate" title="{{ $item->producto_nombre }}">
+                                            <span class="font-semibold text-gray-900">{{ Str::limit($item->producto_nombre, 35) }}</span>
+                                        </div>
+                                    </td>
+
+                                    <!-- Código de Barras -->
+                                    <td class="px-2 py-1 text-xs border-b truncate">
+                                        <span class="text-gray-700">{{ $item->codigo_barra ?? 'N/A' }}</span>
+                                    </td>
+
+                                    <!-- Marca -->
+                                    <td class="px-2 py-1 text-xs text-gray-700 border-b truncate" title="{{ $item->marca_nombre ?? 'Sin marca' }}">
+                                        {{ Str::limit($item->marca_nombre ?? 'Sin marca', 15) }}
+                                    </td>
+
+                                    <!-- Bodega -->
+                                    <td class="px-2 py-1 text-xs border-b truncate" title="{{ $item->bodega_nombre }}">
+                                        <span class="font-semibold text-gray-900">{{ Str::limit($item->bodega_nombre, 18) }}</span>
+                                    </td>
+
+                                    <!-- Segmento -->
+                                    <td class="px-2 py-1 text-xs text-gray-700 border-b truncate" title="{{ $item->segmento_descripcion ?? 'N/A' }}">
+                                        {{ Str::limit($item->segmento_descripcion ?? 'N/A', 15) }}
+                                    </td>
+
+                                    <!-- Sección -->
+                                    <td class="px-2 py-1 text-xs text-gray-700 border-b truncate" title="{{ $item->seccion_descripcion ?? 'N/A' }}">
+                                        {{ Str::limit($item->seccion_descripcion ?? 'N/A', 15) }}
+                                    </td>
+
+                                    <!-- Stock -->
+                                    <td class="px-2 py-1 text-center border-b">
+                                        <span class="text-xs font-bold {{ $item->cantidad_disponible > 10 ? 'text-green-600' : ($item->cantidad_disponible > 0 ? 'text-yellow-600' : 'text-red-600') }}">
+                                            {{ number_format($item->cantidad_disponible, 0) }}
+                                        </span>
+                                    </td>
+
+                                    <!-- Fecha Recibido -->
+                                    <td class="px-2 py-1 text-xs text-center text-gray-600 border-b">
+                                        {{ \Carbon\Carbon::parse($item->fecha_recibido)->format('d/m/y') }}
+                                    </td>
+
+                                    <!-- Fecha Expiración -->
+                                    <td class="px-2 py-1 text-xs text-center border-b">
+                                        @if($item->fecha_expiracion)
+                                            <span class="text-gray-600">
+                                                {{ \Carbon\Carbon::parse($item->fecha_expiracion)->format('d/m/y') }}
+                                            </span>
+                                        @else
+                                            <span class="text-gray-400">-</span>
+                                        @endif
+                                    </td>
+
+                                    <!-- Estado -->
+                                    <td class="px-2 py-1 text-center border-b">
+                                        @if($item->cantidad_disponible > 10)
+                                            <span class="inline-flex px-1.5 py-0.5 text-xs font-semibold text-white bg-green-500 rounded">OK</span>
+                                        @elseif($item->cantidad_disponible > 0)
+                                            <span class="inline-flex px-1.5 py-0.5 text-xs font-semibold text-white bg-yellow-500 rounded">Bajo</span>
+                                        @else
+                                            <span class="inline-flex px-1.5 py-0.5 text-xs font-semibold text-white bg-red-500 rounded">0</span>
+                                        @endif
+                                    </td>
+
+                                    <!-- Comentario -->
+                                    <td class="px-2 py-1 text-xs border-b truncate">
+                                        @if($item->comentario)
+                                            <span title="{{ $item->comentario }}" class="text-gray-700">{{ Str::limit($item->comentario, 15) }}</span>
+                                        @else
+                                            <span class="text-gray-400">-</span>
+                                        @endif
+                                    </td>
+
+                                    <!-- Acciones -->
+                                    <td class="px-2 py-1 text-center border-b" x-data="{ menuOpen: false }">
+                                        <div class="relative inline-block text-left">
+                                            <button @click="menuOpen = !menuOpen"
+                                                    @click.away="menuOpen = false"
+                                                    type="button"
+                                                    class="inline-flex items-center p-1 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path>
+                                                </svg>
+                                            </button>
+
+                                            <!-- Dropdown Menu -->
+                                            <div x-show="menuOpen"
+                                                 x-transition:enter="transition ease-out duration-100"
+                                                 x-transition:enter-start="transform opacity-0 scale-95"
+                                                 x-transition:enter-end="transform opacity-100 scale-100"
+                                                 x-transition:leave="transition ease-in duration-75"
+                                                 x-transition:leave-start="transform opacity-100 scale-100"
+                                                 x-transition:leave-end="transform opacity-0 scale-95"
+                                                 class="absolute right-0 z-10 w-48 mt-2 origin-top-right bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
+                                                 style="display: none;">
+                                                <div class="py-1">
+                                                    <button wire:click="editarProducto({{ $item->producto_id }})"
+                                                            @click="menuOpen = false"
+                                                            class="flex items-center w-full px-4 py-2 text-sm text-left text-gray-700 hover:bg-gray-100 hover:text-gray-900">
+                                                        <svg class="w-4 h-4 mr-3 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                                        </svg>
+                                                        Editar Producto
+                                                    </button>
+                                                    <button wire:click="editarStock({{ $item->id }})"
+                                                            @click="menuOpen = false"
+                                                            class="flex items-center w-full px-4 py-2 text-sm text-left text-gray-700 hover:bg-gray-100 hover:text-gray-900">
+                                                        <svg class="w-4 h-4 mr-3 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                                                        </svg>
+                                                        Traslados o regalías
+                                                 {{-- Conversión de unidad de medida --}}
+                                                    {{-- <button wire:click="abrirModalCambiarUnidad({{ $item->id }})"
+                                                            @click="menuOpen = false"
+                                                            class="flex items-center w-full px-4 py-2 text-sm text-left text-gray-700 hover:bg-gray-100 hover:text-gray-900">
+                                                        <svg class="w-4 h-4 mr-3 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
+                                                        </svg>
+                                                        Cambiar unidad
+                                                    </button> --}}
+                                                    <button wire:click="abrirModalAjusteCantidades({{ $item->id }})"
+                                                            @click="menuOpen = false"
+                                                            class="flex items-center w-full px-4 py-2 text-sm text-left text-gray-700 hover:bg-gray-100 hover:text-gray-900">
+                                                        <svg class="w-4 h-4 mr-3 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path>
+                                                        </svg>
+                                                        Ajustar Cantidades
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        @else
+                            <tr>
+                                <td colspan="13" class="px-4 py-12 text-center">
+                                    <div class="flex flex-col items-center">
+                                        <svg class="w-16 h-16 mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-4.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 009.586 13H7"></path>
+                                        </svg>
+                                        <span class="text-xl font-medium text-gray-500">No se encontraron productos</span>
+                                        <small class="mt-1 text-gray-400">Intenta ajustar los filtros de búsqueda</small>
+                                    </div>
+                                </td>
+                            </tr>
+                        @endif
+                        </tbody>
+                    </table>
+                </div>
+
+            <!-- PAGINACIÓN PERSONALIZADA CON SELECTOR -->
+            <div class="mt-4">
+                @if($productosRecibidos->hasPages())
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-4">
+                            <div class="text-sm text-gray-700">
+                                Showing {{ $productosRecibidos->firstItem() }} to {{ $productosRecibidos->lastItem() }} of {{ $productosRecibidos->total() }} results
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <label class="text-sm text-gray-600">Show:</label>
+                                <select wire:model.live="registrosPorPagina" class="px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500">
+                                    <option value="10">10</option>
+                                    <option value="25">25</option>
+                                    <option value="50">50</option>
+                                    <option value="100">100</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="flex space-x-1">
+                            {{-- Previous Page Link --}}
+                            @if($productosRecibidos->onFirstPage())
+                                <span class="px-3 py-2 text-sm text-gray-400 bg-gray-200 border border-gray-300 rounded cursor-not-allowed">Previous</span>
+                            @else
+                                <button wire:click="previousPage" class="px-3 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50">Previous</button>
+                            @endif
+
+                            {{-- Pagination Elements --}}
+                            @php
+                                $currentPage = $productosRecibidos->currentPage();
+                                $lastPage = $productosRecibidos->lastPage();
+                                $start = max(1, min($currentPage - 2, $lastPage - 4));
+                                $end = min($start + 4, $lastPage);
+                            @endphp
+
+                            @for($page = $start; $page <= min($end, $lastPage); $page++)
+                                @if($page == $currentPage)
+                                    <span class="px-3 py-2 text-sm font-medium text-blue-600 border border-blue-300 rounded bg-blue-50">{{ $page }}</span>
+                                @else
+                                    <button wire:click="gotoPage({{ $page }})" class="px-3 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50">{{ $page }}</button>
+                                @endif
+                            @endfor
+
+                            {{-- Show last page if not already shown --}}
+                            @if($end < $lastPage)
+                                @if($end < $lastPage - 1)
+                                    <span class="px-3 py-2 text-sm text-gray-400">...</span>
+                                @endif
+                                <button wire:click="gotoPage({{ $lastPage }})" class="px-3 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50">{{ $lastPage }}</button>
+                            @endif
+
+                            {{-- Next Page Link --}}
+                            @if($productosRecibidos->hasMorePages())
+                                <button wire:click="nextPage" class="px-3 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50">Next</button>
+                            @else
+                                <span class="px-3 py-2 text-sm text-gray-400 bg-gray-200 border border-gray-300 rounded cursor-not-allowed">Next</span>
+                            @endif
+                        </div>
+                    </div>
+                @else
+                    <div class="flex items-center gap-4">
+                        <div class="text-sm text-gray-700">
+                            Showing {{ $productosRecibidos->firstItem() ?? 0 }} to {{ $productosRecibidos->lastItem() ?? 0 }} of {{ $productosRecibidos->total() }} results
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <label class="text-sm text-gray-600">Show:</label>
+                            <select wire:model.live="registrosPorPagina" class="px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500">
+                                <option value="10">10</option>
+                                <option value="25">25</option>
+                                <option value="50">50</option>
+                                <option value="100">100</option>
+                            </select>
+                        </div>
+                    </div>
+                @endif
+            </div>
+        </div>
+    </div>
+
+    {{-- Modal para Cambiar Unidad --}}
+    @if($mostrarModalCambiarUnidad)
+        <div class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+            <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+                <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" wire:click="cerrarModalCambiarUnidad"></div>
+
+                <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+
+                <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                    <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                        <div class="sm:flex sm:items-start">
+                            <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-purple-100 sm:mx-0 sm:h-10 sm:w-10">
+                                <svg class="h-6 w-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
+                                </svg>
+                            </div>
+                            <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                                <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">
+                                    Cambiar Unidad de Medida
+                                </h3>
+                                <div class="mt-4">
+                                    @if($stockSeleccionado)
+                                        <div class="grid grid-cols-1 gap-4">
+                                            {{-- Información actual del stock --}}
+                                            <div class="bg-gray-50 p-3 rounded-lg">
+                                                <h4 class="font-medium text-gray-900 mb-2">Stock Actual</h4>
+                                                <p class="text-sm text-gray-600">
+                                                    <strong>Producto:</strong> {{ $stockSeleccionado->producto->nombre ?? 'N/A' }}
+                                                </p>
+                                                <p class="text-sm text-gray-600">
+                                                    <strong>Cantidad disponible total:</strong> {{ $cantidadTotalDisponible ?? 0 }}
+                                                </p>
+                                                <p class="text-sm text-gray-600">
+                                                    <strong>Unidad actual:</strong>
+                                                    @if($stockSeleccionado->unidad_medida)
+                                                        {{ $stockSeleccionado->unidad_medida }}
+                                                    @elseif($stockSeleccionado->unidadMedida)
+                                                        {{ $stockSeleccionado->unidadMedida->nombre }}
+                                                    @else
+                                                        N/A
+                                                    @endif
+                                                </p>
+                                                <p class="text-sm text-gray-600">
+                                                    <strong>Ubicación:</strong>
+                                                    @if($stockSeleccionado->seccion && $stockSeleccionado->seccion->segmento && $stockSeleccionado->seccion->segmento->bodega)
+                                                        {{ $stockSeleccionado->seccion->segmento->bodega->nombre ?? 'N/A' }} /
+                                                        {{ $stockSeleccionado->seccion->segmento->descripcion ?? 'N/A' }} /
+                                                        {{ $stockSeleccionado->seccion->descripcion ?? 'N/A' }}
+                                                    @else
+                                                        N/A
+                                                    @endif
+                                                </p>
+                                            </div>
+
+                                            {{-- Formulario para cambio de unidad --}}
+                                            <div class="space-y-4">
+                                                {{-- 1. Cantidad a rebajar --}}
+                                                <div>
+                                                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                                                        Cantidad a rebajar
+                                                        <span class="text-red-500">*</span>
+                                                    </label>
+                                                    <input type="number"
+                                                           wire:model.live="cantidadVerificacion"
+                                                           step="0.01"
+                                                           min="0.01"
+                                                           max="{{ $cantidadTotalDisponible }}"
+                                                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                                           placeholder="Ingrese la cantidad a rebajar (máx: {{ $cantidadTotalDisponible }})">
+                                                    @error('cantidadVerificacion')
+                                                        <span class="text-red-500 text-xs">{{ $message }}</span>
+                                                    @enderror
+                                                    @if($cantidadVerificacion > $cantidadTotalDisponible)
+                                                        <div class="mt-1 text-xs text-red-600">
+                                                            ⚠️ La cantidad no puede exceder {{ $cantidadTotalDisponible }}
+                                                        </div>
+                                                    @endif
+                                                </div>
+
+                                                {{-- 2. Unidad de medida a convertir --}}
+                                                <div>
+                                                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                                                        Unidad de medida a convertir
+                                                        <span class="text-red-500">*</span>
+                                                    </label>
+                                                    <select wire:model="nuevaUnidadMedida"
+                                                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500">
+                                                        <option value="">Seleccione una unidad</option>
+                                                        @foreach($unidadesDisponibles as $unidad)
+                                                            <option value="{{ $unidad['nombre'] }}">{{ $unidad['nombre'] }}</option>
+                                                        @endforeach
+                                                    </select>
+                                                    @error('nuevaUnidadMedida')
+                                                        <span class="text-red-500 text-xs">{{ $message }}</span>
+                                                    @enderror
+                                                </div>
+
+                                                {{-- 3. Cantidad a convertir (verificación) --}}
+                                                <div>
+                                                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                                                        Cantidad a convertir
+                                                        <span class="text-red-500">*</span>
+                                                    </label>
+                                                    <input type="number"
+                                                           wire:model.live="cantidadAConvertir"
+                                                           step="0.01"
+                                                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                                           placeholder="Ingrese la cantidad a convertir">
+                                                    @error('cantidadAConvertir')
+                                                        <span class="text-red-500 text-xs">{{ $message }}</span>
+                                                    @enderror
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                        <button type="button"
+                                wire:click="procesarCambioUnidad"
+                                wire:loading.attr="disabled"
+                                wire:target="procesarCambioUnidad"
+                                class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-purple-600 text-base font-medium text-white hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                            <span wire:loading.remove wire:target="procesarCambioUnidad">Procesar Cambio</span>
+                            <span wire:loading wire:target="procesarCambioUnidad" class="flex items-center">
+                                <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                Procesando...
+                            </span>
+                        </button>
+                        <button type="button"
+                                wire:click="cerrarModalCambiarUnidad"
+                                wire:loading.attr="disabled"
+                                wire:target="procesarCambioUnidad"
+                                class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                            Cancelar
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
+    @endif
 
-    <!-- Tabla de productos -->
-    <div class="overflow-hidden border border-gray-300 rounded shadow" x-data x-init="$watch('theme', t => localStorage.setItem('theme', t))">
-        <!-- ENCABEZADO -->
-        <div class="flex items-center justify-between px-5 py-3 mb-4 font-semibold text-white rounded-t" 
-             :class="{'bg-emerald-600': theme === 'verde','bg-blue-600': theme === 'azul','bg-gray-900': theme === 'oscuro','bg-slate-700': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'}">
-            <h5 class="mb-0 text-lg">📦 Productos Recibidos en Bodega</h5>
-            <div class="flex items-center gap-2">
-                <span class="text-sm opacity-90">Total: {{ count($productosRecibidos) }}</span>
-            </div>
-        </div>
+    {{-- MODAL DE AJUSTE DE CANTIDADES - VERSIÓN COMPACTA --}}
+    @if($mostrarModalAjusteCantidades)
+        <div class="fixed inset-0 z-50 overflow-y-auto" 
+             x-data="{ mostrar: @entangle('mostrarModalAjusteCantidades') }"
+             x-show="mostrar"
+             x-transition:enter="transition ease-out duration-300"
+             x-transition:enter-start="opacity-0"
+             x-transition:enter-end="opacity-100"
+             x-transition:leave="transition ease-in duration-200"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0"
+             aria-labelledby="modal-title" 
+             role="dialog" 
+             aria-modal="true">
+            <div class="flex items-center justify-center min-h-screen p-4">
+                {{-- Overlay --}}
+                <div class="fixed inset-0 transition-all bg-gray-900 bg-opacity-50 backdrop-blur-sm" 
+                     aria-hidden="true" 
+                     wire:click="cerrarModalAjusteCantidades"></div>
+                
+                {{-- Modal Content - Más compacto --}}
+                <div class="relative w-full max-w-lg overflow-hidden text-left transition-all transform bg-white shadow-2xl rounded-xl"
+                     x-transition:enter="ease-out duration-300"
+                     x-transition:enter-start="opacity-0 scale-95"
+                     x-transition:enter-end="opacity-100 scale-100"
+                     x-transition:leave="ease-in duration-200"
+                     x-transition:leave-start="opacity-100 scale-100"
+                     x-transition:leave-end="opacity-0 scale-95">
+                    
+                    {{-- Header compacto --}}
+                    <div class="px-4 py-3 bg-gradient-to-r from-amber-500 to-orange-500">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-2">
+                                <div class="flex items-center justify-center w-8 h-8 bg-white rounded-lg">
+                                    <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 class="text-base font-bold text-white">Ajuste de Inventario</h3>
+                                </div>
+                            </div>
+                            <button wire:click="cerrarModalAjusteCantidades" 
+                                    class="text-white transition-colors hover:text-amber-100">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
 
-        <!-- TABLA -->
-        <div class="px-4 py-3 pt-0 card-body">
-            <div class="table-responsive">
-                <table id="tbl_productos_bodega" class="table mb-0 align-middle table-sm table-hover table-bordered">
-                    <thead class="table-light">
-                        <tr class="text-center align-middle">
-                            <th>ID</th>
-                            <th>Producto</th>
-                            <th>Código Barra</th>
-                            <th>Marca</th>
-                            <th>Bodega</th>
-                            <th>Segmento</th>
-                            <th>Sección</th>
-                            <th>Cantidad Disponible</th>
-                            <th>Unidad</th>
-                            <th>Fecha Recibido</th>
-                            <th>Fecha Expiración</th>
-                            <th>Estado</th>
-                            <th>Comentario</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse($productosRecibidos as $item)
-                            <tr class="text-center align-middle hover:bg-gray-50 {{ $item->cantidad_disponible > 10 ? 'producto-row-disponible' : ($item->cantidad_disponible > 0 ? '' : 'producto-row-agotado') }}">
-                                <td class="fw-semibold">{{ $item->id }}</td>
-                                <td class="text-start">
-                                    <div class="d-flex flex-column">
-                                        <span class="fw-semibold">{{ $item->producto_nombre }}</span>
-                                        @if($item->producto_descripcion)
-                                            <small class="text-muted">{{ Str::limit($item->producto_descripcion, 30) }}</small>
-                                        @endif
+                    {{-- Body compacto --}}
+                    <div class="px-4 py-3 space-y-3 max-h-[70vh] overflow-y-auto">
+                        {{-- Info del Producto - Compacta --}}
+                        <div class="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                            <div class="flex items-start justify-between mb-2">
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-sm font-bold text-gray-900 truncate">{{ $productoNombreAjuste }}</p>
+                                    <p class="text-xs text-gray-600">{{ $bodegaNombreAjuste }} • {{ $seccionNombreAjuste }}</p>
+                                </div>
+                                <div class="ml-2 text-right">
+                                    <p class="text-xs text-gray-500">Stock</p>
+                                    <p class="text-lg font-bold text-blue-600">{{ number_format($cantidadDisponibleActual, 2) }}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- Tipo de Ajuste - Compacto --}}
+                        <div class="grid grid-cols-2 gap-2">
+                            <button type="button"
+                                    wire:click="$set('tipoAjuste', 'aumentar')"
+                                    class="flex items-center justify-center px-3 py-2 text-sm font-bold transition-all border-2 rounded-lg"
+                                    :class="{
+                                        'border-green-500 bg-green-50 text-green-700 shadow-md': @js($tipoAjuste === 'aumentar'),
+                                        'border-gray-300 bg-white text-gray-600 hover:border-green-400': @js($tipoAjuste !== 'aumentar')
+                                    }">
+                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                                </svg>
+                                Aumentar
+                            </button>
+                            <button type="button"
+                                    wire:click="$set('tipoAjuste', 'disminuir')"
+                                    class="flex items-center justify-center px-3 py-2 text-sm font-bold transition-all border-2 rounded-lg"
+                                    :class="{
+                                        'border-red-500 bg-red-50 text-red-700 shadow-md': @js($tipoAjuste === 'disminuir'),
+                                        'border-gray-300 bg-white text-gray-600 hover:border-red-400': @js($tipoAjuste !== 'disminuir')
+                                    }">
+                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path>
+                                </svg>
+                                Disminuir
+                            </button>
+                        </div>
+
+                        {{-- Cantidad --}}
+                        <div>
+                            <label class="block mb-1 text-xs font-semibold text-gray-700">
+                                Cantidad <span class="text-red-500">*</span>
+                            </label>
+                            <div class="relative">
+                                <input type="number"
+                                       wire:model.live.debounce.150ms="cantidadAjuste"
+                                       step="0.01"
+                                       min="0.01"
+                                       class="w-full px-3 py-2 text-base font-semibold transition-all border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-500"
+                                       placeholder="0.00"
+                                       autofocus>
+                                <span class="absolute inset-y-0 right-0 flex items-center pr-3 text-xs font-medium text-gray-400 pointer-events-none">
+                                    {{ $unidadMedidaAjuste }}
+                                </span>
+                            </div>
+                            @error('cantidadAjuste')
+                                <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                            @enderror
+                            @if($tipoAjuste === 'disminuir' && $cantidadAjuste && floatval($cantidadAjuste) > $cantidadDisponibleActual)
+                                <p class="flex items-center mt-1 text-xs text-red-600">
+                                    <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    Excede el stock disponible
+                                </p>
+                            @endif
+                        </div>
+
+                        {{-- Motivo --}}
+                        <div>
+                            <label class="block mb-1 text-xs font-semibold text-gray-700">
+                                Motivo <span class="text-red-500">*</span>
+                            </label>
+                            <textarea wire:model.live.debounce.300ms="motivoAjuste"
+                                      rows="2"
+                                      class="w-full px-3 py-2 text-sm transition-all border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-500 resize-none"
+                                      placeholder="Describa el motivo..."></textarea>
+                            @error('motivoAjuste')
+                                <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        {{-- Vista Previa Compacta --}}
+                        @if($cantidadAjuste && is_numeric($cantidadAjuste) && $cantidadAjuste > 0)
+                            <div class="overflow-hidden border-2 rounded-lg"
+                                 :class="{
+                                     'border-green-400 bg-green-50': @js($tipoAjuste === 'aumentar'),
+                                     'border-red-400 bg-red-50': @js($tipoAjuste === 'disminuir')
+                                 }">
+                                <div class="px-3 py-2">
+                                    <div class="flex items-center justify-between text-xs">
+                                        <span class="text-gray-600">Actual:</span>
+                                        <span class="font-semibold">{{ number_format($cantidadDisponibleActual, 2) }}</span>
                                     </div>
-                                </td>
-                                <td class="text-start">
-                                    <code class="small">{{ $item->codigo_barra ?? 'N/A' }}</code>
-                                </td>
-                                <td class="text-start">{{ $item->marca_nombre ?? 'Sin marca' }}</td>
-                                <td class="text-start">
-                                    <div class="d-flex flex-column">
-                                        <span class="fw-semibold">{{ $item->bodega_nombre }}</span>
-                                        <small class="text-muted">{{ $item->tienda_nombre }}</small>
-                                    </div>
-                                </td>
-                                <td class="text-start">{{ $item->segmento_descripcion }}</td>
-                                <td class="text-start">{{ $item->seccion_descripcion }}</td>
-                                <td class="text-center">
-                                    <span class="fw-bold {{ $item->cantidad_disponible > 10 ? 'text-success' : ($item->cantidad_disponible > 0 ? 'text-warning' : 'text-danger') }}">
-                                        {{ number_format($item->cantidad_disponible, 0) }}
-                                    </span>
-                                </td>
-                                <td class="text-start">{{ $item->unidad_medida ?? 'Unidad' }}</td>
-                                <td class="text-start">
-                                    {{ \Carbon\Carbon::parse($item->fecha_recibido)->format('d/m/Y') }}
-                                </td>
-                                <td class="text-start">
-                                    @if($item->fecha_expiracion)
-                                        @php
-                                            $fechaExpiracion = \Carbon\Carbon::parse($item->fecha_expiracion);
-                                            $diasRestantes = $fechaExpiracion->diffInDays(now(), false);
-                                        @endphp
-                                        <span class="{{ $diasRestantes > 30 ? 'text-success' : ($diasRestantes > 7 ? 'text-warning' : 'text-danger') }}">
-                                            {{ $fechaExpiracion->format('d/m/Y') }}
-                                            @if($diasRestantes <= 30)
-                                                <br><small>({{ abs($diasRestantes) }} días)</small>
-                                            @endif
+                                    <div class="flex items-center justify-between my-1 text-xs">
+                                        <span class="text-gray-600">{{ $tipoAjuste === 'aumentar' ? 'Aumentar:' : 'Disminuir:' }}</span>
+                                        <span class="font-semibold"
+                                              :class="{
+                                                  'text-green-600': @js($tipoAjuste === 'aumentar'),
+                                                  'text-red-600': @js($tipoAjuste === 'disminuir')
+                                              }">
+                                            {{ $tipoAjuste === 'aumentar' ? '+' : '-' }} {{ number_format(floatval($cantidadAjuste), 2) }}
                                         </span>
-                                    @else
-                                        <span class="text-muted">N/A</span>
-                                    @endif
-                                </td>
-                                <td class="text-center">
-                                    @if($item->cantidad_disponible > 10)
-                                        <span class="badge badge-disponible">Disponible</span>
-                                    @elseif($item->cantidad_disponible > 0)
-                                        <span class="badge badge-poco-stock">Poco Stock</span>
-                                    @else
-                                        <span class="badge badge-agotado">Agotado</span>
-                                    @endif
-                                </td>
-                                <td class="text-start">
-                                    @if($item->comentario)
-                                        <span title="{{ $item->comentario }}">{{ Str::limit($item->comentario, 20) }}</span>
-                                    @else
-                                        <span class="text-muted">-</span>
-                                    @endif
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="13" class="text-center py-4">
-                                    <div class="d-flex flex-column align-items-center">
-                                        <svg class="w-16 h-16 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 64px; height: 64px;">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-4.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 009.586 13H7"></path>
-                                        </svg>
-                                        <span class="text-muted">No hay productos recibidos en bodega</span>
-                                        <small class="text-muted">Los productos aparecerán aquí cuando sean distribuidos a las bodegas</small>
                                     </div>
-                                </td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
+                                    <div class="pt-2 mt-2 border-t-2"
+                                         :class="{
+                                             'border-green-300': @js($tipoAjuste === 'aumentar'),
+                                             'border-red-300': @js($tipoAjuste === 'disminuir')
+                                         }">
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-sm font-bold text-gray-800">Nuevo Stock:</span>
+                                            <span class="text-xl font-black"
+                                                  :class="{
+                                                      'text-green-600': @js($tipoAjuste === 'aumentar'),
+                                                      'text-red-600': @js($tipoAjuste === 'disminuir')
+                                                  }">
+                                                @if($tipoAjuste === 'aumentar')
+                                                    {{ number_format($cantidadDisponibleActual + floatval($cantidadAjuste), 2) }}
+                                                @else
+                                                    {{ number_format(max(0, $cantidadDisponibleActual - floatval($cantidadAjuste)), 2) }}
+                                                @endif
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
+                    </div>
+
+                    {{-- Footer compacto --}}
+                    <div class="flex gap-2 px-4 py-3 bg-gray-50 border-t border-gray-200">
+                        <button type="button"
+                                wire:click="cerrarModalAjusteCantidades"
+                                wire:loading.attr="disabled"
+                                wire:target="procesarAjusteCantidades"
+                                class="flex-1 px-4 py-2 text-sm font-semibold text-gray-700 transition-all bg-white border-2 border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 disabled:opacity-50">
+                            Cancelar
+                        </button>
+                        <button type="button"
+                                wire:click="procesarAjusteCantidades"
+                                wire:loading.attr="disabled"
+                                wire:target="procesarAjusteCantidades"
+                                class="flex items-center justify-center flex-1 px-4 py-2 text-sm font-bold text-white transition-all shadow-lg rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 disabled:opacity-50">
+                            <span wire:loading.remove wire:target="procesarAjusteCantidades">Confirmar</span>
+                            <span wire:loading wire:target="procesarAjusteCantidades" class="flex items-center">
+                                <svg class="w-4 h-4 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                Procesando...
+                            </span>
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
-    </div>
+    @endif
 
 </div> {{-- FIN ELEMENTO RAÍZ --}}

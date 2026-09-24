@@ -3,6 +3,7 @@
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\MenuController;
+use App\Http\Controllers\MorphingLogController;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Http\Request;
 
@@ -33,6 +34,9 @@ Route::get('/register', function () {
 
 
 Route::get('/menus/data', [MenuController::class, 'data'])->name('menus.data');
+
+// Ruta para logging de errores de DOM morphing
+Route::post('/api/log-morphing-error', [MorphingLogController::class, 'logMorphingError'])->name('log.morphing.error');
 
 // Rutas de Sala de Ventas
 Route::middleware('auth')->group(function () {
@@ -80,9 +84,17 @@ Route::middleware('auth')->group(function () {
     // Rutas para factura PDF
     Route::get('factura/{id}/pdf', [App\Http\Controllers\FacturaPDFController::class, 'generarPDF'])->name('factura.pdf');
     Route::get('factura/{id}/pdf/preview', [App\Http\Controllers\FacturaPDFController::class, 'previsualizarPDF'])->name('factura.pdf.preview');
-    
+
     // Ruta para ver detalle de factura
     Route::get('factura/{id}/detalle', [App\Http\Controllers\FacturaController::class, 'detalle'])->name('factura.detalle');
+
+    // Rutas para cierre de caja PDF
+    Route::get('cierre-caja/{id}/pdf', [App\Http\Controllers\CierreCajaPDFController::class, 'generarPDF'])->name('cierre-caja.pdf');
+    Route::get('cierre-caja/{id}/pdf/preview', [App\Http\Controllers\CierreCajaPDFController::class, 'previsualizarPDF'])->name('cierre-caja.pdf.preview');
+    Route::get('cierre-caja/{id}/reporte-transacciones', [App\Http\Controllers\CierreCajaPDFController::class, 'reporteTransacciones'])->name('cierre-caja.reporte-transacciones');
+
+    // Ruta para descargar archivos generados por Livewire
+    Route::get('/download', [App\Http\Controllers\DownloadController::class, 'downloadFile'])->name('download.file');
 });
 
 require __DIR__.'/auth.php';
@@ -91,3 +103,27 @@ Route::post('/debug-log', function (Request $request) {
     Log::debug('📩 [JS DEBUG] ' . $request->input('mensaje'));
     return response()->json(['status' => 'ok']);
 });
+
+// Ruta para servir archivos temporales de descarga
+Route::get('/storage/temp/{filename}', function ($filename) {
+    $filepath = storage_path('app/temp/' . $filename);
+
+    if (!file_exists($filepath)) {
+        abort(404, 'Archivo no encontrado');
+    }
+
+    // Determinar el tipo de archivo
+    $extension = pathinfo($filename, PATHINFO_EXTENSION);
+    $mimeType = 'application/octet-stream';
+
+    if ($extension === 'csv') {
+        $mimeType = 'text/csv';
+    } elseif ($extension === 'html') {
+        $mimeType = 'text/html';
+    }
+
+    return response()->file($filepath, [
+        'Content-Type' => $mimeType,
+        'Content-Disposition' => 'attachment; filename="' . $filename . '"'
+    ]);
+})->middleware('auth');

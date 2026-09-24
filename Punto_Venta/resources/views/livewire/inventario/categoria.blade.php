@@ -1,7 +1,9 @@
 <div> {{-- ELEMENTO RAÍZ ÚNICO OBLIGATORIO --}}
-    {{-- Tabla de Categorías --}}
-    <div class="overflow-hidden border border-gray-300 rounded shadow" x-data x-init="$watch('theme', t => localStorage.setItem('theme', t))">
-        <!-- ENCABEZADO -->
+
+    {{-- Sección de Categorías Propias de Zenvy --}}
+    <div class="overflow-hidden border border-gray-300 rounded shadow mb-6" x-data x-init="$watch('theme', t => localStorage.setItem('theme', t))">
+
+        <!-- ENCABEZADO CATEGORÍAS ZENVY -->
         <div class="flex items-center justify-between px-5 py-3 mb-4 font-semibold text-white rounded-t"
             :class="{
                 'bg-emerald-600': theme === 'verde',
@@ -10,16 +12,17 @@
                 'bg-slate-700': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
             }"
         >
-            <h5 class="mb-0 text-lg">Gestión de Categorías</h5>
+            <h5 class="mb-0 text-lg">📂 Categorías de Paperland</h5>
             <button wire:click="abrirModalCrear"
                 class="inline-flex items-center gap-1 px-3 py-2 text-sm text-gray-800 bg-white rounded hover:bg-gray-100">
                 <span>➕</span> Agregar Categoría
             </button>
         </div>
-        <!-- TABLA -->
+
+        <!-- TABLA CATEGORÍAS ZENVY -->
         <div class="px-4 py-3 pt-0 card-body">
             <div class="table-responsive">
-                <table id="categoriaTable" class="table mb-0 align-middle table-sm table-hover table-bordered">
+                <table id="categoriasZenvyTable" class="table mb-0 align-middle table-sm table-hover table-bordered">
                     <thead class="table-light">
                         <tr class="text-center align-middle">
                             <th style="width: 80px;">ID</th>
@@ -28,7 +31,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse($categorias as $categoria)
+                        @forelse($categoriasZenvy as $categoria)
                             <tr class="text-center align-middle hover:bg-gray-50">
                                 <td class="cursor-pointer fw-semibold" wire:click="editar({{ $categoria->id }})">{{ $categoria->id }}</td>
                                 <td class="cursor-pointer text-start" wire:click="editar({{ $categoria->id }})">{{ $categoria->nombre }}</td>
@@ -44,13 +47,92 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="3" class="py-4 text-center text-muted">No hay categorías disponibles.</td>
+                                <td colspan="3" class="py-4 text-center text-muted">No hay categorías propias de Zenvy.</td>
                             </tr>
                         @endforelse
                     </tbody>
                 </table>
             </div>
         </div>
+
+    </div>
+
+    {{-- Sección de Categorías de Valencia --}}
+    <div class="overflow-hidden border border-orange-300 rounded shadow" x-data x-init="$watch('theme', t => localStorage.setItem('theme', t))">
+
+        <!-- ENCABEZADO CATEGORÍAS VALENCIA -->
+        <div class="flex items-center justify-between px-5 py-3 mb-4 font-semibold text-white rounded-t bg-orange-600">
+            <h5 class="mb-0 text-lg">🏢 Categorías de Valencia</h5>
+
+            <!-- Botón de sincronización con estado de carga -->
+            <div class="relative">
+                <button wire:click="sincronizarCategoriasValencia"
+                    wire:loading.attr="disabled"
+                    wire:target="sincronizarCategoriasValencia"
+                    class="inline-flex items-center gap-1 px-3 py-2 text-sm text-gray-800 bg-white rounded hover:bg-gray-100 disabled:opacity-75 disabled:cursor-not-allowed">
+
+                    <!-- Spinner de carga -->
+                    <div wire:loading wire:target="sincronizarCategoriasValencia" class="inline-block w-4 h-4 border-2 border-gray-300 border-t-orange-600 rounded-full animate-spin"></div>
+
+                    <!-- Icono normal -->
+                    <span wire:loading.remove wire:target="sincronizarCategoriasValencia">🔄</span>
+
+                    <!-- Texto del botón -->
+                    <span wire:loading.remove wire:target="sincronizarCategoriasValencia">Sincronizar</span>
+                    <span wire:loading wire:target="sincronizarCategoriasValencia">Sincronizando...</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Barra de progreso para sincronización -->
+        @if($sincronizandoCategorias && $progreso !== null)
+            <div class="px-5 pb-3">
+                <div class="w-full bg-gray-200 rounded-full h-2">
+                    <div class="bg-orange-600 h-2 rounded-full transition-all duration-300"
+                         style="width: {{ $progreso }}%"></div>
+                </div>
+                <p class="text-sm text-gray-600 mt-1">Sincronizando categorías... {{ $progreso }}%</p>
+            </div>
+        @endif
+
+        <!-- TABLA CATEGORÍAS VALENCIA -->
+        <div class="px-4 py-3 pt-0 card-body">
+            <div class="table-responsive">
+                <table id="categoriasValenciaTable" class="table mb-0 align-middle table-sm table-hover table-bordered">
+                    <thead class="table-light">
+                        <tr class="text-center align-middle">
+                            <th style="width: 80px;">ID</th>
+                            <th>Nombre</th>
+                            <th style="width: 120px;">Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($categoriasValencia as $categoria)
+                            <tr class="text-center align-middle bg-orange-50 hover:bg-orange-100 cursor-pointer"
+                                wire:click="editar({{ $categoria->id }})"
+                                title="Clic para editar categoría">
+                                <td class="fw-semibold">{{ $categoria->id }}</td>
+                                <td class="text-start">
+                                    <div class="flex items-center gap-2">
+                                        <span>{{ $categoria->nombre }}</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge bg-orange-100 text-orange-800 px-2 py-1 rounded text-xs">
+                                        🔒 Sincronizada
+                                    </span>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="3" class="py-4 text-center text-muted">No hay categorías sincronizadas desde Valencia.</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
     </div>
 
     <!-- Modal Agregar Categoría -->
@@ -72,21 +154,22 @@
                             'bg-slate-700 text-white': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
                          }"
                     >
-                        <h5 class="modal-title">Agregar Categoría</h5>
+                        <h5 class="modal-title">Nueva Categoría</h5>
                     </div>
                     <div class="modal-body">
                         <form wire:submit.prevent="crearCategoria">
                             <div class="mb-3">
                                 <label for="nuevaCategoriaNombre" class="form-label">Nombre</label>
-                                <input type="text" id="nuevaCategoriaNombre" class="form-control" wire:model.defer="nuevaCategoriaNombre">
+                                <input type="text" id="nuevaCategoriaNombre" class="form-control" wire:model.defer="nuevaCategoriaNombre" placeholder="Ingrese el nombre de la categoría">
                                 @error('nuevaCategoriaNombre')
                                     <div class="mt-1 text-sm text-danger">{{ $message }}</div>
                                 @enderror
                             </div>
                             <div class="flex justify-end mt-4">
-                                <button
-                                    type="submit"
-                                    class="px-4 py-2 text-white rounded"
+                                <button type="button" class="px-4 py-2 mr-2 text-gray-600 bg-gray-100 rounded hover:bg-gray-200" wire:click="cerrarModalCrear">
+                                    Cancelar
+                                </button>
+                                <button type="submit" class="px-4 py-2 text-white rounded"
                                     :class="{
                                         'bg-emerald-600 hover:bg-emerald-700': theme === 'verde',
                                         'bg-blue-600 hover:bg-blue-700': theme === 'azul',
@@ -94,7 +177,7 @@
                                         'bg-slate-700 hover:bg-slate-800': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
                                     }"
                                 >
-                                    Guardar
+                                    Crear Categoría
                                 </button>
                             </div>
                         </form>
@@ -115,17 +198,17 @@
         >
             <div class="modal-dialog modal-dialog-centered modal-lg">
                 <div class="modal-content">
-                    <div class="text-white modal-header bg-danger">
-                        <h5 class="modal-title">⚠️ ¿Eliminar categoría?</h5>
+                    <div class="modal-header bg-danger text-white">
+                        <h5 class="modal-title">Confirmar Eliminación</h5>
                     </div>
                     <div class="modal-body">
                         @if(count($productosVinculados) > 0)
                             <div class="alert alert-warning">
                                 <h6><strong>⚠️ No se puede eliminar esta categoría</strong></h6>
-                                <p>Esta categoría tiene <strong>{{ count($productosVinculados) }} producto(s)</strong> vinculado(s) a través de sus subcategorías. 
+                                <p>Esta categoría tiene <strong>{{ count($productosVinculados) }} producto(s)</strong> vinculado(s) a través de sus subcategorías.
                                    Primero debe eliminar o cambiar la subcategoría de estos productos:</p>
                             </div>
-                            
+
                             <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
                                 <table class="table table-sm table-striped">
                                     <thead class="table-light sticky-top">
@@ -150,14 +233,14 @@
                                     </tbody>
                                 </table>
                             </div>
-                            
+
                             <div class="alert alert-info mt-3">
                                 <small>
-                                    <strong>💡 Sugerencia:</strong> 
+                                    <strong>💡 Sugerencia:</strong>
                                     Vaya al módulo de <strong>Productos</strong> y edite cada producto para cambiar su subcategoría o elimínelos.
                                 </small>
                             </div>
-                            
+
                             <div class="flex justify-end gap-2 mt-4">
                                 <button type="button" class="btn btn-secondary" wire:click="cerrarModalEliminar">
                                     <i class="fas fa-times me-1"></i> Cerrar
@@ -168,10 +251,10 @@
                                 <h6><strong>✅ Esta categoría se puede eliminar</strong></h6>
                                 <p>No hay productos vinculados a las subcategorías de esta categoría.</p>
                             </div>
-                            
+
                             <p><strong>¿Estás seguro que deseas eliminar esta categoría?</strong></p>
                             <p class="text-muted">Esta acción eliminará también todas sus subcategorías y no se puede deshacer.</p>
-                            
+
                             <div class="flex justify-end gap-2 mt-4">
                                 <button type="button" class="btn btn-secondary" wire:click="cerrarModalEliminar">
                                     <i class="fas fa-times me-1"></i> No, cancelar
@@ -187,6 +270,7 @@
         </div>
     </div>
 
+    {{-- Alertas --}}
     @if (session()->has('mensaje'))
         <div x-data="{ show: true }" x-show="show"
              @click.window="show = false"
@@ -206,4 +290,70 @@
             {{ session('error') }}
         </div>
     @endif
+
+    {{-- Modal de Detalles de Sincronización de Categorías --}}
+    @if($detallesSincronizacion)
+        <div class="fixed inset-0 z-50 flex items-center justify-center">
+            {{-- Overlay --}}
+            <div class="fixed inset-0 bg-black bg-opacity-50" wire:click="cerrarDetallesSincronizacion"></div>
+
+            {{-- Modal --}}
+            <div class="relative bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-gray-900">📊 Sincronización de Categorías Completada</h3>
+                    <button wire:click="cerrarDetallesSincronizacion" class="text-gray-400 hover:text-gray-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="space-y-3">
+                    <div class="flex justify-between items-center p-3 bg-green-50 rounded">
+                        <span class="font-medium text-green-800">✅ Categorías procesadas:</span>
+                        <span class="font-bold text-green-600">{{ $detallesSincronizacion['categorias_sincronizadas'] }}</span>
+                    </div>
+
+                    @if($detallesSincronizacion['categorias_nuevas'] > 0)
+                        <div class="flex justify-between items-center p-3 bg-blue-50 rounded">
+                            <span class="font-medium text-blue-800">🆕 Categorías nuevas:</span>
+                            <span class="font-bold text-blue-600">{{ $detallesSincronizacion['categorias_nuevas'] }}</span>
+                        </div>
+                    @endif
+
+                    @if($detallesSincronizacion['categorias_actualizadas'] > 0)
+                        <div class="flex justify-between items-center p-3 bg-yellow-50 rounded">
+                            <span class="font-medium text-yellow-800">🔄 Categorías actualizadas:</span>
+                            <span class="font-bold text-yellow-600">{{ $detallesSincronizacion['categorias_actualizadas'] }}</span>
+                        </div>
+                    @endif
+
+                    @if($detallesSincronizacion['sin_cambios'] > 0)
+                        <div class="flex justify-between items-center p-3 bg-gray-50 rounded">
+                            <span class="font-medium text-gray-800">⚪ Sin cambios:</span>
+                            <span class="font-bold text-gray-600">{{ $detallesSincronizacion['sin_cambios'] }}</span>
+                        </div>
+                    @endif
+
+                    <div class="flex justify-between items-center p-3 bg-orange-50 rounded">
+                        <span class="font-medium text-orange-800">📈 Total procesadas:</span>
+                        <span class="font-bold text-orange-600">{{ $detallesSincronizacion['total_procesadas'] }}</span>
+                    </div>
+
+                    <div class="flex justify-between items-center p-3 bg-purple-50 rounded">
+                        <span class="font-medium text-purple-800">⏱️ Tiempo:</span>
+                        <span class="font-bold text-purple-600">{{ $detallesSincronizacion['tiempo_ejecucion'] }}</span>
+                    </div>
+                </div>
+
+                <div class="mt-6 text-center">
+                    <button wire:click="cerrarDetallesSincronizacion"
+                            class="px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700 transition-colors">
+                        Cerrar
+                    </button>
+                </div>
+            </div>
+        </div>
+    @endif
+
 </div> {{-- FIN ELEMENTO RAÍZ --}}

@@ -4,6 +4,9 @@ namespace App\Livewire\Inventario;
 
 use App\Models\Categoria;
 use App\Models\Subcategoria;
+use App\Models\IdZenvyValencia;
+use App\Services\SincronizacionSubcategoriasService;
+use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 
 class CategoriaForm extends Component
@@ -15,6 +18,12 @@ class CategoriaForm extends Component
     public $subcategorias;
     public $nuevaSubcategoria = '';
     public $mostrarMensaje = false;
+
+    // Propiedades para categorías de Valencia
+    public $esCategoriaValencia = false;
+    
+    // Servicio como propiedad privada (no pública)
+    private $sincronizacionService;
 
     // Propiedades para el flujo de creación
     public $mostrarSeccionSubcategorias = false;
@@ -32,6 +41,11 @@ class CategoriaForm extends Component
         'nombre' => '',
     ];
 
+    // Propiedades para efectos de carga en sincronización de subcategorías
+    public $sincronizandoSubcategorias = false;
+    public $progreso = null;
+    public $detallesSincronizacion = null;
+
     public function mount($id = null)
     {
         $this->subcategorias = collect(); // Inicializar como colección vacía
@@ -40,17 +54,121 @@ class CategoriaForm extends Component
             $this->categoriaId = $id;
             $categoria = Categoria::findOrFail($id);
             $this->form['nombre'] = $categoria->nombre;
+            
+            // Verificar si es una categoría de Valencia
+            $this->esCategoriaValencia = $this->verificarSiEsCategoriaValencia($id);
+            
             $this->cargarSubcategorias();
         } else {
             $this->categoriaId = null;
+            $this->esCategoriaValencia = false;
         }
+    }
+
+    private function getSincronizacionService()
+    {
+        if (!$this->sincronizacionService) {
+            $this->sincronizacionService = app(SincronizacionSubcategoriasService::class);
+        }
+        return $this->sincronizacionService;
     }
 
     public function cargarSubcategorias()
     {
         if ($this->categoriaId) {
-            $this->subcategorias = Subcategoria::where('categoria_id', $this->categoriaId)->get();
+            if ($this->esCategoriaValencia) {
+                // Para categorías de Valencia, separar subcategorías por origen
+                $this->subcategorias = [
+                    'zenvy' => Subcategoria::where('categoria_id', $this->categoriaId)
+                        ->whereNotExists(function ($query) {
+                            $query->select(DB::raw(1))
+                                  ->from('id_zenvy_valencia')
+                                  ->whereRaw('id_zenvy_valencia.id_zenvy = subcategoria.id')
+                                  ->where('id_zenvy_valencia.tipo_dato_migrado_id', 4);
+                        })->orderBy('nombre')->get(['id', 'nombre'])->toArray(),
+                    
+                    'valencia' => Subcategoria::where('categoria_id', $this->categoriaId)
+                        ->whereExists(function ($query) {
+                            $query->select(DB::raw(1))
+                                  ->from('id_zenvy_valencia')
+                                  ->whereRaw('id_zenvy_valencia.id_zenvy = subcategoria.id')
+                                  ->where('id_zenvy_valencia.tipo_dato_migrado_id', 4);
+                        })->orderBy('nombre')->get(['id', 'nombre'])->toArray(),
+                ];
+            } else {
+                // Para categorías propias, cargar normalmente
+                $this->subcategorias = Subcategoria::where('categoria_id', $this->categoriaId)
+                    ->get(['id', 'nombre'])->toArray();
+            }
         }
+    }
+
+    private function verificarSiEsCategoriaValencia($categoriaId)
+    {
+        return IdZenvyValencia::where('id_zenvy', $categoriaId)
+                             ->where('tipo_dato_migrado_id', 3)
+                             ->exists();
+    }
+
+    public function sincronizarSubcategoriasValencia()
+    {
+        if (!$this->esCategoriaValencia) {
+            session()->flash('error', 'Esta función solo está disponible para categorías de Valencia.');
+            return;
+        }
+
+        try {
+            // Iniciar el proceso de sincronización
+            $this->sincronizandoSubcategorias = true;
+            $this->progreso = 0;
+            $this->detallesSincronizacion = null;
+
+            // Simular progreso de sincronización
+            for ($i = 0; $i <= 100; $i += 25) {
+                $this->progreso = $i;
+                $this->dispatch('actualizarProgreso', $this->progreso);
+                usleep(200000); // 0.2 segundos
+            }
+
+            $resultado = $this->getSincronizacionService()->forzarSincronizacion();
+            
+            // Finalizar progreso
+            $this->progreso = 100;
+            $this->dispatch('actualizarProgreso', $this->progreso);
+            
+            // Preparar detalles de sincronización
+            $this->detallesSincronizacion = [
+                'subcategorias_sincronizadas' => ($resultado['estadisticas']['nuevas'] ?? 0) + ($resultado['estadisticas']['actualizadas'] ?? 0),
+                'subcategorias_nuevas' => $resultado['estadisticas']['nuevas'] ?? 0,
+                'subcategorias_actualizadas' => $resultado['estadisticas']['actualizadas'] ?? 0,
+                'sin_cambios' => $resultado['estadisticas']['sin_cambios'] ?? 0,
+                'total_procesadas' => $resultado['estadisticas']['total_procesadas'] ?? 0,
+                'tiempo_ejecucion' => '~2 segundos'
+            ];
+            
+            $this->cargarSubcategorias(); // Recargar después de sincronizar
+            
+            // Mensajes de estado
+            if (($resultado['estadisticas']['nuevas'] ?? 0) > 0 || ($resultado['estadisticas']['actualizadas'] ?? 0) > 0) {
+                session()->flash('mensaje', '✅ Sincronización completada: ' . $this->detallesSincronizacion['subcategorias_sincronizadas'] . ' subcategorías procesadas exitosamente.');
+            } else {
+                session()->flash('mensaje', '✅ Sincronización completada: Todas las subcategorías están actualizadas.');
+            }
+            
+            // Finalizar estado de carga
+            $this->sincronizandoSubcategorias = false;
+            
+        } catch (\Exception $e) {
+            $this->sincronizandoSubcategorias = false;
+            $this->progreso = 0;
+            
+            session()->flash('error', 'Error al sincronizar subcategorías: ' . $e->getMessage());
+        }
+    }
+
+    public function cerrarDetallesSincronizacion()
+    {
+        $this->detallesSincronizacion = null;
     }
 
     public function volver()
