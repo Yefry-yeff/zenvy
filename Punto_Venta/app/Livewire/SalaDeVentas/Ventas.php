@@ -265,8 +265,6 @@ class Ventas extends Component
         $this->cargarTiposPago();
         $this->cargarTiposPersonaYCliente(); // Nueva función
         $this->verificarCAI();
-        // Cargar productos y servicios para la interfaz unificada
-        $this->cargarProductosYServicios();
 
         // Verificar si el menú de servicios está activo para mostrar el catálogo visual
         $this->verificarEstadoMenuServicios();

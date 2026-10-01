@@ -243,7 +243,13 @@ class Producto extends Component
                 'subcategoria:id,nombre,categoria_id',
                 'subcategoria.categoria:id,nombre',
                 'marca:id,nombre',
-                'mapeoValencia:producto_id_zenvy,producto_id_valencia'
+                'mapeoValencia:producto_id_zenvy,producto_id_valencia',
+                'preciosVenta' => function ($query) {
+                    $query->select('id', 'producto_id', 'unidad_medida_id', 'codigo_barra')
+                        ->whereNotNull('codigo_barra')
+                        ->where('codigo_barra', '!=', '');
+                },
+                'preciosVenta.unidadMedida:id,nombre,simbolo'
             ])
             ->where('producto.estado_id', 1);
 
@@ -323,20 +329,18 @@ class Producto extends Component
         // Aplicar ordenamiento
         $query->orderBy('producto.' . $this->ordenarPor, $this->direccionOrden);
 
-        // Paginar resultados y cargar códigos de barras con unidades de medida desde precio_has_venta
+        // Paginar resultados y preparar las presentaciones ya cargadas con eager loading
         $productos = $query->paginate($this->registrosPorPagina, ['*'], 'page', $this->page);
-        
-        // Cargar códigos de barras y unidades de medida desde precio_has_venta
+
         $productos->getCollection()->transform(function($producto) {
-            $producto->presentaciones = DB::table('precio_has_venta as phv')
-                ->leftJoin('unidad_medida as um', 'phv.unidad_medida_id', '=', 'um.id')
-                ->where('phv.producto_id', $producto->id)
-                ->where('phv.estado_id', 1)
-                ->whereNotNull('phv.codigo_barra')
-                ->where('phv.codigo_barra', '!=', '')
-                ->select('phv.codigo_barra', 'um.nombre as unidad_medida', 'um.simbolo as unidad_simbolo')
-                ->get()
-                ->toArray();
+            $producto->presentaciones = $producto->preciosVenta->map(function($precio) {
+                return (object) [
+                    'codigo_barra' => $precio->codigo_barra,
+                    'unidad_medida' => $precio->unidadMedida?->nombre,
+                    'unidad_simbolo' => $precio->unidadMedida?->simbolo,
+                ];
+            })->all();
+            $producto->unsetRelation('preciosVenta');
             
             // Calcular ID a mostrar: producto_id_valencia si existe, sino producto_id (Zenvy)
             if ($producto->mapeoValencia && $producto->mapeoValencia->producto_id_valencia) {

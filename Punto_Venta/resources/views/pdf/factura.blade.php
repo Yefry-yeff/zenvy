@@ -194,13 +194,24 @@
             top: 30%;
             left: 50%;
             transform: translate(-50%, -50%) rotate(-45deg);
-            font-size: 60px;
+            font-size: 76px;
             font-weight: bold;
             color: rgba(255, 0, 0, 0.25);
             z-index: 9999;
             pointer-events: none;
             white-space: nowrap;
             letter-spacing: 5px;
+        }
+
+        .cancelled-footer {
+            margin-top: 18px;
+            text-align: center;
+            font-size: 42px;
+            line-height: 1;
+            font-weight: bold;
+            color: rgba(255, 0, 0, 0.32);
+            white-space: nowrap;
+            letter-spacing: 4px;
         }
     </style>
 </head>
@@ -698,6 +709,10 @@
                 </div>
             </div>
         </div>
+
+        @if($factura->estado_factura_id == 2)
+            <div class="cancelled-footer">ANULADA</div>
+        @endif
     </div>
 </body>
 </html>
