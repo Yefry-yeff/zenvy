@@ -274,12 +274,27 @@
     @endif
 
     <!-- CONTENIDO PRINCIPAL: Siempre visible (modo manual por defecto) -->
-    <div class="mx-auto max-w-7xl">
+    <div class="w-full mx-auto"
+        :class="sidebarOpen ? 'max-w-7xl' : 'max-w-none'">
 
             <!-- 1. INFORMACIÓN DEL CLIENTE (arriba, ancho completo) -->
-            <div class="mb-6 bg-white border border-gray-300 rounded-lg shadow-lg" x-data x-init="$watch('theme', t => localStorage.setItem('theme', t))">
+            <div class="mb-6"
+                x-data="{ mostrarInformacionCliente: false }"
+                x-init="$watch('theme', t => localStorage.setItem('theme', t))">
+                <button type="button"
+                    x-show="!mostrarInformacionCliente"
+                    x-on:click="mostrarInformacionCliente = true"
+                    class="inline-flex items-center px-4 py-2 text-sm font-semibold text-white bg-emerald-600 border border-emerald-600 rounded-lg shadow-sm hover:bg-emerald-700 focus:outline-none focus:ring-4 focus:ring-emerald-200">
+                    <i class="fas fa-user-plus me-2"></i>
+                    Agregar cliente
+                </button>
+
+                <div x-cloak
+                    x-show="mostrarInformacionCliente"
+                    x-transition.opacity.duration.150ms
+                    class="bg-white border border-gray-300 rounded-lg shadow-lg">
                 <!-- Header -->
-                <div class="flex items-center justify-between px-5 py-3 font-semibold text-white rounded-t"
+                <div class="flex items-center justify-start gap-3 px-5 py-3 font-semibold text-white rounded-t"
                     :class="{
                         'bg-emerald-600': theme === 'verde',
                         'bg-blue-600': theme === 'azul',
@@ -287,6 +302,13 @@
                         'bg-slate-700': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
                     }"
                 >
+                    <button type="button"
+                        x-on:click="mostrarInformacionCliente = false"
+                        class="inline-flex items-center px-3 py-1.5 text-sm text-white border border-white/40 rounded hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/60"
+                        title="Ocultar información del cliente">
+                        <i class="fas fa-chevron-up me-2"></i>
+                        Ocultar
+                    </button>
                     <h3 class="mb-0 text-lg">
                         <i class="fas fa-user me-2"></i>
                         Información del Cliente
@@ -501,6 +523,7 @@
                             @endif
                         </div>
                     </div>
+                </div>
                 </div>
             </div>
 
@@ -1151,7 +1174,7 @@
                             <i class="text-gray-400 fas fa-search"></i>
                         </div>
                         <input type="text"
-                            wire:model.live.debounce.150ms="busquedaProductosServicios"
+                            wire:model.live.debounce.300ms="busquedaProductosServicios"
                             class="w-full py-3 pl-10 pr-4 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-200"
                             placeholder="Buscar producto por nombre, código de barras o descripción...">
                         <div wire:loading wire:target="busquedaProductosServicios"
@@ -1235,9 +1258,9 @@
                              @endif>
 
                             <!-- Imagen del producto (si existe) -->
-                            @if($item->tiene_imagen && $item->imagen_base64)
+                            @if($item->tiene_imagen && $item->imagen_url)
                                 <div class="relative w-full bg-gray-100 h-36">
-                                    <img src="data:image/jpeg;base64,{{ $item->imagen_base64 }}"
+                                    <img src="{{ $item->imagen_url }}"
                                          alt="{{ $item->nombre }}"
                                          class="object-cover w-full h-full {{ $sinStock ? 'grayscale' : '' }}"
                                          loading="lazy">
@@ -1353,12 +1376,24 @@
                 </div>
 
                 <!-- Información adicional -->
-                @if(count($resultadosBusqueda) > 0)
-                    <div class="mt-4 text-center">
+                @if($totalResultadosBusqueda > 0)
+                    <div class="flex flex-wrap items-center justify-center gap-3 mt-4">
+                        <button
+                            wire:click="paginaAnteriorBusqueda"
+                            @disabled($paginaResultadosBusqueda <= 1)
+                            class="px-3 py-2 text-sm border rounded disabled:cursor-not-allowed disabled:opacity-40 hover:bg-gray-50"
+                        >Anterior</button>
                         <small class="text-muted">
                             <i class="fas fa-info-circle me-1"></i>
-                            Mostrando {{ count($resultadosBusqueda) }} producto(s). Haz clic para agregar a la factura.
+                            Mostrando
+                            {{ (($paginaResultadosBusqueda - 1) * $resultadosPorPagina) + 1 }}–{{ min($paginaResultadosBusqueda * $resultadosPorPagina, $totalResultadosBusqueda) }}
+                            de {{ $totalResultadosBusqueda }} producto(s)
                         </small>
+                        <button
+                            wire:click="paginaSiguienteBusqueda"
+                            @disabled($paginaResultadosBusqueda * $resultadosPorPagina >= $totalResultadosBusqueda)
+                            class="px-3 py-2 text-sm border rounded disabled:cursor-not-allowed disabled:opacity-40 hover:bg-gray-50"
+                        >Siguiente</button>
                     </div>
                 @endif
             </div>

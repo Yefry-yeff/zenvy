@@ -64,6 +64,7 @@ return [
         'stock_lock_timeout' => 10, // segundos
         'low_stock_threshold' => 5,
         'cache_ttl' => 300, // 5 minutos
+        'store_id' => env('API_STORE_ID', 1),
     ],
     
     /*

@@ -8,6 +8,7 @@ use App\Models\FacturaHasProducto;
 use App\Models\RecibidoBodega;
 use App\Models\PedidoWeb;
 use App\Models\PedidoWebItem;
+use App\Models\FacturaAnulada;
 use App\Exceptions\Api\InsufficientStockException;
 use App\Exceptions\Api\ProductNotFoundException;
 use App\Services\WebInventorySyncService;
@@ -20,7 +21,10 @@ class SalesService
     public function __construct(
         private ProductRepository $productRepo,
         private \App\Services\ReservaInventarioService $reservaService,
-        private WebInventorySyncService $syncService
+        private WebInventorySyncService $syncService,
+        private ServerSaleCalculator $saleCalculator,
+        private \App\Services\InventoryAllocationService $inventoryAllocation,
+        private \App\Services\InventoryRestorationService $inventoryRestoration
     ) {}
     
     /**
@@ -30,6 +34,8 @@ class SalesService
     public function createPreviewOrder(array $data, $apiClient): PedidoWeb
     {
         return DB::transaction(function() use ($data, $apiClient) {
+            $data = $this->withServerTotals($data);
+
             // 1. Validar que los productos existan y haya stock disponible
             $this->validateStock($data['items']);
             
@@ -96,11 +102,15 @@ class SalesService
                 PedidoWebItem::create([
                     'pedido_web_id' => $pedido->id,
                     'producto_id' => $product->id,
+                    'precio_venta_id' => $item['price_id'],
+                    'unidad_medida_id' => $item['unit_id'],
                     'cantidad' => $cantidad,
                     'precio_unitario' => $precioUnidad,
-                    'subtotal' => $subtotalItem,
-                    'isv' => $isvItem,
-                    'total' => $totalItem,
+                    'subtotal' => $item['subtotal'],
+                    'descuento' => $item['discount_amount'],
+                    'tasa_isv' => $item['tax_rate'],
+                    'isv' => $item['tax'],
+                    'total' => $item['total'],
                 ]);
             }
             
@@ -234,24 +244,30 @@ class SalesService
                         'factura_id' => $factura->id,
                         'producto_id' => $item->producto_id,
                         'seccion_id' => 2,
-                        'unidad_medida_id' => 1,
-                        'precio_id' => 1,
+                        'unidad_medida_id' => $item->unidad_medida_id,
+                        'precio_id' => $item->precio_venta_id,
                         'indice' => $indice++,
                         'numero_unidades_resta_inventario' => $item->cantidad,
                         'resta_inventario_total' => $item->cantidad,
                         'precio_unidad' => $item->precio_unitario,
                         'cantidad' => $item->cantidad,
                         'subtotal' => $item->subtotal,
-                        'descuento' => 0,
-                        'isv_aplicado' => 15.00,
+                        'descuento' => $item->descuento,
+                        'isv_aplicado' => $item->tasa_isv,
                         'isv' => $item->isv,
                         'total' => $item->total,
                         'idPrecioSeleccionado' => '1',
                         'precio_seleccionado' => $item->precio_unitario,
                     ]);
                     
-                    // Descontar stock
-                    $this->decrementarStockBodega($item->producto_id, $item->cantidad);
+                    $this->inventoryAllocation->allocate(
+                        $factura->id,
+                        $item->producto_id,
+                        $item->precio_venta_id,
+                        (int) config('api.inventory.store_id'),
+                        $item->cantidad,
+                        (float) $item->precio_unitario
+                    );
                     
                     // Sincronizar cambio de stock con página web
                     $this->sincronizarInventarioWeb($item->producto_id, $item->cantidad);
@@ -311,6 +327,8 @@ class SalesService
      */
     public function createSale(array $data, $apiClient): Factura
     {
+        $data = $this->withServerTotals($data);
+
         // Lock para evitar ventas concurrentes
         $lockKey = "sale_creation_" . md5(json_encode($data));
         $lock = Cache::lock($lockKey, 10);
@@ -402,24 +420,30 @@ class SalesService
                         'factura_id' => $factura->id,
                         'producto_id' => $product->id,
                         'seccion_id' => 2, // Sección por defecto para API
-                        'unidad_medida_id' => $product->unidad_medida_venta_id ?? 1,
-                        'precio_id' => 1,
+                        'unidad_medida_id' => $item['unit_id'],
+                        'precio_id' => $item['price_id'],
                         'indice' => $indice++,
                         'numero_unidades_resta_inventario' => $cantidad,
                         'resta_inventario_total' => $cantidad,
                         'precio_unidad' => $precioUnidad,
                         'cantidad' => $cantidad,
-                        'subtotal' => $subtotalItem,
-                        'descuento' => $descuentoMonto,
-                        'isv_aplicado' => 15.00,
-                        'isv' => $isvItem,
-                        'total' => $totalItem,
-                        'idPrecioSeleccionado' => '1',
+                        'subtotal' => $item['subtotal'],
+                        'descuento' => $item['discount_amount'],
+                        'isv_aplicado' => $item['tax_rate'],
+                        'isv' => $item['tax'],
+                        'total' => $item['total'],
+                        'idPrecioSeleccionado' => (string) $item['price_id'],
                         'precio_seleccionado' => $precioUnidad,
                     ]);
                     
-                    // Descontar stock de recibido_bodega
-                    $this->decrementarStockBodega($product->id, $cantidad);
+                    $this->inventoryAllocation->allocate(
+                        $factura->id,
+                        $product->id,
+                        $item['price_id'],
+                        (int) config('api.inventory.store_id'),
+                        $cantidad,
+                        $precioUnidad
+                    );
                 }
                 
                 // 6. Invalidar cache de inventario
@@ -477,6 +501,23 @@ class SalesService
         if (!empty($insufficientItems)) {
             throw new InsufficientStockException($insufficientItems);
         }
+    }
+
+    private function withServerTotals(array $data): array
+    {
+        $calculated = $this->saleCalculator->calculate(
+            $data['items'],
+            (float) ($data['shipping_cost'] ?? 0)
+        );
+
+        $data['items'] = $calculated['items'];
+        $data['subtotal'] = $calculated['subtotal'];
+        $data['discount'] = $calculated['discount'];
+        $data['tax'] = $calculated['tax'];
+        $data['shipping_cost'] = $calculated['shipping_cost'];
+        $data['total'] = $calculated['total'];
+
+        return $data;
     }
     
     /**
@@ -547,32 +588,37 @@ class SalesService
     public function cancelSale(int $id, string $reason): Factura
     {
         return DB::transaction(function() use ($id, $reason) {
-            $factura = $this->getSaleById($id);
+            $factura = Factura::whereKey($id)->lockForUpdate()->firstOrFail();
             
             // Verificar que no esté ya anulada
-            if ($factura->estado_factura_id == 3) { // 3 = anulada
+            if ($factura->estado_factura_id == 2) {
                 throw new \Exception('Esta factura ya está anulada');
             }
-            
-            // Obtener items de la factura
-            $items = FacturaHasProducto::where('factura_id', $id)->get();
-            
-            // Restaurar stock y sincronizar con página web
-            foreach ($items as $item) {
-                $producto = DB::table('producto')->where('id', $item->producto_id)->first(['nombre']);
-                
-                $this->restaurarStockBodega($item->producto_id, $item->cantidad);
-                
-                // Sincronizar restauración de stock con página web
-                if ($producto) {
-                    $this->sincronizarRestauracionStock($item->producto_id, $producto->nombre, $item->cantidad);
-                }
-            }
+
+            $restored = $this->inventoryRestoration->restore($id, 1);
             
             // Marcar factura como anulada
-            $factura->estado_factura_id = 3; // 3 = anulada
+            $factura->estado_factura_id = 2;
             $factura->comentario = ($factura->comentario ?? '') . " | ANULADA: {$reason}";
             $factura->save();
+
+            FacturaAnulada::create([
+                'factura_id' => $factura->id,
+                'numero_factura' => $factura->numero_factura,
+                'nombre_cliente' => $factura->nombre_cliente,
+                'rtn' => $factura->rtn,
+                'sub_total' => $factura->sub_total,
+                'isv' => $factura->isv,
+                'total' => $factura->total,
+                'fecha_emision_factura' => $factura->fecha_emision,
+                'fecha_anulacion' => now(),
+                'motivo_anulacion' => $reason,
+                'users_id_anulo' => 1,
+                'users_id_vendedor' => $factura->users_id,
+                'productos_devueltos' => $restored,
+                'metodo_devolucion' => 'no_aplica',
+                'observaciones' => 'Anulada mediante API',
+            ]);
             
             // Invalidar cache
             Cache::flush(); // Driver 'file' no soporta tags
@@ -580,7 +626,7 @@ class SalesService
             Log::info('API: Factura anulada y stock restaurado', [
                 'factura_id' => $id,
                 'reason' => $reason,
-                'items' => $items->count(),
+                'items' => count($restored),
             ]);
             
             return $factura->fresh(['productos']);

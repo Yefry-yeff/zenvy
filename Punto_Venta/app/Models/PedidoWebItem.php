@@ -12,9 +12,13 @@ class PedidoWebItem extends Model
     protected $fillable = [
         'pedido_web_id',
         'producto_id',
+        'precio_venta_id',
+        'unidad_medida_id',
         'cantidad',
         'precio_unitario',
         'subtotal',
+        'descuento',
+        'tasa_isv',
         'isv',
         'total',
     ];
@@ -23,6 +27,8 @@ class PedidoWebItem extends Model
         'cantidad' => 'integer',
         'precio_unitario' => 'decimal:2',
         'subtotal' => 'decimal:2',
+        'descuento' => 'decimal:2',
+        'tasa_isv' => 'decimal:2',
         'isv' => 'decimal:2',
         'total' => 'decimal:2',
     ];

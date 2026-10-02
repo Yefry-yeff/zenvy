@@ -113,7 +113,21 @@ class Clientes extends Component
 
     public function render()
     {
-        $query = Cliente::with(['tipoPersona', 'tipoCliente', 'direccion.municipio.departamento', 'estado']);
+        $query = Cliente::query()
+            ->select([
+                'id',
+                'nombre',
+                'identidad',
+                'correo',
+                'tipo_persona_id',
+                'tipo_cliente_id',
+                'estado_id',
+                'created_at',
+            ])
+            ->with([
+                'tipoPersona:id,nombre',
+                'tipoCliente:id,nombre',
+            ]);
 
         // Búsqueda global
         if (!empty($this->buscar)) {

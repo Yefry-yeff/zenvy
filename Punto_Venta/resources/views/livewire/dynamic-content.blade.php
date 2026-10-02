@@ -2,11 +2,43 @@
     $componentClass = 'App\\Livewire\\' . str_replace('.', '\\', $vista);
 @endphp
 
-<div class="relative min-h-48">
+<div
+    class="relative min-h-[calc(100vh-6rem)]"
+    x-data="{
+        cargando: false,
+        temporizador: null,
+        desregistrarHook: null,
+        init() {
+            this.desregistrarHook = Livewire.hook('commit', ({ component, succeed, fail }) => {
+                if (component.name !== 'dynamic-content') {
+                    return;
+                }
+
+                succeed(() => queueMicrotask(() => this.finalizarCarga()));
+                fail(() => this.finalizarCarga());
+            });
+        },
+        destroy() {
+            this.desregistrarHook?.();
+        },
+        iniciarCarga() {
+            this.cargando = true;
+            clearTimeout(this.temporizador);
+            this.temporizador = setTimeout(() => this.cargando = false, 15000);
+        },
+        finalizarCarga() {
+            this.cargando = false;
+            clearTimeout(this.temporizador);
+        }
+    }"
+    x-on:cargando-vista.window="iniciarCarga()"
+    x-on:vista-cargada.window="finalizarCarga()"
+>
     <div
-        wire:loading.delay.shortest.flex
-        wire:target="cambiarVista"
-        class="absolute inset-0 z-50 items-center justify-center bg-white/85 backdrop-blur-sm"
+        x-show="cargando"
+        x-transition.opacity.duration.75ms
+        class="absolute inset-0 z-50 flex items-center justify-center bg-white/80"
+        style="display: none;"
         role="status"
         aria-live="polite"
     >

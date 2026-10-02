@@ -304,6 +304,7 @@
                                 </th>
                                 <th class="px-2 py-1 border-b"></th>
                                 <th class="px-2 py-1 border-b"></th>
+                                <th class="px-2 py-1 border-b">
                                     <input type="date" 
                                            wire:model.live="filtroFechaRecibido"
                                            class="w-full px-1.5 py-0.5 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-transparent">
@@ -321,7 +322,7 @@
                         <tbody class="bg-white divide-y divide-gray-200">
                             @if($productosRecibidos->count() > 0)
                                 @foreach($productosRecibidos as $item)
-                                    <tr class="hover:bg-gray-50">
+                                    <tr wire:key="stock-{{ $item->id }}" class="hover:bg-gray-50">
 
                                         <!-- ID de Producto (Valencia o Zenvy) -->
                                         <td class="px-2 py-1 text-xs border-b">

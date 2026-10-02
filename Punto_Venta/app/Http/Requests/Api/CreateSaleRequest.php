@@ -33,6 +33,7 @@ class CreateSaleRequest extends FormRequest
             // Items - Ahora recibe product_id en lugar de sku
             'items' => 'required|array|min:1|max:100',
             'items.*.product_id' => 'required|integer|exists:producto,id',
+            'items.*.price_id' => 'nullable|integer|exists:precio_has_venta,id',
             'items.*.quantity' => 'required|integer|min:1|max:10000',
             'items.*.price' => 'required|numeric|min:0|max:999999999',
             'items.*.discount' => 'nullable|numeric|min:0|max:100',

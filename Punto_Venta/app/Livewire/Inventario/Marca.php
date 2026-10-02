@@ -29,27 +29,12 @@ class Marca extends Component
 
     private $sincronizacionService;
 
-    public function mount()
-    {
-        $this->sincronizarMarcas();
-    }
-
     private function getSincronizacionService()
     {
         if (!$this->sincronizacionService) {
             $this->sincronizacionService = app(SincronizacionMarcasService::class);
         }
         return $this->sincronizacionService;
-    }
-
-    private function sincronizarMarcas()
-    {
-        try {
-            $resultado = $this->getSincronizacionService()->sincronizarMarcasEnTiempoReal();
-            Log::info('Sincronización de marcas en gestión: ' . json_encode($resultado));
-        } catch (\Exception $e) {
-            Log::error('Error al sincronizar marcas en gestión: ' . $e->getMessage());
-        }
     }
 
     public function render()

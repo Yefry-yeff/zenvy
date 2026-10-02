@@ -68,6 +68,9 @@ class Ventas extends Component
     public $categorias = [];
     public $subcategorias = [];
     public $filtroStock = 'todos'; // 'todos', 'con_stock', 'sin_stock'
+    public $paginaResultadosBusqueda = 1;
+    public $totalResultadosBusqueda = 0;
+    public $resultadosPorPagina = 24;
 
     // Productos en la factura
     public $productosFactura = [];
@@ -786,7 +789,7 @@ class Ventas extends Component
 
     public function obtenerNombreCliente()
     {
-        Log::info("DEBUG obtenerNombreCliente", [
+        Log::debug("DEBUG obtenerNombreCliente", [
             'cliente_existe' => $this->cliente ? 'Sí' : 'No',
             'nombreClienteManual' => $this->nombreClienteManual,
             'nombreClienteManual_vacio' => empty($this->nombreClienteManual),
@@ -809,7 +812,7 @@ class Ventas extends Component
 
     public function obtenerRtnCliente()
     {
-        Log::info("DEBUG obtenerRtnCliente", [
+        Log::debug("DEBUG obtenerRtnCliente", [
             'cliente_existe' => $this->cliente ? 'Sí' : 'No',
             'rtnManual' => $this->rtnManual,
             'rtnManual_vacio' => empty($this->rtnManual),
@@ -910,7 +913,7 @@ class Ventas extends Component
         }
 
         // DEBUG: Log del valor antes de validar
-        Log::info("DEBUG agregarProductoPorCodigo", [
+        Log::debug("DEBUG agregarProductoPorCodigo", [
             'codigo_barras' => $this->codigoBarras,
             'productos_en_carrito' => count($this->productosFactura)
         ]);
@@ -1081,7 +1084,7 @@ class Ventas extends Component
         $this->codigoBarras = '';
 
         // DEBUG: Log después de resetear
-        Log::info("DEBUG después de reseteo", [
+        Log::debug("DEBUG después de reseteo", [
             'codigo_barras_despues_reset' => $this->codigoBarras
         ]);
 
@@ -2047,7 +2050,7 @@ class Ventas extends Component
     public function procesarDistribucionPagos()
     {
         // DEBUG: Log inicial CON DATOS DEL MODAL
-        Log::info("DEBUG procesarDistribucionPagos INICIO", [
+        Log::debug("DEBUG procesarDistribucionPagos INICIO", [
             'productos_factura_count' => count($this->productosFactura),
             'montos_por_metodo' => $this->montosPorMetodo,
             'total' => $this->total,
@@ -2062,7 +2065,7 @@ class Ventas extends Component
         // Validar que la distribución sea correcta
         $totalDistribuido = round(array_sum($this->montosPorMetodo), 2);
 
-        Log::info("DEBUG Validación distribución", [
+        Log::debug("DEBUG Validación distribución", [
             'total_distribuido' => $totalDistribuido,
             'total_factura' => round($this->total, 2),
             'diferencia' => round($totalDistribuido - $this->total, 2)
@@ -2097,7 +2100,7 @@ class Ventas extends Component
             }
         }
 
-        Log::info("DEBUG Métodos activos", [
+        Log::debug("DEBUG Métodos activos", [
             'metodos_activos' => $this->metodosActivosParaPago,
             'cambio_total' => $cambioTotal
         ]);
@@ -2107,7 +2110,7 @@ class Ventas extends Component
             session()->flash('info', 'Se procesará el pago con cambio de L. ' . number_format($cambioTotal, 2));
         }
 
-        Log::info("DEBUG Antes de finalizar venta");
+        Log::debug("DEBUG Antes de finalizar venta");
 
         // Procesar directamente la venta SIN cerrar el modal aún
         $this->finalizarVentaConDistribucion();
@@ -2123,13 +2126,13 @@ class Ventas extends Component
 
         $this->procesandoVenta = true;
 
-        Log::info("DEBUG finalizarVentaConDistribucion INICIO");
+        Log::debug("DEBUG finalizarVentaConDistribucion INICIO");
 
         // IMPORTANTE: Obtener los valores del cliente AL INICIO para evitar que se pierdan
         $nombreClienteParaFactura = $this->obtenerNombreCliente();
         $rtnClienteParaFactura = $this->obtenerRtnCliente();
 
-        Log::info("DEBUG Valores de cliente capturados al inicio", [
+        Log::debug("DEBUG Valores de cliente capturados al inicio", [
             'rtnManual_crudo' => $this->rtnManual,
             'nombreClienteManual_crudo' => $this->nombreClienteManual,
             'cliente_objeto' => $this->cliente ? [
@@ -2164,7 +2167,7 @@ class Ventas extends Component
 
             DB::beginTransaction();
 
-            Log::info("DEBUG Transacción iniciada");
+            Log::debug("DEBUG Transacción iniciada");
 
             // Generar número de factura
             $numeroFactura = $this->generarNumeroFactura();
@@ -2172,7 +2175,7 @@ class Ventas extends Component
             // Crear la transacción primero y obtener su ID
             $transaccionId = $this->crearTransaccion($numeroFactura);
 
-            Log::info("DEBUG Resultado de crearTransaccion", [
+            Log::debug("DEBUG Resultado de crearTransaccion", [
                 'transaccion_id_retornado' => $transaccionId,
                 'es_null' => $transaccionId === null,
                 'metodosActivosParaPago' => $this->metodosActivosParaPago,
@@ -2193,7 +2196,7 @@ class Ventas extends Component
                     'created_at' => now(),
                     'update_at' => now()
                 ]);
-                Log::info("DEBUG Transacción por defecto creada con ID: " . $transaccionId);
+                Log::debug("DEBUG Transacción por defecto creada con ID: " . $transaccionId);
             }
 
             // Debug detallado antes de crear la factura
@@ -2217,12 +2220,12 @@ class Ventas extends Component
                 'monto_descuento' => $this->montoDescuentoFactura ?? 0
             ];
 
-            Log::info("DEBUG Datos que se van a insertar en factura", $datosFactura);
+            Log::debug("DEBUG Datos que se van a insertar en factura", $datosFactura);
 
             // Crear la factura principal usando los valores capturados al inicio
             $factura = Factura::create($datosFactura);
 
-            Log::info("DEBUG Datos de factura preparados", [
+            Log::debug("DEBUG Datos de factura preparados", [
                 'numero_factura' => $factura->numero_factura,
                 'nombre_cliente' => $factura->nombre_cliente,
                 'rtn' => $factura->rtn,
@@ -2233,14 +2236,14 @@ class Ventas extends Component
 
             // Debug adicional: verificar qué se guardó realmente en la BD
             $facturaVerificacion = DB::table('factura')->where('id', $factura->id)->first(['id', 'nombre_cliente', 'rtn', 'transaccion_id']);
-            Log::info("DEBUG Verificación de factura en BD", [
+            Log::debug("DEBUG Verificación de factura en BD", [
                 'factura_id' => $facturaVerificacion->id,
                 'nombre_cliente_bd' => $facturaVerificacion->nombre_cliente,
                 'rtn_bd' => $facturaVerificacion->rtn,
                 'transaccion_id_bd' => $facturaVerificacion->transaccion_id
             ]);
 
-            Log::info("DEBUG Factura guardada con ID: " . $factura->id);
+            Log::debug("DEBUG Factura guardada con ID: " . $factura->id);
 
             // Separar productos y servicios para procesamiento diferenciado
             $productos = array_filter($this->productosFactura, function($item) {
@@ -2257,7 +2260,7 @@ class Ventas extends Component
                 $this->guardarProductoConDistribucionSecciones($factura->id, $producto, $indice);
 
                 // Log para debug del producto
-                Log::info("DEBUG Producto en factura", [
+                Log::debug("DEBUG Producto en factura", [
                     'producto_id' => $producto['id'],
                     'nombre' => $producto['nombre'],
                     'descuento_unitario_aplicado' => $producto['descuento_unitario_aplicado'] ?? 0,
@@ -2267,7 +2270,7 @@ class Ventas extends Component
                 // Guardar descuento unitario si existe
                 $descuentoUnitario = $producto['descuento_unitario_aplicado'] ?? 0;
                 if ($descuentoUnitario > 0) {
-                    Log::info("DEBUG Creando descuento", [
+                    Log::debug("DEBUG Creando descuento", [
                         'factura_id' => $factura->id,
                         'producto_id' => $producto['id'],
                         'monto_unidad' => $producto['descuento_unitario_producto'] ?? 0,
@@ -2286,15 +2289,15 @@ class Ventas extends Component
                         'created_at' => now()
                     ]);
 
-                    Log::info("DEBUG Descuento creado exitosamente");
+                    Log::debug("DEBUG Descuento creado exitosamente");
                 } else {
-                    Log::info("DEBUG No se creó descuento porque descuentoUnitario es 0 o null");
+                    Log::debug("DEBUG No se creó descuento porque descuentoUnitario es 0 o null");
                 }
 
                 // Guardar descuento individual si existe
                 $descuentoIndividual = $producto['descuento_individual_aplicado'] ?? 0;
                 if ($descuentoIndividual > 0) {
-                    Log::info("DEBUG Creando descuento individual", [
+                    Log::debug("DEBUG Creando descuento individual", [
                         'factura_id' => $factura->id,
                         'producto_id' => $producto['id'],
                         'tipo_descuento' => 'Individual',
@@ -2313,9 +2316,9 @@ class Ventas extends Component
                         'created_at' => now()
                     ]);
 
-                    Log::info("DEBUG Descuento individual creado exitosamente");
+                    Log::debug("DEBUG Descuento individual creado exitosamente");
                 } else {
-                    Log::info("DEBUG No se creó descuento individual porque es 0 o null");
+                    Log::debug("DEBUG No se creó descuento individual porque es 0 o null");
                 }
 
                 // Guardar descuento de adulto mayor si existe
@@ -2330,7 +2333,7 @@ class Ventas extends Component
                     }
 
                     if ($tipoDescuentoAdultoMayor) {
-                        Log::info("DEBUG Creando descuento de adulto mayor", [
+                        Log::debug("DEBUG Creando descuento de adulto mayor", [
                             'factura_id' => $factura->id,
                             'producto_id' => $producto['id'],
                             'tipo_descuento' => $tipoDescuentoAdultoMayor,
@@ -2349,7 +2352,7 @@ class Ventas extends Component
                             'created_at' => now()
                         ]);
 
-                        Log::info("DEBUG Descuento de adulto mayor creado exitosamente");
+                        Log::debug("DEBUG Descuento de adulto mayor creado exitosamente");
                     }
                 }
 
@@ -2370,7 +2373,7 @@ class Ventas extends Component
                     ->where('indice', $descuento->indice_factura_has_producto)
                     ->update(['descuento' => $descuento->descuento_total]);
 
-                Log::info("DEBUG Descuento actualizado en factura_has_producto", [
+                Log::debug("DEBUG Descuento actualizado en factura_has_producto", [
                     'factura_id' => $descuento->factura_id,
                     'producto_id' => $descuento->producto_id,
                     'indice' => $descuento->indice_factura_has_producto,
@@ -2380,7 +2383,7 @@ class Ventas extends Component
 
             // Guardar servicios de la factura (nueva funcionalidad híbrida)
             foreach ($servicios as $servicio) {
-                Log::info("DEBUG Servicio en factura", [
+                Log::debug("DEBUG Servicio en factura", [
                     'servicio_id' => $servicio['servicio_id'],
                     'nombre' => $servicio['nombre'],
                     'cantidad' => $servicio['cantidad'],
@@ -2432,7 +2435,7 @@ class Ventas extends Component
                         'created_at' => now()
                     ]); */
 
-                    Log::info("DEBUG Descuento de servicio omitido (estructura de tabla pendiente)");
+                    Log::debug("DEBUG Descuento de servicio omitido (estructura de tabla pendiente)");
                 }
 
                 // Crear descuento de adulto mayor para servicio si aplica
@@ -2457,7 +2460,7 @@ class Ventas extends Component
                             'created_at' => now()
                         ]); */
 
-                        Log::info("DEBUG Descuento de adulto mayor para servicio omitido (estructura de tabla pendiente)");
+                        Log::debug("DEBUG Descuento de adulto mayor para servicio omitido (estructura de tabla pendiente)");
                     }
                 }
 
@@ -2475,22 +2478,22 @@ class Ventas extends Component
 
             DB::commit();
 
-            Log::info("DEBUG Transacción confirmada");
+            Log::debug("DEBUG Transacción confirmada");
 
             // Cargar datos para la vista de impresión
             $this->cargarDatosParaImpresion($factura->id);
 
-            Log::info("DEBUG Datos cargados para impresión");
+            Log::debug("DEBUG Datos cargados para impresión");
 
             // Cambiar a vista de impresión
             $this->mostrarVistaImpresion = true;
 
-            Log::info("DEBUG Vista de impresión activada");
+            Log::debug("DEBUG Vista de impresión activada");
 
             // Limpiar datos del modal DESPUÉS de procesar exitosamente
             $this->cerrarModalPago();
 
-            Log::info("DEBUG Modal de pago cerrado y datos limpiados");
+            Log::debug("DEBUG Modal de pago cerrado y datos limpiados");
 
             // Resetear bandera de procesamiento
             $this->procesandoVenta = false;
@@ -2511,7 +2514,7 @@ class Ventas extends Component
 
     private function guardarMetodosPagoDistribucion($facturaId)
     {
-        Log::info("DEBUG guardarMetodosPagoDistribucion INICIO", [
+        Log::debug("DEBUG guardarMetodosPagoDistribucion INICIO", [
             'factura_id' => $facturaId,
             'metodosActivosParaPago' => $this->metodosActivosParaPago,
             'montosPorMetodo' => $this->montosPorMetodo,
@@ -2522,13 +2525,13 @@ class Ventas extends Component
 
         // Prioridad 1: Si hay metodosActivosParaPago, usarlos (solo los que tienen monto > 0)
         if (!empty($this->metodosActivosParaPago)) {
-            Log::info("DEBUG Usando metodosActivosParaPago");
+            Log::debug("DEBUG Usando metodosActivosParaPago");
 
             foreach ($this->metodosActivosParaPago as $metodo) {
                 if ($metodo['monto'] > 0) { // Solo los que tienen monto mayor a 0
                     $metodosParaGuardar[] = $metodo;
 
-                    Log::info("DEBUG Método agregado desde metodosActivosParaPago", [
+                    Log::debug("DEBUG Método agregado desde metodosActivosParaPago", [
                         'tipo_id' => $metodo['id'],
                         'nombre' => $metodo['nombre'],
                         'monto' => $metodo['monto']
@@ -2538,7 +2541,7 @@ class Ventas extends Component
         }
         // Prioridad 2: Si hay montosPorMetodo, construir desde ahí
         elseif (!empty($this->montosPorMetodo)) {
-            Log::info("DEBUG Construyendo desde montosPorMetodo");
+            Log::debug("DEBUG Construyendo desde montosPorMetodo");
 
             foreach ($this->montosPorMetodo as $tipoId => $monto) {
                 $tipoPago = collect($this->tiposPago)->firstWhere('id', $tipoId);
@@ -2549,7 +2552,7 @@ class Ventas extends Component
                         'monto' => $monto
                     ];
 
-                    Log::info("DEBUG Método agregado desde montosPorMetodo", [
+                    Log::debug("DEBUG Método agregado desde montosPorMetodo", [
                         'tipo_id' => $tipoId,
                         'nombre' => $tipoPago['nombre'],
                         'monto' => $monto
@@ -2559,7 +2562,7 @@ class Ventas extends Component
         }
         // Prioridad 3: Si hay tiposPago disponibles, guardar todos como 0 excepto efectivo con el total
         elseif (!empty($this->tiposPago)) {
-            Log::info("DEBUG Creando métodos por defecto desde tiposPago");
+            Log::debug("DEBUG Creando métodos por defecto desde tiposPago");
 
             foreach ($this->tiposPago as $tipoPago) {
                 $monto = 0;
@@ -2575,7 +2578,7 @@ class Ventas extends Component
                     'monto' => $monto
                 ];
 
-                Log::info("DEBUG Método por defecto creado", [
+                Log::debug("DEBUG Método por defecto creado", [
                     'tipo_id' => $tipoPago['id'],
                     'nombre' => $tipoPago['nombre'],
                     'monto' => $monto
@@ -2583,65 +2586,41 @@ class Ventas extends Component
             }
         }
 
-        Log::info("DEBUG Métodos finales para guardar", [
+        Log::debug("DEBUG Métodos finales para guardar", [
             'metodosParaGuardar' => $metodosParaGuardar,
             'count_metodos' => count($metodosParaGuardar)
         ]);
 
-        // Guardar solo los métodos con monto > 0
-        $totalDistribuido = array_sum($this->montosPorMetodo ?? []);
-        $metodosGuardados = 0;
-
-        foreach ($metodosParaGuardar as $metodo) {
-            Log::info("DEBUG Procesando método", [
-                'metodo_id' => $metodo['id'],
-                'metodo_nombre' => $metodo['nombre'] ?? 'N/A',
-                'metodo_monto' => $metodo['monto'],
-                'monto_mayor_cero' => $metodo['monto'] > 0
-            ]);
-
+        $pagos = collect($metodosParaGuardar)->map(function (array $metodo): array {
             $tipoPago = TipoPago::find($metodo['id']);
-            if ($tipoPago && $metodo['monto'] > 0) { // Validación adicional de monto > 0
 
-                // Para cada método de pago, guardar el monto específico de ese método
-                $montoMetodo = $metodo['monto'];
-                $cambio = 0;
-
-                // Calcular cambio solo si es efectivo y el total distribuido es mayor al total de la factura
-                if (strtolower($tipoPago->nombre) === 'efectivo' && $totalDistribuido > $this->total) {
-                    // El cambio se calcula solo en efectivo si hay exceso en el total distribuido
-                    $cambioTotal = $totalDistribuido - $this->total;
-                    $cambio = $cambioTotal; // Todo el cambio se asigna al efectivo
-                }
-
-                DB::table('factura_has_pago')->insert([
-                    'factura_id' => $facturaId,
-                    'tipo_pago_id' => $tipoPago->id,
-                    'total_factura' => $this->total,
-                    'pago_recibido' => $montoMetodo, // Monto específico de este método
-                    'cambio' => $cambio,
-                ]);
-
-                $metodosGuardados++;
-
-                Log::info("DEBUG Método de pago guardado", [
-                    'tipo_pago_id' => $tipoPago->id,
-                    'tipo_pago_nombre' => $tipoPago->nombre,
-                    'total_factura' => $this->total,
-                    'pago_recibido' => $montoMetodo,
-                    'cambio' => $cambio,
-                    'total_distribuido' => $totalDistribuido
-                ]);
-            } else {
-                Log::info("DEBUG Método NO guardado", [
-                    'razon' => !$tipoPago ? 'TipoPago no encontrado' : 'Monto es 0 o menor',
-                    'tipo_pago_found' => !$tipoPago ? false : true,
-                    'monto' => $metodo['monto']
-                ]);
+            if (!$tipoPago) {
+                throw new \InvalidArgumentException("Tipo de pago {$metodo['id']} no encontrado.");
             }
+
+            return [
+                'id' => $tipoPago->id,
+                'name' => $tipoPago->nombre,
+                'amount' => (float) $metodo['monto'],
+            ];
+        })->all();
+
+        $distribucion = app(\App\Services\PaymentDistributionService::class)
+            ->calculate((float) $this->total, $pagos);
+
+        foreach ($distribucion as $pago) {
+            DB::table('factura_has_pago')->insert([
+                'factura_id' => $facturaId,
+                'tipo_pago_id' => $pago['payment_type_id'],
+                'total_factura' => $this->total,
+                'pago_recibido' => $pago['amount'],
+                'cambio' => $pago['change'],
+            ]);
         }
 
-        Log::info("DEBUG guardarMetodosPagoDistribucion FINALIZADO", [
+        $metodosGuardados = count($distribucion);
+
+        Log::debug("DEBUG guardarMetodosPagoDistribucion FINALIZADO", [
             'metodos_guardados' => $metodosGuardados,
             'total_metodos_procesados' => count($metodosParaGuardar)
         ]);
@@ -2652,7 +2631,7 @@ class Ventas extends Component
      */
     private function crearTransaccion($numeroFactura)
     {
-        Log::info("DEBUG crearTransaccion INICIO", [
+        Log::debug("DEBUG crearTransaccion INICIO", [
             'numero_factura' => $numeroFactura
         ]);
 
@@ -2765,7 +2744,7 @@ class Ventas extends Component
                 'update_at' => now()
             ]);
 
-            Log::info("DEBUG Transacción creada", [
+            Log::debug("DEBUG Transacción creada", [
                 'transaccion_id' => $transaccionId,
                 'numero_factura' => $numeroFactura,
                 'efectivo_recibido' => $montoEfectivo,
@@ -2784,7 +2763,7 @@ class Ventas extends Component
             }
         }
 
-        Log::info("DEBUG crearTransaccion FINALIZADO con ID: " . $transaccionId);
+        Log::debug("DEBUG crearTransaccion FINALIZADO con ID: " . $transaccionId);
         return $transaccionId;
     }
 
@@ -2793,7 +2772,7 @@ class Ventas extends Component
      */
     private function registrarTransaccionesPorMetodoPago($facturaId, $numeroFactura)
     {
-        Log::info("DEBUG registrarTransaccionesPorMetodoPago INICIO", [
+        Log::debug("DEBUG registrarTransaccionesPorMetodoPago INICIO", [
             'factura_id' => $facturaId,
             'numero_factura' => $numeroFactura
         ]);
@@ -2884,7 +2863,7 @@ class Ventas extends Component
                     break;
             }
 
-            Log::info("DEBUG Método procesado", [
+            Log::debug("DEBUG Método procesado", [
                 'tipo_pago' => $tipoPago->nombre,
                 'monto' => $montoMetodo,
                 'asignado_a' => $nombreTipoPago
@@ -2912,7 +2891,7 @@ class Ventas extends Component
                 'update_at' => now()
             ]);
 
-            Log::info("DEBUG Transacción ÚNICA registrada", [
+            Log::debug("DEBUG Transacción ÚNICA registrada", [
                 'numero_factura' => $numeroFactura,
                 'efectivo_recibido' => $montoEfectivo,
                 'cambio_calculado' => $cambioTotal,
@@ -2930,7 +2909,7 @@ class Ventas extends Component
             }
         }
 
-        Log::info("DEBUG registrarTransaccionesPorMetodoPago FINALIZADO");
+        Log::debug("DEBUG registrarTransaccionesPorMetodoPago FINALIZADO");
     }
 
     /**
@@ -2967,7 +2946,7 @@ class Ventas extends Component
                     'updated_at' => now()
                 ]);
 
-            Log::info("DEBUG Balance de caja actualizado", [
+            Log::debug("DEBUG Balance de caja actualizado", [
                 'caja_id' => $caja->id,
                 'balance_anterior' => $caja->balance,
                 'monto_agregado' => $montoEfectivo,
@@ -2987,7 +2966,7 @@ class Ventas extends Component
 
         $cantidadParaInventario = $producto['cantidad']; // Cantidad exacta a rebajar del inventario
 
-        Log::info("DEBUG guardarProductoConDistribucionSecciones INICIO", [
+        Log::debug("DEBUG guardarProductoConDistribucionSecciones INICIO", [
             'factura_id' => $facturaId,
             'producto_id' => $producto['id'],
             'cantidad_en_factura' => $producto['cantidad'],
@@ -3055,7 +3034,7 @@ class Ventas extends Component
             'precio_seleccionado' => 0
         ];
 
-        Log::info("DEBUG Insertando en factura_has_producto (Línea de factura original)", [
+        Log::debug("DEBUG Insertando en factura_has_producto (Línea de factura original)", [
             'indice' => $indice,
             'cantidad' => $producto['cantidad'],
             'precio_unidad' => $producto['precio'],
@@ -3067,80 +3046,15 @@ class Ventas extends Component
 
         DB::table('factura_has_producto')->insert($registroFacturaProducto);
 
-        // PASO 2: Reducir inventario usando FIFO
-        // Usar precio_venta_id de recibido_bodega para hacer JOIN con precio_has_venta
-        $registrosStock = DB::table('tienda as t')
-            ->join('bodega as b', 'b.tienda_id', '=', 't.id')
-            ->join('segmento as s', 's.bodega_id', '=', 'b.id')
-            ->join('seccion as sc', 'sc.segmento_id', '=', 's.id')
-            ->join('recibido_bodega as rb', 'rb.seccion_id', '=', 'sc.id')
-            ->join('precio_has_venta as phv', 'rb.precio_venta_id', '=', 'phv.id')
-            ->where('t.id', Auth::user()->tienda_id)
-            ->where('rb.producto_id', $producto['id'])
-            ->where('rb.precio_venta_id', $producto['precio_id'])
-            ->where('b.principal', 1)
-            ->where('rb.cantidad_disponible', '>', 0)
-            ->where('rb.estado_id', 1)
-            ->select(
-                'rb.id as recibido_bodega_id',
-                'rb.cantidad_disponible',
-                'rb.fecha_recibido',
-                'sc.descripcion as seccion_nombre',
-                'phv.unidad_medida_id'
-            )
-            ->orderBy('rb.fecha_recibido', 'ASC') // FIFO: primero el más antiguo
-            ->get();
-
-        Log::info("DEBUG Registros FIFO para reducción de inventario", [
-            'total_registros' => $registrosStock->count(),
-            'cantidad_a_reducir' => $cantidadParaInventario
-        ]);
-
-        $cantidadRestante = $cantidadParaInventario;
-        $syncService = app(WebInventorySyncService::class);
-
-        foreach ($registrosStock as $registro) {
-            if ($cantidadRestante <= 0) break;
-
-            $cantidadATomar = min($cantidadRestante, $registro->cantidad_disponible);
-
-            // Actualizar stock en recibido_bodega (FIFO)
-            DB::table('recibido_bodega')
-                ->where('id', $registro->recibido_bodega_id)
-                ->decrement('cantidad_disponible', $cantidadATomar);
-
-            Log::info("DEBUG Stock reducido (FIFO)", [
-                'recibido_bodega_id' => $registro->recibido_bodega_id,
-                'seccion' => $registro->seccion_nombre,
-                'fecha_recibido' => $registro->fecha_recibido,
-                'cantidad_descontada' => $cantidadATomar,
-                'stock_anterior' => $registro->cantidad_disponible,
-                'stock_nuevo' => $registro->cantidad_disponible - $cantidadATomar
-            ]);
-
-            // NUEVO: Inactivar registro si se agotó el stock
-            if (($registro->cantidad_disponible - $cantidadATomar) <= 0) {
-                DB::table('recibido_bodega')
-                    ->where('id', $registro->recibido_bodega_id)
-                    ->update(['estado_id' => 2]); // Inactivo
-
-                Log::info("DEBUG Stock agotado - Registro inactivado", [
-                    'recibido_bodega_id' => $registro->recibido_bodega_id,
-                    'estado_anterior' => 1,
-                    'estado_nuevo' => 2
-                ]);
-            }
-
-            $cantidadRestante -= $cantidadATomar;
-        }
-
-        if ($cantidadRestante > 0) {
-            Log::warning("Stock insuficiente", [
-                'producto_id' => $producto['id'],
-                'cantidad_faltante' => $cantidadRestante
-            ]);
-            throw new \Exception("Stock insuficiente. Faltan {$cantidadRestante} unidades");
-        }
+        // PASO 2: Reducir inventario usando FIFO y conservar los lotes exactos.
+        $allocations = app(\App\Services\InventoryAllocationService::class)->allocate(
+            $facturaId,
+            (int) $producto['id'],
+            (int) $producto['precio_id'],
+            (int) Auth::user()->tienda_id,
+            (int) $cantidadParaInventario,
+            (float) $producto['precio']
+        );
 
         // Sincronizar cambio de stock con página web (después de descontar)
         $syncService = app(WebInventorySyncService::class);
@@ -3175,9 +3089,9 @@ class Ventas extends Component
             ]
         );
 
-        Log::info("DEBUG guardarProductoConDistribucionSecciones FINALIZADO", [
+        Log::debug("DEBUG guardarProductoConDistribucionSecciones FINALIZADO", [
             'cantidad_reducida' => $cantidadParaInventario,
-            'registros_procesados' => $registrosStock->count()
+            'registros_procesados' => count($allocations)
         ]);
     }
 
@@ -3378,7 +3292,7 @@ class Ventas extends Component
             );
 
         // Log de la consulta SQL
-        Log::info("DEBUG SQL para impresión", [
+        Log::debug("DEBUG SQL para impresión", [
             'factura_id' => $facturaId,
             'sql' => $queryProductos->toSql(),
             'bindings' => $queryProductos->getBindings()
@@ -3391,7 +3305,7 @@ class Ventas extends Component
             ->toArray();
 
         // Log para debug de impresión
-        Log::info("DEBUG Productos para impresión", [
+        Log::debug("DEBUG Productos para impresión", [
             'factura_id' => $facturaId,
             'productos' => collect($this->productosFacturaImpresa)->map(function($p) {
                 return [
@@ -3418,7 +3332,7 @@ class Ventas extends Component
     private function generarYGuardarImagenFactura($facturaId)
     {
         try {
-            Log::info("DEBUG Generando imagen de factura", ['factura_id' => $facturaId]);
+            Log::debug("DEBUG Generando imagen de factura", ['factura_id' => $facturaId]);
 
             // Obtener datos de la factura
             $factura = Factura::find($facturaId);
@@ -3721,7 +3635,7 @@ class Ventas extends Component
             // Limpiar memoria
             imagedestroy($imagen);
 
-            Log::info("DEBUG Imagen de factura generada y guardada", [
+            Log::debug("DEBUG Imagen de factura generada y guardada", [
                 'factura_id' => $facturaId,
                 'tamaño_bytes' => strlen($imagenBlob)
             ]);
@@ -3830,7 +3744,7 @@ class Ventas extends Component
                 $this->alertaCAI = "¡AVISO! Quedan solo {$resultadoCAI['cantidad_restante']} facturas disponibles en el CAI de su tienda.";
             }
 
-            Log::info("DEBUG CAI generado para tienda", [
+            Log::debug("DEBUG CAI generado para tienda", [
                 'tienda_id' => $this->tiendaUsuario,
                 'numero_factura' => $resultadoCAI['numero_factura'],
                 'cai_id' => $resultadoCAI['cai_id'],
@@ -4014,7 +3928,7 @@ class Ventas extends Component
         $nuevaCantidadTotal = $cantidadEnCarrito + $cantidadSolicitada;
 
         // DEBUG: Log para entender qué está pasando
-        Log::info("DEBUG Stock Validation", [
+        Log::debug("DEBUG Stock Validation", [
             'producto_id' => $productoId,
             'tienda_usuario' => $this->tiendaUsuario,
             'stock_total' => $stockTotal,
@@ -4171,7 +4085,7 @@ class Ventas extends Component
 
             $stockDisponible = ($stockTotal ?? 0) - ($reservasActivas ?? 0);
 
-            Log::info("DEBUG calcularStockTotalPorUnidad con reservas", [
+            Log::debug("DEBUG calcularStockTotalPorUnidad con reservas", [
                 'producto_id' => $productoId,
                 'stock_bodega' => $stockTotal,
                 'reservas_activas' => $reservasActivas,
@@ -4586,7 +4500,7 @@ class Ventas extends Component
                     'updated_at' => now()
                 ]);
 
-                Log::info("DEBUG Datos de descuento adulto mayor guardados", [
+                Log::debug("DEBUG Datos de descuento adulto mayor guardados", [
                     'factura_id' => $facturaId,
                     'dni' => $this->datosDescuentoAdulto['dni'],
                     'nombre' => $this->datosDescuentoAdulto['nombre'],
@@ -4691,7 +4605,14 @@ class Ventas extends Component
     public function cerrarModalBusqueda()
     {
         $this->mostrarModalBusqueda = false;
-        $this->reset(['marcaSeleccionada', 'categoriaSeleccionada', 'subcategoriaSeleccionada', 'resultadosBusqueda']);
+        $this->reset([
+            'marcaSeleccionada',
+            'categoriaSeleccionada',
+            'subcategoriaSeleccionada',
+            'resultadosBusqueda',
+            'paginaResultadosBusqueda',
+            'totalResultadosBusqueda',
+        ]);
     }
 
     protected function cargarFiltros()
@@ -4760,58 +4681,121 @@ class Ventas extends Component
             });
         }
 
-        // Obtener TODOS los productos (con o sin stock) - sin limit inicial
-        $productos = $query->orderBy('nombre')
-                          ->get();
+        $productos = $query->select([
+                'id',
+                'nombre',
+                'descripcion',
+                'precio_base',
+                'subcategoria_id',
+                'marca_id',
+                'descuento_unitario',
+                'descuento_tercera',
+                'descuento_cuarta',
+                'isv_id',
+                'producto_valencia',
+                'updated_at',
+                DB::raw('imagen IS NOT NULL as tiene_imagen'),
+            ])
+            ->orderBy('nombre')
+            ->get();
 
-        // Expandir cada producto con sus unidades de precio_has_venta
+        if ($productos->isEmpty()) {
+            $this->resultadosBusqueda = collect();
+            $this->totalResultadosBusqueda = 0;
+            $this->paginaResultadosBusqueda = 1;
+            return;
+        }
+
+        $productoIds = $productos->pluck('id');
+        $preciosPorProducto = DB::table('precio_has_venta as phv')
+            ->join('unidad_medida as um', 'phv.unidad_medida_id', '=', 'um.id')
+            ->whereIn('phv.producto_id', $productoIds)
+            ->where('phv.estado_id', 1)
+            ->select(
+                'phv.producto_id',
+                'phv.id as precio_id',
+                'phv.precio',
+                'phv.codigo_barra',
+                'phv.descripcion',
+                'phv.cantidad as cantidad_por_unidad',
+                'um.id as unidad_medida_id',
+                'um.nombre as unidad_nombre'
+            )
+            ->get()
+            ->groupBy('producto_id');
+
+        $stockPorPresentacion = collect();
+        if ($this->tiendaUsuario) {
+            $stockPorPresentacion = DB::table('recibido_bodega as rb')
+                ->join('seccion as s', 'rb.seccion_id', '=', 's.id')
+                ->join('segmento as seg', 's.segmento_id', '=', 'seg.id')
+                ->join('bodega as b', 'seg.bodega_id', '=', 'b.id')
+                ->where('b.tienda_id', $this->tiendaUsuario)
+                ->where('b.principal', 1)
+                ->where('b.estado_id', 1)
+                ->where('b.id', '!=', 2)
+                ->whereIn('rb.producto_id', $productoIds)
+                ->where('rb.estado_id', 1)
+                ->where('rb.cantidad_disponible', '>', 0)
+                ->groupBy('rb.producto_id', 'rb.precio_venta_id')
+                ->select(
+                    'rb.producto_id',
+                    'rb.precio_venta_id',
+                    DB::raw('SUM(rb.cantidad_disponible) as stock_total')
+                )
+                ->get()
+                ->keyBy(fn ($stock) => $stock->producto_id . ':' . $stock->precio_venta_id);
+        }
+
+        $reservasPorProducto = DB::table('reservas_inventario')
+            ->whereIn('producto_id', $productoIds)
+            ->where('estado', 'activa')
+            ->groupBy('producto_id')
+            ->select('producto_id', DB::raw('SUM(cantidad_reservada) as total_reservado'))
+            ->pluck('total_reservado', 'producto_id');
+
+        $productosSinPrecioIds = $productos
+            ->reject(fn ($producto) => $preciosPorProducto->has($producto->id))
+            ->pluck('id');
+        $stockBasePorProducto = collect();
+
+        if ($this->tiendaUsuario && $productosSinPrecioIds->isNotEmpty()) {
+            $stockBasePorProducto = DB::table('recibido_bodega as rb')
+                ->join('seccion as s', 'rb.seccion_id', '=', 's.id')
+                ->join('segmento as seg', 's.segmento_id', '=', 'seg.id')
+                ->join('bodega as b', 'seg.bodega_id', '=', 'b.id')
+                ->where('b.tienda_id', $this->tiendaUsuario)
+                ->where('b.principal', 1)
+                ->where('b.estado_id', 1)
+                ->whereIn('rb.producto_id', $productosSinPrecioIds)
+                ->where('rb.estado_id', 1)
+                ->groupBy('rb.producto_id')
+                ->select('rb.producto_id', DB::raw('SUM(rb.cantidad_disponible) as stock_total'))
+                ->pluck('stock_total', 'producto_id');
+        }
+
+        $cantidadesCarrito = collect($this->productosFactura)
+            ->filter(fn ($item) => isset($item['id'], $item['precio_id']))
+            ->groupBy(fn ($item) => $item['id'] . ':' . $item['precio_id'])
+            ->map(fn ($items) => $items->sum(fn ($item) => (int) ($item['cantidad'] ?? 0)));
+
         $resultadosExpandidos = collect();
 
         foreach ($productos as $producto) {
-            // Obtener todas las unidades de precio para este producto
-            $preciosVenta = DB::table('precio_has_venta as phv')
-                ->join('unidad_medida as um', 'phv.unidad_medida_id', '=', 'um.id')
-                ->where('phv.producto_id', $producto->id)
-                ->where('phv.estado_id', 1)
-                ->select(
-                    'phv.id as precio_id',
-                    'phv.precio',
-                    'phv.codigo_barra',
-                    'phv.descripcion',
-                    'phv.cantidad as cantidad_por_unidad',
-                    'um.id as unidad_medida_id',
-                    'um.nombre as unidad_nombre'
-                )
-                ->get();
+            $preciosVenta = $preciosPorProducto->get($producto->id, collect());
 
             // Si el producto tiene precios de venta definidos, crear una entrada por cada uno
             if ($preciosVenta->count() > 0) {
                 foreach ($preciosVenta as $precioVenta) {
-                    // Convertir imagen a base64 si existe, o null
-                    $imagenBase64 = null;
-                    if ($producto->imagen) {
-                        try {
-                            $imagenBase64 = base64_encode($producto->imagen);
-                        } catch (\Exception $e) {
-                            $imagenBase64 = null;
-                        }
-                    }
-
-                    // Calcular stock específico para esta presentación (precio_venta_id)
-                    $stockUnidadTotal = $this->calcularStockTotalPorUnidad(
-                        $producto->id, 
-                        $precioVenta->unidad_medida_id,
-                        $precioVenta->precio_id  // precio_venta_id
+                    $stock = $stockPorPresentacion->get($producto->id . ':' . $precioVenta->precio_id);
+                    $stockUnidadTotal = max(
+                        0,
+                        (float) ($stock->stock_total ?? 0) - (float) $reservasPorProducto->get($producto->id, 0)
                     );
-
-                    // Calcular cuánto hay en el carrito para esta misma presentación (precio_id)
-                    $cantidadEnCarritoUnidad = 0;
-                    foreach ($this->productosFactura as $itemCarrito) {
-                        if (isset($itemCarrito['id']) && $itemCarrito['id'] == $producto->id &&
-                            isset($itemCarrito['precio_id']) && $itemCarrito['precio_id'] == $precioVenta->precio_id) {
-                            $cantidadEnCarritoUnidad += (int)($itemCarrito['cantidad'] ?? 0);
-                        }
-                    }
+                    $cantidadEnCarritoUnidad = $cantidadesCarrito->get(
+                        $producto->id . ':' . $precioVenta->precio_id,
+                        0
+                    );
 
                     $stockDisponibleUnidad = max(0, $stockUnidadTotal - $cantidadEnCarritoUnidad);
 
@@ -4825,8 +4809,10 @@ class Ventas extends Component
                         'descripcion' => $producto->descripcion ?? '',
                         'presentacion_descripcion' => $precioVenta->descripcion ?? '',
                         'codigo_barra' => $precioVenta->codigo_barra ?? '',
-                        'imagen_base64' => $imagenBase64,
-                        'tiene_imagen' => $imagenBase64 !== null,
+                        'imagen_url' => $producto->tiene_imagen
+                            ? route('producto.imagen', ['producto' => $producto->id, 'v' => $producto->updated_at?->timestamp])
+                            : null,
+                        'tiene_imagen' => (bool) $producto->tiene_imagen,
                         'precio_base' => $producto->precio_base ?? 0,
                         'precio' => $precioVenta->precio ?? 0,
                         'cantidad_por_unidad' => $precioVenta->cantidad_por_unidad ?? 1,
@@ -4846,17 +4832,6 @@ class Ventas extends Component
                     ]);
                 }
             } else {
-                // Si no tiene precio_has_venta, mostrar con precio base
-                // Convertir imagen a base64 si existe
-                $imagenBase64 = null;
-                if ($producto->imagen) {
-                    try {
-                        $imagenBase64 = base64_encode($producto->imagen);
-                    } catch (\Exception $e) {
-                        $imagenBase64 = null;
-                    }
-                }
-
                 // Si no tiene unidades en precio_has_venta, marcar como no vendible por unidad (unidad no asignada)
                 $resultadosExpandidos->push((object)[
                     'precio_id' => null,
@@ -4865,15 +4840,17 @@ class Ventas extends Component
                     'descripcion' => $producto->descripcion ?? '',
                     'presentacion_descripcion' => null,
                     'codigo_barra' => '',
-                    'imagen_base64' => $imagenBase64,
-                    'tiene_imagen' => $imagenBase64 !== null,
+                    'imagen_url' => $producto->tiene_imagen
+                        ? route('producto.imagen', ['producto' => $producto->id, 'v' => $producto->updated_at?->timestamp])
+                        : null,
+                    'tiene_imagen' => (bool) $producto->tiene_imagen,
                     'precio_base' => $producto->precio_base ?? 0,
                     'precio' => $producto->precio_base ?? 0,
                     'cantidad_por_unidad' => 1,
                     'unidad_medida_id' => null,
                     'unidad_nombre' => 'Unidad',
                     'puede_vender' => false, // No tiene unidad en precio_has_venta
-                    'stock_total_unidad' => $this->obtenerStockTotal($producto->id),
+                    'stock_total_unidad' => (float) $stockBasePorProducto->get($producto->id, 0),
                     'stock_disponible_unidad' => 0,
                     'subcategoria_nombre' => optional($producto->subcategoria)->nombre ?? '',
                     'categoria_nombre' => optional(optional($producto->subcategoria)->categoria)->nombre ?? '',
@@ -4913,12 +4890,19 @@ class Ventas extends Component
             }
         ])->values(); // values() para reindexar la colección
 
-        // Aplicar límite de 100 después de ordenar (priorizando productos con stock)
-        $this->resultadosBusqueda = $resultadosExpandidos->take(100);
+        // Mantener el límite histórico de 100 y renderizar solo la página visible.
+        $resultadosLimitados = $resultadosExpandidos->take(100)->values();
+        $this->totalResultadosBusqueda = $resultadosLimitados->count();
+        $ultimaPagina = max(1, (int) ceil($this->totalResultadosBusqueda / $this->resultadosPorPagina));
+        $this->paginaResultadosBusqueda = min($this->paginaResultadosBusqueda, $ultimaPagina);
+        $this->resultadosBusqueda = $resultadosLimitados
+            ->forPage($this->paginaResultadosBusqueda, $this->resultadosPorPagina)
+            ->values();
     }
 
     public function updatedCategoriaSeleccionada($value)
     {
+        $this->paginaResultadosBusqueda = 1;
         $this->reset('subcategoriaSeleccionada');
         if ($value) {
             $this->subcategorias = DB::table('subcategoria')
@@ -4934,31 +4918,54 @@ class Ventas extends Component
 
     public function buscarProductosModal()
     {
+        $this->paginaResultadosBusqueda = 1;
         $this->buscarProductos();
     }
 
     public function updatedMarcaSeleccionada()
     {
+        $this->paginaResultadosBusqueda = 1;
         // Auto-buscar cuando cambie la marca
         $this->buscarProductos();
     }
 
     public function updatedSubcategoriaSeleccionada()
     {
+        $this->paginaResultadosBusqueda = 1;
         // Auto-buscar cuando cambie la subcategoría
         $this->buscarProductos();
     }
 
     public function updatedFiltroStock()
     {
+        $this->paginaResultadosBusqueda = 1;
         // Auto-buscar cuando cambie el filtro de stock
         $this->buscarProductos();
     }
 
     public function updatedBusquedaProductosServicios()
     {
+        $this->paginaResultadosBusqueda = 1;
         // Auto-buscar cuando cambie el texto de búsqueda
         $this->buscarProductos();
+    }
+
+    public function paginaAnteriorBusqueda()
+    {
+        if ($this->paginaResultadosBusqueda > 1) {
+            $this->paginaResultadosBusqueda--;
+            $this->buscarProductos();
+        }
+    }
+
+    public function paginaSiguienteBusqueda()
+    {
+        $ultimaPagina = (int) ceil($this->totalResultadosBusqueda / $this->resultadosPorPagina);
+
+        if ($this->paginaResultadosBusqueda < $ultimaPagina) {
+            $this->paginaResultadosBusqueda++;
+            $this->buscarProductos();
+        }
     }
 
     /**

@@ -22,27 +22,12 @@ class Categoria extends Component
 
     private $sincronizacionService;
 
-    public function mount()
-    {
-        $this->sincronizarCategorias();
-    }
-
     private function getSincronizacionService()
     {
         if (!$this->sincronizacionService) {
             $this->sincronizacionService = app(SincronizacionCategoriasService::class);
         }
         return $this->sincronizacionService;
-    }
-
-    private function sincronizarCategorias()
-    {
-        try {
-            $resultado = $this->getSincronizacionService()->sincronizarCategoriasEnTiempoReal();
-            Log::info('Sincronización de categorías en gestión: ' . json_encode($resultado));
-        } catch (\Exception $e) {
-            Log::error('Error al sincronizar categorías en gestión: ' . $e->getMessage());
-        }
     }
 
     public function render()

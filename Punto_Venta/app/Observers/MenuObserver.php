@@ -2,10 +2,22 @@
 namespace App\Observers;
 
 use App\Models\Menu;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 
 class MenuObserver
 {
+    public function saved(): void
+    {
+        $this->forgetSidebarMenus();
+    }
+
+    public function deleted(): void
+    {
+        $this->forgetSidebarMenus();
+    }
+
     public function created(Menu $menu)
     {
         if (!$menu->route) return;
@@ -23,5 +35,12 @@ class MenuObserver
         if (!File::exists($filePath)) {
             File::put($filePath, "<div>\n    <!-- Vista para {$menu->route} -->\n</div>");
         }
+    }
+
+    private function forgetSidebarMenus(): void
+    {
+        DB::table('roles')->pluck('id')->each(
+            fn ($roleId) => Cache::forget("sidebar_menu_role_{$roleId}")
+        );
     }
 }

@@ -14,8 +14,7 @@
     <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
 
     <!-- Vite -->
-    <link rel="stylesheet" href="{{ asset('build/assets/app-poWAtTx1.css') }}">
-<script type="module" src="{{ asset('build/assets/app-BLl8G-P3.js') }}"></script>
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="font-sans antialiased bg-gray-100">
     {{ $slot }}

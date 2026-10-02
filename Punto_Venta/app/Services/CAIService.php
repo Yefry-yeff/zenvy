@@ -30,7 +30,7 @@ class CAIService
                 $query->where('c.tienda_id', $tiendaId);
             }
 
-            $gestionCai = $query->first();
+            $gestionCai = $query->lockForUpdate()->first();
 
             if (!$gestionCai) {
                 $mensaje = $tiendaId 

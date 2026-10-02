@@ -249,6 +249,7 @@ const CheckoutExample = () => {
             // 3. Preparar items
             const items = cartItems.map(item => ({
                 product_id: item.id,
+                price_id: item.price_id || item.precio_venta_id,
                 quantity: item.quantity,
                 price: item.price,
                 discount: item.discount || 0

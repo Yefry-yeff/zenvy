@@ -138,4 +138,6 @@ return [
     'webhook_enabled' => env('WEBHOOK_ENABLED', true),
     'webhook_retry_attempts' => env('WEBHOOK_RETRY_ATTEMPTS', 3),
 
+    'web_order_notifications_enabled' => env('WEB_ORDER_NOTIFICATIONS_ENABLED', false),
+
 ];

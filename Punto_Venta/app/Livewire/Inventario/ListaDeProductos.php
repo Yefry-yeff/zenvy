@@ -12,6 +12,7 @@ use App\Models\ReservaInventario;
 use App\Models\PedidoWeb;
 use App\Services\WebInventorySyncService;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -321,28 +322,10 @@ class ListaDeProductos extends Component
                     'p.id as producto_id',
                     'p.nombre as producto_nombre',
                     'p.descripcion as producto_descripcion',
+                    'p.unidad_medida_venta_id',
                     DB::raw('COALESCE(pvz.producto_id_valencia, p.id) as id_mostrar'),
                     DB::raw('CASE WHEN pvz.producto_id_valencia IS NOT NULL THEN 1 ELSE 0 END as es_id_valencia'),
-                    DB::raw('COALESCE(
-                        phv.codigo_barra,
-                        (SELECT phv2.codigo_barra 
-                         FROM precio_has_venta phv2 
-                         WHERE phv2.producto_id = p.id 
-                         AND phv2.unidad_medida_id = rb.unidad_medida_id
-                         AND phv2.estado_id = 1 
-                         LIMIT 1),
-                        (SELECT phv3.codigo_barra 
-                         FROM precio_has_venta phv3 
-                         WHERE phv3.producto_id = p.id 
-                         AND phv3.unidad_medida_id = p.unidad_medida_venta_id
-                         AND phv3.estado_id = 1 
-                         LIMIT 1),
-                        (SELECT phv4.codigo_barra 
-                         FROM precio_has_venta phv4 
-                         WHERE phv4.producto_id = p.id 
-                         AND phv4.estado_id = 1 
-                         LIMIT 1)
-                    ) as codigo_barra'),
+                    'phv.codigo_barra as precio_codigo_barra',
                     DB::raw('COALESCE(phv.descripcion, "") as presentacion_descripcion'),
                     'm.nombre as marca_nombre',
                     'm.id as marca_id',
@@ -465,8 +448,15 @@ class ListaDeProductos extends Component
                 $query->orderBy('rb.fecha_recibido', 'desc');
             }
 
-            // Paginar resultados
-            return $paginacion ? $query->paginate($this->registrosPorPagina, ['*'], 'page', $this->page) : $query->get();
+            $resultados = $paginacion
+                ? $query->paginate($this->registrosPorPagina, ['*'], 'page', $this->page)
+                : $query->get();
+
+            $this->completarCodigosBarra(
+                $resultados instanceof LengthAwarePaginator ? $resultados->getCollection() : $resultados
+            );
+
+            return $resultados;
 
         } catch (\Exception $e) {
             Log::error('Error al cargar productos recibidos', [
@@ -487,6 +477,57 @@ class ListaDeProductos extends Component
         }
     }
 
+    private function completarCodigosBarra(Collection $productos): void
+    {
+        $productosSinCodigoExacto = $productos->filter(
+            fn ($producto) => $producto->precio_codigo_barra === null
+        );
+
+        if ($productosSinCodigoExacto->isEmpty()) {
+            $productos->each(fn ($producto) => $producto->codigo_barra = $producto->precio_codigo_barra);
+            return;
+        }
+
+        $presentaciones = DB::table('precio_has_venta')
+            ->select('producto_id', 'unidad_medida_id', 'codigo_barra')
+            ->whereIn('producto_id', $productosSinCodigoExacto->pluck('producto_id')->unique())
+            ->where('estado_id', 1)
+            ->orderBy('id')
+            ->get();
+
+        $primeraPorProducto = [];
+        $primeraPorProductoUnidad = [];
+
+        foreach ($presentaciones as $presentacion) {
+            $primeraPorProducto[$presentacion->producto_id] ??= $presentacion->codigo_barra;
+
+            if ($presentacion->unidad_medida_id !== null) {
+                $clave = $presentacion->producto_id . ':' . $presentacion->unidad_medida_id;
+                if (!array_key_exists($clave, $primeraPorProductoUnidad)) {
+                    $primeraPorProductoUnidad[$clave] = $presentacion->codigo_barra;
+                }
+            }
+        }
+
+        foreach ($productos as $producto) {
+            if ($producto->precio_codigo_barra !== null) {
+                $producto->codigo_barra = $producto->precio_codigo_barra;
+                continue;
+            }
+
+            $codigoUnidadRecibida = $producto->unidad_medida_id !== null
+                ? ($primeraPorProductoUnidad[$producto->producto_id . ':' . $producto->unidad_medida_id] ?? null)
+                : null;
+            $codigoUnidadVenta = $producto->unidad_medida_venta_id !== null
+                ? ($primeraPorProductoUnidad[$producto->producto_id . ':' . $producto->unidad_medida_venta_id] ?? null)
+                : null;
+
+            $producto->codigo_barra = $codigoUnidadRecibida
+                ?? $codigoUnidadVenta
+                ?? ($primeraPorProducto[$producto->producto_id] ?? null);
+        }
+    }
+
     public function cargarFiltros()
     {
         try {
@@ -502,21 +543,26 @@ class ListaDeProductos extends Component
             $this->bodegas = $queryBodegas->orderBy('nombre')->get();
 
             // Cargar marcas (solo las que tienen productos en bodega)
-            $queryMarcas = DB::table('marca as m')
-                ->join('producto as p', 'm.id', '=', 'p.marca_id')
-                ->join('recibido_bodega as rb', 'p.id', '=', 'rb.producto_id')
-                ->join('seccion as sec', 'rb.seccion_id', '=', 'sec.id')
-                ->join('segmento as seg', 'sec.segmento_id', '=', 'seg.id')
-                ->join('bodega as b', 'seg.bodega_id', '=', 'b.id')
-                ->select('m.id', 'm.nombre')
-                ->where('rb.estado_id', 1)
-                ->distinct();
+            $esAdmin = $user->rol && $user->rol->txt_nombre === 'Admin';
+            $cacheKey = 'filtros_stock_marcas_' . ($esAdmin ? 'admin' : 'tienda_' . $user->tienda_id);
 
-            if ($user->rol && $user->rol->txt_nombre !== 'Admin') {
-                $queryMarcas->where('b.tienda_id', $user->tienda_id);
-            }
+            $this->marcas = Cache::remember($cacheKey, now()->addMinutes(10), function () use ($esAdmin, $user) {
+                $queryMarcas = DB::table('marca as m')
+                    ->join('producto as p', 'm.id', '=', 'p.marca_id')
+                    ->join('recibido_bodega as rb', 'p.id', '=', 'rb.producto_id')
+                    ->join('seccion as sec', 'rb.seccion_id', '=', 'sec.id')
+                    ->join('segmento as seg', 'sec.segmento_id', '=', 'seg.id')
+                    ->join('bodega as b', 'seg.bodega_id', '=', 'b.id')
+                    ->select('m.id', 'm.nombre')
+                    ->where('rb.estado_id', 1)
+                    ->distinct();
 
-            $this->marcas = $queryMarcas->orderBy('m.nombre')->get();
+                if (!$esAdmin) {
+                    $queryMarcas->where('b.tienda_id', $user->tienda_id);
+                }
+
+                return $queryMarcas->orderBy('m.nombre')->get();
+            });
 
         } catch (\Exception $e) {
             Log::error('Error al cargar filtros', [

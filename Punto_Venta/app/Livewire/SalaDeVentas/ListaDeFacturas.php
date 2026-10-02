@@ -333,6 +333,16 @@ class ListaDeFacturas extends Component
         DB::beginTransaction();
         try {
             $user = Auth::user();
+
+            $facturaBloqueada = Factura::whereKey($this->facturaAAnular->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if ((int) $facturaBloqueada->estado_factura_id === 2) {
+                throw new \LogicException('Esta factura ya fue anulada.');
+            }
+
+            $this->facturaAAnular = $facturaBloqueada;
             
             Log::info('Usuario autenticado', ['user_id' => $user->id, 'user_name' => $user->name]);
             
@@ -345,76 +355,11 @@ class ListaDeFacturas extends Component
             Log::info('Productos encontrados', ['cantidad' => $productosFactura->count()]);
             $productosDevueltos = [];
 
-            // 2. Devolver al inventario (si aplica)
+            // 2. Devolver exactamente los lotes consumidos (si aplica)
             if ($this->afectarInventario && $productosFactura->count() > 0) {
                 Log::info('Iniciando devolución al inventario');
-                foreach ($productosFactura as $producto) {
-                    // Verificar si factura_has_producto tiene recibido_bodega_id o precio_venta_id
-                    $recibidoBodegaId = null;
-                    
-                    // Opción 1: Si factura_has_producto tiene recibido_bodega_id directo
-                    if (isset($producto->recibido_bodega_id) && $producto->recibido_bodega_id) {
-                        $recibidoBodegaId = $producto->recibido_bodega_id;
-                        Log::info('Recibido bodega ID encontrado directo en factura_has_producto', [
-                            'recibido_bodega_id' => $recibidoBodegaId
-                        ]);
-                    }
-                    // Opción 2: Si tiene precio_venta_id, obtener recibido_bodega_id desde precio_venta
-                    elseif (isset($producto->precio_venta_id) && $producto->precio_venta_id) {
-                        $precioVenta = DB::table('precio_venta')
-                            ->where('id', $producto->precio_venta_id)
-                            ->first();
-                        
-                        if ($precioVenta && isset($precioVenta->recibido_bodega_id)) {
-                            $recibidoBodegaId = $precioVenta->recibido_bodega_id;
-                            Log::info('Recibido bodega ID encontrado desde precio_venta', [
-                                'precio_venta_id' => $producto->precio_venta_id,
-                                'recibido_bodega_id' => $recibidoBodegaId
-                            ]);
-                        }
-                    }
-                    // Opción 3: Buscar en recibido_bodega el más reciente del producto
-                    else {
-                        $recibidoBodega = DB::table('recibido_bodega')
-                            ->where('producto_id', $producto->producto_id)
-                            ->orderBy('id', 'desc')
-                            ->first();
-                        
-                        if ($recibidoBodega) {
-                            $recibidoBodegaId = $recibidoBodega->id;
-                            Log::info('Recibido bodega ID encontrado por búsqueda directa', [
-                                'producto_id' => $producto->producto_id,
-                                'recibido_bodega_id' => $recibidoBodegaId
-                            ]);
-                        }
-                    }
-
-                    if ($recibidoBodegaId) {
-                        // Incrementar la cantidad_disponible en recibido_bodega
-                        DB::table('recibido_bodega')
-                            ->where('id', $recibidoBodegaId)
-                            ->increment('cantidad_disponible', $producto->cantidad);
-
-                        Log::info('Inventario actualizado', [
-                            'recibido_bodega_id' => $recibidoBodegaId,
-                            'cantidad_incrementada' => $producto->cantidad
-                        ]);
-
-                        // Registrar producto devuelto
-                        $productosDevueltos[] = [
-                            'producto_id' => $producto->producto_id,
-                            'cantidad' => $producto->cantidad,
-                            'precio_unidad' => $producto->precio_unidad,
-                            'subtotal' => $producto->subtotal,
-                            'recibido_bodega_id' => $recibidoBodegaId
-                        ];
-                    } else {
-                        Log::warning('No se pudo encontrar recibido_bodega_id para el producto', [
-                            'producto_id' => $producto->producto_id,
-                            'producto' => $producto
-                        ]);
-                    }
-                }
+                $productosDevueltos = app(\App\Services\InventoryRestorationService::class)
+                    ->restore($this->facturaAAnular->id, $user->id);
             }
 
             // 3. Afectar flujo de caja (si aplica)
@@ -491,7 +436,7 @@ class ListaDeFacturas extends Component
                     'total' => $this->facturaAAnular->total
                 ]),
                 'datosNuevos' => json_encode([
-                    'estado_factura_id' => 3,
+                    'estado_factura_id' => 2,
                     'motivo_anulacion' => $this->motivoAnulacion,
                     'factura_anulada_id' => $facturaAnulada->id,
                     'afecto_inventario' => $this->afectarInventario,

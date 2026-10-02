@@ -5,6 +5,7 @@ use App\Http\Controllers\PedidosWebController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\MenuController;
 use App\Http\Controllers\MorphingLogController;
+use App\Http\Controllers\ProductoImagenController;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Http\Request;
 
@@ -18,6 +19,10 @@ Route::get('/dashboard', function () {
 })->middleware(['auth'])->name('dashboard');
 
 Route::middleware('auth')->group(function () {
+    Route::get('/productos/{producto}/imagen', [ProductoImagenController::class, 'show'])
+        ->whereNumber('producto')
+        ->name('producto.imagen');
+
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');

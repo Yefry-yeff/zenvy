@@ -67,6 +67,7 @@
 
     {{-- DERECHA: Bandeja de Pedidos y Perfil --}}
     <div class="flex items-center gap-4">
+        @if (config('app.web_order_notifications_enabled'))
         {{-- Bandeja de Pedidos Web --}}
         <div class="relative">
             <button onclick="togglePedidos(event)" class="relative p-2 text-white hover:text-white/80 focus:outline-none">
@@ -102,6 +103,7 @@
                 </div>
             </div>
         </div>
+        @endif
 
         {{-- Perfil con dropdown de opciones --}}
         <div x-data="{
@@ -191,26 +193,86 @@
     </script>
 
     {{-- jQuery y DataTables JS CDN --}}
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    <script defer src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script defer src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script defer src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
 
     {{-- Tom Select --}}
-    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
 
-    <script src="{{ asset('JS/Script/TablasBoostrap/listafacturas.js') }}"></script>
-    <script src="{{ asset('JS/Script/TablasBoostrap/compra.js') }}"></script>
-    <script src="{{ asset('JS/Script/TablasBoostrap/sucursales.js') }}"></script>
-    <script src="{{ asset('JS/Script/TablasBoostrap/clientes.js') }}"></script>
-    <script src="{{ asset('JS/Script/TablasBoostrap/departamento.js') }}"></script>
-    <script src="{{ asset('JS/Script/TablasBoostrap/municipios.js') }}"></script>
-    <script src="{{ asset('JS/Script/TablasBoostrap/producto-seccion.js') }}"></script>
-    <script src="{{ asset('JS/Script/TablasBoostrap/marca.js') }}"></script>
-    <script src="{{ asset('JS/Script/TablasBoostrap/cai.js') }}"></script>
-    <script src="{{ asset('JS/Script/TablasBoostrap/categoria.js') }}"></script>
-    <script src="{{ asset('JS/Script/TablasBoostrap/subcategoria.js') }}"></script>
-    <script src="{{ asset('JS/Script/TablasBoostrap/unidades.js') }}"></script>
-    <script src="{{ asset('JS/Script/TablasBoostrap/productos.js') }}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const tableSelectors = [
+                '#sucursalesTable',
+                '#departamentosTable',
+                '#municipiosTable',
+                '#productosSeccionTable',
+                '#marcasZenvyTable',
+                '#marcasValenciaTable',
+                '#tbl_cai',
+            ];
+
+            const initializeVisibleTables = () => {
+                if (!window.jQuery || !jQuery.fn.DataTable) {
+                    return;
+                }
+
+                tableSelectors.forEach((selector) => {
+                    const table = document.querySelector(selector);
+
+                    if (!table || jQuery.fn.DataTable.isDataTable(table)) {
+                        return;
+                    }
+
+                    const rows = table.querySelectorAll('tbody tr');
+                    const hasData = Array.from(rows).some((row) =>
+                        row.querySelectorAll('td').length > 1 &&
+                        !row.textContent.toLowerCase().includes('no hay')
+                    );
+
+                    if (!hasData) {
+                        return;
+                    }
+
+                    const options = {
+                        responsive: true,
+                        language: {
+                            url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
+                        }
+                    };
+
+                    if (selector === '#tbl_cai') {
+                        options.order = [[12, 'asc'], [13, 'desc']];
+                    }
+
+                    jQuery(table).DataTable(options);
+                });
+            };
+
+            let scheduled = false;
+            const scheduleInitialization = () => {
+                if (scheduled) {
+                    return;
+                }
+
+                scheduled = true;
+                requestAnimationFrame(() => {
+                    scheduled = false;
+                    initializeVisibleTables();
+                });
+            };
+
+            const main = document.querySelector('main');
+            if (main) {
+                new MutationObserver(scheduleInitialization).observe(main, {
+                    childList: true,
+                    subtree: true,
+                });
+            }
+
+            scheduleInitialization();
+        });
+    </script>
     <!-- MODAL DE SESIÓN EXPIRADA -->
     <div
         x-show="showModal"
@@ -218,7 +280,7 @@
             showModal: false,
             timeout: null,
             lastActivity: Date.now(),
-            sessionTimeout: 8 * 60 * 60 * 60 * 60 * 60 * 60 * 1000, // 2 horas
+            sessionTimeout: 2 * 60 * 60 * 1000,
             resetTimer() {
                 if (this.timeout) {
                     clearTimeout(this.timeout);
@@ -278,6 +340,7 @@
 
 
     {{-- Script de Bandeja de Pedidos --}}
+    @if (config('app.web_order_notifications_enabled'))
     <script>
         let pedidosDropdownOpen = false;
         let dropdownMovedToBody = false;
@@ -504,6 +567,7 @@
             setInterval(updatePedidosBadgeConAlertas, 15000);
         });
     </script>
+    @endif
 
     @stack('scripts')
 

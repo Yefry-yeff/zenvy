@@ -325,6 +325,13 @@ class CierreDeCaja extends Component
                 ->where('user_id', $usuario->id)
                 ->where('tienda_id', $usuario->tienda_id)
                 ->orderBy('fecha_cierre', 'desc')
+                ->lockForUpdate()
+                ->first();
+
+            DB::table('caja')
+                ->where('users_id', $usuario->id)
+                ->where('tienda_id', $usuario->tienda_id)
+                ->lockForUpdate()
                 ->first();
 
             $periodoInicio = $ultimoCierre ? $ultimoCierre->fecha_cierre : null;

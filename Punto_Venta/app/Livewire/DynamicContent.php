@@ -27,8 +27,6 @@ class DynamicContent extends Component
 
     public function cambiarVista($ruta, $parametros = [])
     {
-        logger()->info('[Livewire] cambiarVista recibió:', ['ruta' => $ruta, 'parametros' => $parametros]);
-
         // Limpiar sesiones de filtros al cambiar de vista para resetear filtros
         $this->limpiarSesionesFiltros();
 
@@ -44,6 +42,8 @@ class DynamicContent extends Component
         
         // Guardar la vista actual en sesión para referencia
         session(['vista_actual' => $ruta]);
+
+        $this->dispatch('vista-cargada');
     }
     
     /**
