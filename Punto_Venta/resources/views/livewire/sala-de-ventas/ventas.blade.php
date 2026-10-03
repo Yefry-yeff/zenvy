@@ -253,11 +253,35 @@
                         <i class="fas fa-times-circle fa-4x"></i>
                     </div>
                     <h3 class="mb-2 text-lg font-semibold text-gray-800">
-                        No hay suficiente stock disponible
+                        {{ $codigoSinStock ? 'Código sin stock disponible' : 'No hay suficiente stock disponible' }}
                     </h3>
-                    <p class="mb-6 text-gray-600">
-                        La cantidad solicitada excede el stock disponible en bodega. Por favor, verifica el inventario o reduce la cantidad.
-                    </p>
+                    @if($codigoSinStock)
+                        <div class="mb-6 overflow-hidden text-left border border-red-200 rounded-lg bg-red-50">
+                            <dl class="divide-y divide-red-100">
+                                <div class="px-4 py-3">
+                                    <dt class="text-xs font-semibold text-red-700 uppercase">Código de barras</dt>
+                                    <dd class="mt-1 font-mono text-sm font-bold text-gray-900">{{ $codigoSinStock }}</dd>
+                                </div>
+                                <div class="px-4 py-3">
+                                    <dt class="text-xs font-semibold text-red-700 uppercase">Producto</dt>
+                                    <dd class="mt-1 text-sm font-medium text-gray-900">{{ $productoSinStock }}</dd>
+                                </div>
+                                @if($descripcionSinStock)
+                                    <div class="px-4 py-3">
+                                        <dt class="text-xs font-semibold text-red-700 uppercase">Descripción</dt>
+                                        <dd class="mt-1 text-sm text-gray-700">{{ $descripcionSinStock }}</dd>
+                                    </div>
+                                @endif
+                            </dl>
+                        </div>
+                        <p class="mb-6 text-gray-600">
+                            El producto no fue agregado. Verifica el inventario de esta presentación exacta.
+                        </p>
+                    @else
+                        <p class="mb-6 text-gray-600">
+                            La cantidad solicitada excede el stock disponible en bodega. Por favor, verifica el inventario o reduce la cantidad.
+                        </p>
+                    @endif
 
                     <div class="flex justify-center">
                         <button
@@ -564,11 +588,9 @@
                                                 <input type="text"
                                                     id="codigo_barras"
                                                     wire:model.defer="codigoBarras"
-                                                    wire:keydown.enter="agregarProductoPorCodigo"
                                                     class="w-full h-10 border border-gray-300 rounded-l-lg focus:ring-2 focus:ring-blue-200 focus:border-blue-500"
                                                     placeholder="Escanee el código de barras"
                                                     autocomplete="off"
-                                                    @keydown.enter="$event.target.value = ''; $event.target.focus()"
                                                     @enfocar-input-codigo.window="$event.target.focus()"
                                                     autofocus>
                                             </div>

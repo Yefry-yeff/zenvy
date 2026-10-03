@@ -34,7 +34,62 @@
 </head>
 
 <body
-    x-data="{ theme: localStorage.getItem('theme') || 'verde', sidebarOpen: true }"
+    x-data="{
+        theme: localStorage.getItem('theme') || 'verde',
+        sidebarOpen: true,
+        peticionesLivewirePendientes: 0,
+        rutaPendiente: null,
+        temporizadorNavegacion: null,
+        ultimaEdicionLivewire: 0,
+        init() {
+            document.addEventListener('input', (event) => {
+                const esModeloLive = event.target?.getAttributeNames?.()
+                    .some((nombre) => nombre.startsWith('wire:model.live'));
+                if (esModeloLive) this.ultimaEdicionLivewire = performance.now();
+            });
+
+            const registrarSeguimiento = () => {
+                if (this.desregistrarSeguimiento) return;
+
+                this.desregistrarSeguimiento = Livewire.hook('commit', ({ succeed, fail }) => {
+                    this.peticionesLivewirePendientes++;
+                    let finalizada = false;
+                    const finalizar = () => {
+                        if (finalizada) return;
+                        finalizada = true;
+                        this.peticionesLivewirePendientes = Math.max(0, this.peticionesLivewirePendientes - 1);
+                    };
+
+                    succeed(finalizar);
+                    fail(finalizar);
+                });
+            };
+
+            if (window.Livewire) {
+                registrarSeguimiento();
+            } else {
+                document.addEventListener('livewire:init', registrarSeguimiento, { once: true });
+            }
+        },
+        navegarVista(ruta) {
+            this.rutaPendiente = ruta;
+            this.$dispatch('cargando-vista');
+            document.activeElement?.blur();
+            clearTimeout(this.temporizadorNavegacion);
+            const esperaDebounce = Math.max(0, 350 - (performance.now() - this.ultimaEdicionLivewire));
+            this.temporizadorNavegacion = setTimeout(() => this.completarNavegacion(), esperaDebounce);
+        },
+        completarNavegacion() {
+            if (this.peticionesLivewirePendientes > 0) {
+                this.temporizadorNavegacion = setTimeout(() => this.completarNavegacion(), 50);
+                return;
+            }
+
+            const ruta = this.rutaPendiente;
+            this.rutaPendiente = null;
+            if (ruta) window.Livewire.dispatch('cambiarVista', [ruta]);
+        }
+    }"
     x-init="document.documentElement.className = theme"
     x-effect="localStorage.setItem('theme', theme); document.documentElement.className = theme"
     class="flex flex-col h-screen font-sans antialiased"

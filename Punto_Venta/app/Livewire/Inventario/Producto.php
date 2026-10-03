@@ -247,7 +247,8 @@ class Producto extends Component
                 'preciosVenta' => function ($query) {
                     $query->select('id', 'producto_id', 'unidad_medida_id', 'codigo_barra')
                         ->whereNotNull('codigo_barra')
-                        ->where('codigo_barra', '!=', '');
+                        ->where('codigo_barra', '!=', '')
+                        ->orderBy('id');
                 },
                 'preciosVenta.unidadMedida:id,nombre,simbolo'
             ])
@@ -255,13 +256,20 @@ class Producto extends Component
 
         // Aplicar filtro de búsqueda
         if (!empty($this->buscar)) {
-            $query->where(function($q) {
+            $productosPorCodigo = DB::table('precio_has_venta')
+                ->where('estado_id', 1)
+                ->where('codigo_barra', 'LIKE', $this->buscar . '%')
+                ->distinct()
+                ->pluck('producto_id');
+
+            $query->where(function($q) use ($productosPorCodigo) {
                 $q->where('producto.nombre', 'LIKE', '%' . $this->buscar . '%')
-                  ->orWhere('producto.codigo_barra', 'LIKE', '%' . $this->buscar . '%')
                   ->orWhere('producto.descripcion', 'LIKE', '%' . $this->buscar . '%')
-                  ->orWhereHas('preciosVenta', function($sq) {
-                      $sq->where('codigo_barra', 'LIKE', '%' . $this->buscar . '%');
-                  });
+                  ->orWhere('producto.codigo_barra', 'LIKE', $this->buscar . '%');
+
+                if ($productosPorCodigo->isNotEmpty()) {
+                    $q->orWhereIn('producto.id', $productosPorCodigo);
+                }
             });
         }
 
@@ -335,6 +343,7 @@ class Producto extends Component
         $productos->getCollection()->transform(function($producto) {
             $producto->presentaciones = $producto->preciosVenta->map(function($precio) {
                 return (object) [
+                    'precio_id' => $precio->id,
                     'codigo_barra' => $precio->codigo_barra,
                     'unidad_medida' => $precio->unidadMedida?->nombre,
                     'unidad_simbolo' => $precio->unidadMedida?->simbolo,

@@ -276,9 +276,11 @@
 
         <div class="separator"></div>
 
-        <!-- FACTURA VENTA -->
+        <!-- TÍTULO DE FACTURA -->
         <div class="factura-title">
-            <strong>FACTURA VENTA</strong>
+            <strong>
+                {{ $factura->estado_factura_id == 2 ? 'FACTURA ANULADA - SIN VALIDEZ' : 'FACTURA VENTA' }}
+            </strong>
             @if($pedidoWeb)
                 <br><span style="font-size: 14px; color: #000;">Pedido Web #{{ $pedidoWeb->numero_pedido }}</span>
             @endif

@@ -123,6 +123,9 @@ class Ventas extends Component
     public $tiendaUsuario = null;
     public $bodegaPrincipal = null;
     public $mostrarModalSinStock = false;
+    public $codigoSinStock = '';
+    public $productoSinStock = '';
+    public $descripcionSinStock = '';
 
     // Propiedades para la vista de impresión
     public $mostrarVistaImpresion = false;
@@ -848,6 +851,10 @@ class Ventas extends Component
     public function cerrarModalSinStock()
     {
         $this->mostrarModalSinStock = false;
+        $this->codigoSinStock = '';
+        $this->productoSinStock = '';
+        $this->descripcionSinStock = '';
+        $this->dispatch('enfocar-input-codigo');
     }
 
     public function cargarClientesModal()
@@ -1002,42 +1009,17 @@ class Ventas extends Component
         // Stock real disponible = stock en bodega - lo que ya está en el carrito
         $stockDisponibleReal = $stockEnBodega - $cantidadEnCarrito;
 
-        // Si no hay stock disponible, buscar otra unidad con stock
+        // El código de barras identifica una presentación exacta; nunca sustituirla automáticamente.
         if ($stockDisponibleReal <= 0) {
-            // Buscar otra unidad del mismo producto que tenga stock
-            foreach ($preciosDisponibles as $precioAlternativo) {
-                $stockAlternativo = $this->calcularStockTotalPorUnidad(
-                    $producto->id, 
-                    $precioAlternativo->unidad_medida_id,
-                    $precioAlternativo->precio_id  // precio_venta_id
-                );
-                
-                $cantidadEnCarritoAlternativo = 0;
-                foreach ($this->productosFactura as $itemCarrito) {
-                    if ($itemCarrito['id'] == $producto->id &&
-                        isset($itemCarrito['precio_id']) &&
-                        $itemCarrito['precio_id'] == $precioAlternativo->precio_id) {
-                        $cantidadEnCarritoAlternativo += (int)($itemCarrito['cantidad'] ?? 0);
-                    }
-                }
-                
-                $stockDisponibleAlternativo = $stockAlternativo - $cantidadEnCarritoAlternativo;
-                
-                if ($stockDisponibleAlternativo > 0) {
-                    // Usar esta unidad alternativa
-                    $precioDefecto = $precioAlternativo;
-                    $stockEnBodega = $stockAlternativo;
-                    $stockDisponibleReal = $stockDisponibleAlternativo;
-                    break;
-                }
-            }
-            
-            // Si ninguna unidad tiene stock, mostrar error
-            if ($stockDisponibleReal <= 0) {
-                $this->mostrarModalSinStock = true;
-                $this->dispatch('mostrar-error', ['mensaje' => 'No hay stock disponible para ninguna presentación de este producto']);
-                return;
-            }
+            $this->codigoSinStock = (string) $this->codigoBarras;
+            $this->productoSinStock = (string) $producto->nombre;
+            $this->descripcionSinStock = (string) ($precioDefecto->descripcion ?: ($producto->descripcion ?? ''));
+            $this->codigoBarras = '';
+            $this->mostrarModalSinStock = true;
+            $this->dispatch('mostrar-error', [
+                'mensaje' => "No hay stock disponible para el código {$this->codigoSinStock}",
+            ]);
+            return;
         }
 
         // CAMBIO: Siempre agregar una nueva línea, permitir múltiples líneas del mismo producto con diferentes unidades
@@ -4439,6 +4421,9 @@ class Ventas extends Component
         $this->mostrarModalTarjetaFlag = false;
         $this->mostrarModalClientesFlag = false;
         $this->mostrarModalSinStock = false;
+        $this->codigoSinStock = '';
+        $this->productoSinStock = '';
+        $this->descripcionSinStock = '';
 
         // Resetear montos de pago
         $this->montosPorMetodo = [];

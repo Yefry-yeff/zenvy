@@ -245,7 +245,7 @@
                                 <th class="px-2 py-1 border-b"></th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-gray-200">
+                        <tbody wire:replace class="divide-y divide-gray-200">
                             @forelse($productos as $producto)
                                 @php
                                     $numPresentaciones = !empty($producto->presentaciones) ? count($producto->presentaciones) : 1;
@@ -254,7 +254,7 @@
                                 @if(!empty($producto->presentaciones) && count($producto->presentaciones) > 0)
                                     @foreach($producto->presentaciones as $index => $presentacion)
                                     <tr class="transition-colors duration-150 cursor-pointer hover:bg-gray-50"
-                                        wire:key="p-{{ $producto->id }}-i-{{ $index }}">
+                                        wire:key="p-{{ $producto->id }}-precio-{{ $presentacion->precio_id }}">
                                             @if($index === 0)
                                                 <!-- Código del Producto (ID Valencia o Zenvy) - solo en primera fila -->
                                                 <td class="px-2 py-1 text-xs font-semibold border-r"
@@ -610,53 +610,20 @@
 <script>
 // Escuchar el evento de descarga de archivos
 document.addEventListener('DOMContentLoaded', function() {
-    // Para Livewire v3
-    if (typeof Livewire !== 'undefined') {
-        Livewire.on('descargarArchivo', (data) => {
-            console.log('Evento descargarArchivo recibido:', data);
+    @script
+    <script>
+        $wire.on('descargarArchivo', (data) => {
             const eventData = Array.isArray(data) ? data[0] : data;
-            const { url, filename } = eventData;
+            if (!eventData?.url) return;
 
-            console.log('URL de descarga:', url);
-
-            // Crear un enlace temporal para descargar el archivo
             const link = document.createElement('a');
-            link.href = url;
-            link.download = filename;
+            link.href = eventData.url;
+            link.download = eventData.filename;
             link.style.display = 'none';
-
-            // Agregar al DOM, hacer click y remover
             document.body.appendChild(link);
             link.click();
-
-            // Remover después de un pequeño delay
-            setTimeout(() => {
-                document.body.removeChild(link);
-            }, 100);
+            link.remove();
         });
-    }
-});
-
-// También intentar escuchar cuando Livewire esté completamente cargado
-document.addEventListener('livewire:init', () => {
-    Livewire.on('descargarArchivo', (data) => {
-        console.log('Evento descargarArchivo recibido (livewire:init):', data);
-        const eventData = Array.isArray(data) ? data[0] : data;
-        const { url, filename } = eventData;
-
-        // Crear un enlace temporal para descargar el archivo
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = filename;
-        link.style.display = 'none';
-
-        // Agregar al DOM, hacer click y remover
-        document.body.appendChild(link);
-        link.click();
-
-        setTimeout(() => {
-            document.body.removeChild(link);
-        }, 100);
-    });
-});
-</script>
+    </script>
+    @endscript
+            document.body.appendChild(link);

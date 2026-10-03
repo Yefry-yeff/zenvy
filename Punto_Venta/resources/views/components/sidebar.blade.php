@@ -21,7 +21,7 @@
         {{-- Dashboard --}}
         <div class="flex justify-center">
             <button
-                x-on:click="$dispatch('cargando-vista'); window.Livewire.dispatch('cambiarVista', ['dashboard'])"
+                x-on:click="navegarVista('dashboard')"
                 class="flex items-center gap-2 px-2 py-1 text-sm font-medium text-white transition hover:text-white/80"
                 title="Dashboard"
             >
@@ -58,7 +58,7 @@
                         @foreach ($menuItem['items'] as $child)
                             <li>
                                 <button
-                                    x-on:click="$dispatch('cargando-vista'); window.Livewire.dispatch('cambiarVista', ['{{ $child['route'] }}'])"
+                                    x-on:click="navegarVista('{{ $child['route'] }}')"
                                     class="flex items-center w-full gap-2 px-3 py-1 text-left rounded text-white/70 hover:text-white hover:bg-white/10"
                                 >
                                     <span x-show="sidebarOpen" x-transition>{!! $child['icon'] ?? '' !!}</span>

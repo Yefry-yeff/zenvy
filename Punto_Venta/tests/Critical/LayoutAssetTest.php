@@ -7,6 +7,15 @@ use Tests\Support\CriticalDatabaseTestCase;
 
 class LayoutAssetTest extends CriticalDatabaseTestCase
 {
+    public function test_cancelled_invoice_pdf_uses_invalid_title(): void
+    {
+        $template = file_get_contents(resource_path('views/pdf/factura.blade.php'));
+
+        $this->assertStringContainsString("\$factura->estado_factura_id == 2", $template);
+        $this->assertStringContainsString('FACTURA ANULADA - SIN VALIDEZ', $template);
+        $this->assertStringContainsString("'FACTURA VENTA'", $template);
+    }
+
     public function test_login_uses_current_vite_assets(): void
     {
         $manifest = json_decode(file_get_contents(public_path('build/manifest.json')), true);
@@ -35,7 +44,9 @@ class LayoutAssetTest extends CriticalDatabaseTestCase
         $response->assertSee('initializeVisibleTables', false);
         $response->assertDontSee('TablasBoostrap/listafacturas.js', false);
         $response->assertDontSee('TablasBoostrap/productos.js', false);
-        $response->assertSee("\$dispatch('cargando-vista')", false);
+        $response->assertSee("navegarVista('dashboard')", false);
+        $response->assertSee('peticionesLivewirePendientes', false);
+        $response->assertSee("Livewire.dispatch('cambiarVista', [ruta])", false);
         $response->assertSee('x-on:cargando-vista.window="iniciarCarga()"', false);
         $response->assertSee('x-on:vista-cargada.window="finalizarCarga()"', false);
         $response->assertSee("Livewire.hook('commit'", false);
