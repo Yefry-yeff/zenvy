@@ -17,7 +17,15 @@ class Bodega extends Model
         'tienda_id',
         'direccion_id',
         'estado_id',
-        'principal'
+        'principal',
+        'tipo_bodega',
+        'cuenta_como_disponible',
+        'sistema_externo',
+    ];
+
+    protected $casts = [
+        'principal' => 'boolean',
+        'cuenta_como_disponible' => 'boolean',
     ];
 
     // Relationships

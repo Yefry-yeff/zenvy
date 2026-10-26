@@ -216,6 +216,15 @@
                 </button>
                 @endif
 
+                @if($this->tienePermiso('Inventario.Traslados'))
+                <button
+                    x-on:click="window.Livewire.dispatch('cambiarVista', ['Inventario.Traslados'])"
+                    class="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white transition-all duration-200 transform bg-gradient-to-r from-sky-500 to-sky-600 rounded-lg hover:from-sky-600 hover:to-sky-700 hover:scale-105 shadow-sm hover:shadow-md">
+                    <span class="text-base">↔️</span>
+                    <span>Envíos a Valencia</span>
+                </button>
+                @endif
+
                 @if($this->tienePermiso('Configuracion.Usuarios'))
                 <button
                     x-on:click="window.Livewire.dispatch('cambiarVista', ['Configuracion.Usuarios'])"

@@ -131,12 +131,14 @@ class DashboardDinamico extends Component
                     ->join('segmento as seg', 's.segmento_id', '=', 'seg.id')
                     ->join('bodega as b', 'seg.bodega_id', '=', 'b.id')
                     ->where('b.tienda_id', $usuario->tienda_id)
+                    ->where('b.cuenta_como_disponible', 1)
                     ->where('b.id', '!=', 2); // Excluir bodega ID 2 (productos sin venta)
             } else {
                 // Para Admin, también excluir bodega ID 2
                 $queryStockBajo->join('seccion as s', 'recibido_bodega.seccion_id', '=', 's.id')
                     ->join('segmento as seg', 's.segmento_id', '=', 'seg.id')
                     ->join('bodega as b', 'seg.bodega_id', '=', 'b.id')
+                    ->where('b.cuenta_como_disponible', 1)
                     ->where('b.id', '!=', 2); // Excluir bodega ID 2 (productos sin venta)
             }
 
@@ -186,6 +188,7 @@ class DashboardDinamico extends Component
                 ->join('bodega as b', 'seg.bodega_id', '=', 'b.id')
                 ->where('rb.cantidad_disponible', '<', 10)
                 ->where('rb.cantidad_disponible', '>', 0)
+                ->where('b.cuenta_como_disponible', 1)
                 ->where('b.id', '!=', 2); // Excluir bodega ID 2 (productos sin venta)
 
             // Si el usuario no tiene permisos administrativos, filtrar por su tienda

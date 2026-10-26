@@ -339,6 +339,7 @@ class ListaDeProductos extends Component
                     DB::raw('COALESCE(ri.total_reservado, 0) as cantidad_reservada')
                 )
                 ->where('rb.estado_id', 1) // Solo activos
+                ->where('b.cuenta_como_disponible', 1)
                 ->where('b.id', '!=', 2); // Excluir bodega ID 2 (productos sin venta)
 
             // Filtrar por tienda si no es admin
@@ -530,7 +531,9 @@ class ListaDeProductos extends Component
             $user = Auth::user();
 
             // Cargar bodegas
-            $queryBodegas = Bodega::with('tienda')->where('estado_id', 1);
+            $queryBodegas = Bodega::with('tienda')
+                ->where('estado_id', 1)
+                ->where('cuenta_como_disponible', 1);
 
             if ($user->rol && $user->rol->txt_nombre !== 'Admin') {
                 $queryBodegas->where('tienda_id', $user->tienda_id);

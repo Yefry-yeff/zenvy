@@ -6,7 +6,8 @@ use App\Http\Controllers\Api\V1\{
     AuthController,
     InventoryController,
     SalesController,
-    OrdersController
+    OrdersController,
+    TransfersController
 };
 
 /*
@@ -68,6 +69,12 @@ Route::prefix('v1')->middleware([
         Route::get('/unread/count', [OrdersController::class, 'unreadCount'])->name('unread-count');
         Route::get('/{id}', [OrdersController::class, 'show'])->name('show');
         Route::post('/{id}/process', [OrdersController::class, 'process'])->name('process');
+    });
+
+    Route::prefix('transfers')->name('api.transfers.')->group(function() {
+        Route::post('/incoming', [TransfersController::class, 'incoming'])->name('incoming');
+        Route::get('/outgoing', [TransfersController::class, 'outgoing'])->name('outgoing');
+        Route::post('/{uuid}/receipt', [TransfersController::class, 'receipt'])->name('receipt');
     });
     
     // ========================================
