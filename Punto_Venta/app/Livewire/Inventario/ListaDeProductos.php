@@ -338,7 +338,13 @@ class ListaDeProductos extends Component
                     'umv.nombre as unidad_medida_venta',
                     DB::raw('COALESCE(ri.total_reservado, 0) as cantidad_reservada')
                 )
-                ->where('rb.estado_id', 1) // Solo activos
+                ->where(function ($stock): void {
+                    $stock->where('rb.estado_id', 1)
+                        ->orWhere(function ($agotado): void {
+                            $agotado->where('rb.estado_id', 2)
+                                ->where('rb.cantidad_disponible', '<=', 0);
+                        });
+                })
                 ->where('b.cuenta_como_disponible', 1)
                 ->where('b.id', '!=', 2); // Excluir bodega ID 2 (productos sin venta)
 
