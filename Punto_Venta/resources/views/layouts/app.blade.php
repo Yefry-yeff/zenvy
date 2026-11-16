@@ -3,23 +3,37 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+
+    {{-- Favicon --}}
+    <link rel="icon" type="image/x-icon" href="{{ asset('img/favicon/favicon.ico') }}">
+    <link rel="icon" type="image/svg+xml" href="{{ asset('img/favicon/favicon.svg') }}">
+    <link rel="icon" type="image/png" sizes="96x96" href="{{ asset('img/favicon/favicon-96x96.png') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('img/favicon/apple-touch-icon.png') }}">
+    <link rel="manifest" href="{{ asset('img/favicon/site.webmanifest') }}">
 
     {{-- Fuentes --}}
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
 
-    {{-- Estilos Vite --}}
-    <link rel="stylesheet" href="{{ asset('build/assets/app-B5wKzLt-.css') }}">
+    {{-- Tom Select --}}
+    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
 
-    {{-- Solución para evitar múltiples Alpine (Livewire defer) --}}
-    <script>
-        window.deferLoadingAlpine = function (callback) {
-            window.addEventListener('alpine:initialized', callback);
-        };
-    </script>
+    {{-- Estilos compilados con Vite --}}
+    <link rel="stylesheet" href="{{ asset('build/assets/app-B6dSsrj3.css') }}">
 
-    {{-- Estilos Livewire --}}
+    {{-- Bootstrap 5 CSS (sin integrity para evitar error) --}}
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    {{-- DataTables CSS --}}
+    <link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet" />
+
+    {{-- FontAwesome --}}
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    {{-- Livewire --}}
     @livewireStyles
+    @stack('styles')
 </head>
 
 <body
@@ -28,88 +42,199 @@
     x-effect="localStorage.setItem('theme', theme); document.documentElement.className = theme"
     class="flex flex-col h-screen font-sans antialiased"
 >
+    {{-- ENCABEZADO --}}
+    <header
+    :class="theme === 'verde' ? 'bg-emerald-600/80' :
+            theme === 'azul' ? 'bg-blue-600/80' :
+            theme === 'oscuro' ? 'bg-gray-900/80' : 'bg-slate-700/80'"
+    class="flex items-center justify-between px-6 py-2 text-white transition-all duration-300 shadow-md backdrop-blur-md"
+>
+    {{-- IZQUIERDA: botón menú y logo --}}
+    <div class="flex items-center gap-3">
+        <button @click="sidebarOpen = !sidebarOpen" class="text-white focus:outline-none">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+        </button>
 
-    {{-- BARRA SUPERIOR CON LOGO / TÍTULO --}}
-    <div class="flex items-center justify-center gap-3 px-6 py-2 text-base font-semibold text-black bg-white shadow">
-        <img src="{{ asset('img/logo-zenvy.png') }}" alt="Logo Zenvy" class="object-contain h-8">
-        ZENVY POS v1.0
-    </div>
-
-    {{-- ENCABEZADO PRINCIPAL --}}
-    <header class="bg-[var(--tema)] text-white flex items-center justify-between px-6 py-2 shadow text-sm">
-        <div class="flex items-center gap-3">
-            {{-- Botón para retraer menú --}}
-            <button @click="sidebarOpen = !sidebarOpen" class="text-white focus:outline-none">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24"
-                     stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                          d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
-            </button>
-
-            <a href="{{ route('dashboard') }}"
-               class="flex items-center gap-2 px-3 py-1 text-sm text-white transition rounded bg-white/10 hover:bg-white/20">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                          d="M3 12l9-9 9 9M4 10v10a1 1 0 001 1h5m6-11v10a1 1 0 001 1h5V10" />
-                </svg>
-                <span>Inicio</span>
-            </a>
-        </div>
-
-        {{-- Perfil con dropdown --}}
-        <div x-data="{ open: false }" class="relative">
-            <button @click="open = !open" class="flex items-center gap-2 text-white focus:outline-none">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none"
-                     viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                          d="M5.121 17.804A13.937 13.937 0 0112 15c2.5 0 4.847.655 6.879 1.804M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-                <span class="font-medium">{{ Auth::user()->name }}</span>
-            </button>
-
-            <div x-show="open" @click.outside="open = false" x-transition
-                 class="absolute right-0 z-50 w-48 mt-2 text-gray-800 bg-white rounded shadow-md">
-                <div class="px-4 py-2 border-b">
-                    <p class="text-sm font-semibold text-gray-600">Tema</p>
-                    <button @click="theme = 'verde'" class="w-full px-2 py-1 text-sm text-left rounded hover:bg-green-100">Verde</button>
-                    <button @click="theme = 'azul'" class="w-full px-2 py-1 text-sm text-left rounded hover:bg-blue-100">Azul</button>
-                    <button @click="theme = 'oscuro'" class="w-full px-2 py-1 text-sm text-left rounded hover:bg-gray-100">Oscuro</button>
+        <div class="flex items-center gap-2 text-base font-semibold">
+            <div class="flex flex-col items-start gap-0">
+                <div class="flex items-center gap-2">
+                    <img src="{{ asset('img/Logo_Paperland2.png') }}" alt="Logo Paperland" class="object-contain w-8 h-8">
+                    <span class="text-xl font-semibold text-white">Paperland</span>
                 </div>
-                <form method="POST" action="{{ route('logout') }}">
-                    @csrf
-                    <button type="submit"
-                            class="flex items-center w-full gap-2 px-4 py-2 text-sm text-gray-700 rounded-b hover:bg-gray-100">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-gray-600" fill="none"
-                             viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                  d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1m0-10V5" />
-                        </svg>
-                        Cerrar sesión
-                    </button>
-                </form>
+                <span class="text-[0.65rem] text-white/80 -mt-1 ml-10">imagina · crea · diviértete</span>
             </div>
         </div>
-    </header>
+    </div>
 
+    {{-- DERECHA: Perfil con dropdown de opciones --}}
+    <div x-data="{ open: false }" class="relative">
+        <button @click="open = !open" class="flex items-center gap-2 text-white focus:outline-none">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A13.937 13.937 0 0112 15c2.5 0 4.847.655 6.879 1.804M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            <span class="font-medium">{{ Auth::user()->name }}</span>
+        </button>
+
+        <div x-show="open" @click.outside="open = false" x-transition class="absolute right-0 z-50 w-48 mt-2 text-gray-800 bg-white rounded shadow-md">
+            <div class="px-4 py-2 border-b">
+                <p class="text-sm font-semibold text-gray-600">Tema</p>
+                <button @click="theme = 'verde'" class="w-full px-2 py-1 text-sm text-left rounded hover:bg-green-100">Verde</button>
+                <button @click="theme = 'azul'" class="w-full px-2 py-1 text-sm text-left rounded hover:bg-blue-100">Azul</button>
+                <button @click="theme = 'oscuro'" class="w-full px-2 py-1 text-sm text-left rounded hover:bg-gray-100">Oscuro</button>
+            </div>
+            <form method="POST" action="{{ route('logout') }}">
+                @csrf
+                <button type="submit" class="flex items-center w-full gap-2 px-4 py-2 text-sm text-gray-700 rounded-b hover:bg-gray-100">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1m0-10V5" />
+                    </svg>
+                    Cerrar sesión
+                </button>
+            </form>
+        </div>
+    </div>
+</header>
+    {{-- CONTENIDO --}}
     <div class="flex flex-1 overflow-hidden">
-        {{-- MENÚ LATERAL --}}
         <x-sidebar :menu="$sidebarMenu" />
-
-        {{-- CONTENIDO PRINCIPAL --}}
-        <main
-            :class="sidebarOpen ? 'ml-0' : 'ml-0 w-full'"
-            class="flex-1 p-6 overflow-y-auto transition-all duration-200 bg-white"
-        >
-            {{-- Componente dinámico Livewire --}}
+        <main :class="sidebarOpen ? 'ml-0' : 'ml-0 w-full'" class="flex-1 p-6 overflow-y-auto transition-all duration-200 bg-white">
             @livewire('dynamic-content')
         </main>
     </div>
 
-    {{-- Scripts Livewire --}}
+
+    {{-- Livewire scripts --}}
     @livewireScripts
 
-    {{-- Scripts Vite que incluye Alpine (solo uno, al final) --}}
-    <script type="module" src="{{ asset('build/assets/app-DNxiirP_.js') }}"></script>
+    {{-- Dashboard Events para gráficos (inline para asegurar que se ejecute) --}}
+    <script>
+        document.addEventListener('livewire:init', () => {
+            // Escuchar eventos de Livewire
+            Livewire.on('dashboardRenderizado', () => {
+                if (typeof window.chartsInitialized !== 'undefined' && window.chartsInitialized) {
+                    if (typeof destroyCharts === 'function') {
+                        destroyCharts();
+                    }
+                }
+                setTimeout(() => {
+                    if (typeof initCharts === 'function') {
+                        initCharts();
+                    }
+                }, 150);
+            });
+
+            Livewire.on('datosActualizados', () => {
+                if (typeof window.chartsInitialized !== 'undefined' && window.chartsInitialized) {
+                    if (typeof destroyCharts === 'function') {
+                        destroyCharts();
+                    }
+                }
+                setTimeout(() => {
+                    if (typeof initCharts === 'function') {
+                        initCharts();
+                    }
+                }, 150);
+            });
+        });
+    </script>
+
+    {{-- App JS compilado con Vite --}}
+    <script type="module" src="{{ asset('build/assets/app-BLl8G-P3.js') }}"></script>
+
+    {{-- jQuery y DataTables JS CDN --}}
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+
+    {{-- Tom Select --}}
+    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+
+    <script src="{{ asset('JS/Script/TablasBoostrap/listafacturas.js') }}"></script>
+    <script src="{{ asset('JS/Script/TablasBoostrap/compra.js') }}"></script>
+    <script src="{{ asset('JS/Script/TablasBoostrap/sucursales.js') }}"></script>
+    <script src="{{ asset('JS/Script/TablasBoostrap/clientes.js') }}"></script>
+    <script src="{{ asset('JS/Script/TablasBoostrap/departamento.js') }}"></script>
+    <script src="{{ asset('JS/Script/TablasBoostrap/municipios.js') }}"></script>
+    <script src="{{ asset('JS/Script/TablasBoostrap/producto-seccion.js') }}"></script>
+    <script src="{{ asset('JS/Script/TablasBoostrap/marca.js') }}"></script>
+    <script src="{{ asset('JS/Script/TablasBoostrap/cai.js') }}"></script>
+    <script src="{{ asset('JS/Script/TablasBoostrap/categoria.js') }}"></script>
+    <script src="{{ asset('JS/Script/TablasBoostrap/subcategoria.js') }}"></script>
+    <script src="{{ asset('JS/Script/TablasBoostrap/unidades.js') }}"></script>
+    <script src="{{ asset('JS/Script/TablasBoostrap/productos.js') }}"></script>
+    <!-- MODAL DE SESIÓN EXPIRADA -->
+    <div
+        x-show="showModal"
+        x-data="{
+            showModal: false,
+            timeout: null,
+            lastActivity: Date.now(),
+            sessionTimeout: 8 * 60 * 60 * 60 * 60 * 60 * 60 * 1000, // 2 horas
+            resetTimer() {
+                if (this.timeout) {
+                    clearTimeout(this.timeout);
+                    this.timeout = null;
+                }
+                this.lastActivity = Date.now();
+                this.timeout = setTimeout(() => {
+                    // Verificar si realmente pasó el tiempo sin optimizar
+                    if (Date.now() - this.lastActivity >= this.sessionTimeout) {
+                        this.showModal = true;
+                    }
+                }, this.sessionTimeout);
+            },
+            cerrarSesion() {
+                window.location.href = '{{ route('logout') }}';
+            },
+            init() {
+                this.resetTimer();
+                // Usar throttling para evitar resetear el timer muy frecuentemente
+                let throttle = false;
+                const throttledReset = () => {
+                    if (!throttle) {
+                        throttle = true;
+                        this.resetTimer();
+                        setTimeout(() => { throttle = false; }, 1000); // Throttle de 1 segundo
+                    }
+                };
+                ['mousemove', 'keydown', 'click', 'scroll'].forEach(evt =>
+                    window.addEventListener(evt, throttledReset, { passive: true })
+                );
+            }
+        }"
+        x-init="init()"
+        x-on:keydown.escape.window="if (showModal) cerrarSesion()"
+        x-on:keydown.enter.window="if (showModal) cerrarSesion()"
+        @click.outside="cerrarSesion()"
+        class="fixed inset-0 z-[100] flex items-center justify-center bg-black bg-opacity-50"
+        style="display: none;"
+    >
+        <div class="w-full max-w-sm p-6 text-center bg-white rounded-lg shadow-lg">
+            <h2 class="mb-2 text-lg font-semibold text-red-700">⏳ Sesión Expirada</h2>
+            <p class="text-sm text-gray-600">Tu sesión ha expirado por inactividad.</p>
+            <button
+                class="px-4 py-2 mt-4 text-sm text-white rounded"
+                :class="{
+                    'bg-emerald-600 hover:bg-emerald-700': theme === 'verde',
+                    'bg-blue-600 hover:bg-blue-700': theme === 'azul',
+                    'bg-gray-900 hover:bg-gray-800': theme === 'oscuro',
+                    'bg-slate-700 hover:bg-slate-600': theme !== 'verde' && theme !== 'azul' && theme !== 'oscuro'
+                }"
+                @click="cerrarSesion()"
+            >
+                Aceptar
+            </button>
+        </div>
+    </div>
+
+
+    {{-- Scripts adicionales --}}
+    {{-- Bootstrap 5 JS --}}
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    @stack('scripts')
+
 </body>
 </html>

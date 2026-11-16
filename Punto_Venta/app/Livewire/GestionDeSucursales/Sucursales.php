@@ -1,0 +1,46 @@
+<?php
+
+namespace App\Livewire\GestionDeSucursales;
+
+use Livewire\Component;
+use App\Models\Tienda;
+class Sucursales extends Component
+{
+    // Propiedades para alertas
+    public $alertMessage = '';
+    public $alertType = '';
+
+    public function mount()
+    {
+        // Inicialización del componente
+    }
+
+    public function render()
+    {
+        $sucursales = Tienda::with(['userCreador', 'tipoTienda', 'estado', 'empresa', 'direccion.municipio.departamento'])
+                           ->orderByRaw('CASE WHEN tipo_tienda_id = 1 THEN 0 ELSE 1 END')
+                           ->orderBy('id', 'desc')
+                           ->get();
+
+        return view('livewire.gestion-de-sucursales.sucursales', compact('sucursales'));
+    }
+
+    // Función para crear nueva sucursal
+    public function abrirModalCrear()
+    {
+        $this->dispatch('cambiarVista', ruta: 'GestionDeSucursales.SucursalForm');
+    }
+
+    // Función para editar sucursal
+    public function editar($id)
+    {
+        $this->dispatch('cambiarVista', ruta: 'GestionDeSucursales.SucursalForm', parametros: ['id' => $id]);
+    }
+
+    // Función para cerrar alerta
+    public function cerrarAlerta()
+    {
+        $this->alertMessage = '';
+        $this->alertType = '';
+    }
+}

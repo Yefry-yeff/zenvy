@@ -20,6 +20,10 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'estado_id',
+        'roles_id',
+        'tienda_id',
+        'update_user',
     ];
 
     /**
@@ -43,5 +47,25 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    public function detalle()
+    {
+        return $this->hasOne(UserDetalle::class, 'users_id', 'id');
+    }
+
+    public function tienda()
+    {
+        return $this->belongsTo(Tiendas::class, 'tienda_id');
+    }
+
+    public function rol()
+    {
+        return $this->belongsTo(Rol::class, 'roles_id');
+    }
+
+    public function roles()
+    {
+        return $this->belongsToMany(Rol::class, 'user_rol', 'user_id', 'rol_id');
     }
 }

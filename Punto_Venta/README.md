@@ -1,3 +1,41 @@
+# Zenvy - Sistema de Punto de Venta
+
+Sistema de punto de venta desarrollado con Laravel 10 y Livewire 3 para gestión integral de inventario, ventas y facturación.
+
+## 🚀 Comandos Importantes
+
+### Migración de Precios a precio_has_venta
+
+Para migrar masivamente los precios de todos los productos a la tabla `precio_has_venta`:
+
+```bash
+# Ver qué productos serían migrados (RECOMENDADO PRIMERO)
+php artisan productos:migrar-precios-venta --dry-run
+
+# Ejecutar migración real
+php artisan productos:migrar-precios-venta
+
+# Migrar un producto específico
+php artisan productos:migrar-precios-venta --producto-id=123
+
+# Forzar migración (sobrescribir precios existentes)
+php artisan productos:migrar-precios-venta --force
+```
+
+📖 **Documentación completa**: [MIGRACION_PRECIOS_VENTA.md](MIGRACION_PRECIOS_VENTA.md)
+
+📄 **Script SQL alternativo**: [Bases de datos/Script/migracion_masiva_precios_venta.sql](../Bases%20de%20datos/Script/migracion_masiva_precios_venta.sql)
+
+## 📚 Documentación Adicional
+
+- [Sincronización de Productos](SINCRONIZACION_PRODUCTOS_AUTOMATICA.md)
+- [Sincronización de Compras](SINCRONIZACION_COMPRAS.md)
+- [Sincronización de Marcas](SINCRONIZACION_MARCAS.md)
+- [Optimizaciones de Productos](OPTIMIZACIONES_PRODUCTOS.md)
+- [Resumen de Sincronización](RESUMEN_SINCRONIZACION_PRODUCTOS.md)
+
+---
+
 <p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
 
 <p align="center">

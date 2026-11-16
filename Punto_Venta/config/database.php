@@ -58,11 +58,26 @@ return [
             'prefix_indexes' => true,
             'strict' => true,
             'engine' => null,
-
             'options' => extension_loaded('pdo_mysql') ? array_filter([
                 PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
-
             ]) : [],
+        ],
+
+        // Conexi��n para la base de datos externa profac_app
+        'profac_app' => [
+            'driver' => 'mysql',
+            'host' => env('PROFAC_DB_HOST', '127.0.0.1'),
+            'port' => env('PROFAC_DB_PORT', '3306'),
+            'database' => env('PROFAC_DB_DATABASE', 'distrib3_valencia_produccion'),
+            'username' => env('PROFAC_DB_USERNAME', 'root'),
+            'password' => env('PROFAC_DB_PASSWORD', ''),
+            'unix_socket' => env('PROFAC_DB_SOCKET', ''),
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => true,
+            'engine' => null,
         ],
 
         'pgsql' => [
@@ -92,6 +107,24 @@ return [
             'prefix' => '',
             'prefix_indexes' => true,
         ],
+        // Conexión para la base de datos externa distrib3_valencia_produccion
+        'distrib3_valencia_produccion' => [
+            'driver' => 'mysql',
+            'host' => env('PROFAC_DB_HOST', '127.0.0.1'),
+            'port' => env('PROFAC_DB_PORT', '3306'),
+            'database' => env('PROFAC_DB_DATABASE', 'distrib3_valencia_produccion'),
+            'username' => env('PROFAC_DB_USERNAME', 'root'),
+            'password' => env('PROFAC_DB_PASSWORD', ''),
+            'unix_socket' => env('PROFAC_DB_SOCKET', ''),
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => true,
+            'engine' => null,
+        ],
+
+
 
     ],
 
