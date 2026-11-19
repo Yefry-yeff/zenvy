@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\DB;
 
 class Bodega extends Model
 {
@@ -17,7 +16,13 @@ class Bodega extends Model
         'tienda_id',
         'direccion_id',
         'estado_id',
-        'principal'
+        'principal',
+        'cuenta_como_disponible',
+    ];
+
+    protected $casts = [
+        'principal' => 'boolean',
+        'cuenta_como_disponible' => 'boolean',
     ];
 
     // Relationships
@@ -40,18 +45,18 @@ class Bodega extends Model
     public static function obtenerTodas()
     {
         return self::with(['segmentos.secciones'])
-                   ->where('estado_id', 1)
-                   ->orderBy(column: 'denominacion_social')
-                   ->get();
+            ->where('estado_id', 1)
+            ->orderBy(column: 'denominacion_social')
+            ->get();
     }
 
     public static function crearBodega($datos)
     {
         // Verificar si la tienda ya tiene una bodega principal
         $tienePrincipal = self::where('tienda_id', $datos['tienda_id'])
-                            ->where('principal', 1)
-                            ->where('estado_id', 1)
-                            ->exists();
+            ->where('principal', 1)
+            ->where('estado_id', 1)
+            ->exists();
 
         // Si no tiene bodega principal, esta será la principal (1), sino será secundaria (0)
         $datos['principal'] = $tienePrincipal ? 0 : 1;
@@ -62,7 +67,7 @@ class Bodega extends Model
             'tienda_id' => $datos['tienda_id'],
             'direccion_id' => $datos['direccion_id'],
             'estado_id' => 1, // Siempre crear como activa
-            'principal' => $datos['principal']
+            'principal' => $datos['principal'],
         ];
 
         return self::create($datosMapeados);

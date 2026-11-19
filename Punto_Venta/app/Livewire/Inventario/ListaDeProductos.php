@@ -2,21 +2,18 @@
 
 namespace App\Livewire\Inventario;
 
-use Livewire\Component;
-use Livewire\WithPagination;
-use App\Models\RecibidoBodega;
-use App\Models\CambioUnidad;
 use App\Models\Bodega;
-use App\Models\Marca;
-use App\Models\ReservaInventario;
-use App\Models\PedidoWeb;
+use App\Models\RecibidoBodega;
 use App\Services\WebInventorySyncService;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Schema;
+use Livewire\Component;
+use Livewire\WithPagination;
 
 class ListaDeProductos extends Component
 {
@@ -24,57 +21,93 @@ class ListaDeProductos extends Component
 
     // Propiedades de paginación y ordenamiento
     public $registrosPorPagina = 10;
+
     public $ordenarPor = 'fecha_recibido';
+
     public $direccionOrden = 'desc';
+
     public $page = 1; // Agregamos la propiedad page
 
     // Filtros
     public $filtroProducto = '';
+
     public $filtroCodigoProducto = '';
+
     public $filtroCodigoBarra = '';
+
     public $filtroBodega = '';
+
     public $filtroEstado = '';
+
     public $filtroMarca = '';
+
     public $filtroSegmento = '';
+
     public $filtroSeccion = '';
+
     public $filtroFechaRecibido = '';
+
     public $filtroFechaExpiracion = '';
 
     // Datos
     public $bodegas = [];
+
     public $marcas = [];
 
     // Modal de cambio de unidad
     public $mostrarModalCambiarUnidad = false;
+
     public $stockSeleccionado = null;
+
     public $cantidadAConvertir = '';
+
     public $cantidadVerificacion = '';
+
     public $nuevaUnidadMedida = '';
+
     public $unidadesDisponibles = [];
+
     public $cantidadTotalDisponible = 0;
+
     public $procesandoConversion = false;
 
     // Modal de ajuste de cantidades
     public $mostrarModalAjusteCantidades = false;
+
     public $stockParaAjuste = null;
+
     public $tipoAjuste = 'aumentar'; // 'aumentar' o 'disminuir'
+
     public $cantidadAjuste = '';
+
     public $motivoAjuste = '';
+
     public $cantidadDisponibleActual = 0;
+
     public $productoNombreAjuste = '';
+
     public $bodegaNombreAjuste = '';
+
     public $seccionNombreAjuste = '';
+
     public $unidadMedidaAjuste = '';
 
     // Alerta de validación
     public $mostrarAlerta = false;
+
     public $mensajeAlerta = '';
+
+    public $errorCarga = null;
 
     // Modal de reservas
     public $mostrarModalReservas = false;
+
     public $productoIdReservas = null;
+
     public $productoNombreReservas = '';
+
     public $reservasProducto = [];
+
     public $totalReservado = 0;
 
     // REMOVIDO: protected $queryString - Ya no persiste parámetros en URL
@@ -184,7 +217,7 @@ class ListaDeProductos extends Component
         // Solo verificar compatibilidad básica - DynamicContent maneja los redirects
         $parametrosURL = request()->query();
 
-        if (!empty($parametrosURL)) {
+        if (! empty($parametrosURL)) {
             // Solo verificar parámetros críticos que definitivamente no pertenecen aquí
             $parametrosProhibidos = ['busqueda', 'filtroFecha'];
 
@@ -213,7 +246,7 @@ class ListaDeProductos extends Component
             'filtroFechaExpiracion' => $this->filtroFechaExpiracion,
             'ordenarPor' => $this->ordenarPor,
             'direccionOrden' => $this->direccionOrden,
-            'page' => $this->page
+            'page' => $this->page,
         ]]);
     }
 
@@ -294,6 +327,7 @@ class ListaDeProductos extends Component
     public function cargarDatos($paginacion = true)
     {
         try {
+            $this->errorCarga = null;
             $user = Auth::user();
 
             $query = DB::table('recibido_bodega as rb')
@@ -307,10 +341,6 @@ class ListaDeProductos extends Component
                 ->leftJoin('unidad_medida as umv', 'p.unidad_medida_venta_id', '=', 'umv.id')
                 ->leftJoin('precio_has_venta as phv', 'rb.precio_venta_id', '=', 'phv.id')
                 ->leftJoin('producto_valencia_zenvy as pvz', 'p.id', '=', 'pvz.producto_id_zenvy')
-                ->leftJoin(DB::raw('(SELECT producto_id, SUM(cantidad_reservada) as total_reservado 
-                    FROM reservas_inventario 
-                    WHERE estado = "activa" 
-                    GROUP BY producto_id) as ri'), 'p.id', '=', 'ri.producto_id')
                 ->select(
                     'rb.id',
                     'rb.cantidad_disponible',
@@ -335,9 +365,22 @@ class ListaDeProductos extends Component
                     'seg.descripcion as segmento_descripcion',
                     'sec.descripcion as seccion_descripcion',
                     'um.nombre as unidad_medida',
-                    'umv.nombre as unidad_medida_venta',
-                    DB::raw('COALESCE(ri.total_reservado, 0) as cantidad_reservada')
-                )
+                    'umv.nombre as unidad_medida_venta'
+                );
+
+            if (Schema::hasTable('reservas_inventario')) {
+                $reservasActivas = DB::table('reservas_inventario')
+                    ->select('producto_id', DB::raw('SUM(cantidad_reservada) as total_reservado'))
+                    ->where('estado', 'activa')
+                    ->groupBy('producto_id');
+
+                $query->leftJoinSub($reservasActivas, 'ri', 'p.id', '=', 'ri.producto_id')
+                    ->addSelect(DB::raw('COALESCE(ri.total_reservado, 0) as cantidad_reservada'));
+            } else {
+                $query->addSelect(DB::raw('0 as cantidad_reservada'));
+            }
+
+            $query
                 ->where(function ($stock): void {
                     $stock->where('rb.estado_id', 1)
                         ->orWhere(function ($agotado): void {
@@ -345,6 +388,7 @@ class ListaDeProductos extends Component
                                 ->where('rb.cantidad_disponible', '<=', 0);
                         });
                 })
+                ->where('b.estado_id', 1)
                 ->where('b.cuenta_como_disponible', 1)
                 ->where('b.id', '!=', 2); // Excluir bodega ID 2 (productos sin venta)
 
@@ -354,63 +398,63 @@ class ListaDeProductos extends Component
             }
 
             // Aplicar filtros
-            if (!empty($this->filtroProducto)) {
-                $query->where(function($q) {
-                    $q->where('p.nombre', 'like', '%' . $this->filtroProducto . '%')
-                      ->orWhere('p.codigo_estatal', 'like', '%' . $this->filtroProducto . '%')
-                      ->orWhereExists(function($subQuery) {
-                          $subQuery->select(DB::raw(1))
-                              ->from('precio_has_venta as phv_busqueda')
-                              ->whereRaw('phv_busqueda.producto_id = p.id')
-                              ->where('phv_busqueda.estado_id', 1)
-                              ->where('phv_busqueda.codigo_barra', 'like', '%' . $this->filtroProducto . '%');
-                      });
+            if (! empty($this->filtroProducto)) {
+                $query->where(function ($q) {
+                    $q->where('p.nombre', 'like', '%'.$this->filtroProducto.'%')
+                        ->orWhere('p.codigo_estatal', 'like', '%'.$this->filtroProducto.'%')
+                        ->orWhereExists(function ($subQuery) {
+                            $subQuery->select(DB::raw(1))
+                                ->from('precio_has_venta as phv_busqueda')
+                                ->whereRaw('phv_busqueda.producto_id = p.id')
+                                ->where('phv_busqueda.estado_id', 1)
+                                ->where('phv_busqueda.codigo_barra', 'like', '%'.$this->filtroProducto.'%');
+                        });
                 });
             }
 
-            if (!empty($this->filtroCodigoProducto)) {
-                $query->where(function($q) {
+            if (! empty($this->filtroCodigoProducto)) {
+                $query->where(function ($q) {
                     $q->where('p.id', '=', $this->filtroCodigoProducto)
-                      ->orWhere('pvz.producto_id_valencia', '=', $this->filtroCodigoProducto);
+                        ->orWhere('pvz.producto_id_valencia', '=', $this->filtroCodigoProducto);
                 });
             }
 
-            if (!empty($this->filtroCodigoBarra)) {
-                $query->whereExists(function($q) {
+            if (! empty($this->filtroCodigoBarra)) {
+                $query->whereExists(function ($q) {
                     $q->select(DB::raw(1))
-                      ->from('precio_has_venta as phv_filtro')
-                      ->whereRaw('phv_filtro.producto_id = p.id')
-                      ->where('phv_filtro.estado_id', 1)
-                      ->where('phv_filtro.codigo_barra', 'like', '%' . $this->filtroCodigoBarra . '%');
+                        ->from('precio_has_venta as phv_filtro')
+                        ->whereRaw('phv_filtro.producto_id = p.id')
+                        ->where('phv_filtro.estado_id', 1)
+                        ->where('phv_filtro.codigo_barra', 'like', '%'.$this->filtroCodigoBarra.'%');
                 });
             }
 
-            if (!empty($this->filtroSegmento)) {
-                $query->where('seg.descripcion', 'like', '%' . $this->filtroSegmento . '%');
+            if (! empty($this->filtroSegmento)) {
+                $query->where('seg.descripcion', 'like', '%'.$this->filtroSegmento.'%');
             }
 
-            if (!empty($this->filtroSeccion)) {
-                $query->where('sec.descripcion', 'like', '%' . $this->filtroSeccion . '%');
+            if (! empty($this->filtroSeccion)) {
+                $query->where('sec.descripcion', 'like', '%'.$this->filtroSeccion.'%');
             }
 
-            if (!empty($this->filtroFechaRecibido)) {
+            if (! empty($this->filtroFechaRecibido)) {
                 $query->whereDate('rb.fecha_recibido', $this->filtroFechaRecibido);
             }
 
-            if (!empty($this->filtroFechaExpiracion)) {
+            if (! empty($this->filtroFechaExpiracion)) {
                 $query->whereDate('rb.fecha_expiracion', $this->filtroFechaExpiracion);
             }
 
-            if (!empty($this->filtroBodega)) {
+            if (! empty($this->filtroBodega)) {
                 $query->where('b.id', $this->filtroBodega);
             }
 
-            if (!empty($this->filtroMarca)) {
+            if (! empty($this->filtroMarca)) {
                 $query->where('m.id', $this->filtroMarca);
             }
 
             // Filtro de estado stock
-            if (!empty($this->filtroEstado)) {
+            if (! empty($this->filtroEstado)) {
                 switch ($this->filtroEstado) {
                     case 'disponible':
                         $query->where('rb.cantidad_disponible', '>', 10);
@@ -444,7 +488,7 @@ class ListaDeProductos extends Component
 
             // Aplicar ordenamiento primario
             $query->orderBy($campoOrden, $this->direccionOrden);
-            
+
             // SIEMPRE aplicar ordenamiento secundario por fecha de recepción (más reciente primero)
             // Excepto si ya estamos ordenando por fecha_recibido
             if ($this->ordenarPor !== 'fecha_recibido') {
@@ -466,10 +510,11 @@ class ListaDeProductos extends Component
                 'mensaje' => $e->getMessage(),
                 'usuario' => Auth::id(),
                 'archivo' => $e->getFile(),
-                'linea' => $e->getLine()
+                'linea' => $e->getLine(),
             ]);
 
-            // Crear una paginación vacía manualmente
+            $this->errorCarga = 'No fue posible cargar el inventario. Revise el registro de la aplicación.';
+
             return new LengthAwarePaginator(
                 collect(), // Colección vacía
                 0, // Total de elementos
@@ -488,6 +533,7 @@ class ListaDeProductos extends Component
 
         if ($productosSinCodigoExacto->isEmpty()) {
             $productos->each(fn ($producto) => $producto->codigo_barra = $producto->precio_codigo_barra);
+
             return;
         }
 
@@ -505,8 +551,8 @@ class ListaDeProductos extends Component
             $primeraPorProducto[$presentacion->producto_id] ??= $presentacion->codigo_barra;
 
             if ($presentacion->unidad_medida_id !== null) {
-                $clave = $presentacion->producto_id . ':' . $presentacion->unidad_medida_id;
-                if (!array_key_exists($clave, $primeraPorProductoUnidad)) {
+                $clave = $presentacion->producto_id.':'.$presentacion->unidad_medida_id;
+                if (! array_key_exists($clave, $primeraPorProductoUnidad)) {
                     $primeraPorProductoUnidad[$clave] = $presentacion->codigo_barra;
                 }
             }
@@ -515,14 +561,15 @@ class ListaDeProductos extends Component
         foreach ($productos as $producto) {
             if ($producto->precio_codigo_barra !== null) {
                 $producto->codigo_barra = $producto->precio_codigo_barra;
+
                 continue;
             }
 
             $codigoUnidadRecibida = $producto->unidad_medida_id !== null
-                ? ($primeraPorProductoUnidad[$producto->producto_id . ':' . $producto->unidad_medida_id] ?? null)
+                ? ($primeraPorProductoUnidad[$producto->producto_id.':'.$producto->unidad_medida_id] ?? null)
                 : null;
             $codigoUnidadVenta = $producto->unidad_medida_venta_id !== null
-                ? ($primeraPorProductoUnidad[$producto->producto_id . ':' . $producto->unidad_medida_venta_id] ?? null)
+                ? ($primeraPorProductoUnidad[$producto->producto_id.':'.$producto->unidad_medida_venta_id] ?? null)
                 : null;
 
             $producto->codigo_barra = $codigoUnidadRecibida
@@ -549,7 +596,7 @@ class ListaDeProductos extends Component
 
             // Cargar marcas (solo las que tienen productos en bodega)
             $esAdmin = $user->rol && $user->rol->txt_nombre === 'Admin';
-            $cacheKey = 'filtros_stock_marcas_' . ($esAdmin ? 'admin' : 'tienda_' . $user->tienda_id);
+            $cacheKey = 'filtros_stock_marcas_'.($esAdmin ? 'admin' : 'tienda_'.$user->tienda_id);
 
             $this->marcas = Cache::remember($cacheKey, now()->addMinutes(10), function () use ($esAdmin, $user) {
                 $queryMarcas = DB::table('marca as m')
@@ -562,7 +609,7 @@ class ListaDeProductos extends Component
                     ->where('rb.estado_id', 1)
                     ->distinct();
 
-                if (!$esAdmin) {
+                if (! $esAdmin) {
                     $queryMarcas->where('b.tienda_id', $user->tienda_id);
                 }
 
@@ -572,7 +619,7 @@ class ListaDeProductos extends Component
         } catch (\Exception $e) {
             Log::error('Error al cargar filtros', [
                 'mensaje' => $e->getMessage(),
-                'usuario' => Auth::id()
+                'usuario' => Auth::id(),
             ]);
 
             $this->bodegas = collect();
@@ -607,6 +654,10 @@ class ListaDeProductos extends Component
             // Obtener todos los productos recibidos según los filtros actuales (sin paginación)
             $productos = $this->cargarDatos(false); // false para no paginar
 
+            if ($this->errorCarga) {
+                throw new \RuntimeException($this->errorCarga);
+            }
+
             $fechaGeneracion = now()->format('d/m/Y H:i:s');
             $totalProductos = $productos->count();
             $filtrosAplicados = $this->obtenerFiltrosAplicados();
@@ -617,7 +668,7 @@ class ListaDeProductos extends Component
             $filename = "lista_productos_{$timestamp}.xlsx";
 
             $tempDir = storage_path('app/temp');
-            if (!file_exists($tempDir)) {
+            if (! file_exists($tempDir)) {
                 mkdir($tempDir, 0755, true);
             }
 
@@ -629,7 +680,7 @@ class ListaDeProductos extends Component
 
             return $this->redirectRoute('download.file', ['file' => $filename]);
         } catch (\Exception $e) {
-            session()->flash('error', 'Error al generar el archivo Excel: ' . $e->getMessage());
+            session()->flash('error', 'Error al generar el archivo Excel: '.$e->getMessage());
             \Log::error('Error generating Excel', ['error' => $e->getMessage()]);
         }
     }
@@ -637,36 +688,37 @@ class ListaDeProductos extends Component
     private function obtenerFiltrosAplicados()
     {
         $filtros = [];
-        if (!empty($this->filtroCodigoProducto)) {
+        if (! empty($this->filtroCodigoProducto)) {
             $filtros[] = "Código Producto: '{$this->filtroCodigoProducto}'";
         }
-        if (!empty($this->filtroProducto)) {
+        if (! empty($this->filtroProducto)) {
             $filtros[] = "Producto: '{$this->filtroProducto}'";
         }
-        if (!empty($this->filtroCodigoBarra)) {
+        if (! empty($this->filtroCodigoBarra)) {
             $filtros[] = "Código de Barras: '{$this->filtroCodigoBarra}'";
         }
-        if (!empty($this->filtroBodega)) {
+        if (! empty($this->filtroBodega)) {
             $filtros[] = "Bodega: '{$this->filtroBodega}'";
         }
-        if (!empty($this->filtroEstado)) {
+        if (! empty($this->filtroEstado)) {
             $filtros[] = "Estado: '{$this->filtroEstado}'";
         }
-        if (!empty($this->filtroMarca)) {
+        if (! empty($this->filtroMarca)) {
             $filtros[] = "Marca: '{$this->filtroMarca}'";
         }
-        if (!empty($this->filtroSegmento)) {
+        if (! empty($this->filtroSegmento)) {
             $filtros[] = "Segmento: '{$this->filtroSegmento}'";
         }
-        if (!empty($this->filtroSeccion)) {
+        if (! empty($this->filtroSeccion)) {
             $filtros[] = "Sección: '{$this->filtroSeccion}'";
         }
-        if (!empty($this->filtroFechaRecibido)) {
+        if (! empty($this->filtroFechaRecibido)) {
             $filtros[] = "Fecha Recibido: '{$this->filtroFechaRecibido}'";
         }
-        if (!empty($this->filtroFechaExpiracion)) {
+        if (! empty($this->filtroFechaExpiracion)) {
             $filtros[] = "Fecha Expiración: '{$this->filtroFechaExpiracion}'";
         }
+
         return empty($filtros) ? 'Ninguno' : implode(', ', $filtros);
     }
 
@@ -683,7 +735,7 @@ class ListaDeProductos extends Component
             'producto.preciosVenta.unidadMedida',
             'seccion.segmento.bodega',
             'seccion.segmento',
-            'seccion'
+            'seccion',
         ])->find($recibidoBodegaId);
 
         // Obtener la unidad de medida del stock seleccionado
@@ -698,9 +750,10 @@ class ListaDeProductos extends Component
             ->get();
 
         // Filtrar por unidad de medida y sumar
-        $this->cantidadTotalDisponible = $registrosStock->filter(function($registro) use ($unidadMedidaActual) {
+        $this->cantidadTotalDisponible = $registrosStock->filter(function ($registro) use ($unidadMedidaActual) {
             $unidadRegistro = $registro->unidad_medida
                 ?? ($registro->unidadMedida ? $registro->unidadMedida->nombre : null);
+
             return $unidadRegistro === $unidadMedidaActual;
         })->sum('cantidad_disponible');
 
@@ -710,10 +763,10 @@ class ListaDeProductos extends Component
                 ->with('unidadMedida')
                 ->where('estado_id', 1)
                 ->get()
-                ->map(function($precio) {
+                ->map(function ($precio) {
                     return [
                         'id' => $precio->unidadMedida->id,
-                        'nombre' => $precio->unidadMedida->nombre
+                        'nombre' => $precio->unidadMedida->nombre,
                     ];
                 })
                 ->unique('id')
@@ -755,7 +808,7 @@ class ListaDeProductos extends Component
         if ($this->procesandoConversion) {
             return;
         }
-        
+
         $this->procesandoConversion = true;
 
         // Validación previa con alertas
@@ -763,13 +816,15 @@ class ListaDeProductos extends Component
             $this->procesandoConversion = false;
             $this->mostrarAlerta = true;
             $this->mensajeAlerta = 'La cantidad a rebajar es obligatoria y debe ser mayor a 0.';
+
             return;
         }
 
         if ($this->cantidadVerificacion > $this->cantidadTotalDisponible) {
             $this->procesandoConversion = false;
             $this->mostrarAlerta = true;
-            $this->mensajeAlerta = 'La cantidad a rebajar no puede exceder el stock total disponible (' . $this->cantidadTotalDisponible . ').';
+            $this->mensajeAlerta = 'La cantidad a rebajar no puede exceder el stock total disponible ('.$this->cantidadTotalDisponible.').';
+
             return;
         }
 
@@ -777,6 +832,7 @@ class ListaDeProductos extends Component
             $this->procesandoConversion = false;
             $this->mostrarAlerta = true;
             $this->mensajeAlerta = 'Debe seleccionar una unidad de medida a convertir.';
+
             return;
         }
 
@@ -784,6 +840,7 @@ class ListaDeProductos extends Component
             $this->procesandoConversion = false;
             $this->mostrarAlerta = true;
             $this->mensajeAlerta = 'La cantidad a convertir es obligatoria y debe ser mayor a 0.';
+
             return;
         }
 
@@ -793,23 +850,23 @@ class ListaDeProductos extends Component
                 'required',
                 'numeric',
                 'min:0.01',
-                'max:' . $this->cantidadTotalDisponible
+                'max:'.$this->cantidadTotalDisponible,
             ],
             'nuevaUnidadMedida' => 'required|string',
             'cantidadAConvertir' => [
                 'required',
                 'numeric',
-                'min:0.01'
-            ]
+                'min:0.01',
+            ],
         ], [
             'cantidadVerificacion.required' => 'La cantidad a rebajar es requerida.',
             'cantidadVerificacion.numeric' => 'La cantidad debe ser un número válido.',
             'cantidadVerificacion.min' => 'La cantidad debe ser mayor a 0.',
-            'cantidadVerificacion.max' => 'La cantidad no puede exceder el stock total disponible (' . $this->cantidadTotalDisponible . ').',
+            'cantidadVerificacion.max' => 'La cantidad no puede exceder el stock total disponible ('.$this->cantidadTotalDisponible.').',
             'nuevaUnidadMedida.required' => 'Debe seleccionar una unidad de medida.',
             'cantidadAConvertir.required' => 'La cantidad a convertir es requerida.',
             'cantidadAConvertir.numeric' => 'La cantidad a convertir debe ser un número válido.',
-            'cantidadAConvertir.min' => 'La cantidad a convertir debe ser mayor a 0.'
+            'cantidadAConvertir.min' => 'La cantidad a convertir debe ser mayor a 0.',
         ]);
 
         try {
@@ -825,6 +882,7 @@ class ListaDeProductos extends Component
                 $this->mostrarAlerta = true;
                 $this->mensajeAlerta = 'No puede convertir a la misma unidad de medida actual.';
                 DB::rollback();
+
                 return;
             }
 
@@ -837,9 +895,10 @@ class ListaDeProductos extends Component
                 ->get();
 
             // Filtrar por unidad de medida (puede ser string o relación)
-            $registrosStock = $registrosStock->filter(function($registro) use ($unidadMedidaActual) {
+            $registrosStock = $registrosStock->filter(function ($registro) use ($unidadMedidaActual) {
                 $unidadRegistro = $registro->unidad_medida
                     ?? ($registro->unidadMedida ? $registro->unidadMedida->nombre : null);
+
                 return $unidadRegistro === $unidadMedidaActual;
             });
 
@@ -848,8 +907,9 @@ class ListaDeProductos extends Component
             if ($this->cantidadVerificacion > $stockTotalDisponible) {
                 $this->procesandoConversion = false;
                 $this->mostrarAlerta = true;
-                $this->mensajeAlerta = 'La cantidad a rebajar (' . $this->cantidadVerificacion . ') excede el stock total disponible (' . $stockTotalDisponible . ').';
+                $this->mensajeAlerta = 'La cantidad a rebajar ('.$this->cantidadVerificacion.') excede el stock total disponible ('.$stockTotalDisponible.').';
                 DB::rollback();
+
                 return;
             }
 
@@ -858,7 +918,9 @@ class ListaDeProductos extends Component
             $registrosAfectados = [];
 
             foreach ($registrosStock as $registro) {
-                if ($cantidadRestante <= 0) break;
+                if ($cantidadRestante <= 0) {
+                    break;
+                }
 
                 $cantidadARestar = min($cantidadRestante, $registro->cantidad_disponible);
                 $nuevoStock = $registro->cantidad_disponible - $cantidadARestar;
@@ -866,13 +928,13 @@ class ListaDeProductos extends Component
                 // Actualizar el registro
                 $registro->update([
                     'cantidad_disponible' => max(0, $nuevoStock),
-                    'estado_id' => $nuevoStock > 0 ? 1 : 2 // Inactivo si llega a 0
+                    'estado_id' => $nuevoStock > 0 ? 1 : 2, // Inactivo si llega a 0
                 ]);
 
                 // Guardar información del registro afectado
                 $registrosAfectados[] = [
                     'id' => $registro->id,
-                    'cantidad_rebajada' => $cantidadARestar
+                    'cantidad_rebajada' => $cantidadARestar,
                 ];
 
                 $cantidadRestante -= $cantidadARestar;
@@ -889,28 +951,28 @@ class ListaDeProductos extends Component
                 'cantidad_disponible' => $this->cantidadAConvertir,
                 'unidad_medida_id' => $this->obtenerUnidadMedidaId($this->nuevaUnidadMedida),
                 'fecha_recibido' => now(),
-                'comentario' => 'Conversión de unidad de ' . $this->cantidadVerificacion . ' ' . $unidadMedidaOriginal . ' a ' . $this->cantidadAConvertir . ' ' . $this->nuevaUnidadMedida,
+                'comentario' => 'Conversión de unidad de '.$this->cantidadVerificacion.' '.$unidadMedidaOriginal.' a '.$this->cantidadAConvertir.' '.$this->nuevaUnidadMedida,
                 'users_registro_id' => Auth::id(),
                 'estado_id' => 1,
-                'unidades_compra' => $this->cantidadAConvertir
+                'unidades_compra' => $this->cantidadAConvertir,
             ]);
 
             // Obtener IDs de unidades de medida y bodega
             $unidadMedidaOriginalId = $this->obtenerUnidadMedidaId($unidadMedidaOriginal);
             $unidadMedidaNuevaId = $this->obtenerUnidadMedidaId($this->nuevaUnidadMedida);
-            
+
             // Obtener bodega_id desde la sección
             $seccion = DB::table('seccion')
                 ->join('segmento', 'seccion.segmento_id', '=', 'segmento.id')
                 ->where('seccion.id', $this->stockSeleccionado->seccion_id)
                 ->select('segmento.bodega_id')
                 ->first();
-            
+
             $bodegaId = $seccion ? $seccion->bodega_id : null;
 
             // Calcular factor de conversión
-            $factorConversion = $this->cantidadVerificacion > 0 
-                ? round($this->cantidadAConvertir / $this->cantidadVerificacion, 4) 
+            $factorConversion = $this->cantidadVerificacion > 0
+                ? round($this->cantidadAConvertir / $this->cantidadVerificacion, 4)
                 : null;
 
             // Registrar cada cambio en la tabla cambio_unidad
@@ -926,10 +988,10 @@ class ListaDeProductos extends Component
                     'cantidad_rebajada' => $registroInfo['cantidad_rebajada'],
                     'cantidad_convertida' => $this->cantidadAConvertir,
                     'factor_conversion' => $factorConversion,
-                    'motivo' => 'Conversión de ' . $this->cantidadVerificacion . ' ' . $unidadMedidaOriginal . ' a ' . $this->cantidadAConvertir . ' ' . $this->nuevaUnidadMedida,
+                    'motivo' => 'Conversión de '.$this->cantidadVerificacion.' '.$unidadMedidaOriginal.' a '.$this->cantidadAConvertir.' '.$this->nuevaUnidadMedida,
                     'users_id' => Auth::id(),
                     'created_at' => now(),
-                    'updated_at' => now()
+                    'updated_at' => now(),
                 ]);
             }
 
@@ -941,25 +1003,25 @@ class ListaDeProductos extends Component
                 'datos_anteriores' => [
                     'registros_afectados' => count($registrosAfectados),
                     'cantidad_total_rebajada' => $this->cantidadVerificacion,
-                    'unidad_medida' => $unidadMedidaOriginal
+                    'unidad_medida' => $unidadMedidaOriginal,
                 ],
                 'datos_nuevos' => [
                     'cantidad_convertida' => $this->cantidadAConvertir,
                     'nueva_unidad' => $this->nuevaUnidadMedida,
-                    'nuevo_registro_id' => $nuevoRecibidoBodega->id
-                ]
+                    'nuevo_registro_id' => $nuevoRecibidoBodega->id,
+                ],
             ]);
 
             DB::commit();
 
             $this->cerrarModalCambiarUnidad();
-            session()->flash('success', 'Conversión de unidad realizada exitosamente. Se afectaron ' . count($registrosAfectados) . ' registro(s).');
+            session()->flash('success', 'Conversión de unidad realizada exitosamente. Se afectaron '.count($registrosAfectados).' registro(s).');
 
         } catch (\Exception $e) {
             DB::rollback();
             $this->procesandoConversion = false;
-            Log::error('Error en conversión de unidad: ' . $e->getMessage());
-            session()->flash('error', 'Error al procesar la conversión de unidad: ' . $e->getMessage());
+            Log::error('Error en conversión de unidad: '.$e->getMessage());
+            session()->flash('error', 'Error al procesar la conversión de unidad: '.$e->getMessage());
         }
     }
 
@@ -974,10 +1036,10 @@ class ListaDeProductos extends Component
                 'datosNuevos' => json_encode($datos['datos_nuevos']),
                 'users_id' => Auth::id(),
                 'created_at' => now(),
-                'updated_at' => now()
+                'updated_at' => now(),
             ]);
         } catch (\Exception $e) {
-            Log::error('Error registrando en bitácora: ' . $e->getMessage());
+            Log::error('Error registrando en bitácora: '.$e->getMessage());
         }
     }
 
@@ -992,7 +1054,7 @@ class ListaDeProductos extends Component
     }
 
     // ===== MÉTODOS PARA AJUSTE DE CANTIDADES =====
-    
+
     public function abrirModalAjusteCantidades($recibidoBodegaId)
     {
         try {
@@ -1017,8 +1079,9 @@ class ListaDeProductos extends Component
                 ->where('rb.id', $recibidoBodegaId)
                 ->first();
 
-            if (!$stock) {
+            if (! $stock) {
                 session()->flash('error', 'No se encontró el registro de stock.');
+
                 return;
             }
 
@@ -1034,7 +1097,7 @@ class ListaDeProductos extends Component
             $this->mostrarModalAjusteCantidades = true;
 
         } catch (\Exception $e) {
-            Log::error('Error al abrir modal de ajuste: ' . $e->getMessage());
+            Log::error('Error al abrir modal de ajuste: '.$e->getMessage());
             session()->flash('error', 'Error al cargar los datos del producto.');
         }
     }
@@ -1056,9 +1119,10 @@ class ListaDeProductos extends Component
     public function procesarAjusteCantidades()
     {
         // Validar que el stock esté cargado
-        if (!$this->stockParaAjuste) {
+        if (! $this->stockParaAjuste) {
             session()->flash('error', 'No se ha seleccionado ningún producto para ajustar.');
             $this->cerrarModalAjusteCantidades();
+
             return;
         }
 
@@ -1083,13 +1147,10 @@ class ListaDeProductos extends Component
                 ->where('producto_id', $this->stockParaAjuste->producto_id)
                 ->where('estado_id', 1)
                 ->sum('cantidad_disponible');
-            
+
             // Obtener reservas activas antes del ajuste
-            $reservasActivas = DB::table('reservas_inventario')
-                ->where('producto_id', $this->stockParaAjuste->producto_id)
-                ->where('estado', 'activa')
-                ->sum('cantidad_reservada');
-            
+            $reservasActivas = $this->obtenerReservasActivas($this->stockParaAjuste->producto_id);
+
             // Stock disponible anterior = stock total - reservas
             $stockDisponibleAnterior = max(0, $stockTotalAnterior - $reservasActivas);
 
@@ -1102,8 +1163,9 @@ class ListaDeProductos extends Component
                 // Disminuir
                 if (floatval($this->cantidadAjuste) > $cantidadAnterior) {
                     $this->cerrarModalAjusteCantidades();
-                    session()->flash('error', 'No puede disminuir más de la cantidad disponible (' . number_format($cantidadAnterior, 2) . ').');
+                    session()->flash('error', 'No puede disminuir más de la cantidad disponible ('.number_format($cantidadAnterior, 2).').');
                     DB::rollBack();
+
                     return;
                 }
                 $cantidadNueva = $cantidadAnterior - floatval($this->cantidadAjuste);
@@ -1114,7 +1176,7 @@ class ListaDeProductos extends Component
                 ->where('id', $this->stockParaAjuste->id)
                 ->update([
                     'cantidad_disponible' => $cantidadNueva,
-                    'updated_at' => now()
+                    'updated_at' => now(),
                 ]);
 
             if ($actualizados === 0) {
@@ -1126,7 +1188,7 @@ class ListaDeProductos extends Component
                 ->where('producto_id', $this->stockParaAjuste->producto_id)
                 ->where('estado_id', 1)
                 ->sum('cantidad_disponible');
-            
+
             // Stock disponible actual = stock total - reservas
             $stockDisponibleActual = max(0, $stockTotalActual - $reservasActivas);
 
@@ -1144,13 +1206,13 @@ class ListaDeProductos extends Component
                 'motivo' => $this->motivoAjuste,
                 'users_id' => Auth::id(),
                 'created_at' => now(),
-                'updated_at' => now()
+                'updated_at' => now(),
             ]);
 
             // Registrar en bitácora
             $this->registrarEnBitacora([
                 'tabla_afectada' => 'recibido_bodega',
-                'operacion' => 'AJUSTE_CANTIDAD_' . strtoupper($this->tipoAjuste),
+                'operacion' => 'AJUSTE_CANTIDAD_'.strtoupper($this->tipoAjuste),
                 'registro_id' => $this->stockParaAjuste->id,
                 'datos_anteriores' => [
                     'producto_id' => $this->stockParaAjuste->producto_id,
@@ -1158,7 +1220,7 @@ class ListaDeProductos extends Component
                     'bodega' => $this->bodegaNombreAjuste,
                     'seccion' => $this->seccionNombreAjuste,
                     'unidad_medida' => $this->unidadMedidaAjuste,
-                    'cantidad_disponible' => $cantidadAnterior
+                    'cantidad_disponible' => $cantidadAnterior,
                 ],
                 'datos_nuevos' => [
                     'producto_id' => $this->stockParaAjuste->producto_id,
@@ -1169,8 +1231,8 @@ class ListaDeProductos extends Component
                     'cantidad_disponible' => $cantidadNueva,
                     'tipo_ajuste' => $this->tipoAjuste,
                     'cantidad_ajustada' => floatval($this->cantidadAjuste),
-                    'motivo' => $this->motivoAjuste
-                ]
+                    'motivo' => $this->motivoAjuste,
+                ],
             ]);
 
             DB::commit();
@@ -1199,23 +1261,23 @@ class ListaDeProductos extends Component
             } catch (\Exception $e) {
                 Log::warning('Error al enviar webhook de ajuste de inventario', [
                     'producto_id' => $this->stockParaAjuste->producto_id,
-                    'error' => $e->getMessage()
+                    'error' => $e->getMessage(),
                 ]);
             }
 
-            $mensaje = $this->tipoAjuste === 'aumentar' 
-                ? 'Se aumentaron ' . number_format(floatval($this->cantidadAjuste), 2) . ' unidades.'
-                : 'Se disminuyeron ' . number_format(floatval($this->cantidadAjuste), 2) . ' unidades.';
-            
+            $mensaje = $this->tipoAjuste === 'aumentar'
+                ? 'Se aumentaron '.number_format(floatval($this->cantidadAjuste), 2).' unidades.'
+                : 'Se disminuyeron '.number_format(floatval($this->cantidadAjuste), 2).' unidades.';
+
             $this->cerrarModalAjusteCantidades();
-            session()->flash('message', $mensaje . ' Nueva cantidad: ' . number_format($cantidadNueva, 2));
+            session()->flash('message', $mensaje.' Nueva cantidad: '.number_format($cantidadNueva, 2));
 
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Error en ajuste de cantidades: ' . $e->getMessage());
-            Log::error('Stack trace: ' . $e->getTraceAsString());
+            Log::error('Error en ajuste de cantidades: '.$e->getMessage());
+            Log::error('Stack trace: '.$e->getTraceAsString());
             $this->cerrarModalAjusteCantidades();
-            session()->flash('error', 'Error al procesar el ajuste: ' . $e->getMessage());
+            session()->flash('error', 'Error al procesar el ajuste: '.$e->getMessage());
         }
     }
 
@@ -1225,45 +1287,72 @@ class ListaDeProductos extends Component
     public function verReservas($productoId)
     {
         try {
+            if (! Schema::hasTable('reservas_inventario') || ! Schema::hasTable('pedidos_web')) {
+                session()->flash('warning', 'El módulo de reservas web no está habilitado.');
+
+                return;
+            }
+
             // Obtener información del producto
             $producto = DB::table('producto')->where('id', $productoId)->first();
-            
-            if (!$producto) {
+
+            if (! $producto) {
                 session()->flash('error', 'Producto no encontrado.');
+
                 return;
             }
 
             $this->productoIdReservas = $productoId;
             $this->productoNombreReservas = $producto->nombre;
 
-            // Obtener reservas activas del producto con información del pedido
-            $this->reservasProducto = ReservaInventario::with(['pedidoWeb'])
-                ->where('producto_id', $productoId)
-                ->where('estado', 'activa')
-                ->orderBy('created_at', 'desc')
+            $this->reservasProducto = DB::table('reservas_inventario as ri')
+                ->leftJoin('pedidos_web as pw', 'ri.pedido_web_id', '=', 'pw.id')
+                ->select(
+                    'ri.id',
+                    'ri.cantidad_reservada',
+                    'ri.pedido_web_id',
+                    'ri.created_at',
+                    'pw.numero_pedido',
+                    'pw.cliente_nombre',
+                    'pw.estado as estado_pedido'
+                )
+                ->where('ri.producto_id', $productoId)
+                ->where('ri.estado', 'activa')
+                ->orderBy('ri.created_at', 'desc')
                 ->get()
-                ->map(function($reserva) {
+                ->map(function ($reserva) {
                     return [
                         'id' => $reserva->id,
                         'cantidad' => $reserva->cantidad_reservada,
-                        'pedido_numero' => $reserva->pedidoWeb->numero_pedido ?? 'N/A',
+                        'pedido_numero' => $reserva->numero_pedido ?? 'N/A',
                         'pedido_id' => $reserva->pedido_web_id,
-                        'cliente' => $reserva->pedidoWeb->cliente_nombre ?? 'N/A',
-                        'fecha_reserva' => $reserva->created_at->format('d/m/Y H:i'),
-                        'estado_pedido' => $reserva->pedidoWeb->estado ?? 'N/A',
+                        'cliente' => $reserva->cliente_nombre ?? 'N/A',
+                        'fecha_reserva' => \Carbon\Carbon::parse($reserva->created_at)->format('d/m/Y H:i'),
+                        'estado_pedido' => $reserva->estado_pedido ?? 'N/A',
                     ];
                 })
                 ->toArray();
 
-            // Calcular total reservado
-            $this->totalReservado = ReservaInventario::cantidadReservadaProducto($productoId);
+            $this->totalReservado = $this->obtenerReservasActivas($productoId);
 
             $this->mostrarModalReservas = true;
 
         } catch (\Exception $e) {
-            Log::error('Error al obtener reservas: ' . $e->getMessage());
+            Log::error('Error al obtener reservas: '.$e->getMessage());
             session()->flash('error', 'Error al cargar las reservas del producto.');
         }
+    }
+
+    private function obtenerReservasActivas($productoId)
+    {
+        if (! Schema::hasTable('reservas_inventario')) {
+            return 0;
+        }
+
+        return DB::table('reservas_inventario')
+            ->where('producto_id', $productoId)
+            ->where('estado', 'activa')
+            ->sum('cantidad_reservada');
     }
 
     /**
@@ -1283,7 +1372,7 @@ class ListaDeProductos extends Component
         $productosRecibidos = $this->cargarDatos();
 
         return view('livewire.inventario.lista-de-productos', [
-            'productosRecibidos' => $productosRecibidos
+            'productosRecibidos' => $productosRecibidos,
         ]);
     }
 }

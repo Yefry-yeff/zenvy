@@ -53,6 +53,12 @@
         </div>
     @endif
 
+    @if($errorCarga)
+        <div class="alert alert-danger" role="alert">
+            <strong>❌ Error:</strong> {{ $errorCarga }}
+        </div>
+    @endif
+
     <!-- CONTENEDOR PRINCIPAL OPTIMIZADO -->
     <div class="overflow-hidden border border-gray-300 rounded shadow" x-data x-init="$watch('theme', t => localStorage.setItem('theme', t))">
 
@@ -325,7 +331,7 @@
                                         <td class="px-2 py-1 text-xs border-b">
                                             @if($item->id_mostrar)
                                                 <span class="font-semibold text-gray-700">{{ $item->id_mostrar }}</span>
-                                            @else
+                                            @elseif(!$errorCarga)
                                                 <span class="text-gray-400">N/A</span>
                                             @endif
                                         </td>
